@@ -1,0 +1,144 @@
+--- admin/depcomp.orig	Wed Apr  4 10:19:47 2001
++++ admin/depcomp	Thu Mar 28 15:14:37 2002
+@@ -176,6 +176,9 @@
+ ' < "$tmpdepfile" | sed 's/^[^\.]*\.o://' | tr '
+ ' ' ' >> $depfile
+ 
++    # We need a return at the end of the line.
++    echo >> $depfile
++
+     tr ' ' '
+ ' < "$tmpdepfile" | \
+ ## Some versions of the HPUX 10.20 sed can't process this invocation
+--- admin/ltmain.sh.orig	Fri Mar 22 00:21:24 2002
++++ admin/ltmain.sh	Thu Mar 28 15:14:37 2002
+@@ -3922,6 +3922,17 @@
+ 	finalize_command=`$echo "X$finalize_command" | $Xsed -e "s% @SYMFILE@%%"`
+       fi
+ 
++      # AIX runtime linking requires linking programs with -Wl,-brtl and libs with -Wl,-G
++      # Also add -bnolibpath to the beginning of the link line, to clear the hardcoded runpath.
++      # Otherwise, things like the -L path to libgcc.a are accidentally hardcoded by ld.
++      # This does not apply on AIX for ia64, which uses a SysV linker.
++      case "$host" in
++        ia64-*-aix5*) ;;
++        *-*-aix4* | *-*-aix5*)
++                   compile_command=`$echo "X$compile_command $wl-brtl" | $Xsed -e "s/\$CC/\$CC $wl-bnolibpath/1"`
++                   finalize_command=`$echo "X$finalize_command $wl-brtl" | $Xsed -e "s/\$CC/\$CC $wl-bnolibpath/1"` ;;
++      esac
++
+       if test "$need_relink" = no || test "$build_libtool_libs" != yes; then
+ 	# Replace the output file specification.
+ 	compile_command=`$echo "X$compile_command" | $Xsed -e 's%@OUTPUT@%'"$output"'%g'`
+--- admin/libtool.m4.in.orig	Mon Mar 18 12:39:39 2002
++++ admin/libtool.m4.in	Thu Apr  4 15:45:26 2002
+@@ -2438,20 +2438,8 @@
+       exp_sym_flag='-Bexport'
+       no_entry_flag=""
+     else
+-      aix_use_runtimelinking=no
+-
+-      # Test if we are trying to use run time linking or normal
+-      # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+-      # need to do runtime linking.
+-      case $host_os in aix4.[[23]]|aix4.[[23]].*|aix5*)
+-	for ld_flag in $LDFLAGS; do
+-	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+-	    aix_use_runtimelinking=yes
+-	    break
+-	  fi
+-	done
+-      esac
+-
++      # KDE requires run time linking.  Make it the default.
++      aix_use_runtimelinking=yes
+       exp_sym_flag='-bexport'
+       no_entry_flag='-bnoentry'
+     fi
+@@ -2497,16 +2485,15 @@
+ 	shared_flag='-G'
+       else
+ 	if test "$aix_use_runtimelinking" = yes; then
+-	  shared_flag='${wl}-G'
++	  shared_flag='-qmkshrobj ${wl}-G'
+ 	else
+-	  shared_flag='${wl}-bM:SRE'
++	  shared_flag='-qmkshrobj'
+ 	fi
+       fi
+     fi
+ 
+-    # It seems that -bexpall does not export symbols beginning with
+-    # underscore (_), so it is better to generate a list of symbols to export.
+-    _LT_AC_TAGVAR(always_export_symbols, $1)=yes
++    # Let the compiler handle the export list.
++    _LT_AC_TAGVAR(always_export_symbols, $1)=no
+     if test "$aix_use_runtimelinking" = yes; then
+       # Warning - without using the other runtime loading flags (-brtl),
+       # -berok will link without error, but may produce a broken library.
+@@ -2515,7 +2502,8 @@
+       _LT_AC_SYS_LIBPATH_AIX
+       _LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-blibpath:$libdir:'"$aix_libpath"
+ 
+-      _LT_AC_TAGVAR(archive_expsym_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$no_entry_flag \${wl}$exp_sym_flag:\$export_symbols $shared_flag"
++      _LT_AC_TAGVAR(archive_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '" $shared_flag"
++      _LT_AC_TAGVAR(archive_expsym_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
+      else
+       if test "$host_cpu" = ia64; then
+ 	_LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib:/lib'
+@@ -4611,20 +4599,9 @@
+ 	else
+ 	  _LT_AC_TAGVAR(export_symbols_cmds, $1)='$NM -BCpg $libobjs $convenience | awk '\''{ if (((\[$]2 == "T") || (\[$]2 == "D") || (\[$]2 == "B")) && ([substr](\[$]3,1,1) != ".")) { print \[$]3 } }'\'' | sort -u > $export_symbols'
+ 	fi
+-	aix_use_runtimelinking=no
+-
+-	# Test if we are trying to use run time linking or normal
+-	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
+-	# need to do runtime linking.
+-	case $host_os in aix4.[[23]]|aix4.[[23]].*|aix5*)
+-	  for ld_flag in $LDFLAGS; do
+-  	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+-  	    aix_use_runtimelinking=yes
+-  	    break
+-  	  fi
+-	  done
+-	esac
+ 
++	# KDE requires run time linking.  Make it the default.
++	aix_use_runtimelinking=yes
+ 	exp_sym_flag='-bexport'
+ 	no_entry_flag='-bnoentry'
+       fi
+@@ -4670,24 +4647,24 @@
+ 	  shared_flag='-G'
+ 	else
+   	if test "$aix_use_runtimelinking" = yes; then
+-	    shared_flag='${wl}-G'
++	    shared_flag='-qmkshrobj ${wl}-G'
+ 	  else
+-	    shared_flag='${wl}-bM:SRE'
++	    shared_flag='-qmkshrobj'
+   	fi
+ 	fi
+       fi
+ 
+-      # It seems that -bexpall does not export symbols beginning with
+-      # underscore (_), so it is better to generate a list of symbols to export.
+-      _LT_AC_TAGVAR(always_export_symbols, $1)=yes
++      # Let the compiler handle the export list.
++      _LT_AC_TAGVAR(always_export_symbols, $1)=no
+       if test "$aix_use_runtimelinking" = yes; then
+ 	# Warning - without using the other runtime loading flags (-brtl),
+ 	# -berok will link without error, but may produce a broken library.
+ 	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-berok'
+        # Determine the default libpath from the value encoded in an empty executable.
+-       _LT_AC_SYS_LIBPATH_AIX
+-       _LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-blibpath:$libdir:'"$aix_libpath"
+-	_LT_AC_TAGVAR(archive_expsym_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$no_entry_flag \${wl}$exp_sym_flag:\$export_symbols $shared_flag"
++	_LT_AC_SYS_LIBPATH_AIX
++	_LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-blibpath:$libdir:'"$aix_libpath"
++	_LT_AC_TAGVAR(archive_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '" $shared_flag"
++	_LT_AC_TAGVAR(archive_expsym_cmds, $1)="\$CC"' -o $output_objdir/$soname $libobjs $deplibs $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then echo "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
+        else
+ 	if test "$host_cpu" = ia64; then
+ 	  _LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib:/lib'

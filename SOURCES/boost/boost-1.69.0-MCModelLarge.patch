@@ -1,0 +1,20 @@
+--- ./tools/build/src/tools/gcc.jam.ORIGIN	2020-02-03 16:43:12 -0600
++++ ./tools/build/src/tools/gcc.jam	2020-04-16 11:34:49 -0500
+@@ -731,6 +739,8 @@
+ toolset.flags gcc.compile.c++ DEFINES <rtti>off/<target-os>vxworks : _NO_RTTI ;
+ toolset.flags gcc.compile.c++ DEFINES <exception-handling>off/<target-os>vxworks : _NO_EX=1 ;
+ 
++toolset.flags gcc.compile OPTIONS <target-os>aix : -mcmodel=large ;
++
+ ###
+ ### User free feature options.
+ ###
+@@ -945,7 +945,7 @@
+     # AIX 4.x and AIX 6.x. For details about the AIX linker see:
+     # http://download.boulder.ibm.com/ibmdl/pub/software/dw/aix/es-aix_ll.pdf
+     #
+-    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-brtl -Wl,-bnoipath -Wl,-bbigtoc ;
++    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-brtl -Wl,-bnoipath ;
+ 
+     # See note [1]
+     toolset.flags gcc.link OPTIONS <target-os>aix/<runtime-link>static : -static ;

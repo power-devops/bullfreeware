@@ -1,0 +1,26 @@
+*** ./src/lmathlib.c.ORIG	Fri Sep 25 10:27:23 2015
+--- ./src/lmathlib.c	Fri Sep 25 10:28:20 2015
+***************
+*** 176,181 ****
+--- 176,185 ----
+    return 1;
+  }
+  
++ #if defined(_AIX) && !defined(_AIX52)
++ #define LUA_USE_C89
++ #endif
++ 
+  static int math_log (lua_State *L) {
+    lua_Number x = luaL_checknumber(L, 1);
+    lua_Number res;
+--- ./src/Makefile.ORIG	2021-01-14 19:00:37 +0100
++++ ./src/Makefile	2021-01-14 19:00:45 +0100
+@@ -89,7 +89,7 @@
+ 	@echo "   $(PLATS)"
+ 
+ aix:
+-	$(MAKE) $(ALL) CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl" SYSLDFLAGS="-brtl -bexpall"
++	$(MAKE) $(ALL) CC="xlc_r" CFLAGS="-O -DLUA_USE_POSIX -DLUA_C89_NUMBERS" SYSLIBS="" SYSLDFLAGS="-L. -L/opt/freeware/lib -lreadline"
+ 
+ bsd:
+ 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"

@@ -1,0 +1,101 @@
+--- ./doc/src/sgml/config.sgml
++++ ./doc/src/sgml/config.sgml
+@@ -1542,9 +1542,12 @@ include_dir 'conf.d'
+        </para>
+ 
+        <para>
+-        At present, this setting is supported only on Linux and Windows. The
++        At present, this setting is supported only on Linux, AIX and Windows. The
+         setting is ignored on other systems when set to
+-        <literal>try</literal>.
++        <literal>try</literal>.  On Linux, huge pages are only available when
++        <varname>shared_memory_type</varname> is set to <literal>mmap</literal>
++        (the default).  On AIX, they are only available when
++        <varname>shared_memory_type</varname> is set to <literal>sysv</literal>.
+        </para>
+ 
+        <para>
+@@ -1565,6 +1568,13 @@ include_dir 'conf.d'
+         command prompt revokes the user right Lock Pages in Memory when started.
+        </para>
+ 
++       <para>
++        Huge pages are known as large page on AIX.  To use them, the user account
++        that runs <productname>PostgreSQL</productname> must have the
++        <literal>CAP_BYPASS_RAC_VMM</literal> and <literal>CAP_PROPAGATE</literal>
++        capabilities.
++       </para>
++
+        <para>
+         Note that this setting only affects the main shared memory area.
+         Operating systems such as Linux, FreeBSD, and Illumos can also use
+--- ./src/backend/port/sysv_shmem.c
++++ ./src/backend/port/sysv_shmem.c
+@@ -125,6 +125,7 @@ InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size)
+ 	IpcMemoryId shmid;
+ 	void	   *requestedAddress = NULL;
+ 	void	   *memAddress;
++	int			shmget_extra_flags = 0;
+ 
+ 	/*
+ 	 * Normally we just pass requestedAddress = NULL to shmat(), allowing the
+@@ -145,7 +146,28 @@ InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size)
+ 	}
+ #endif
+ 
+-	shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection);
++	if (huge_pages == HUGE_PAGES_ON || huge_pages == HUGE_PAGES_TRY)
++	{
++#if defined(SHM_LGPAGE)
++		/* AIX */
++		shmget_extra_flags = SHM_LGPAGE | SHM_PIN | S_IRUSR | S_IWUSR;
++#endif
++	}
++
++	shmid = shmget(memKey, size,
++				   IPC_CREAT | IPC_EXCL | IPCProtection | shmget_extra_flags);
++
++	/*
++	 * If we tried and failed to allocate huge pages, try again without the extra
++	 * flags so that we ask for the default page size.
++	 */
++	if (huge_pages == HUGE_PAGES_TRY && shmget_extra_flags > 0 && shmid < 0 &&
++		errno != EEXIST)
++	{
++		elog(DEBUG1, "shmget(%zu) with huge pages failed, huge pages disabled: %m",
++			 size);
++		shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection);
++	}
+ 
+ 	if (shmid < 0)
+ 	{
+@@ -641,12 +663,25 @@ PGSharedMemoryCreate(Size size,
+ 						DataDir)));
+ 
+ 	/* Complain if hugepages demanded but we can't possibly support them */
+-#if !defined(MAP_HUGETLB)
+ 	if (huge_pages == HUGE_PAGES_ON)
+-		ereport(ERROR,
+-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+-				 errmsg("huge pages not supported on this platform")));
++	{
++		if (shared_memory_type == SHMEM_TYPE_MMAP)
++		{
++#if !defined(MAP_HUGETLB)
++			ereport(ERROR,
++					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
++					 errmsg("huge pages not supported on this platform with this shared_memory_type")));
+ #endif
++		}
++		else if (shared_memory_type == SHMEM_TYPE_SYSV)
++		{
++#if !defined(SHM_LGPAGE)
++			ereport(ERROR,
++					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
++					 errmsg("huge pages not supported on this platform with this shared_memory_type")));
++#endif
++		}
++	}
+ 
+ 	/* Room for a header? */
+ 	Assert(size > MAXALIGN(sizeof(PGShmemHeader)));

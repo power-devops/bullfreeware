@@ -1,0 +1,29 @@
+From 1417c848426871e767342ffbc673198145f4cec7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 29 Jul 2021 14:22:54 +0200
+Subject: [PATCH] bfd: avoid a crash when debug_section isn't created in XCOFF
+
+bfd/
+	* xcofflink.c (bfd_xcoff_size_dynamic_sections):
+	Add check to know if debug_section is initialized.
+---
+ bfd/xcofflink.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/bfd/xcofflink.c b/bfd/xcofflink.c
+index e18efd4381a..a00ae895e41 100644
+--- a/bfd/xcofflink.c
++++ b/bfd/xcofflink.c
+@@ -3992,7 +3992,8 @@ bfd_xcoff_size_dynamic_sections (bfd *output_bfd,
+ 	}
+     }
+ 
+-  if (info->strip != strip_all)
++  if (info->strip != strip_all
++      && xcoff_hash_table (info)->debug_section != NULL)
+     xcoff_hash_table (info)->debug_section->size =
+       _bfd_stringtab_size (debug_strtab);
+ 
+-- 
+2.33.0
+

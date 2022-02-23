@@ -1,0 +1,29 @@
+From 6f02200464dd484641639f2cb38b775d34af4bcd Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 27 Mar 2018 15:42:28 -0400
+Subject: [PATCH] Zap data when freeing krb5_spake_factor
+
+krb5_spake_factor structures will sometimes hold sensitive data when
+second-factor SPAKE is implemented, so should be zapped when freed.
+
+ticket: 8647
+(cherry picked from commit 9cc94a3f1ce06a4430f684300a747ec079102403)
+---
+ src/lib/krb5/krb/kfree.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/krb5/krb/kfree.c b/src/lib/krb5/krb/kfree.c
+index e1ea1494a..71e7fcad0 100644
+--- a/src/lib/krb5/krb/kfree.c
++++ b/src/lib/krb5/krb/kfree.c
+@@ -897,7 +897,9 @@ k5_free_spake_factor(krb5_context context, krb5_spake_factor *val)
+ {
+     if (val == NULL)
+         return;
+-    krb5_free_data(context, val->data);
++    if (val->data != NULL)
++        zapfree(val->data->data, val->data->length);
++    free(val->data);
+     free(val);
+ }
+ 

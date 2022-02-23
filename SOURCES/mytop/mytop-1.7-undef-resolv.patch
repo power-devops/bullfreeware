@@ -1,0 +1,16 @@
+--- mytop-1.7/mytop.orig	2009-03-21 16:31:23.000000000 +0100
++++ mytop-1.7/mytop	2010-05-09 15:10:33.000000000 +0200
+@@ -955,8 +955,11 @@
+         {
+             $thread->{Host} =~ s/:\d+$//;
+             my $host = gethostbyaddr(inet_aton($thread->{Host}), AF_INET);
+-            $host =~ s/^([^.]+).*/$1/;
+-            $thread->{Host} = $host;
++            if (defined $host)
++            {
++                $host =~ s/^([^.]+).*/$1/;
++                $thread->{Host} = $host;
++            }
+         }
+ 
+         ## Fix possible undefs

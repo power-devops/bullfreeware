@@ -1,0 +1,31 @@
+--- onig-5.9.2/regcomp.c.debug	2010-01-05 23:13:38.000000000 +0900
++++ onig-5.9.2/regcomp.c	2010-01-15 03:58:15.000000000 +0900
+@@ -5536,19 +5536,22 @@
+ 	  OnigErrorInfo* einfo)
+ {
+   int r;
++  regex_t *regg;
+ 
+-  *reg = (regex_t* )xmalloc(sizeof(regex_t));
+-  if (IS_NULL(*reg)) return ONIGERR_MEMORY;
++  regg = (regex_t* )xmalloc(sizeof(regex_t));
++  if (IS_NULL(regg)) return ONIGERR_MEMORY;
+ 
+-  r = onig_reg_init(*reg, option, ONIGENC_CASE_FOLD_DEFAULT, enc, syntax);
++  r = onig_reg_init(regg, option, ONIGENC_CASE_FOLD_DEFAULT, enc, syntax);
+   if (r) goto err;
+ 
+-  r = onig_compile(*reg, pattern, pattern_end, einfo);
++  r = onig_compile(regg, pattern, pattern_end, einfo);
+   if (r) {
+   err:
+-    onig_free(*reg);
+-    *reg = NULL;
++    onig_free(regg);
++    regg = NULL;
+   }
++
++  *reg = regg;
+   return r;
+ }
+ 

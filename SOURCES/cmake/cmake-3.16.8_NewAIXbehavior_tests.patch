@@ -1,0 +1,140 @@
+--- ./Tests/RunCMake/FileAPI/codemodel-v2-check.py.orig
++++ ./Tests/RunCMake/FileAPI/codemodel-v2-check.py
+@@ -1390,10 +1390,10 @@ def gen_check_targets(c, g, inSource):
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+@@ -2349,10 +2349,10 @@ def gen_check_targets(c, g, inSource):
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+--- ./Tests/RunCMake/install/TARGETS-Defaults-Cache-all-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-Defaults-Cache-all-check.cmake
+@@ -31,15 +31,15 @@ elseif(CYGWIN)
+ else()
+   set(_check_files
+     [[lib3]]
+-    [[lib3/liblib3\.(dylib|so)]]
++    [[lib3/liblib3\.(dylib|so|a)]]
+     [[lib4]]
+-    [[lib4/liblib4\.(dylib|so)]]
++    [[lib4/liblib4\.(dylib|so|a)]]
+     [[mybin]]
+     [[mybin/exe]]
+     [[myinclude]]
+     [[myinclude/obj3\.h]]
+     [[mylib]]
+-    [[mylib/liblib1\.(dylib|so)]]
++    [[mylib/liblib1\.(dylib|so|a)]]
+     [[mylib/liblib2\.a]]
+     )
+ endif()
+--- ./Tests/RunCMake/install/TARGETS-Defaults-all-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-Defaults-all-check.cmake
+@@ -44,12 +44,12 @@ else()
+     [[include/obj2\.h]]
+     [[include/obj3\.h]]
+     [[lib]]
+-    [[lib/liblib1\.(dylib|so)]]
++    [[lib/liblib1\.(dylib|so|a)]]
+     [[lib/liblib2\.a]]
+     [[lib3]]
+-    [[lib3/liblib3\.(dylib|so)]]
++    [[lib3/liblib3\.(dylib|so|a)]]
+     [[lib4]]
+-    [[lib4/liblib4\.(dylib|so)]]
++    [[lib4/liblib4\.(dylib|so|a)]]
+     )
+ endif()
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake
+@@ -70,4 +70,16 @@ else()
+   )
+ endif()
+ 
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-only\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++)
++
++
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake
+@@ -3,9 +3,10 @@ if(WIN32 OR CYGWIN OR NO_NAMELINK)
+ else()
+   set(_check_files
+     [[lib]]
+-    [[lib/libnamelink-only\.(so|dylib)]]
+-    [[lib/libnamelink-sep\.(so|dylib)]]
+-    [[lib/libnamelink-uns-dev\.(so|dylib)]]
++    [[lib/libnamelink-none\.(so|dylib|a)]]
++    [[lib/libnamelink-only\.(so|dylib|a)]]
++    [[lib/libnamelink-sep\.(so|dylib|a)]]
++    [[lib/libnamelink-uns-dev\.(so|dylib|a)]]
+   )
+ endif()
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake
+@@ -47,4 +47,14 @@ else()
+     [[lib/libnamelink-skip\.so\.1\.0]]
+   )
+ endif()
++
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++)
++
++
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake
+@@ -35,4 +35,9 @@ else()
+     [[lib/libnamelink-uns\.so\.1\.0]]
+   )
+ endif()
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++)
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake.orig
++++ ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake
+@@ -9,5 +9,5 @@ elseif(CYGWIN)
+ elseif(APPLE)
+   check_installed([[^bin;bin/libtest4lib\.dylib;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ else()
+-  check_installed([[^bin;bin/libtest4lib\.so;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
++  check_installed([[^bin;bin/libtest4lib\.a;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ endif()

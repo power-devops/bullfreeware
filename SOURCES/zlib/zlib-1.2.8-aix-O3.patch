@@ -1,0 +1,21 @@
+*** ./configure.ORIG	Mon Jun 14 11:50:41 2010
+--- ./configure	Mon Jun 14 11:51:24 2010
+***************
+*** 215,222 ****
+               CFLAGS=${CFLAGS-"-O"}
+               LDSHARED=${LDSHARED-"cc -G"} ;;
+    AIX*)  # Courtesy of dbakker@arrayasolutions.com
+!              SFLAGS=${CFLAGS-"-O -qmaxmem=8192"}
+!              CFLAGS=${CFLAGS-"-O -qmaxmem=8192"}
+               LDSHARED=${LDSHARED-"xlc -G"} ;;
+    # send working options for other systems to zlib@gzip.org
+    *)         SFLAGS=${CFLAGS-"-O"}
+--- 215,222 ----
+               CFLAGS=${CFLAGS-"-O"}
+               LDSHARED=${LDSHARED-"cc -G"} ;;
+    AIX*)  # Courtesy of dbakker@arrayasolutions.com
+!              SFLAGS=${CFLAGS-"-O3 -qmaxmem=8192"}
+!              CFLAGS=${CFLAGS-"-O3 -qmaxmem=8192"}
+               LDSHARED=${LDSHARED-"xlc -G"} ;;
+    # send working options for other systems to zlib@gzip.org
+    *)         SFLAGS=${CFLAGS-"-O"}

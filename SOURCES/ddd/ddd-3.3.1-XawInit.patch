@@ -1,0 +1,19 @@
+Index: ddd-3.3.1/ddd/PannedGE.C
+diff -c ddd-3.3.1/ddd/PannedGE.C:1.1 ddd-3.3.1/ddd/PannedGE.C:1.2
+*** ddd-3.3.1/ddd/PannedGE.C:1.1	Thu Nov 15 12:51:50 2001
+--- ddd-3.3.1/ddd/PannedGE.C	Thu Nov 15 14:26:58 2001
+***************
+*** 48,54 ****
+--- 48,59 ----
+  
+  #include <X11/Intrinsic.h>
+  #include <X11/StringDefs.h>
++ #ifndef _AIX
+  #include <X11/Xaw/XawInit.h>
++ #else
++ /* Workaround missing prototype. */
++ extern "C" void XawInitializeWidgetSet(void); 
++ #endif
+  #include <X11/Xaw/Form.h>
+  #include <X11/Xaw/Panner.h>
+  #include <X11/Xaw/Porthole.h>

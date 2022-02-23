@@ -1,0 +1,53 @@
+--- ./libgo/testsuite//gotest.ORIGIN-20180202.Patch-min	2018-02-02 10:09:15 -0600
++++ ./libgo/testsuite/gotest	2018-02-02 10:09:41 -0600
+@@ -10,6 +10,9 @@
+ 
+ # Makes egrep,grep work better in general if we put them
+ # in ordinary C mode instead of what the current language is.
++
++#set -x
++
+ LANG=C
+ LC_ALL=C
+ LC_CTYPE=C
+@@ -32,13 +35,16 @@
+ goos=""
+ pkgfiles=""
+ loop=true
++keep=true
+ keep=false
+ pkgpath=
+ prefix=
+ dejagnu=no
+ timeout=240
++timeout=800
+ testname=""
+ bench=""
++trace=true
+ trace=false
+ while $loop; do
+ 	case "x$1" in
+@@ -85,6 +91,11 @@
+ 		;;
+ 	x--pkgpath=*)
+ 		pkgpath=`echo $1 | sed -e 's/^--pkgpath=//'`
++#		echo "Test: $pkgpath"
++#		if [ "$pkgpath" != "net/http/httputil" ]
++#		then
++#			exit 0
++#		fi
+ 		shift
+ 		;;
+ 	x--prefix)
+@@ -614,9 +625,9 @@
+ 	(strip -X32_64 -t a.out || true)
+ 	if test "$bench" = ""; then
+ 		if test "$trace" = "true"; then
+-		    echo ./a.out -test.short -test.timeout=${timeout}s "$@"
++		    echo ./a.out -test.v -test.timeout=${timeout}s "$@"
+ 		fi
+-		./a.out -test.short -test.timeout=${timeout}s "$@" &
++		./a.out -test.v -test.timeout=${timeout}s "$@" &
+ 		pid=$!
+ 		(sleep `expr $timeout + 10`
+ 		    echo > gotest-timeout

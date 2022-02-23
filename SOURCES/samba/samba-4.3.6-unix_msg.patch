@@ -1,0 +1,12 @@
+--- ./source3/lib/unix_msg/unix_msg.c.ORIG  2015-10-20 12:40:54 +0200
++++ ./source3/lib/unix_msg/unix_msg.c  2016-03-25 15:37:21 +0100
+@@ -626,7 +626,8 @@
+	}
+
+	{
+-		uint8_t buf[fdlen];
++		/* Work around add +1 for xlc to prevent size 0 */
++		uint8_t buf[fdlen +1];
+		msghdr_prep_fds(&msg, buf, fdlen, fds, num_fds);
+
+		ret = sendmsg(ctx->sock, &msg, 0);

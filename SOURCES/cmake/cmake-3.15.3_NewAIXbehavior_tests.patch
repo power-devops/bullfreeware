@@ -1,0 +1,209 @@
+--- ./Tests/Plugin/CMakeLists.txt.orig	2019-04-04 09:13:37.744000000 +0200
++++ ./Tests/Plugin/CMakeLists.txt	2019-04-12 12:00:09.584000000 +0200
+@@ -35,7 +35,12 @@
+ endif()
+ 
+ # Create an executable that exports an API for use by plugins.
+-add_executable(example_exe src/example_exe.cxx)
++if(AIX)
++  add_library(example_exe_obj OBJECT src/example_exe.cxx)
++  add_executable(example_exe $<TARGET_OBJECTS:example_exe_obj>)
++else()
++  add_executable(example_exe src/example_exe.cxx)
++endif()
+ set_target_properties(example_exe PROPERTIES
+   ENABLE_EXPORTS 1
+   OUTPUT_NAME example
+@@ -48,7 +53,11 @@
+ # This module "links" to the executable to use the symbols.
+ add_library(example_mod_1 MODULE src/example_mod_1.c)
+ target_link_libraries(example_mod_1 example_exe)
+-
++if(AIX)
++  ExportAIX(example_exe example_exe_obj "example.exp" ".")
++  ImportAIX(example_mod_1 "example.exp")
++  add_dependencies(example_mod_1 example_exe)
++endif()
+ 
+ if(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG AND
+     "${CMAKE_C_CREATE_SHARED_MODULE}" MATCHES "SONAME_FLAG")
+--- ./Tests/RunCMake/FileAPI/codemodel-v2-check.py.orig	2019-04-04 21:37:50.000000000 +0200
++++ ./Tests/RunCMake/FileAPI/codemodel-v2-check.py	2019-04-04 21:34:47.000000000 +0200
+@@ -1341,10 +1341,10 @@
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+@@ -2184,10 +2184,10 @@
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+--- ./Tests/ExportImport/Export/CMakeLists.txt.orig	2019-02-01 14:35:27.000000000 +0100
++++ ./Tests/ExportImport/Export/CMakeLists.txt	2019-04-12 12:02:03.528000000 +0200
+@@ -15,7 +15,13 @@
+ add_library(testExe2lib SHARED testExe2lib.c)
+ target_link_libraries(testExe2lib testExe2libImp)
+ set_property(TARGET testExe2lib PROPERTY LINK_INTERFACE_LIBRARIES "")
+-add_executable(testExe2 testExe2.c)
++if (AIX)
++  add_library(testExe2_obj OBJECT testExe2.c)
++  add_executable(testExe2 $<TARGET_OBJECTS:testExe2_obj>)
++  ExportAIX(testExe2 testExe2_obj "/tmp/objects.exp" ".")
++else()
++  add_executable(testExe2 testExe2.c)
++endif()
+ set_property(TARGET testExe2 PROPERTY ENABLE_EXPORTS 1)
+ set_property(TARGET testExe2 PROPERTY LINK_INTERFACE_LIBRARIES testExe2lib)
+ 
+--- ./Tests/ExportImport/Import/A/CMakeLists.txt.orig	2019-04-04 14:46:19.236000000 +0200
++++ ./Tests/ExportImport/Import/A/CMakeLists.txt	2019-04-08 14:26:27.020000000 +0200
+@@ -66,6 +66,9 @@
+ 
+ # Try building a plugin to an executable imported from the install tree.
+ add_library(imp_mod1 MODULE imp_mod1.c)
++if (AIX)
++  ImportAIX(imp_mod1 "/tmp/objects.exp")
++endif()
+ target_link_libraries(imp_mod1 exp_testExe2)
+ 
+ # Try referencing an executable imported from the build tree.
+@@ -171,6 +174,9 @@
+ 
+ # Try building a plugin to an executable imported from the build tree.
+ add_library(imp_mod1b MODULE imp_mod1.c)
++if (AIX)
++  ImportAIX(imp_mod1b "/tmp/objects.exp")
++endif()
+ target_link_libraries(imp_mod1b bld_testExe2)
+ 
+ # Export/CMakeLists.txt pretends the RelWithDebInfo (as well as Debug)
+--- ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake.orig	2019-09-12 14:36:10.066089414 +0200
++++ ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake	2019-09-12 14:23:47.363642189 +0200
+@@ -9,5 +9,5 @@
+ elseif(APPLE)
+   check_installed([[^bin;bin/libtest4lib\.dylib;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ else()
+-  check_installed([[^bin;bin/libtest4lib\.so;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
++  check_installed([[^bin;bin/libtest4lib\.a;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ endif()
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake.orig	2019-09-12 14:36:25.804953787 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake	2019-09-12 14:29:11.723618930 +0200
+@@ -47,4 +47,14 @@
+     [[lib/libnamelink-skip\.so\.1\.0]]
+   )
+ endif()
++
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++)
++
++
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-Defaults-Cache-all-check.cmake.orig	2019-09-12 14:16:57.806671557 +0200
++++ ./Tests/RunCMake/install/TARGETS-Defaults-Cache-all-check.cmake	2019-09-12 14:17:20.571669925 +0200
+@@ -33,16 +33,16 @@
+ else()
+   set(_check_files
+     [[lib3]]
+-    [[lib3/liblib3\.(dylib|so)]]
++    [[lib3/liblib3\.(dylib|so|a)]]
+     [[lib4]]
+-    [[lib4/liblib4\.(dylib|so)]]
++    [[lib4/liblib4\.(dylib|so|a)]]
+     [[mybin]]
+     [[mybin/exe]]
+     [[myinclude]]
+     [[myinclude/obj4\.h]]
+     [[myinclude/obj5\.h]]
+     [[mylib]]
+-    [[mylib/liblib1\.(dylib|so)]]
++    [[mylib/liblib1\.(dylib|so|a)]]
+     [[mylib/liblib2\.a]]
+     )
+ endif()
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake.orig	2019-09-12 14:36:32.195146827 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake	2019-09-12 14:46:02.097050844 +0200
+@@ -70,4 +70,16 @@
+   )
+ endif()
+ 
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-only\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++)
++
++
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-Defaults-all-check.cmake.orig	2019-09-12 14:14:27.000000000 +0200
++++ ./Tests/RunCMake/install/TARGETS-Defaults-all-check.cmake	2019-09-12 14:16:23.743674000 +0200
+@@ -44,12 +44,12 @@
+     [[include/obj4\.h]]
+     [[include/obj5\.h]]
+     [[lib]]
+-    [[lib/liblib1\.(dylib|so)]]
++    [[lib/liblib1\.(dylib|so|a)]]
+     [[lib/liblib2\.a]]
+     [[lib3]]
+-    [[lib3/liblib3\.(dylib|so)]]
++    [[lib3/liblib3\.(dylib|so|a)]]
+     [[lib4]]
+-    [[lib4/liblib4\.(dylib|so)]]
++    [[lib4/liblib4\.(dylib|so|a)]]
+     )
+ endif()
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake.orig	2019-09-12 15:49:37.580075680 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake	2019-09-12 15:49:41.202075421 +0200
+@@ -35,4 +35,9 @@
+     [[lib/libnamelink-uns\.so\.1\.0]]
+   )
+ endif()
++set(_check_files
++    [[lib]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++)
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake.orig	2019-09-12 17:46:05.205574617 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake	2019-09-12 14:48:12.717698481 +0200
+@@ -3,9 +3,10 @@
+ else()
+   set(_check_files
+     [[lib]]
+-    [[lib/libnamelink-only\.(so|dylib)]]
+-    [[lib/libnamelink-sep\.(so|dylib)]]
+-    [[lib/libnamelink-uns-dev\.(so|dylib)]]
++    [[lib/libnamelink-none\.(so|dylib|a)]]
++    [[lib/libnamelink-only\.(so|dylib|a)]]
++    [[lib/libnamelink-sep\.(so|dylib|a)]]
++    [[lib/libnamelink-uns-dev\.(so|dylib|a)]]
+   )
+ endif()
+ check_installed("^${_check_files}$")

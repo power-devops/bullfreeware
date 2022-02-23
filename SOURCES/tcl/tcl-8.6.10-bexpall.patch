@@ -1,0 +1,22 @@
+--- ./unix/tcl.m4.orig	2020-11-03 13:54:24 +0100
++++ ./unix/tcl.m4	2020-11-03 13:54:34 +0100
+@@ -1168,7 +1168,7 @@
+ 		LD_SEARCH_FLAGS='-R ${LIB_RUNTIME_DIR}'
+ 	    ], [
+ 		AS_IF([test "$GCC" = yes], [
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
++		    SHLIB_LD='${CC} -shared'
+ 		], [
+ 		    SHLIB_LD="/bin/ld -bhalt:4 -bM:SRE -bexpall -H512 -T512 -bnoentry"
+ 		    LDFLAGS="$LDFLAGS -brtl"
+--- ./unix/configure.orig	2020-11-03 13:48:59 +0100
++++ ./unix/configure	2020-11-03 13:50:38 +0100
+@@ -6670,7 +6670,7 @@
+ 
+ 		if test "$GCC" = yes; then
+ 
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
++		    SHLIB_LD='${CC} -shared'
+ 
+ else
+ 

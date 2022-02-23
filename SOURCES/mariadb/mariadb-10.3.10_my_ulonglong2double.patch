@@ -1,0 +1,16 @@
+--- ./libmariadb/include/ma_global.h.ori	2018-10-24 14:35:05 -0500
++++ ./libmariadb/include/ma_global.h	2018-10-24 14:35:37 -0500
+@@ -61,6 +61,13 @@
+ #undef HAVE_SYS_UN_H
+ #endif
+ 
++#ifdef _AIX
++static inline double my_ulonglong2double(unsigned long long nr)
++{
++  return (double) nr;
++}
++#endif /* _AIX */
++
+ #define __EXTENSIONS__ 1	/* We want some extension */
+ #ifndef __STDC_EXT__
+ #define __STDC_EXT__ 1          /* To get large file support on hpux */

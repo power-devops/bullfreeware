@@ -1,0 +1,34 @@
+Index: gawk-3.1.8/floatcomp.c
+===================================================================
+--- gawk-3.1.8.orig/floatcomp.c	2010-01-28 17:06:58.000000000 +0100
++++ gawk-3.1.8/floatcomp.c	2010-05-27 18:03:51.000000000 +0200
+@@ -79,13 +79,7 @@
+ AWKNUM
+ Floor(AWKNUM n)
+ {
+-	return floor(n
+-#if 0
+-#ifdef _CRAY
+-		* (1.0 + DBL_EPSILON)
+-#endif
+-#endif
+-	);
++	return floor(n);
+ }
+ 
+ /* Ceil --- do ceil(), also for Cray */
+@@ -93,13 +87,7 @@
+ AWKNUM
+ Ceil(AWKNUM n)
+ {
+-	return ceil(n
+-#if 0
+-#ifdef _CRAY
+-		* (1.0 + DBL_EPSILON)
+-#endif
+-#endif
+-	);
++	return ceil(n);
+ }
+ 
+ #ifdef HAVE_UINTMAX_T

@@ -1,0 +1,35 @@
+--- ./libbacktrace/xcoff.c.orig	2017-06-02 13:52:04 -0500
++++ ./libbacktrace/xcoff.c	2017-06-02 13:57:08 -0500
+@@ -1247,7 +1247,7 @@
+     backtrace_release_view (state, &syms_view, error_callback, data);
+   if (linenos_view_valid)
+     backtrace_release_view (state, &linenos_view, error_callback, data);
+-  if (descriptor != -1)
++  if (descriptor != -1 && offset == 0)
+     backtrace_close (descriptor, error_callback, data);
+   return 0;
+ }
+@@ -1353,11 +1353,11 @@
+     }
+ 
+   /* No matching member found.  */
++  backtrace_close (descriptor, error_callback, data);
+   return 0;
+ }
+ 
+-/* Add the backtrace data for dynamically loaded libraries.
+-   Returns 1 on success, 0 on failure.  */
++/* Add the backtrace data for dynamically loaded libraries.  */
+ 
+ static void
+ xcoff_add_shared_libs (struct backtrace_state *state,
+@@ -1436,7 +1436,8 @@
+ }
+ #endif /* _AIX */
+ 
+-/* Initialize the backtrace data we need from an XCOFF executable.  */
++/* Initialize the backtrace data we need from an XCOFF executable.
++   Returns 1 on success, 0 on failure.  */
+ 
+ int
+ backtrace_initialize (struct backtrace_state *state, int descriptor,

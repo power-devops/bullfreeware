@@ -1,0 +1,40 @@
+Index: samba-4.2.0/lib/tdb/tools/tdbtool.c
+===================================================================
+--- samba-4.2.0.orig/lib/tdb/tools/tdbtool.c	2014-10-01 11:17:32.000000000 +0200
++++ samba-4.2.0/lib/tdb/tools/tdbtool.c	2015-05-21 11:36:02.000000000 +0200
+@@ -36,7 +36,7 @@
+ TDB_DATA iterate_kbuf;
+ char cmdline[1024];
+ static int disable_mmap;
+-static int disable_lock;
++static int disable_lock1;
+ 
+ enum commands {
+ 	CMD_CREATE_TDB,
+@@ -260,7 +260,7 @@
+ 	tdb = tdb_open_ex(tdbname, 0,
+ 			  TDB_CLEAR_IF_FIRST |
+ 			  (disable_mmap?TDB_NOMMAP:0) |
+-			  (disable_lock?TDB_NOLOCK:0),
++			  (disable_lock1?TDB_NOLOCK:0),
+ 			  O_RDWR | O_CREAT | O_TRUNC, 0600, &log_ctx, NULL);
+ 	if (!tdb) {
+ 		printf("Could not create %s: %s\n", tdbname, strerror(errno));
+@@ -275,7 +275,7 @@
+ 	if (tdb) tdb_close(tdb);
+ 	tdb = tdb_open_ex(tdbname, 0,
+ 			  (disable_mmap?TDB_NOMMAP:0) |
+-			  (disable_lock?TDB_NOLOCK:0),
++			  (disable_lock1?TDB_NOLOCK:0),
+ 			  O_RDWR, 0600,
+ 			  &log_ctx, NULL);
+ 
+@@ -803,7 +803,7 @@
+ 	arg2len = 0;
+ 
+ 	if (argv[1] && (strcmp(argv[1], "-l") == 0)) {
+-		disable_lock = 1;
++		disable_lock1 = 1;
+ 		argv[1] = argv[0];
+ 		argv += 1;
+ 		argc -= 1;

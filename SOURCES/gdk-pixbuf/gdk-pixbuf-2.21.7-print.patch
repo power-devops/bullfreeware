@@ -1,0 +1,32 @@
+Index: gdk-pixbuf-2.21.7/configure
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/configure	2010-09-10 15:03:40.000000000 +0200
++++ gdk-pixbuf-2.21.7/configure	2015-10-05 16:13:36.000000000 +0200
+@@ -4709,12 +4709,12 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to print strings" >&5
+ $as_echo_n "checking how to print strings... " >&6; }
+ # Test print first, because it will be a builtin if present.
+-if test "X`print -r -- -n 2>/dev/null`" = X-n && \
+-   test "X`print -r -- $ECHO 2>/dev/null`" = "X$ECHO"; then
+-  ECHO='print -r --'
+-elif test "X`printf %s $ECHO 2>/dev/null`" = "X$ECHO"; then
+-  ECHO='printf %s\n'
+-else
++#if test "X`print -r -- -n 2>/dev/null`" = X-n && \
++#   test "X`print -r -- $ECHO 2>/dev/null`" = "X$ECHO"; then
++#  ECHO='print -r --'
++#elif test "X`printf %s $ECHO 2>/dev/null`" = "X$ECHO"; then
++#  ECHO='printf %s\n'
++#else
+   # Use this function as a fallback that always works.
+   func_fallback_echo ()
+   {
+@@ -4723,7 +4723,7 @@
+ _LTECHO_EOF'
+   }
+   ECHO='func_fallback_echo'
+-fi
++#fi
+ 
+ # func_echo_all arg...
+ # Invoke $ECHO with all args, space-separated.

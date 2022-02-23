@@ -1,0 +1,57 @@
+From 2a74650d467c2bd3cf75823ac7a9b9515f5f485a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 25 Mar 2020 13:48:06 -0500
+Subject: [PATCH] gotools: fix Makefile for AIX
+
+Add /opt/freeware/lib/${buildhost}/${version} and /opt/freeware/lib to
+LIBPATH in go binaries.
+---
+ gotools/Makefile.am | 3 ++-
+ gotools/Makefile.in | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/gotools/Makefile.am b/gotools/Makefile.am
+index 47adf9bafeb..1eab0e53eb5 100644
+--- a/gotools/Makefile.am
++++ b/gotools/Makefile.am
+@@ -20,6 +20,7 @@ ACLOCAL_AMFLAGS = -I ../config
+ gcc_version := $(shell $(GCC_FOR_TARGET) -dumpversion)
+ 
+ libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)
+ 
+ mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinstalldirs
+ PWD_COMMAND = $${PWDCMD-pwd}
+@@ -41,7 +42,7 @@ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ 
+ AM_GOCFLAGS = -I $(libgodir)
+-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L ${libsubdir} -L ${libdir}
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ 
+ libgosrcdir = $(srcdir)/../libgo/go
+diff --git a/gotools/Makefile.in b/gotools/Makefile.in
+index 930189a55eb..0106bf53aa5 100644
+--- a/gotools/Makefile.in
++++ b/gotools/Makefile.in
+@@ -333,6 +333,7 @@ top_srcdir = @top_srcdir@
+ ACLOCAL_AMFLAGS = -I ../config
+ gcc_version := $(shell $(GCC_FOR_TARGET) -dumpversion)
+ libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)
+ mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinstalldirs
+ PWD_COMMAND = $${PWDCMD-pwd}
+ STAMP = echo timestamp >
+@@ -346,7 +347,7 @@ LIBGOTOOL = $(libgodir)/libgotool.a
+ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ AM_GOCFLAGS = -I $(libgodir)
+-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L ${libsubdir} -L ${libdir}
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ libgosrcdir = $(srcdir)/../libgo/go
+ cmdsrcdir = $(libgosrcdir)/cmd
+-- 
+2.25.0
+

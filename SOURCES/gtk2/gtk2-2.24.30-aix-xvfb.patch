@@ -1,0 +1,1316 @@
+diff -Nur gtk+-2.24.28-orig/Makefile.decl gtk+-2.24.28-aix/Makefile.decl
+--- gtk+-2.24.28-orig/Makefile.decl	2014-09-29 22:02:16 +0200
++++ gtk+-2.24.28-aix/Makefile.decl	2016-04-29 13:46:26 +0200
+@@ -10,7 +10,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -21,12 +21,11 @@
+ 	test "$(gdktarget)" != "x11" \
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
+diff -Nur gtk+-2.24.28-orig/Makefile.in gtk+-2.24.28-aix/Makefile.in
+--- gtk+-2.24.28-orig/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -543,7 +543,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -556,12 +556,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SRC_SUBDIRS = gdk gtk modules demos tests perf
+ SUBDIRS = po po-properties $(SRC_SUBDIRS) docs m4macros build
+diff -Nur gtk+-2.24.28-orig/build/Makefile.in gtk+-2.24.28-aix/build/Makefile.in
+--- gtk+-2.24.28-orig/build/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -427,7 +427,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -440,12 +440,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = \
+ 	win32
+diff -Nur gtk+-2.24.28-orig/build/win32/Makefile.in gtk+-2.24.28-aix/build/win32/Makefile.in
+--- gtk+-2.24.28-orig/build/win32/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/win32/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -427,7 +427,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -440,12 +440,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = \
+ 	vs9	\
+diff -Nur gtk+-2.24.28-orig/build/win32/vs10/Makefile.in gtk+-2.24.28-aix/build/win32/vs10/Makefile.in
+--- gtk+-2.24.28-orig/build/win32/vs10/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/win32/vs10/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -375,7 +375,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -388,12 +388,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ all: all-am
+ 
+diff -Nur gtk+-2.24.28-orig/build/win32/vs11/Makefile.in gtk+-2.24.28-aix/build/win32/vs11/Makefile.in
+--- gtk+-2.24.28-orig/build/win32/vs11/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/win32/vs11/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -383,7 +383,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -396,12 +396,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ DISTCLEANFILES = $(EXTRA_DIST)
+ MSVC_SLN = gtk+
+diff -Nur gtk+-2.24.28-orig/build/win32/vs12/Makefile.in gtk+-2.24.28-aix/build/win32/vs12/Makefile.in
+--- gtk+-2.24.28-orig/build/win32/vs12/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/win32/vs12/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -383,7 +383,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -396,12 +396,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ DISTCLEANFILES = $(EXTRA_DIST)
+ MSVC_SLN = gtk+
+diff -Nur gtk+-2.24.28-orig/build/win32/vs9/Makefile.in gtk+-2.24.28-aix/build/win32/vs9/Makefile.in
+--- gtk+-2.24.28-orig/build/win32/vs9/Makefile.in	2015-05-13 13:26:30 +0200
++++ gtk+-2.24.28-aix/build/win32/vs9/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -371,7 +371,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -384,12 +384,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ all: all-am
+ 
+diff -Nur gtk+-2.24.28-orig/demos/Makefile.in gtk+-2.24.28-aix/demos/Makefile.in
+--- gtk+-2.24.28-orig/demos/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/demos/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -489,7 +489,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -502,12 +502,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = gtk-demo
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/demos/gtk-demo/Makefile.in gtk+-2.24.28-aix/demos/gtk-demo/Makefile.in
+--- gtk+-2.24.28-orig/demos/gtk-demo/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/demos/gtk-demo/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -469,7 +469,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -482,12 +482,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ democodedir = $(datadir)/gtk-2.0/demo
+ demos = \
+diff -Nur gtk+-2.24.28-orig/docs/Makefile.in gtk+-2.24.28-aix/docs/Makefile.in
+--- gtk+-2.24.28-orig/docs/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -431,7 +431,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -444,12 +444,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = tutorial faq reference tools
+ all: all-recursive
+diff -Nur gtk+-2.24.28-orig/docs/faq/Makefile.in gtk+-2.24.28-aix/docs/faq/Makefile.in
+--- gtk+-2.24.28-orig/docs/faq/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/faq/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -367,7 +367,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -380,12 +380,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ all: all-am
+ 
+diff -Nur gtk+-2.24.28-orig/docs/reference/Makefile.in gtk+-2.24.28-aix/docs/reference/Makefile.in
+--- gtk+-2.24.28-orig/docs/reference/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/reference/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -428,7 +428,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -441,12 +441,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = gdk gtk libgail-util
+ GITIGNOREFILES = */*.1
+diff -Nur gtk+-2.24.28-orig/docs/reference/gdk/Makefile.in gtk+-2.24.28-aix/docs/reference/gdk/Makefile.in
+--- gtk+-2.24.28-orig/docs/reference/gdk/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/reference/gdk/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -374,7 +374,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -387,12 +387,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ AUTOMAKE_OPTIONS = 1.6
+ 
+diff -Nur gtk+-2.24.28-orig/docs/reference/gtk/Makefile.in gtk+-2.24.28-aix/docs/reference/gtk/Makefile.in
+--- gtk+-2.24.28-orig/docs/reference/gtk/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/reference/gtk/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -405,7 +405,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -418,12 +418,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ AUTOMAKE_OPTIONS = 1.6
+ 
+diff -Nur gtk+-2.24.28-orig/docs/reference/libgail-util/Makefile.in gtk+-2.24.28-aix/docs/reference/libgail-util/Makefile.in
+--- gtk+-2.24.28-orig/docs/reference/libgail-util/Makefile.in	2015-05-13 13:26:31 +0200
++++ gtk+-2.24.28-aix/docs/reference/libgail-util/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -375,7 +375,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -388,12 +388,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ AUTOMAKE_OPTIONS = 1.7
+ 
+diff -Nur gtk+-2.24.28-orig/docs/tools/Makefile.in gtk+-2.24.28-aix/docs/tools/Makefile.in
+--- gtk+-2.24.28-orig/docs/tools/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/docs/tools/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -422,7 +422,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -435,12 +435,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir) 				\
+diff -Nur gtk+-2.24.28-orig/docs/tutorial/Makefile.in gtk+-2.24.28-aix/docs/tutorial/Makefile.in
+--- gtk+-2.24.28-orig/docs/tutorial/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/docs/tutorial/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -378,7 +378,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -391,12 +391,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ all: all-am
+ 
+diff -Nur gtk+-2.24.28-orig/gdk/Makefile.in gtk+-2.24.28-aix/gdk/Makefile.in
+--- gtk+-2.24.28-orig/gdk/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/gdk/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -765,7 +765,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -778,12 +778,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INTROSPECTION_GIRS = $(am__append_1) $(am__append_2)
+ INTROSPECTION_SCANNER_ARGS = \
+diff -Nur gtk+-2.24.28-orig/gdk/directfb/Makefile.in gtk+-2.24.28-aix/gdk/directfb/Makefile.in
+--- gtk+-2.24.28-orig/gdk/directfb/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/gdk/directfb/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -458,7 +458,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -471,12 +471,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ libgdkincludedir = $(includedir)/gtk-2.0/gdk
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/gdk/quartz/Makefile.in gtk+-2.24.28-aix/gdk/quartz/Makefile.in
+--- gtk+-2.24.28-orig/gdk/quartz/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/gdk/quartz/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -457,7 +457,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -470,12 +470,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ libgdkincludedir = $(includedir)/gtk-2.0/gdk
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/gdk/tests/Makefile.in gtk+-2.24.28-aix/gdk/tests/Makefile.in
+--- gtk+-2.24.28-orig/gdk/tests/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/gdk/tests/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -573,7 +573,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -586,12 +586,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ NULL = 
+ TESTS_ENVIRONMENT = GDK_PIXBUF_MODULE_FILE=$(top_builddir)/gdk-pixbuf/gdk-pixbuf.loaders
+diff -Nur gtk+-2.24.28-orig/gdk/win32/Makefile.in gtk+-2.24.28-aix/gdk/win32/Makefile.in
+--- gtk+-2.24.28-orig/gdk/win32/Makefile.in	2015-05-13 13:26:32 +0200
++++ gtk+-2.24.28-aix/gdk/win32/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -499,7 +499,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -512,12 +512,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ libgdkincludedir = $(includedir)/gtk-2.0/gdk
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/gdk/win32/rc/Makefile.in gtk+-2.24.28-aix/gdk/win32/rc/Makefile.in
+--- gtk+-2.24.28-orig/gdk/win32/rc/Makefile.in	2015-05-13 13:26:33 +0200
++++ gtk+-2.24.28-aix/gdk/win32/rc/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -370,7 +370,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -383,12 +383,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @USE_WIN32_TRUE@noinst_DATA = gdk-win32-res.o
+ all: all-am
+diff -Nur gtk+-2.24.28-orig/gdk/x11/Makefile.in gtk+-2.24.28-aix/gdk/x11/Makefile.in
+--- gtk+-2.24.28-orig/gdk/x11/Makefile.in	2015-05-13 13:26:33 +0200
++++ gtk+-2.24.28-aix/gdk/x11/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -665,7 +665,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -678,12 +678,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ libgdkincludedir = $(includedir)/gtk-2.0/gdk
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/gtk/Makefile.in gtk+-2.24.28-aix/gtk/Makefile.in
+--- gtk+-2.24.28-orig/gtk/Makefile.in	2015-05-13 13:26:34 +0200
++++ gtk+-2.24.28-aix/gtk/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -1472,7 +1472,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -1485,12 +1485,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INTROSPECTION_GIRS = $(am__append_16)
+ INTROSPECTION_SCANNER_ARGS = \
+diff -Nur gtk+-2.24.28-orig/gtk/tests/Makefile.in gtk+-2.24.28-aix/gtk/tests/Makefile.in
+--- gtk+-2.24.28-orig/gtk/tests/Makefile.in	2015-05-13 13:26:34 +0200
++++ gtk+-2.24.28-aix/gtk/tests/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -489,7 +489,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -502,12 +502,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir)			\
+diff -Nur gtk+-2.24.28-orig/gtk/theme-bits/Makefile.in gtk+-2.24.28-aix/gtk/theme-bits/Makefile.in
+--- gtk+-2.24.28-orig/gtk/theme-bits/Makefile.in	2015-05-13 13:26:34 +0200
++++ gtk+-2.24.28-aix/gtk/theme-bits/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -420,7 +420,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -433,12 +433,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir)		\
+diff -Nur gtk+-2.24.28-orig/m4macros/Makefile.in gtk+-2.24.28-aix/m4macros/Makefile.in
+--- gtk+-2.24.28-orig/m4macros/Makefile.in	2015-05-13 13:26:34 +0200
++++ gtk+-2.24.28-aix/m4macros/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -397,7 +397,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -410,12 +410,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ installed_m4 = gtk-2.0.m4
+ m4datadir = $(datadir)/aclocal
+diff -Nur gtk+-2.24.28-orig/modules/Makefile.in gtk+-2.24.28-aix/modules/Makefile.in
+--- gtk+-2.24.28-orig/modules/Makefile.in	2015-05-13 13:26:34 +0200
++++ gtk+-2.24.28-aix/modules/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -428,7 +428,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -441,12 +441,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = input engines other $(am__append_1)
+ all: all-recursive
+diff -Nur gtk+-2.24.28-orig/modules/engines/Makefile.in gtk+-2.24.28-aix/modules/engines/Makefile.in
+--- gtk+-2.24.28-orig/modules/engines/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/engines/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -427,7 +427,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -440,12 +440,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @USE_WIN32_TRUE@wimp = ms-windows
+ SUBDIRS = $(wimp) pixbuf
+diff -Nur gtk+-2.24.28-orig/modules/engines/ms-windows/Makefile.in gtk+-2.24.28-aix/modules/engines/ms-windows/Makefile.in
+--- gtk+-2.24.28-orig/modules/engines/ms-windows/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/engines/ms-windows/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -495,7 +495,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -508,12 +508,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = Theme
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/modules/engines/ms-windows/Theme/Makefile.in gtk+-2.24.28-aix/modules/engines/ms-windows/Theme/Makefile.in
+--- gtk+-2.24.28-orig/modules/engines/ms-windows/Theme/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/engines/ms-windows/Theme/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -427,7 +427,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -440,12 +440,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = gtk-2.0
+ all: all-recursive
+diff -Nur gtk+-2.24.28-orig/modules/engines/ms-windows/Theme/gtk-2.0/Makefile.in gtk+-2.24.28-aix/modules/engines/ms-windows/Theme/gtk-2.0/Makefile.in
+--- gtk+-2.24.28-orig/modules/engines/ms-windows/Theme/gtk-2.0/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/engines/ms-windows/Theme/gtk-2.0/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -397,7 +397,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -410,12 +410,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ themedir = $(datadir)/themes/MS-Windows/gtk-2.0
+ theme_DATA = gtkrc
+diff -Nur gtk+-2.24.28-orig/modules/engines/pixbuf/Makefile.in gtk+-2.24.28-aix/modules/engines/pixbuf/Makefile.in
+--- gtk+-2.24.28-orig/modules/engines/pixbuf/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/engines/pixbuf/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -453,7 +453,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -466,12 +466,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/modules/input/Makefile.in gtk+-2.24.28-aix/modules/input/Makefile.in
+--- gtk+-2.24.28-orig/modules/input/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/input/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -670,7 +670,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -683,12 +683,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/modules/other/Makefile.in gtk+-2.24.28-aix/modules/other/Makefile.in
+--- gtk+-2.24.28-orig/modules/other/Makefile.in	2015-05-13 13:26:35 +0200
++++ gtk+-2.24.28-aix/modules/other/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -427,7 +427,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -440,12 +440,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = gail
+ all: all-recursive
+diff -Nur gtk+-2.24.28-orig/modules/other/gail/Makefile.in gtk+-2.24.28-aix/modules/other/gail/Makefile.in
+--- gtk+-2.24.28-orig/modules/other/gail/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/other/gail/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -531,7 +531,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -544,12 +544,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = libgail-util tests
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+diff -Nur gtk+-2.24.28-orig/modules/other/gail/libgail-util/Makefile.in gtk+-2.24.28-aix/modules/other/gail/libgail-util/Makefile.in
+--- gtk+-2.24.28-orig/modules/other/gail/libgail-util/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/other/gail/libgail-util/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -459,7 +459,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -472,12 +472,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ @OS_WIN32_TRUE@export_symbols = -export-symbols $(srcdir)/gailutil.def
+diff -Nur gtk+-2.24.28-orig/modules/other/gail/tests/Makefile.in gtk+-2.24.28-aix/modules/other/gail/tests/Makefile.in
+--- gtk+-2.24.28-orig/modules/other/gail/tests/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/other/gail/tests/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -597,7 +597,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -610,12 +610,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ moduledir = $(libdir)/gtk-2.0/modules
+diff -Nur gtk+-2.24.28-orig/modules/printbackends/Makefile.in gtk+-2.24.28-aix/modules/printbackends/Makefile.in
+--- gtk+-2.24.28-orig/modules/printbackends/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/printbackends/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -429,7 +429,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -442,12 +442,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ SUBDIRS = file lpr $(am__append_1) $(am__append_2) $(am__append_3)
+ DIST_SUBDIRS = cups file lpr test papi
+diff -Nur gtk+-2.24.28-orig/modules/printbackends/cups/Makefile.in gtk+-2.24.28-aix/modules/printbackends/cups/Makefile.in
+--- gtk+-2.24.28-orig/modules/printbackends/cups/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/printbackends/cups/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -458,7 +458,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -471,12 +471,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/modules/printbackends/file/Makefile.in gtk+-2.24.28-aix/modules/printbackends/file/Makefile.in
+--- gtk+-2.24.28-orig/modules/printbackends/file/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/printbackends/file/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -457,7 +457,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -470,12 +470,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ backenddir = $(libdir)/gtk-2.0/$(GTK_BINARY_VERSION)/printbackends
+diff -Nur gtk+-2.24.28-orig/modules/printbackends/lpr/Makefile.in gtk+-2.24.28-aix/modules/printbackends/lpr/Makefile.in
+--- gtk+-2.24.28-orig/modules/printbackends/lpr/Makefile.in	2015-05-13 13:26:36 +0200
++++ gtk+-2.24.28-aix/modules/printbackends/lpr/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -455,7 +455,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -468,12 +468,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ INCLUDES = \
+diff -Nur gtk+-2.24.28-orig/modules/printbackends/test/Makefile.in gtk+-2.24.28-aix/modules/printbackends/test/Makefile.in
+--- gtk+-2.24.28-orig/modules/printbackends/test/Makefile.in	2015-05-13 13:26:37 +0200
++++ gtk+-2.24.28-aix/modules/printbackends/test/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -456,7 +456,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -469,12 +469,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ @PLATFORM_WIN32_TRUE@no_undefined = -no-undefined
+ backenddir = $(libdir)/gtk-2.0/$(GTK_BINARY_VERSION)/printbackends
+diff -Nur gtk+-2.24.28-orig/perf/Makefile.in gtk+-2.24.28-aix/perf/Makefile.in
+--- gtk+-2.24.28-orig/perf/Makefile.in	2015-05-13 13:26:37 +0200
++++ gtk+-2.24.28-aix/perf/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -423,7 +423,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -436,12 +436,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir)			\
+diff -Nur gtk+-2.24.28-orig/tests/Makefile.in gtk+-2.24.28-aix/tests/Makefile.in
+--- gtk+-2.24.28-orig/tests/Makefile.in	2015-05-13 13:26:37 +0200
++++ gtk+-2.24.28-aix/tests/Makefile.in	2016-04-29 13:46:26 +0200
+@@ -945,7 +945,7 @@
+ ### testing rules
+ 
+ # Xvfb based test rules
+-XVFB = Xvfb -ac -noreset -screen 0 800x600x16
++XVFB = /usr/bin/X11/X -force -vfb -x abx -x dbe -x GLX -I -screen 0 800x600x8
+ XIDS = 101 102 103 104 105 106 107 197 199 211 223 227 293 307 308 309 310 311 \
+    491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 \
+    991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 \
+@@ -958,12 +958,11 @@
+ 	&& echo "Gtk+Tests:INFO: Skipping GUI tests for non-X11 target."
+ 
+ XVFB_START = \
+-	${XVFB} -help 2>/dev/null 1>&2 \
+-	&& XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
+-	&& { ${XVFB} :$$XID -screen 0 800x600x16 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
++	XID=`for id in $(XIDS) ; do test -e /tmp/.X$$id-lock || { echo $$id; exit 0; }; done; exit 1` \
++	&& { ${XVFB} :$$XID -screen 0 800x600x8 -nolisten tcp -auth /dev/null >/dev/null 2>&1 & \
+ 	       trap "kill -15 $$! " 0 HUP INT QUIT TRAP USR1 PIPE TERM ; } \
+ 	|| { echo "Gtk+Tests:ERROR: Failed to start Xvfb environment for X11 target tests."; exit 1; } \
+-	&& DISPLAY=:$$XID && export DISPLAY
++	&& DISP=:$$XID && export DISP
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir)			\

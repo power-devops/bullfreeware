@@ -1,0 +1,13 @@
+Index: ./libgo/runtime/go-nosys.c
+===================================================================
+--- ./libgo/runtime/go-nosys.c	(revision 251399)
++++ ./libgo/runtime/go-nosys.c	(working copy)
+@@ -506,7 +506,7 @@ strerror_r (int errnum, char *buf, size_t buflen)
+ 
+ #ifndef HAVE_SYSCALL
+ int
+-syscall(int number, ...)
++syscall(int number __attribute__ ((unused)), ...)
+ {
+   errno = ENOSYS;
+   return -1;

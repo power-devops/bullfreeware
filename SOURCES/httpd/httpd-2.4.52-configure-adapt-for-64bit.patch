@@ -1,0 +1,39 @@
+From e9bfc96ea623dcd2ed7b0cd9436275521d279cf3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 10 Jan 2022 17:03:39 +0100
+Subject: [PATCH] configure: adapt for 64bit
+
+---
+ configure    | 2 +-
+ configure.in | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index 74d8038..c9194ed 100755
+--- a/configure
++++ b/configure
+@@ -41851,7 +41851,7 @@ ap_prefix="${ap_cur}"
+ printf "%s\n" "#define HTTPD_ROOT \"${ap_prefix}\"" >>confdefs.h
+ 
+ 
+-printf "%s\n" "#define SERVER_CONFIG_FILE \"${rel_sysconfdir}/${progname}.conf\"" >>confdefs.h
++printf "%s\n" "#define SERVER_CONFIG_FILE \"${rel_sysconfdir}/${progname}.conf_64\"" >>confdefs.h
+ 
+ 
+ printf "%s\n" "#define AP_TYPES_CONFIG_FILE \"${rel_sysconfdir}/mime.types\"" >>confdefs.h
+diff --git a/configure.in b/configure.in
+index 831a683..ea4b727 100644
+--- a/configure.in
++++ b/configure.in
+@@ -880,7 +880,7 @@ echo $MODLIST | $AWK -f $srcdir/build/build-modules-c.awk > modules.c
+ APR_EXPAND_VAR(ap_prefix, $prefix)
+ AC_DEFINE_UNQUOTED(HTTPD_ROOT, "${ap_prefix}",
+ 	[Root directory of the Apache install area])
+-AC_DEFINE_UNQUOTED(SERVER_CONFIG_FILE, "${rel_sysconfdir}/${progname}.conf",
++AC_DEFINE_UNQUOTED(SERVER_CONFIG_FILE, "${rel_sysconfdir}/${progname}.conf_64",
+ 	[Location of the config file, relative to the Apache root directory])
+ AC_DEFINE_UNQUOTED(AP_TYPES_CONFIG_FILE, "${rel_sysconfdir}/mime.types",
+ 	[Location of the MIME types config file, relative to the Apache root directory])
+-- 
+2.33.1
+

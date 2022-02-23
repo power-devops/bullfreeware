@@ -1,0 +1,12 @@
+--- ./tools/build/src/tools/gcc.jam.ORIGIN	2020-02-03 16:43:12 -0600
++++ ./tools/build/src/tools/gcc.jam	2020-04-16 11:34:49 -0500
+@@ -715,7 +722,8 @@
+ toolset.flags gcc.compile OPTIONS <warnings>all :  ;
+ toolset.flags gcc.compile OPTIONS <warnings-as-errors>on : -Werror ;
+ 
+-toolset.flags gcc.compile OPTIONS <debug-symbols>on : -g ;
++#toolset.flags gcc.compile OPTIONS <debug-symbols>on : -g ;
++#toolset.flags gcc.compile OPTIONS <debug-symbols>on <target-os>aix : -gdwarf ;
+ toolset.flags gcc.compile OPTIONS <profiling>on : -pg ;
+ 
+ toolset.flags gcc.compile OPTIONS <local-visibility>hidden : -fvisibility=hidden ;

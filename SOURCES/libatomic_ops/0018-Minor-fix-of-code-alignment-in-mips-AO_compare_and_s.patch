@@ -1,0 +1,25 @@
+From 22ca163649571c72852f5892c05a4c1c53d50cc5 Mon Sep 17 00:00:00 2001
+From: James Cowgill <james410@cowgill.org.uk>
+Date: Thu, 8 Jan 2015 16:14:22 +0000
+Subject: [PATCH 18/36] Minor fix of code alignment in mips AO_compare_and_swap
+
+---
+ src/atomic_ops/sysdeps/gcc/mips.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/atomic_ops/sysdeps/gcc/mips.h b/src/atomic_ops/sysdeps/gcc/mips.h
+index f3796ea..1ad47f2 100644
+--- a/src/atomic_ops/sysdeps/gcc/mips.h
++++ b/src/atomic_ops/sysdeps/gcc/mips.h
+@@ -127,7 +127,7 @@ AO_test_and_set(volatile AO_TS_t *addr)
+         "1: "
+         AO_MIPS_LL("%0, %1")
+         "       bne     %0, %4, 2f  \n"
+-        "        move   %0, %3      \n"
++        "       move   %0, %3      \n"
+         AO_MIPS_SC("%0, %1")
+         "       .set pop            \n"
+         "       beqz    %0, 1b      \n"
+-- 
+1.9.3
+

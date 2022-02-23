@@ -1,0 +1,107 @@
+--- ./extra/perror.c.orig	2019-10-08 16:31:03.000000000 +0200
++++ ./extra/perror.c	2019-10-09 12:30:41.765804649 +0200
+@@ -326,11 +326,21 @@
+                        (const uchar*) "Unknown Error", 13) &&
+           (!unknown_error || strcmp(msg, unknown_error)))
+       {
+-	found= 1;
+-	if (verbose)
+-	  printf("OS error code %3d:  %s\n", code, msg);
+-	else
+-	  puts(msg);
++#ifdef _AIX
++    // On AIX, unknow error return " Error <CODE> occurred."
++    char AIX_buffer [250];
++    sprintf(AIX_buffer, " Error %3d occurred.", code);
++    if (!strcmp(msg, AIX_buffer))
++    {
++#endif
++    found= 1;
++    if (verbose)
++      printf("OS error code %3d:  %s\n", code, msg);
++    else
++      puts(msg);
++#ifdef _AIX
++    }
++#endif
+       }
+       if ((msg= get_ha_error_msg(code)))
+       {
+--- ./mysql-test/main/symlink-myisam-11902.test.orig	2019-10-09 12:18:55.082837111 +0200
++++ ./mysql-test/main/symlink-myisam-11902.test	2019-10-09 12:18:46.700837496 +0200
+@@ -25,7 +25,7 @@
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL go';
+ connection default;
+-replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error 29;
+ reap;
+ flush tables;
+@@ -49,7 +49,7 @@
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL run';
+ connection default;
+-replace_regex / '.*\/test\// '.\/test\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/test\// '.\/test\// /31/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error ER_FILE_NOT_FOUND;
+ reap;
+ flush tables;
+--- ./mysql-test/suite/binlog/r/binlog_index.result.orig	2019-10-09 12:31:52.089801418 +0200
++++ ./mysql-test/suite/binlog/r/binlog_index.result	2019-10-09 12:31:42.614801854 +0200
+@@ -134,7 +134,7 @@
+ # fault_injection_registering_index
+ SET SESSION debug_dbug="+d,fault_injection_registering_index";
+ flush logs;
+-ERROR HY000: Can't open file: 'master-bin.000012' (errno: 1 "Operation not permitted")
++ERROR HY000: Can't open file: 'master-bin.000012' (errno: 1 "Not owner")
+ SET @index=LOAD_FILE('MYSQLTEST_VARDIR/mysqld.1/data//master-bin.index');
+ SELECT @index;
+ @index
+@@ -160,7 +160,7 @@
+ # fault_injection_updating_index
+ SET SESSION debug_dbug="+d,fault_injection_updating_index";
+ flush logs;
+-ERROR HY000: Can't open file: 'master-bin.000013' (errno: 1 "Operation not permitted")
++ERROR HY000: Can't open file: 'master-bin.000013' (errno: 1 "Not owner")
+ SET @index=LOAD_FILE('MYSQLTEST_VARDIR/mysqld.1/data//master-bin.index');
+ SELECT @index;
+ @index
+--- ./mysql-test/suite/binlog_encryption/binlog_index.result.orig	2019-12-02 15:15:56.000000000 +0100
++++ ./mysql-test/suite/binlog_encryption/binlog_index.result	2019-12-02 15:07:52.000000000 +0100
+@@ -134,7 +134,7 @@
+ # fault_injection_registering_index
+ SET SESSION debug_dbug="+d,fault_injection_registering_index";
+ flush logs;
++ERROR HY000: Can't open file: 'master-bin.000012' (errno: 1 "Not owner")
+-ERROR HY000: Can't open file: 'master-bin.000012' (errno: 1 "Operation not permitted")
+ SET @index=LOAD_FILE('MYSQLTEST_VARDIR/mysqld.1/data//master-bin.index');
+ SELECT @index;
+ @index
+@@ -160,7 +160,7 @@
+ # fault_injection_updating_index
+ SET SESSION debug_dbug="+d,fault_injection_updating_index";
+ flush logs;
++ERROR HY000: Can't open file: 'master-bin.000013' (errno: 1 "Not owner")
+-ERROR HY000: Can't open file: 'master-bin.000013' (errno: 1 "Operation not permitted")
+ SET @index=LOAD_FILE('MYSQLTEST_VARDIR/mysqld.1/data//master-bin.index');
+ SELECT @index;
+ @index
+--- ./mysql-test/main/repair_symlink-5543.test.ORIG	2019-11-07 06:52:21.000000000 +0100
++++ ./mysql-test/main/repair_symlink-5543.test	2019-12-02 15:27:41.000000000 +0100
+@@ -12,6 +12,7 @@
+ --echo # Some systems fail with errcode 40, or 90 (MIPS) when doing openat,
+ --echo # while others don't have openat and fail with errcode 20.
+ --replace_regex / '.*\/t1/ 'MYSQL_TMP_DIR\/t1/ /[49]0/20/ /".*"/"<errmsg>"/
++--replace_regex / '.*\/t1/ 'MYSQL_TMP_DIR\/t1/ /85/20/ /".*"/"<errmsg>"/
+ repair table t1;
+ drop table t1;
+ 
+@@ -20,6 +21,7 @@
+ insert t2 values (1);
+ --system ln -s $MYSQL_TMP_DIR/foobar5543 $MYSQL_TMP_DIR/t2.TMD
+ --replace_regex / '.*\/t2/ 'MYSQL_TMP_DIR\/t2/ /[49]0/20/ /".*"/"<errmsg>"/
++--replace_regex / '.*\/t2/ 'MYSQL_TMP_DIR\/t2/ /85/20/ /".*"/"<errmsg>"/
+ repair table t2;
+ drop table t2;
+ 

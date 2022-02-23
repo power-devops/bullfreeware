@@ -1,0 +1,184 @@
+commit a87d9e8f89f946a733c756c72bf5ec41e0a738b8
+Author: Jakub Jelen <jjelen@redhat.com>
+Date:   Wed Apr 14 15:51:27 2021 +0900
+
+    core,emacs,tty,curses: Fix memory leaks, invalid accese, and mistake.
+    
+    * pinentry/pinentry-curses.c (dialog_create): Free NEW.
+    [HAVE_NCURSESW] (dialog_run): Free OLD_CTYPE on error.
+    * pinentry/pinentry.c (pinentry_inq_genpin): Free VALUE on error.
+    * tty/pinentry-tty.c (tty_cmd_handler): Don't access closed FDs.
+    * pinentry/pinentry-emacs.c (set_labels): Fix for ->default_cancel.
+    
+    --
+    
+    GnuPG-bug-id: 5384
+    Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+
+--- ./pinentry/pinentry-curses.c
++++ ./pinentry/pinentry-curses.c
+@@ -315,6 +315,7 @@ dialog_create (pinentry_t pinentry, dialog_t dialog)
+         }								\
+       dialog->which = pinentry_utf8_to_local (pinentry->lc_ctype,	\
+ 					      new ? new : default);	\
++      free (new);							\
+       if (!dialog->which)						\
+         {								\
+ 	  err = 1;							\
+@@ -873,6 +874,9 @@ dialog_run (pinentry_t pinentry, const char *tty_name, const char *tty_type)
+         {
+           pinentry->specific_err = gpg_error_from_syserror ();
+           pinentry->specific_err_loc = "open_tty_for_read";
++#ifdef HAVE_NCURSESW
++          free (old_ctype);
++#endif
+           return confirm_mode? 0 : -1;
+         }
+       ttyfo = fopen (tty_name, "w");
+@@ -883,6 +887,9 @@ dialog_run (pinentry_t pinentry, const char *tty_name, const char *tty_type)
+ 	  errno = err;
+           pinentry->specific_err = gpg_error_from_syserror ();
+           pinentry->specific_err_loc = "open_tty_for_write";
++#ifdef HAVE_NCURSESW
++          free (old_ctype);
++#endif
+ 	  return confirm_mode? 0 : -1;
+ 	}
+       screen = newterm (tty_type, ttyfo, ttyfi);
+@@ -897,6 +904,9 @@ dialog_run (pinentry_t pinentry, const char *tty_name, const char *tty_type)
+               errno = ENOTTY;
+               pinentry->specific_err = gpg_error_from_syserror ();
+               pinentry->specific_err_loc = "isatty";
++#ifdef HAVE_NCURSESW
++              free (old_ctype);
++#endif
+               return confirm_mode? 0 : -1;
+             }
+ 	  init_screen = 1;
+--- ./pinentry/pinentry-emacs.c
++++ ./pinentry/pinentry-emacs.c
+@@ -498,7 +498,7 @@ set_labels (pinentry_t pe)
+     set_label (pe, "SETOK", pe->default_ok);
+   if (pe->cancel)
+     set_label (pe, "SETCANCEL", pe->cancel);
+-  else if (pe->default_ok)
++  else if (pe->default_cancel)
+     set_label (pe, "SETCANCEL", pe->default_cancel);
+   if (pe->notok)
+     set_label (pe, "SETNOTOK", pe->notok);
+--- ./pinentry/pinentry.c
++++ ./pinentry/pinentry.c
+@@ -656,6 +656,7 @@ pinentry_inq_genpin (pinentry_t pin)
+           if (rc)
+             {
+               fprintf (stderr, "ASSUAN READ LINE failed: rc=%d\n", rc);
++              free (value);
+               return 0;
+             }
+         }
+--- ./tty/pinentry-tty.c
++++ ./tty/pinentry-tty.c
+@@ -559,7 +559,7 @@ tty_cmd_handler (pinentry_t pinentry)
+         }
+     }
+ 
+-  if (terminal_save (fileno (ttyfi)) < 0)
++  if (!rc && terminal_save (fileno (ttyfi)) < 0)
+     rc = -1;
+ 
+   if (! rc)
+
+From 7f7fd8bcfd74919091cc318b27b8617a9ef2ac82 Mon Sep 17 00:00:00 2001
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Fri, 16 Apr 2021 12:54:43 +0900
+Subject: [PATCH] tty: Fix error return paths and its resource leaks.
+
+* tty/pinentry-tty.c (tty_cmd_handler): Only call do_touch_file
+on successful interaction.  Fix closing file.
+
+--
+
+GnuPG-bug-id: 5384
+Co-authored-by: Jakub Jelen <jjelen@redhat.com>
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+---
+ tty/pinentry-tty.c | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
+
+--- ./tty/pinentry-tty.c
++++ ./tty/pinentry-tty.c
+@@ -525,6 +525,7 @@ tty_cmd_handler (pinentry_t pinentry)
+   int rc = 0;
+   FILE *ttyfi = stdin;
+   FILE *ttyfo = stdout;
++  int saved_errno = 0;
+ 
+ #ifndef HAVE_DOSISH_SYSTEM
+   timed_out = 0;
+@@ -545,30 +546,27 @@ tty_cmd_handler (pinentry_t pinentry)
+     {
+       ttyfi = fopen (pinentry->ttyname, "r");
+       if (!ttyfi)
+-        rc = -1;
+-      else
++        return -1;
++
++      ttyfo = fopen (pinentry->ttyname, "w");
++      if (!ttyfo)
+         {
+-          ttyfo = fopen (pinentry->ttyname, "w");
+-          if (!ttyfo)
+-            {
+-              int err = errno;
+-              fclose (ttyfi);
+-              errno = err;
+-              rc = -1;
+-            }
++          saved_errno = errno;
++          fclose (ttyfi);
++          errno = saved_errno;
++          return -1;
+         }
+     }
+ 
+-  if (!rc && terminal_save (fileno (ttyfi)) < 0)
++  if (terminal_save (fileno (ttyfi)) < 0)
+     rc = -1;
+-
+-  if (! rc)
++  else
+     {
+       if (terminal_setup (fileno (ttyfi), !!pinentry->pin) == -1)
+         {
+-          int err = errno;
++          saved_errno = errno;
+           fprintf (stderr, "terminal_setup failure, exiting\n");
+-          errno = err;
++          rc = -1;
+         }
+       else
+         {
+@@ -578,17 +576,19 @@ tty_cmd_handler (pinentry_t pinentry)
+             rc = confirm (pinentry, ttyfi, ttyfo);
+ 
+           terminal_restore (fileno (ttyfi));
++          do_touch_file (pinentry);
+         }
+     }
+ 
+-  do_touch_file (pinentry);
+-
+   if (pinentry->ttyname)
+     {
+       fclose (ttyfi);
+       fclose (ttyfo);
+     }
+ 
++  if (saved_errno)
++    errno = saved_errno;
++
+   return rc;
+ }
+ 
+-- 
+2.30.2

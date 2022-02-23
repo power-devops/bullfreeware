@@ -1,0 +1,79 @@
+--- ./erts/emulator/hipe/hipe_ppc_asm.m4.origin	2017-01-11 17:33:17 +0100
++++ ./erts/emulator/hipe/hipe_ppc_asm.m4	2017-01-13 11:31:40 +0100
+@@ -96,6 +96,20 @@
+  */
+ #define JOIN(X,Y)	X##Y
+ #define CSYM(NAME)	JOIN(.,NAME)
++#ifdef _AIX
++#define GLOBAL__HERE(NAME)	.globl NAME
++#define TYPE_FUNCTION__HERE(NAME)	/* No data for now for the debugger */
++#define OPD(NAME)				\
++	.csect NAME[DS];			\
++	.align 3;				\
++	.globl NAME;				\
++NAME:						\
++	.quad CSYM(NAME), TOC[tc0], 0;		\
++	.csect .text[PR];			\
++	.function NAME,NAME,16,044;
++#else
++#define GLOBAL__HERE(NAME)	.global NAME
++#define TYPE_FUNCTION__HERE(NAME)	.type NAME, @function
+ #define OPD(NAME)       			\
+ 	.pushsection .opd, "aw";		\
+ 	.align 3;				\
+@@ -104,16 +118,36 @@
+ 	.quad CSYM(NAME), .TOC.@tocbase, 0;	\
+ 	.type NAME, @function;			\
+ 	.popsection
++#endif
+ '',``
+ /* 32-bit */
++#ifdef _AIX
++#define JOIN(X,Y)	X##Y
++#define CSYM(NAME)	JOIN(.,NAME)
++#define OPD(NAME)				\
++	.csect NAME[DS];			\
++	.align 3;				\
++	.globl NAME;				\
++NAME:						\
++	.long CSYM(NAME), TOC[tc0], 0;		\
++	.csect .text[PR];			\
++	.function NAME,NAME,16,044;
++#else
+ #define CSYM(NAME)	NAME
+ #define OPD(NAME)	/*empty*/
++#endif
+ '')'
+ ``#define ASYM(NAME)	NAME
+-#define GLOBAL(NAME)	.global NAME
+ #define SEMI		;
++#ifdef _AIX
++#define GLOBAL(NAME)	.globl NAME
++#define SET_SIZE(NAME)		/* No data for now for the debugger */
++#define TYPE_FUNCTION(NAME)	.function NAME,NAME,16,044;
++#else
++#define GLOBAL(NAME)	.global NAME
+ #define SET_SIZE(NAME)	.size NAME,.-NAME
+ #define TYPE_FUNCTION(NAME)	.type NAME,@function
++#endif
+ #define lo16(X)		X@l
+ #define ha16(X)		X@ha
+ 
+--- ./erts/emulator/hipe/hipe_ppc_glue.S.origin	2017-01-11 11:02:04 +0100
++++ ./erts/emulator/hipe/hipe_ppc_glue.S	2017-01-11 11:00:50 +0100
+@@ -23,8 +23,15 @@
+ #include "hipe_literals.h"
+ #include "hipe_mode_switch.h"
+ 
++#ifdef _AIX
++	.toc
++	.csect .text[PR]
++	.align 2
++#else
+ 	.text
+ 	.p2align 2
++#endif
++
+ 
+ #if defined(__powerpc64__)
+ /*

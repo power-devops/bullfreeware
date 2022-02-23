@@ -1,0 +1,53 @@
+diff -Nur php-7.0.3.orig/ext/sockets/tests/socket_cmsg_credentials.phpt php-7.0.3-aix/ext/sockets/tests/socket_cmsg_credentials.phpt
+--- php-7.0.3.orig/ext/sockets/tests/socket_cmsg_credentials.phpt	2016-02-02 17:32:26 +0100
++++ php-7.0.3-aix/ext/sockets/tests/socket_cmsg_credentials.phpt	2016-03-10 17:18:19 +0100
+@@ -8,6 +8,9 @@
+ if (strtolower(substr(PHP_OS, 0, 3)) == 'win') {
+ die('skip not for Microsoft Windows');
+ }
++if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') {
++die('skip not for AIX');
++}
+ --CLEAN--
+ <?php
+ $path = __DIR__ . "/unix_sock";
+diff -Nur php-7.0.3.orig/ext/sockets/tests/socket_cmsg_rights.phpt php-7.0.3-aix/ext/sockets/tests/socket_cmsg_rights.phpt
+--- php-7.0.3.orig/ext/sockets/tests/socket_cmsg_rights.phpt	2016-02-02 17:32:26 +0100
++++ php-7.0.3-aix/ext/sockets/tests/socket_cmsg_rights.phpt	2016-03-10 17:18:19 +0100
+@@ -8,6 +8,9 @@
+ if (strtolower(substr(PHP_OS, 0, 3)) == 'win') {
+ die('skip not for Microsoft Windows');
+ }
++if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') {
++die('skip not for AIX');
++}
+ --CLEAN--
+ <?php
+ $path = __DIR__ . "/unix_sock";
+diff -Nur php-7.0.3.orig/sapi/cli/tests/cli_process_title_unix.phpt php-7.0.3-aix/sapi/cli/tests/cli_process_title_unix.phpt
+--- php-7.0.3.orig/sapi/cli/tests/cli_process_title_unix.phpt	2016-02-02 17:32:21 +0100
++++ php-7.0.3-aix/sapi/cli/tests/cli_process_title_unix.phpt	2016-03-10 17:18:19 +0100
+@@ -15,7 +15,12 @@
+ if (cli_set_process_title($original_title) === true)
+   echo "Successfully set title\n";
+ 
+-$ps_output = shell_exec("ps -p $pid -o command | tail -n 1");
++$ps_process_title_field = "command";
++if (strtoupper(substr(PHP_OS, 0, 13)) == "AIX")
++{
++  $ps_process_title_field = "args";
++}
++$ps_output = shell_exec("ps -p $pid -o $ps_process_title_field | tail -n 1");
+ 
+ if ($ps_output === null)
+ {
+
+diff -Nur php-7.0.3.orig/ext/soap/tests/bugs/bug29109.wsdl php-7.0.3-aix/ext/soap/tests/bugs/bug29109.wsdl
+--- php-7.0.3.orig/ext/soap/tests/bugs/bug29109.wsdl	2016-02-02 17:32:25 +0100
++++ php-7.0.3-aix/ext/soap/tests/bugs/bug29109.wsdl	2016-03-10 17:18:19 +0100
+@@ -1,4 +1,4 @@
+-<?xml version="1.0" encoding="windows-1257"?>
++<?xml version="1.0" encoding="iso-8859-13"?>
+ <definitions xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
+ xmlns:s0="http://tempuri.org/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"

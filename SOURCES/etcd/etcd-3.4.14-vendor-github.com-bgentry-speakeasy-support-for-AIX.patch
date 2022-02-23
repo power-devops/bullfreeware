@@ -1,0 +1,25 @@
+From f29c59f070cefb5cd1a0263ebb453649b59a3a33 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Dec 2020 10:49:38 +0100
+Subject: [PATCH 5/6] vendor/github.com/bgentry/speakeasy: support for AIX
+
+---
+ vendor/github.com/bgentry/speakeasy/speakeasy_unix.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vendor/github.com/bgentry/speakeasy/speakeasy_unix.go b/vendor/github.com/bgentry/speakeasy/speakeasy_unix.go
+index d99fda1..bf8136b 100644
+--- a/vendor/github.com/bgentry/speakeasy/speakeasy_unix.go
++++ b/vendor/github.com/bgentry/speakeasy/speakeasy_unix.go
+@@ -4,7 +4,7 @@
+ // Original code is based on code by RogerV in the golang-nuts thread:
+ // https://groups.google.com/group/golang-nuts/browse_thread/thread/40cc41e9d9fc9247
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package speakeasy
+ 
+-- 
+2.25.0
+

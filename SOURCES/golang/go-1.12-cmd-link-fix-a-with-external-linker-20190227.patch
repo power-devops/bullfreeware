@@ -1,0 +1,40 @@
+From 9f9c5fa8c7b8ad4d6a691aa3f1b557a9216d838f Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 23 Jan 2019 09:01:37 +0100
+Subject: [PATCH] cmd/link: fix -a with external linker
+
+This commit fixes a panic when -a was used with external linkmode.
+
+Fixes #29807
+
+Change-Id: I8cd42775f2953cec620cbc9ab345421c2694c9a2
+Reviewed-on: https://go-review.googlesource.com/c/158998
+Reviewed-by: Matthew Dempsky <mdempsky@google.com>
+Run-TryBot: Matthew Dempsky <mdempsky@google.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/data.go b/src/cmd/link/internal/ld/data.go
+index e0fad1a..0bd7d82 100644
+--- a/src/cmd/link/internal/ld/data.go
++++ b/src/cmd/link/internal/ld/data.go
+@@ -824,8 +824,10 @@
+ 		for i := range sym.R {
+ 			r := &sym.R[i] // Copying sym.Reloc has measurable impact on performance
+ 			rsname := ""
++			rsval := int64(0)
+ 			if r.Sym != nil {
+ 				rsname = r.Sym.Name
++				rsval = r.Sym.Value
+ 			}
+ 			typ := "?"
+ 			switch r.Type {
+@@ -836,7 +838,7 @@
+ 			case objabi.R_CALL:
+ 				typ = "call"
+ 			}
+-			ctxt.Logf("\treloc %.8x/%d %s %s+%#x [%#x]\n", uint(sym.Value+int64(r.Off)), r.Siz, typ, rsname, r.Add, r.Sym.Value+r.Add)
++			ctxt.Logf("\treloc %.8x/%d %s %s+%#x [%#x]\n", uint(sym.Value+int64(r.Off)), r.Siz, typ, rsname, r.Add, rsval+r.Add)
+ 		}
+ 	}
+ 

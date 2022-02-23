@@ -1,0 +1,31 @@
+--- ./configure.ac.ORIGIN	2021-01-05 14:31:55 +0100
++++ ./configure.ac	2021-01-05 14:32:52 +0100
+@@ -138,7 +138,7 @@
+ if test -z "$LDSHARED"
+ then
+ 	case $host in
+-	*-*-aix*) LDSHARED="\$(srcdir)/ld_so_aix \$(CC)";;
++	*-*-aix*) LDSHARED="$CC -shared";;
+ 	*-*-cygwin* | *-*-mingw*)
+             if test "$GCC" = yes; then
+                 LDSHARED="$CC -shared"
+--- ./Examples/Makefile.in.ORIGIN	2021-01-05 14:27:05 +0100
++++ ./Examples/Makefile.in	2021-01-05 14:31:44 +0100
+@@ -345,7 +345,7 @@
+ python: $(SRCDIR_SRCS)
+ 	$(SWIG) -python $(SWIGOPTPY3) $(SWIGOPT) -o $(ISRCS) $(INTERFACEPATH)
+ 	$(CC) -c $(CCSHARED) $(CPPFLAGS) $(CFLAGS) $(ISRCS) $(SRCDIR_SRCS) $(INCLUDES) $(PYTHON_INCLUDE)
+-	$(LDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(PYTHON_DLNK) $(LIBS) -o $(LIBPREFIX)_$(TARGET)$(PYTHON_SO)
++	$(LDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(PYTHON_DLNK) $(LIBS) -o $(LIBPREFIX)_$(TARGET)$(PYTHON_SO) $(PYTHON_LINK)
+ 
+ # -----------------------------------------------------------------
+ # Build a C++ dynamically loadable module
+@@ -354,7 +354,7 @@
+ python_cpp: $(SRCDIR_SRCS)
+ 	$(SWIG) -python $(SWIGOPTPY3) -c++ $(SWIGOPT) -o $(ICXXSRCS) $(INTERFACEPATH)
+ 	$(CXX) -c $(CCSHARED) $(CPPFLAGS) $(CXXFLAGS) $(ICXXSRCS) $(SRCDIR_SRCS) $(SRCDIR_CXXSRCS) $(INCLUDES) $(PYTHON_INCLUDE)
+-	$(CXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(PYTHON_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)_$(TARGET)$(PYTHON_SO)
++	$(CXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(PYTHON_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)_$(TARGET)$(PYTHON_SO) $(PYTHON_LINK)
+ 
+ # -----------------------------------------------------------------
+ # Build statically linked Python interpreter

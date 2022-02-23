@@ -1,0 +1,13 @@
+--- ./mysql-test/mysql-test-run.pl.ori	2018-11-14 12:34:17 -0600
++++ ./mysql-test/mysql-test-run.pl	2018-11-14 12:34:56 -0600
+@@ -170,10 +170,8 @@
+     main-
+     archive-
+     binlog-
+-    binlog_encryption-
+     csv-
+     compat/oracle-
+-    encryption-
+     federated-
+     funcs_1-
+     funcs_2-

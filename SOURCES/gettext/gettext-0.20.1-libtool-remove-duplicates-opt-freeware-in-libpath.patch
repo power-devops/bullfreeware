@@ -1,0 +1,19 @@
+--- a/build-aux/ltmain.sh	2019-10-08 16:17:55 +0200
++++ b/build-aux/ltmain.sh	2019-10-08 16:17:58 +0200
+@@ -10271,6 +10271,16 @@
+       rpath=
+       hardcode_libdirs=
+       for libdir in $compile_rpath $finalize_rpath; do
++    # Never add /opt/freeware/lib or /opt/freeware/lib64 in hardcoded_libdirs.
++    # It's already provided and it might be added it before local path, forcing
++    # AIX loader to take installed library instead of newly built.
++    case $host in
++      *aix*)
++        case $libdir in
++          "/opt/freeware/lib" | "/opt/freeware/lib64") continue;;
++        esac
++    esac
++
+ 	if test -n "$hardcode_libdir_flag_spec"; then
+ 	  if test -n "$hardcode_libdir_separator"; then
+ 	    if test -z "$hardcode_libdirs"; then

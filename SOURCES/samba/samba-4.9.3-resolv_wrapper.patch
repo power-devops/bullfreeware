@@ -1,0 +1,68 @@
+--- ./third_party/resolv_wrapper/resolv_wrapper.c.ORIG	2018-07-12 10:23:37 +0200
++++ ./third_party/resolv_wrapper/resolv_wrapper.c	2018-09-24 16:17:29 +0200
+@@ -52,6 +52,11 @@
+ 
+ #include <resolv.h>
+ 
++#ifdef _AIX
++#include <arpa/nameser.h>
++#include <sys/socket.h>
++#endif
++
+ /* GCC has printf type attribute check. */
+ #ifdef HAVE_ATTRIBUTE_PRINTF_FORMAT
+ #define PRINTF_ATTRIBUTE(a,b) __attribute__ ((__format__ (__printf__, a, b)))
+@@ -1424,11 +1429,18 @@
+ 					sa6->sin6_flowinfo = 0;
+ 					sa6->sin6_addr = a6;
+ 
++#ifdef _AIX
++					state->_ext.nsaddrs[state->_ext.nscount] = sa6;
++					state->_ext.nssocks[state->_ext.nscount] = -1;
++
++					state->_ext.nscount++;
++#else
+ 					state->_u._ext.nsaddrs[state->_u._ext.nscount] = sa6;
+ 					state->_u._ext.nssocks[state->_u._ext.nscount] = -1;
+ 					state->_u._ext.nsmap[state->_u._ext.nscount] = MAXNS + 1;
+ 
+ 					state->_u._ext.nscount++;
++#endif
+ 					nserv++;
+ 				} else {
+ 					RWRAP_LOG(RWRAP_LOG_ERROR,
+@@ -1485,11 +1497,18 @@
+ 			memset(state->nsaddr_list, 0, sizeof(state->nsaddr_list));
+ 
+ #ifdef HAVE_RESOLV_IPV6_NSADDRS
++#ifdef _AIX
++			state->_ext.nscount = 0;
++			for (i = 0; i < state->_ext.nscount; i++) {
++				SAFE_FREE(state->_ext.nsaddrs[i]);
++			}
++#else
+ 			state->_u._ext.nscount = 0;
+ 			for (i = 0; i < state->_u._ext.nscount; i++) {
+ 				SAFE_FREE(state->_u._ext.nsaddrs[i]);
+ 			}
+ #endif
++#endif
+ 
+ 			rc = rwrap_parse_resolv_conf(state, resolv_conf);
+ 		}
+@@ -1545,9 +1564,15 @@
+ 
+ #ifdef HAVE_RESOLV_IPV6_NSADDRS
+ 	if (state != NULL) {
++#ifdef _AIX
++		for (i = 0; i < state->_ext.nscount; i++) {
++			SAFE_FREE(state->_ext.nsaddrs[i]);
++		}
++#else
+ 		for (i = 0; i < state->_u._ext.nscount; i++) {
+ 			SAFE_FREE(state->_u._ext.nsaddrs[i]);
+ 		}
++#endif
+ 	}
+ #endif
+ }

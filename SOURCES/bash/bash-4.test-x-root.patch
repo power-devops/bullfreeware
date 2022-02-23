@@ -1,0 +1,20 @@
+--- ./lib/sh/eaccess.c.ORIGIN	2019-03-06 14:27:11 +0100
++++ ./lib/sh/eaccess.c	2019-03-06 14:32:52 +0100
+@@ -211,7 +211,7 @@
+ #  else		/* HAVE_EACCESS */	/* FreeBSD */
+   ret = eaccess (path, mode);	/* XXX -- not always correct for X_OK */
+ #  endif	/* HAVE_EACCESS */
+-#  if defined (__FreeBSD__) || defined (SOLARIS)
++#  if defined (__FreeBSD__) || defined (SOLARIS) || defined(_AIX)
+   if (ret == 0 && current_user.euid == 0 && mode == X_OK)
+     return (sh_stataccess (path, mode));
+ #  endif	/* __FreeBSD__ || SOLARIS */
+@@ -230,7 +230,7 @@
+   if (current_user.uid == current_user.euid && current_user.gid == current_user.egid)
+     {
+       ret = access (path, mode);
+-#if defined (__FreeBSD__) || defined (SOLARIS)
++#if defined (__FreeBSD__) || defined (SOLARIS) || defined(_AIX)
+       if (ret == 0 && current_user.euid == 0 && mode == X_OK)
+ 	return (sh_stataccess (path, mode));
+ #endif

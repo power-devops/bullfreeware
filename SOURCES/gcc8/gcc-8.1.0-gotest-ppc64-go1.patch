@@ -1,0 +1,12 @@
+--- ./libgo/testsuite/gotest.ORIGIN	2018-02-02 09:55:46 -0600
++++ ./libgo/testsuite/gotest	2018-02-05 18:37:14 -0600
+@@ -480,6 +497,9 @@
+ if test "$trace" = "true"; then
+   echo $GC -g $pkgpatharg $prefixarg -c -I . -fno-toplevel-reorder -o _gotest_.o $gofiles $pkgbasefiles
+ fi
++
++export LD_LIBRARY_PATH=`echo $LD_LIBRARY_PATH | sed "s|gcc/ppc64||" | sed "s|gcc/pthread/ppc64||"`
++echo $LD_LIBRARY_PATH
+ $GC -g $pkgpatharg $prefixarg -c -I . -fno-toplevel-reorder -o _gotest_.o $gofiles $pkgbasefiles
+ 
+ if $havex; then

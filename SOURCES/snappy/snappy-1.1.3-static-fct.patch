@@ -1,0 +1,14 @@
+--- ./snappy.cc.ORIGIN	2018-05-03 11:12:12 +0200
++++ ./snappy.cc	2018-05-03 11:13:38 +0200
+@@ -856,7 +856,11 @@
+ }
+ 
+ template <typename Writer>
++#ifndef _AIX
+ static bool InternalUncompressAllTags(SnappyDecompressor* decompressor,
++#else
++bool InternalUncompressAllTags(SnappyDecompressor* decompressor,
++#endif
+                                       Writer* writer,
+                                       uint32 uncompressed_len) {
+   writer->SetExpectedLength(uncompressed_len);

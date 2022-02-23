@@ -1,0 +1,110 @@
+--- Makefile.orig	2019-04-09 07:28:46 +0000
++++ Makefile	2019-04-09 07:29:31 +0000
+@@ -551,7 +551,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- doc/Makefile.orig	2019-04-09 07:29:48 +0000
++++ doc/Makefile	2019-04-09 07:32:08 +0000
+@@ -307,7 +307,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- doc/devhelp/Makefile.orig	2019-04-09 07:32:34 +0000
++++ doc/devhelp/Makefile	2019-04-09 07:34:55 +0000
+@@ -247,7 +247,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- doc/examples/Makefile.orig	2019-04-09 07:35:11 +0000
++++ doc/examples/Makefile	2019-04-09 07:35:42 +0000
+@@ -379,7 +379,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- example/Makefile.orig	2019-04-09 07:36:57 +0000
++++ example/Makefile	2019-04-09 07:37:31 +0000
+@@ -269,7 +269,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- include/Makefile.orig	2019-04-09 07:37:53 +0000
++++ include/Makefile	2019-04-09 07:39:45 +0000
+@@ -276,7 +276,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- include/libxml/Makefile.orig	2019-04-09 07:40:02 +0000
++++ include/libxml/Makefile	2019-04-09 07:41:09 +0000
+@@ -265,7 +265,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- python/Makefile.orig	2019-04-09 07:41:31 +0000
++++ python/Makefile	2019-04-09 07:42:08 +0000
+@@ -348,7 +348,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- python/tests/Makefile.orig	2019-04-09 07:42:28 +0000
++++ python/tests/Makefile	2019-04-09 07:42:59 +0000
+@@ -247,7 +247,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests
+--- xstc/Makefile.orig	2019-04-09 07:43:15 +0000
++++ xstc/Makefile	2019-04-09 07:43:45 +0000
+@@ -216,7 +216,7 @@
+ PKG_CONFIG_PATH = :/opt/freeware/lib/pkgconfig:/opt/freeware/share/pkgconfig
+ PYTHON = /opt/freeware/bin/python_64
+ PYTHON_INCLUDES = /opt/freeware/include/python2.7
+-PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:Modules/python.exp -lld
++PYTHON_LIBS = -lpython2.7 -ldl -lXext -lexpat -lffi -lncurses -lsqlite3 -lm -Wl,-bE:/opt/freeware/lib64/python2.7/config/python.exp -lld
+ PYTHON_SITE_PACKAGES = /opt/freeware/lib64/python2.7/site-packages
+ PYTHON_SUBDIR = python
+ PYTHON_TESTS =  RelaxNGPythonTests SchemasPythonTests

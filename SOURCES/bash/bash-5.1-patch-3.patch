@@ -1,0 +1,27 @@
+diff --git a/patchlevel.h b/patchlevel.h
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 2
++#define PATCHLEVEL 3
+ 
+ #endif /* _PATCHLEVEL_H_ */
+diff --git a/subst.c b/subst.c
+--- a/subst.c
++++ b/subst.c
+@@ -6356,8 +6356,10 @@ command_substitute (string, quoted, flags)
+ 
+ #if defined (JOB_CONTROL)
+   old_pipeline_pgrp = pipeline_pgrp;
+-  /* Don't reset the pipeline pgrp if we're already a subshell in a pipeline. */
+-  if ((subshell_environment & SUBSHELL_PIPE) == 0)
++  /* Don't reset the pipeline pgrp if we're already a subshell in a pipeline or
++     we've already forked to run a disk command (and are expanding redirections,
++     for example). */
++  if ((subshell_environment & (SUBSHELL_FORK|SUBSHELL_PIPE)) == 0)
+     pipeline_pgrp = shell_pgrp;
+   cleanup_the_pipeline ();
+ #endif /* JOB_CONTROL */

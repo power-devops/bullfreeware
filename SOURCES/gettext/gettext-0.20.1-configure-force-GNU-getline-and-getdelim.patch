@@ -1,0 +1,52 @@
+diff --git a/gettext-tools/configure b/gettext-tools/configure
+index 5a831d6..3573a77 100755
+--- a/gettext-tools/configure
++++ b/gettext-tools/configure
+@@ -39992,7 +39992,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  gl_cv_func_working_getdelim=yes
++                      case "$host_os" in
++            aix*) gl_cv_func_working_getdelim=no;;
++            *) gl_cv_func_working_getdelim=yes;;
++          esac
+ else
+   gl_cv_func_working_getdelim=no
+ fi
+@@ -40243,7 +40246,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  am_cv_func_working_getline=yes
++                      case "$host_os" in
++            aix*) am_cv_func_working_getline=no;;
++            *) am_cv_func_working_getline=yes;;
++          esac
+ else
+   am_cv_func_working_getline=no
+ fi
+@@ -67986,7 +67992,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  gl_cv_func_working_getdelim=yes
++                      case "$host_os" in
++            aix*) gl_cv_func_working_getdelim=no;;
++            *) gl_cv_func_working_getdelim=yes;;
++          esac
+ else
+   gl_cv_func_working_getdelim=no
+ fi
+@@ -68237,7 +68246,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  am_cv_func_working_getline=yes
++                      case "$host_os" in
++            aix*) am_cv_func_working_getline=no;;
++            *) am_cv_func_working_getline=yes;;
++          esac
+ else
+   am_cv_func_working_getline=no
+ fi

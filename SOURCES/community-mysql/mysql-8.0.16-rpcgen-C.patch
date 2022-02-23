@@ -1,0 +1,49 @@
+--- ./plugin/group_replication/libmysqlgcs/rpcgen.cmake.ORIGIN	2019-06-13 15:24:18 -0500
++++ ./plugin/group_replication/libmysqlgcs/rpcgen.cmake	2019-06-13 15:27:33 -0500
+@@ -120,10 +120,10 @@
+ 
+        # generate the sources
+        COMMAND ${CMAKE_COMMAND} -E remove -f ${x_gen_h}
+-       COMMAND ${RPCGEN_EXECUTABLE}  -C -h -o
++       COMMAND ${RPCGEN_EXECUTABLE}  -h -o
+                     ${x_gen_h} ${x_tmp_x_canonical_name}
+        COMMAND ${CMAKE_COMMAND} -E remove -f ${x_gen_c}
+-                COMMAND ${RPCGEN_EXECUTABLE}  -C -c -o
++                COMMAND ${RPCGEN_EXECUTABLE}  -c -o
+                 ${x_gen_c} ${x_tmp_x_canonical_name}
+        WORKING_DIRECTORY ${gen_xdr_dir}
+        DEPENDS
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_vp.x.ORIGIN	2019-06-18 16:36:28 -0500
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_vp.x	2019-06-18 16:37:48 -0500
+@@ -166,10 +166,15 @@
+ /* Application-specific data */
+ union app_u switch(cargo_type c_t){
+  case unified_boot_type:
++   node_list_1_1 nodes;
+  case add_node_type:
++   node_list_1_1 nodes;
+  case remove_node_type:
++   node_list_1_1 nodes;
+  case force_config_type:
++   node_list_1_1 nodes;
+  case xcom_boot_type:
++   node_list_1_1 nodes;
+  case xcom_set_group:
+    node_list_1_1 nodes;
+  case xcom_recover:
+@@ -181,6 +186,7 @@
+  case query_next_log:
+    void;
+  case exit_type:
++   void;
+  case reset_type:
+    void;
+  case remove_reset_type:
+@@ -188,6 +194,7 @@
+  case begin_trans:
+    void;
+  case prepared_trans:
++   trans_data td;
+  case abort_trans:
+    trans_data td;
+  case view_msg:

@@ -1,0 +1,21 @@
+--- ./nspr/pr/src/linking/prlink.c.ORIGIN	2021-04-27 11:48:24 +0200
++++ ./nspr/pr/src/linking/prlink.c	2021-04-27 14:33:25 +0200
+@@ -430,6 +430,8 @@
+     int len;
+ #endif
+ 
++fprintf(stderr, "TONY prlink.c : pr_LoadLibraryByPathname(%s)\n", name );
++
+     if (!_pr_initialized) {
+         _PR_ImplicitInitialization();
+     }
+--- ./nss/lib/freebl/stubs.c.ORIGIN	2021-04-27 14:18:57 +0200
++++ ./nss/lib/freebl/stubs.c	2021-04-27 14:20:30 +0200
+@@ -765,6 +765,7 @@
+     /* NSPR should be first */
+     if (!FREEBLnsprGlobalLib) {
+         nspr = freebl_getLibrary(nsprLibName);
++printf("TONY stubs.c : FREEBL_InitStubs(): freebl_getLibrary(%s)\n", nsprLibName );
+         if (!nspr) {
+             return SECFailure;
+         }

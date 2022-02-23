@@ -1,0 +1,157 @@
+From f47ac49c068f1bc640f391b8b4a9594486ed0bb7 Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Tue, 13 Apr 2021 22:33:17 +0200
+Subject: [PATCH 1/5] tests: reset freed pointer for next iteration
+
+* tests/t-oid.c (main): reset freed pointer for next iteration
+
+--
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ tests/t-oid.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tests/t-oid.c b/tests/t-oid.c
+index 0fe5944..04156b6 100644
+--- a/tests/t-oid.c
++++ b/tests/t-oid.c
+@@ -183,6 +183,7 @@ main (int argc, char **argv)
+             printf (" %02X", buffer[n]);
+           putchar ('\n');
+           free (buffer);
++          buffer = NULL;
+         }
+     }
+   else if (!strcmp (*argv, "--to-str"))
+-- 
+2.30.2
+
+
+From 8c410c22a0366b4ce43d37b62598d8429c3ffc30 Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Tue, 13 Apr 2021 22:36:56 +0200
+Subject: [PATCH 2/5] time: avoid buffer overrun
+
+* src/time.c (_ksba_current_time): Use snprintf to avoid buffer overrun
+
+--
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/time.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/time.c b/src/time.c
+index d793476..f5f3a03 100644
+--- a/src/time.c
++++ b/src/time.c
+@@ -160,7 +160,7 @@ _ksba_current_time (ksba_isotime_t timebuf)
+ #else
+   tp = gmtime ( &epoch );
+ #endif
+-  sprintf (timebuf,"%04d%02d%02dT%02d%02d%02d",
+-           1900 + tp->tm_year, tp->tm_mon+1, tp->tm_mday,
+-           tp->tm_hour, tp->tm_min, tp->tm_sec);
++  snprintf (timebuf, sizeof(ksba_isotime_t), "%04d%02d%02dT%02d%02d%02d",
++            1900 + tp->tm_year, tp->tm_mon+1, tp->tm_mday,
++            tp->tm_hour, tp->tm_min, tp->tm_sec);
+ }
+-- 
+2.30.2
+
+
+From b8581032f492b4c17d20e966f11afd591ca177ef Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Tue, 13 Apr 2021 22:44:43 +0200
+Subject: [PATCH 3/5] asn1-func: Initialize buffer
+
+* src/asn1-func.c (_ksba_asn_expand_object_id): Initialize name2 buffer
+
+--
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/asn1-func.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/asn1-func.c b/src/asn1-func.c
+index e64c479..05ec897 100755
+--- a/src/asn1-func.c
++++ b/src/asn1-func.c
+@@ -882,7 +882,7 @@ int
+ _ksba_asn_expand_object_id (AsnNode node)
+ {
+   AsnNode p, p2, p3, p4, p5;
+-  char name_root[129], name2[129*2+1];
++  char name_root[129], name2[129*2+1] = "";
+ 
+   /* Fixme: Make a cleaner implementation */
+   if (!node)
+-- 
+2.30.2
+
+
+From ff510b0511443c181b9b9af87bd2596b6a5751fc Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Wed, 14 Apr 2021 10:28:10 +0200
+Subject: [PATCH 4/5] ber-decoder: Avoid null pointer dereference on error
+
+* src/ber-decoder.c (_ksba_ber_decoder_dump): break on error
+
+--
+
+The above branches set err if stuff go wrong, but it is never checked
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/ber-decoder.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/ber-decoder.c b/src/ber-decoder.c
+index 755c1d7..87e58a9 100644
+--- a/src/ber-decoder.c
++++ b/src/ber-decoder.c
+@@ -1149,6 +1149,8 @@ _ksba_ber_decoder_dump (BerDecoder d, FILE *fp)
+                     err = gpg_error_from_syserror ();
+                 }
+             }
++          if (err)
++            break;
+ 
+           for (n=0; !err && n < d->val.length; n++)
+             {
+-- 
+2.30.2
+
+
+From 0431c56f4e1b6d6c3ff302648730da36a18ae93c Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Wed, 14 Apr 2021 10:30:59 +0200
+Subject: [PATCH 5/5] Mark the idential branches as intentional for coverity
+
+* src/ber-help.c (_ksba_ber_count_tl): Mark identical branches as
+  intentional for coverity
+
+--
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/ber-help.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/ber-help.c b/src/ber-help.c
+index 1b72bf0..81c31ed 100644
+--- a/src/ber-help.c
++++ b/src/ber-help.c
+@@ -440,6 +440,7 @@ _ksba_ber_count_tl (unsigned long tag,
+ 
+   (void)constructed;  /* Not used, but passed for uniformity of such calls.  */
+ 
++  /* coverity[identical_branches] */
+   if (tag < 0x1f)
+     {
+       buflen++;
+-- 
+2.30.2
+

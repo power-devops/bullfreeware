@@ -1,0 +1,67 @@
+*** ./src/plugins/preauth/pkinit/pkinit.h.ORIG	Thu May 27 12:07:10 2010
+--- ./src/plugins/preauth/pkinit/pkinit.h	Thu May 27 12:07:28 2010
+***************
+*** 105,111 ****
+--- 105,113 ----
+  
+  /* Solaris compiler doesn't grok __FUNCTION__
+   * hack for now.  Fix all the uses eventually. */
++ #ifndef _AIX51
+  #define __FUNCTION__ __func__
++ #endif
+  
+  /* Macros to deal with converting between various data types... */
+  #define PADATA_TO_KRB5DATA(pad, k5d) \
+*** ./src/lib/krb5/os/changepw.c.ORIG	Thu May 27 12:16:08 2010
+--- ./src/lib/krb5/os/changepw.c	Thu May 27 12:16:32 2010
+***************
+*** 40,45 ****
+--- 40,49 ----
+  #include <stdio.h>
+  #include <errno.h>
+  
++ #if (defined(_AIX51) || defined(_AIX52) || defined(_AIX53)) && !(defined(_AIX61))
++ #define ss_family __ss_family
++ #endif
++ 
+  #ifndef GETSOCKNAME_ARG3_TYPE
+  #define GETSOCKNAME_ARG3_TYPE int
+  #endif
+*** ./src/kprop/kpropd.c.ORIG	2019-01-08 17:02:37 +0100
+--- ./src/kprop/kpropd.c	2019-04-10 14:26:19 +0200
+***************
+*** 87,92 ****
+--- 87,96 ----
+  #include <kadm5/admin.h>
+  #include <kdb_log.h>
+  
++ #if (defined(_AIX51) || defined(_AIX52) || defined(_AIX53)) && !(defined(_AIX61))
++ #define ss_family __ss_family
++ #endif
++ 
+  #ifndef GETSOCKNAME_ARG3_TYPE
+  #define GETSOCKNAME_ARG3_TYPE unsigned int
+  #endif
+*** ./src/configure.ORIG	Tue Nov  8 15:05:46 2011
+--- ./src/configure	Tue Nov  8 15:05:59 2011
+***************
+*** 4517,4525 ****
+      case "$CC $CFLAGS" in
+        *-qhalt=*) ;;
+        *)
+! 	CFLAGS="$CFLAGS -qhalt=e"
+! 	{ $as_echo "$as_me:${as_lineno-$LINENO}: adding -qhalt=e for better error reporting" >&5
+! $as_echo "$as_me: adding -qhalt=e for better error reporting" >&6;}
+  	;;
+      esac
+      # Also, the optimizer isn't turned on by default, which means
+--- 4517,4525 ----
+      case "$CC $CFLAGS" in
+        *-qhalt=*) ;;
+        *)
+! #	CFLAGS="$CFLAGS -qhalt=e"
+! #	{ $as_echo "$as_me:${as_lineno-$LINENO}: adding -qhalt=e for better error reporting" >&5
+! #$as_echo "$as_me: adding -qhalt=e for better error reporting" >&6;}
+  	;;
+      esac
+      # Also, the optimizer isn't turned on by default, which means

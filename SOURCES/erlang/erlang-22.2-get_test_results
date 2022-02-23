@@ -1,0 +1,21 @@
+#!/bin/bash
+#This script extracts a resume of the skipped and failed cases out of the output on af an erlang ts install
+
+#variables
+myfile=$1
+
+#print out the results
+#echo "                       ------Run Test Results------"
+#grep "TEST COMPLETE" $myfile | awk '{ok+=$6;ok+=$5;f+=$8;f+=$7;s+=$10;s+=$9;NF >13? c+=$13 : c+=$11;}END{print("PASSED: " ok, "  FAILED: " f, "  SKIPPED: " s, "  TOTAL CASES: " c)}'
+
+echo Skipped Cases:
+awk '/SKIPPED/ {print}' $myfile
+echo Failed Cases:
+awk '/FAILED/ {print}' $myfile
+echo Completed Tests:
+awk '/TEST COMPLETE/ {print}' $myfile
+
+#print out the results
+echo "                       ------Run Test Results------"
+grep "TEST COMPLETE" $myfile | awk '{ok+=$6;ok+=$5;f+=$8;f+=$7;s+=$10;s+=$9;if (NF >13) {c+=$13;c+=$12;} else c+=$11;}END{print("PASSED: " ok, "  FAILED: " f, "  SKIPPED: " s, "  TOTAL CASES: " c)}'
+

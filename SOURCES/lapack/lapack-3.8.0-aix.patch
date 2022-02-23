@@ -1,0 +1,54 @@
+--- 32bit/make.inc.orig	2019-01-01 07:14:50 +0000
++++ 32bit/make.inc	2019-01-01 07:15:45 +0000
+@@ -9,7 +9,7 @@
+ #  CC is the C compiler, normally invoked with options CFLAGS.
+ #
+ CC     = gcc
+-CFLAGS = -O3
++CFLAGS = -O3 -D_LARGE_FILES
+ 
+ #  Modify the FORTRAN and OPTS definitions to refer to the compiler
+ #  and desired compiler options for your machine.  NOOPT refers to
+@@ -20,7 +20,7 @@
+ #  should not compile LAPACK with flags such as -ffpe-trap=overflow.
+ #
+ FORTRAN = gfortran
+-OPTS    = -O2 -frecursive
++OPTS    = -O2 -frecursive -D_LARGE_FILES
+ DRVOPTS = $(OPTS)
+ NOOPT   = -O0 -frecursive
+ 
+--- 64bit/make.inc.orig	2019-01-01 01:42:23 +0000
++++ 64bit/make.inc	2019-01-01 01:43:00 +0000
+@@ -9,7 +9,7 @@
+ #  CC is the C compiler, normally invoked with options CFLAGS.
+ #
+ CC     = gcc
+-CFLAGS = -O3
++CFLAGS = -O3 -maix64
+ 
+ #  Modify the FORTRAN and OPTS definitions to refer to the compiler
+ #  and desired compiler options for your machine.  NOOPT refers to
+@@ -19,7 +19,7 @@
+ #  and handle these quantities appropriately. As a consequence, one
+ #  should not compile LAPACK with flags such as -ffpe-trap=overflow.
+ #
+-FORTRAN = gfortran
++FORTRAN = gfortran -maix64
+ OPTS    = -O2 -frecursive
+ DRVOPTS = $(OPTS)
+ NOOPT   = -O0 -frecursive
+@@ -28,12 +28,12 @@
+ #  load options for your machine.
+ #
+ LOADER   = gfortran
+-LOADOPTS =
++LOADOPTS = -maix64
+ 
+ #  The archiver and the flag(s) to use when building an archive
+ #  (library).  If your system has no ranlib, set RANLIB = echo.
+ #
+-ARCH      = ar
++ARCH      = ar -X64
+ ARCHFLAGS = cr
+ RANLIB    = ranlib

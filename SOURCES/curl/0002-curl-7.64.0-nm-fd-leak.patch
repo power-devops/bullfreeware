@@ -1,0 +1,162 @@
+From 377101f138873bfa481785cb7d04c326006f0b5d Mon Sep 17 00:00:00 2001
+From: Daniel Stenberg <daniel@haxx.se>
+Date: Mon, 11 Feb 2019 07:56:00 +0100
+Subject: [PATCH 1/3] connection_check: set ->data to the transfer doing the
+ check
+
+The http2 code for connection checking needs a transfer to use. Make
+sure a working one is set before handler->connection_check() is called.
+
+Reported-by: jnbr on github
+Fixes #3541
+Closes #3547
+
+Upstream-commit: 38d8e1bd4ed1ae52930ae466ecbac78e888b142f
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ lib/url.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/url.c b/lib/url.c
+index d5a9820..229c655 100644
+--- a/lib/url.c
++++ b/lib/url.c
+@@ -965,6 +965,7 @@ static bool extract_if_dead(struct connectdata *conn,
+       /* The protocol has a special method for checking the state of the
+          connection. Use it to check if the connection is dead. */
+       unsigned int state;
++      conn->data = data; /* use this transfer for now */
+       state = conn->handler->connection_check(conn, CONNCHECK_ISDEAD);
+       dead = (state & CONNRESULT_DEAD);
+     }
+-- 
+2.17.2
+
+
+From 287f5d70395b3833f8901a57b29a48b87d84a9fe Mon Sep 17 00:00:00 2001
+From: Jay Satiro <raysatiro@yahoo.com>
+Date: Mon, 11 Feb 2019 23:00:00 -0500
+Subject: [PATCH 2/3] connection_check: restore original conn->data after the
+ check
+
+- Save the original conn->data before it's changed to the specified
+  data transfer for the connection check and then restore it afterwards.
+
+This is a follow-up to 38d8e1b 2019-02-11.
+
+History:
+
+It was discovered a month ago that before checking whether to extract a
+dead connection that that connection should be associated with a "live"
+transfer for the check (ie original conn->data ignored and set to the
+passed in data). A fix was landed in 54b201b which did that and also
+cleared conn->data after the check. The original conn->data was not
+restored, so presumably it was thought that a valid conn->data was no
+longer needed.
+
+Several days later it was discovered that a valid conn->data was needed
+after the check and follow-up fix was landed in bbae24c which partially
+reverted the original fix and attempted to limit the scope of when
+conn->data was changed to only when pruning dead connections. In that
+case conn->data was not cleared and the original conn->data not
+restored.
+
+A month later it was discovered that the original fix was somewhat
+correct; a "live" transfer is needed for the check in all cases
+because original conn->data could be null which could cause a bad deref
+at arbitrary points in the check. A fix was landed in 38d8e1b which
+expanded the scope to all cases. conn->data was not cleared and the
+original conn->data not restored.
+
+A day later it was discovered that not restoring the original conn->data
+may lead to busy loops in applications that use the event interface, and
+given this observation it's a pretty safe assumption that there is some
+code path that still needs the original conn->data. This commit is the
+follow-up fix for that, it restores the original conn->data after the
+connection check.
+
+Assisted-by: tholin@users.noreply.github.com
+Reported-by: tholin@users.noreply.github.com
+
+Fixes https://github.com/curl/curl/issues/3542
+Closes #3559
+
+Upstream-commit: 4015fae044ce52a639c9358e22a9e948f287c89f
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ lib/url.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/url.c b/lib/url.c
+index 229c655..a77e92d 100644
+--- a/lib/url.c
++++ b/lib/url.c
+@@ -965,8 +965,10 @@ static bool extract_if_dead(struct connectdata *conn,
+       /* The protocol has a special method for checking the state of the
+          connection. Use it to check if the connection is dead. */
+       unsigned int state;
++      struct Curl_easy *olddata = conn->data;
+       conn->data = data; /* use this transfer for now */
+       state = conn->handler->connection_check(conn, CONNCHECK_ISDEAD);
++      conn->data = olddata;
+       dead = (state & CONNRESULT_DEAD);
+     }
+     else {
+@@ -995,7 +997,6 @@ struct prunedead {
+ static int call_extract_if_dead(struct connectdata *conn, void *param)
+ {
+   struct prunedead *p = (struct prunedead *)param;
+-  conn->data = p->data; /* transfer to use for this check */
+   if(extract_if_dead(conn, p->data)) {
+     /* stop the iteration here, pass back the connection that was extracted */
+     p->extracted = conn;
+-- 
+2.17.2
+
+
+From 15e3f2eef87bff1210f43921cb15f03c68be59f7 Mon Sep 17 00:00:00 2001
+From: Daniel Stenberg <daniel@haxx.se>
+Date: Tue, 19 Feb 2019 15:56:54 +0100
+Subject: [PATCH 3/3] singlesocket: fix the 'sincebefore' placement
+
+The variable wasn't properly reset within the loop and thus could remain
+set for sockets that hadn't been set before and miss notifying the app.
+
+This is a follow-up to 4c35574 (shipped in curl 7.64.0)
+
+Reported-by: buzo-ffm on github
+Detected-by: Jan Alexander Steffens
+Fixes #3585
+Closes #3589
+
+Upstream-commit: afc00e047c773faeaa60a5f86a246cbbeeba5819
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ lib/multi.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/multi.c b/lib/multi.c
+index 130226f..28f4c47 100644
+--- a/lib/multi.c
++++ b/lib/multi.c
+@@ -2360,8 +2360,6 @@ static CURLMcode singlesocket(struct Curl_multi *multi,
+   int num;
+   unsigned int curraction;
+   int actions[MAX_SOCKSPEREASYHANDLE];
+-  unsigned int comboaction;
+-  bool sincebefore = FALSE;
+ 
+   for(i = 0; i< MAX_SOCKSPEREASYHANDLE; i++)
+     socks[i] = CURL_SOCKET_BAD;
+@@ -2380,6 +2378,8 @@ static CURLMcode singlesocket(struct Curl_multi *multi,
+       i++) {
+     unsigned int action = CURL_POLL_NONE;
+     unsigned int prevaction = 0;
++    unsigned int comboaction;
++    bool sincebefore = FALSE;
+ 
+     s = socks[i];
+ 
+-- 
+2.17.2
+

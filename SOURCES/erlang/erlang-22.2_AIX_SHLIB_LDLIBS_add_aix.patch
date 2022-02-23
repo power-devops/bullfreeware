@@ -1,0 +1,32 @@
+--- a/lib/common_test/test_server/configure.in.OLD	2020-04-20 13:20:42 +0200
++++ b/lib/common_test/test_server/configure.in	2020-04-20 13:19:00 +0200
+@@ -194,6 +194,13 @@
+ 	])
+ 	SHLIB_EXTRACT_ALL=""
+ 	;;
++    *-aix*)
++	SHLIB_CFLAGS="-fpic"
++	SHLIB_LD="${CC}"
++	SHLIB_LDFLAGS="$LDFLAGS -shared"
++	SHLIB_SUFFIX=".so"
++	SHLIB_EXTRACT_ALL=""
++	;;
+     *-solaris2*|*-sysv4*)
+ 	SHLIB_CFLAGS="-KPIC"
+ 	SHLIB_LD="/usr/ccs/bin/ld"
+--- a/lib/common_test/test_server/configure.OLD	2020-04-20 13:19:41 +0200
++++ b/lib/common_test/test_server/configure	2020-04-20 13:21:00 +0200
+@@ -3757,6 +3757,13 @@
+ 
+ 	SHLIB_EXTRACT_ALL=""
+ 	;;
++    *-aix*)
++	SHLIB_CFLAGS="-fpic"
++	SHLIB_LD="${CC}"
++	SHLIB_LDFLAGS="$LDFLAGS -shared"
++	SHLIB_SUFFIX=".so"
++	SHLIB_EXTRACT_ALL=""
++	;;
+     *-solaris2*|*-sysv4*)
+ 	SHLIB_CFLAGS="-KPIC"
+ 	SHLIB_LD="/usr/ccs/bin/ld"

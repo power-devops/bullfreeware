@@ -1,0 +1,56 @@
+--- ./libmysql/CMakeLists.txt.1005      2019-06-25 12:23:30 +0200
++++ ./libmysql/CMakeLists.txt   2019-11-25 17:33:32 +0100
+@@ -175,6 +175,16 @@
+ CACHE INTERNAL "Nonblocking functions exported by client API"
+ )
+
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/build/libmysql/libmysql.exp
++    COMMAND echo "${CLIENT_API_FUNCTIONS};${CLIENT_API_NONBLOCKING_FUNCTIONS}" | /opt/freeware/bin/sed  "s|;|\\n|g" > ${CMAKE_SOURCE_DIR}/build/libmysql/libmysql.exp
++    VERBATIM
++  )
++  ADD_CUSTOM_TARGET(libmysql_exp
++    DEPENDS ${CMAKE_SOURCE_DIR}/build/libmysql/libmysql.exp
++  )
++ENDIF()
++
+ SET(CLIENT_SOURCES
+   libmysql.cc
+   errmsg.cc
+@@ -288,6 +298,9 @@
+     COMPONENT SharedLibraries)
+   TARGET_LINK_LIBRARIES(libmysql PRIVATE ${LIBS_TO_LINK})
+
++  IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++    ADD_DEPENDENCIES(libmysql libmysql_exp)
++  ENDIF()
+   IF(WIN32)
+     # So that libmysql_api_test below can find the .dll
+     ADD_CUSTOM_COMMAND(TARGET libmysql POST_BUILD
+--- ./cmake/libutils.cmake.ORIGIN	2019-08-27 15:44:17 -0500
++++ ./cmake/libutils.cmake	2019-08-27 15:52:11 -0500
+@@ -166,13 +166,17 @@
+     # Mark every export as explicitly needed, so that ld won't remove the
+     # .a files containing them. This has a similar effect as
+     # --Wl,--no-whole-archive, but is more focused.
+-    FOREACH(SYMBOL ${ARG_EXPORTS})
+-      IF(APPLE)
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
+-      ELSE()
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
+-      ENDIF()
+-    ENDFOREACH()
++    IF(AIX)
++        SET(export_link_flags "${export_link_flags} -Wl,-bE:./libmysql.exp")
++    ELSE()
++      FOREACH(SYMBOL ${ARG_EXPORTS})
++        IF(APPLE)
++          SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
++        ELSE()
++          SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
++        ENDIF()
++      ENDFOREACH()
++    ENDIF()
+   ENDIF()
+ 
+   IF(NOT ARG_SKIP_INSTALL)

@@ -1,0 +1,11 @@
+--- ./src/Makefile.in.ORIGIN	2017-02-07 15:47:13 +0100
++++ ./src/Makefile.in	2017-02-07 15:47:42 +0100
+@@ -320,7 +320,7 @@
+ 	$(am__objects_7)
+ nodist_wget_OBJECTS = version.$(OBJEXT)
+ wget_OBJECTS = $(am_wget_OBJECTS) $(nodist_wget_OBJECTS)
+-wget_LDADD = $(LDADD)
++wget_LDADD = $(LDADD) -liconv
+ am__DEPENDENCIES_1 =
+ wget_DEPENDENCIES = $(LIBOBJS) ../lib/libgnu.a $(am__DEPENDENCIES_1) \
+ 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \

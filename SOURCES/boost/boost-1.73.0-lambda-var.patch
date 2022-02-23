@@ -1,0 +1,1037 @@
+--- ./libs/lambda/test/algorithm_test.cpp.ORIGIN	2020-05-29 14:44:55 -0500
++++ ./libs/lambda/test/algorithm_test.cpp	2020-05-29 14:46:34 -0500
+@@ -34,7 +34,7 @@
+ 
+   std::for_each(a, a + 10, 
+                 bind(ll::for_each(), _1, _1 + 20, 
+-                     protect((_1 = var(sum), ++var(sum)))));
++                     protect((_1 = boost::lambda::var(sum), ++boost::lambda::var(sum)))));
+ 
+   sum = 0;
+   std::for_each(a, a + 10, 
+--- ./libs/lambda/test/bind_tests_advanced.cpp.ORIGIN	2020-05-29 14:48:49 -0500
++++ ./libs/lambda/test/bind_tests_advanced.cpp	2020-05-29 14:49:36 -0500
+@@ -115,7 +115,7 @@
+   int i = 1;
+ 
+   BOOST_CHECK(unlambda(_1 + _2)(i, i) == 2);
+-  BOOST_CHECK(unlambda(++var(i))() == 2); 
++  BOOST_CHECK(unlambda(++boost::lambda::var(i))() == 2); 
+   BOOST_CHECK(call_with_100(_1 + 1) == 101);
+ 
+ 
+@@ -196,7 +196,7 @@
+   for(int j=0; j<3; ++j) a[j] = b[j];
+ 
+   std::for_each(a, a+3, 
+-           bind(ll::for_each(), _1, _1 + 5, protect(_1 = ++var(i))));
++           bind(ll::for_each(), _1, _1 + 5, protect(_1 = ++boost::lambda::var(i))));
+ 
+   // This is how you could output the values (it is uncommented, no output
+   // from a regression test file):
+@@ -235,7 +235,7 @@
+ 
+   // note, the following doesn't work:
+ 
+-  //  ((var(k) = constant(1)) = protect(constant(2)))();
++  //  ((boost::lambda::var(k) = constant(1)) = protect(constant(2)))();
+ 
+   // (var(k) = constant(1))() returns int& and thus the
+   // second assignment fails.
+@@ -409,7 +409,7 @@
+ {
+   derived d;
+   base& b = d;
+-  BOOST_CHECK(bind(&base::foo, var(b))() == 1);
++  BOOST_CHECK(bind(&base::foo, boost::lambda::var(b))() == 1);
+   BOOST_CHECK(bind(&base::foo, *_1)(&b) == 1);
+ }
+ 
+--- ./libs/lambda/test/cast_test.cpp.ORIGIN	2020-05-29 14:51:41 -0500
++++ ./libs/lambda/test/cast_test.cpp	2020-05-29 14:52:07 -0500
+@@ -50,17 +50,17 @@
+   base *b = 0;
+   derived *d = 0;
+ 
+-  (var(b) = ll_static_cast<base *>(p_derived))();
+-  (var(d) = ll_static_cast<derived *>(b))();
++  (boost::lambda::var(b) = ll_static_cast<base *>(p_derived))();
++  (boost::lambda::var(d) = ll_static_cast<derived *>(b))();
+   
+   BOOST_CHECK(b->class_name() == "derived");
+   BOOST_CHECK(d->class_name() == "derived");
+ 
+-  (var(b) = ll_dynamic_cast<derived *>(b))();
++  (boost::lambda::var(b) = ll_dynamic_cast<derived *>(b))();
+   BOOST_CHECK(b != 0);
+   BOOST_CHECK(b->class_name() == "derived");
+ 
+-  (var(d) = ll_dynamic_cast<derived *>(p_base))();
++  (boost::lambda::var(d) = ll_dynamic_cast<derived *>(p_base))();
+   BOOST_CHECK(d == 0);
+ 
+   
+@@ -68,14 +68,14 @@
+   const derived* p_const_derived = p_derived;
+ 
+   BOOST_CHECK(p_const_derived->class_name() == "const derived");
+-  (var(d) = ll_const_cast<derived *>(p_const_derived))();
++  (boost::lambda::var(d) = ll_const_cast<derived *>(p_const_derived))();
+   BOOST_CHECK(d->class_name() == "derived");
+ 
+   int i = 10;
+   char* cp = reinterpret_cast<char*>(&i);
+ 
+   int* ip;
+-  (var(ip) = ll_reinterpret_cast<int *>(cp))();
++  (boost::lambda::var(ip) = ll_reinterpret_cast<int *>(cp))();
+   BOOST_CHECK(*ip == 10);
+ 
+ 
+--- ./libs/lambda/test/constructor_tests.cpp.ORIGIN	2020-05-29 14:53:28 -0500
++++ ./libs/lambda/test/constructor_tests.cpp	2020-05-29 14:53:47 -0500
+@@ -215,7 +215,7 @@
+   std::for_each(i, i+10, _1 = bind(new_ptr<int>(), 2));
+   int count_errors = 0;
+ 
+-  std::for_each(i, i+10, (*_1 == 2) || ++var(count_errors));
++  std::for_each(i, i+10, (*_1 == 2) || ++boost::lambda::var(count_errors));
+   BOOST_CHECK(count_errors == 0);
+ 
+ 
+--- ./libs/lambda/test/exception_test.cpp.ORIGIN	2020-05-29 14:57:14 -0500
++++ ./libs/lambda/test/exception_test.cpp	2020-05-29 14:58:22 -0500
+@@ -94,7 +94,7 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -106,10 +106,10 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -121,13 +121,13 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -139,16 +139,16 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -160,19 +160,19 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -184,22 +184,22 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -211,25 +211,25 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A7>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -241,28 +241,28 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A7>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A8>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -274,31 +274,31 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A7>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A8>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A9>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -313,7 +313,7 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -325,10 +325,10 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -340,13 +340,13 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -358,16 +358,16 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -379,19 +379,19 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -403,22 +403,22 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -430,25 +430,25 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -460,28 +460,28 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A7>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+@@ -493,31 +493,31 @@
+     try_catch( 
+       bind(throw_AX, _1),
+       catch_exception<A1>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A2>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A3>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A4>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A5>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A6>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A7>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_exception<A8>( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       ),
+       catch_all( 
+-        var(ecount)++
++        boost::lambda::var(ecount)++
+       )
+     )(i);
+   }
+--- ./libs/lambda/test/member_pointer_test.cpp.ORIGIN	2020-05-29 14:59:57 -0500
++++ ./libs/lambda/test/member_pointer_test.cpp	2020-05-29 15:00:26 -0500
+@@ -169,15 +169,15 @@
+   BOOST_CHECK(ret<bool>(_1->*_2)(a, b) == false);
+   BOOST_CHECK(ret<bool>(a->*_1)(b) == false);
+   BOOST_CHECK(ret<bool>(_1->*b)(a) == false);
+-  BOOST_CHECK((ret<bool>((var(a))->*b))() == false);
+-  BOOST_CHECK((ret<bool>((var(a))->*var(b)))() == false);
++  BOOST_CHECK((ret<bool>((boost::lambda::var(a))->*b))() == false);
++  BOOST_CHECK((ret<bool>((boost::lambda::var(a))->*boost::lambda::var(b)))() == false);
+ 
+ 
+   // this is ok without ret<bool> due to the return_type_2 spcialization above
+   BOOST_CHECK((_1->*_2)(b, a) == true);
+   BOOST_CHECK((b->*_1)(a) == true);
+   BOOST_CHECK((_1->*a)(b) == true);
+-  BOOST_CHECK((var(b)->*a)() == true);
++  BOOST_CHECK((boost::lambda::var(b)->*a)() == true);
+   return;
+ }
+ 
+--- ./libs/lambda/test/operator_tests_simple.cpp.ORIGIN	2020-05-29 15:01:50 -0500
++++ ./libs/lambda/test/operator_tests_simple.cpp	2020-05-29 15:02:27 -0500
+@@ -66,7 +66,7 @@
+   // test for constant, constant_ref and var
+   i = 5;
+   constant_type<int>::type ci(constant(i));
+-  var_type<int>::type vi(var(i)); 
++  var_type<int>::type vi(boost::lambda::var(i)); 
+ 
+   (vi = _1)(make_const(100));
+   BOOST_CHECK((ci)() == 5);
+@@ -74,7 +74,7 @@
+ 
+   int a;
+   constant_ref_type<int>::type cr(constant_ref(i));
+-  (++vi, var(a) = cr)();
++  (++vi, boost::lambda::var(a) = cr)();
+   BOOST_CHECK(i == 101);
+ #endif
+ }
+@@ -307,15 +307,15 @@
+   (_1 = "one")(s);
+   BOOST_CHECK(s == string("one"));
+ 
+-  (var(s) = "two")();
++  (boost::lambda::var(s) = "two")();
+   BOOST_CHECK(s == string("two"));
+ 
+-  BOOST_CHECK((var(s)[_1])(make_const(2)) == 'o');
++  BOOST_CHECK((boost::lambda::var(s)[_1])(make_const(2)) == 'o');
+   BOOST_CHECK((_1[2])(s) == 'o');
+   BOOST_CHECK((_1[_2])(s, make_const(2)) == 'o');
+ 
+   // subscript returns lvalue
+-  (var(s)[_1])(make_const(1)) = 'o';
++  (boost::lambda::var(s)[_1])(make_const(1)) = 'o';
+   BOOST_CHECK(s == "too");
+  
+   (_1[1])(s) = 'a';
+--- ./libs/lambda/test/phoenix_control_structures.cpp.ORIGIN	2020-05-29 15:03:55 -0500
++++ ./libs/lambda/test/phoenix_control_structures.cpp	2020-05-29 15:04:45 -0500
+@@ -67,17 +67,17 @@
+     for_each(v.begin(), v.end(),
+         if_(_1 > 5)
+         [
+-            ++var(gt)
++            ++boost::lambda::var(gt)
+         ]
+         .else_
+         [
+             if_(_1 == 5)
+             [
+-                ++var(eq)
++                ++boost::lambda::var(eq)
+             ]
+             .else_
+             [
+-                ++var(lt)
++                ++boost::lambda::var(lt)
+             ]
+         ]
+     );
+@@ -95,9 +95,9 @@
+         (
+             while_(_1--)
+             [
+-                ++var(counta)
++                ++boost::lambda::var(counta)
+             ],
+-            ++var(countb)
++            ++boost::lambda::var(countb)
+         )
+     );
+     
+@@ -113,10 +113,10 @@
+         (
+             do_
+             [
+-             ++var(counta)
++             ++boost::lambda::var(counta)
+             ]
+             .while_(_1--),
+-            ++var(countb)
++            ++boost::lambda::var(countb)
+         )
+     );
+ 
+@@ -130,11 +130,11 @@
+     int iii;
+     for_each(v.begin(), v.end(),
+         (
+-            for_(var(iii) = 0, var(iii) < _1, ++var(iii))
++            for_(boost::lambda::var(iii) = 0, boost::lambda::var(iii) < _1, ++boost::lambda::var(iii))
+             [
+-              ++var(counta)
++              ++boost::lambda::var(counta)
+             ],
+-            ++var(countb)
++            ++boost::lambda::var(countb)
+         )
+     );
+ 
+--- ./libs/lambda/test/result_of_tests.cpp.ORIGIN	2020-05-29 15:06:16 -0500
++++ ./libs/lambda/test/result_of_tests.cpp	2020-05-29 15:07:20 -0500
+@@ -288,15 +288,15 @@
+ 
+     // Nullary result_of fails
+     //BOOST_CHECK(boost::lambda::bind(with_result_template_reference())() == 0);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one))() == 1);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two))() == 2);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three))() == 3);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four))() == 4);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four), var(five))() == 5);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four), var(five), var(six))() == 6);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four), var(five), var(six), var(seven))() == 7);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four), var(five), var(six), var(seven), var(eight))() == 8);
+-    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), var(one), var(two), var(three), var(four), var(five), var(six), var(seven), var(eight), var(nine))() == 9);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one))() == 1);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two))() == 2);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three))() == 3);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four))() == 4);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four), boost::lambda::var(five))() == 5);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four), boost::lambda::var(five), boost::lambda::var(six))() == 6);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four), boost::lambda::var(five), boost::lambda::var(six), boost::lambda::var(seven))() == 7);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four), boost::lambda::var(five), boost::lambda::var(six), boost::lambda::var(seven), boost::lambda::var(eight))() == 8);
++    BOOST_CHECK(boost::lambda::bind(with_result_template_reference(), boost::lambda::var(one), boost::lambda::var(two), boost::lambda::var(three), boost::lambda::var(four), boost::lambda::var(five), boost::lambda::var(six), boost::lambda::var(seven), boost::lambda::var(eight), boost::lambda::var(nine))() == 9);
+ 
+     // Check using result_of with lambda functors
+     BOOST_CHECK(apply0(constant(0)) == 0);
+--- ./libs/lambda/test/switch_construct.cpp.ORIGIN	2020-05-29 15:08:23 -0500
++++ ./libs/lambda/test/switch_construct.cpp	2020-05-29 15:10:19 -0500
+@@ -33,7 +33,7 @@
+   std::vector<int>::const_iterator 
+     result = std::find_if(v.begin(), v.end(),
+                      ! if_then_else_return(
+-                         var(counter)++ <= index,
++                         boost::lambda::var(counter)++ <= index,
+                          _1 == 1,
+                          _1 == 0)
+                     );
+@@ -52,14 +52,14 @@
+   // elements from 0 to 9
+   std::generate_n(std::back_inserter(v),
+                   10, 
+-                  var(i)++);
++                  boost::lambda::var(i)++);
+   std::fill_n(std::back_inserter(w), 10, 0);
+ 
+   // ---
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0]))
++      case_statement<0>(++boost::lambda::var(w[0]))
+     )
+   );
+   
+@@ -70,8 +70,8 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1]))
+     )
+   );
+   
+@@ -82,9 +82,9 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2]))
+      )
+   );
+   
+@@ -95,10 +95,10 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3]))
+     )
+   );
+   
+@@ -109,11 +109,11 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4]))
+     )
+   );
+   
+@@ -124,12 +124,12 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5]))
+     )
+   );
+   
+@@ -140,13 +140,13 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      case_statement<6>(++var(w[6]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      case_statement<6>(++boost::lambda::var(w[6]))
+     )
+   );
+   
+@@ -157,14 +157,14 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      case_statement<6>(++var(w[6])),
+-      case_statement<7>(++var(w[7]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      case_statement<6>(++boost::lambda::var(w[6])),
++      case_statement<7>(++boost::lambda::var(w[7]))
+     )
+   );
+   
+@@ -175,15 +175,15 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      case_statement<6>(++var(w[6])),
+-      case_statement<7>(++var(w[7])),
+-      case_statement<8>(++var(w[8]))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      case_statement<6>(++boost::lambda::var(w[6])),
++      case_statement<7>(++boost::lambda::var(w[7])),
++      case_statement<8>(++boost::lambda::var(w[8]))
+     )
+   );
+   
+@@ -203,7 +203,7 @@
+   // elements from 0 to 9
+   std::generate_n(std::back_inserter(v),
+                   10, 
+-                  var(i)++);
++                  boost::lambda::var(i)++);
+   std::fill_n(std::back_inserter(w), 10, 0);
+ 
+   int default_count;
+@@ -212,7 +212,7 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      default_statement(++var(default_count))
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -225,8 +225,8 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -239,9 +239,9 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      default_statement(++boost::lambda::var(default_count))
+      )
+   );
+   
+@@ -254,10 +254,10 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -270,11 +270,11 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -287,12 +287,12 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -305,13 +305,13 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -324,14 +324,14 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      case_statement<6>(++var(w[6])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      case_statement<6>(++boost::lambda::var(w[6])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   
+@@ -344,15 +344,15 @@
+   std::for_each(v.begin(), v.end(),
+     switch_statement( 
+       _1,
+-      case_statement<0>(++var(w[0])),
+-      case_statement<1>(++var(w[1])),
+-      case_statement<2>(++var(w[2])),
+-      case_statement<3>(++var(w[3])),
+-      case_statement<4>(++var(w[4])),
+-      case_statement<5>(++var(w[5])),
+-      case_statement<6>(++var(w[6])),
+-      case_statement<7>(++var(w[7])),
+-      default_statement(++var(default_count))
++      case_statement<0>(++boost::lambda::var(w[0])),
++      case_statement<1>(++boost::lambda::var(w[1])),
++      case_statement<2>(++boost::lambda::var(w[2])),
++      case_statement<3>(++boost::lambda::var(w[3])),
++      case_statement<4>(++boost::lambda::var(w[4])),
++      case_statement<5>(++boost::lambda::var(w[5])),
++      case_statement<6>(++boost::lambda::var(w[6])),
++      case_statement<7>(++boost::lambda::var(w[7])),
++      default_statement(++boost::lambda::var(default_count))
+     )
+   );
+   

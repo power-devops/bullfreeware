@@ -1,0 +1,11 @@
+--- ./main/php_ini.c.orig	2020-01-21 12:35:21 +0100
++++ ./main/php_ini.c	2020-01-30 09:49:54 +0100
+@@ -609,7 +609,7 @@
+ 
+ 		/* If still no ini file found, search for php.ini file in search path */
+ 		if (!fp) {
+-			fp = php_fopen_with_path("php.ini", "r", php_ini_search_path, &opened_path);
++			fp = php_fopen_with_path("php64.ini", "r", php_ini_search_path, &opened_path);
+ 			if (fp) {
+ 				filename = ZSTR_VAL(opened_path);
+ 			}

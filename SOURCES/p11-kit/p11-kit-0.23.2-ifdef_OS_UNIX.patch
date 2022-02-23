@@ -1,0 +1,76 @@
+diff -Nru old/trust/test-save.c new/trust/test-save.c
+--- old/trust/test-save.c	2016-08-23 16:42:15 +0200
++++ new/trust/test-save.c	2016-08-23 16:44:21 +0200
+@@ -357,11 +357,11 @@
+ 	ret = p11_save_finish_directory (dir, true);
+ 	assert_num_eq (true, ret);
+ 
+-	test_check_directory (subdir, ("blah.cer", "file.txt",
+ #ifdef OS_UNIX
+-	                      "link.ext",
++	test_check_directory (subdir, ("blah.cer", "file.txt", "link.ext", NULL));
++#else
++	test_check_directory (subdir, ("blah.cer", "file.txt", NULL));
+ #endif
+-	                      NULL));
+ 	test_check_file (subdir, "blah.cer", SRCDIR "/trust/fixtures/cacert3.der");
+ 	test_check_data (subdir, "file.txt", test_text, strlen (test_text));
+ #ifdef OS_UNIX
+@@ -443,13 +443,11 @@
+ 	ret = p11_save_finish_directory (dir, true);
+ 	assert_num_eq (true, ret);
+ 
+-	test_check_directory (subdir, ("file.txt", "file.1.txt", "file.2.txt",
+-	                                   "no-ext", "no-ext.1",
+-	                                   "with-num.0", "with-num.1",
+ #ifdef OS_UNIX
+-	                                   "link.0", "link.1",
++	test_check_directory (subdir, ("file.txt", "file.1.txt", "file.2.txt", "no-ext", "no-ext.1", "with-num.0", "with-num.1", "link.0", "link.1", NULL));
++#else
++	test_check_directory (subdir, ("file.txt", "file.1.txt", "file.2.txt", "no-ext", "no-ext.1", "with-num.0", "with-num.1", NULL));
+ #endif
+-	                                   NULL));
+ 	test_check_data (subdir, "file.txt", test_text, 5);
+ 	test_check_data (subdir, "file.1.txt", test_text, 10);
+ 	test_check_data (subdir, "file.2.txt", test_text, 15);
+diff -Nru old/trust/test-bundle.c new/trust/test-bundle.c
+--- old/trust/test-bundle.c	2016-08-23 16:50:02 +0200
++++ new/trust/test-bundle.c	2016-08-23 16:51:50 +0200
+@@ -1,3 +1,4 @@
++
+ /*
+  * Copyright (c) 2011, Collabora Ltd.
+  *
+@@ -235,11 +236,11 @@
+ 	ret = p11_extract_pem_directory_hash (&test.ex, test.directory);
+ 	assert_num_eq (true, ret);
+ 
+-	test_check_directory (test.directory, ("Cacert3_Here.pem", "Cacert3_Here.1.pem",
+ #ifdef OS_UNIX
+-                                           "e5662767.1", "e5662767.0", "590d426f.1", "590d426f.0",
++	test_check_directory (test.directory, ("Cacert3_Here.pem", "Cacert3_Here.1.pem", "e5662767.1", "e5662767.0", "590d426f.1", "590d426f.0", NULL));
++#else
++	test_check_directory (test.directory, ("Cacert3_Here.pem", "Cacert3_Here.1.pem", NULL));
+ #endif
+-                                           NULL));
+ 	test_check_file (test.directory, "Cacert3_Here.pem", SRCDIR "/trust/fixtures/cacert3.pem");
+ 	test_check_file (test.directory, "Cacert3_Here.1.pem", SRCDIR "/trust/fixtures/cacert3.pem");
+ #ifdef OS_UNIX
+diff -Nru old/trust/test-openssl.c new/trust/test-openssl.c
+--- old/trust/test-openssl.c	2016-08-23 16:55:52 +0200
++++ new/trust/test-openssl.c	2016-08-23 16:56:37 +0200
+@@ -594,11 +594,11 @@
+ 	ret = p11_extract_openssl_directory (&test.ex, test.directory);
+ 	assert_num_eq (true, ret);
+ 
+-	test_check_directory (test.directory, ("Custom_Label.pem", "Custom_Label.1.pem",
+ #ifdef OS_UNIX
+-	                                           "e5662767.1", "e5662767.0", "590d426f.1", "590d426f.0",
++	test_check_directory (test.directory, ("Custom_Label.pem", "Custom_Label.1.pem", "e5662767.1", "e5662767.0", "590d426f.1", "590d426f.0", NULL));
++#else
++	test_check_directory (test.directory, ("Custom_Label.pem", "Custom_Label.1.pem", NULL));
+ #endif
+-	                                           NULL));
+ 	test_check_file (test.directory, "Custom_Label.pem",
+ 	                 SRCDIR "/trust/fixtures/cacert3-trusted-server-alias.pem");
+ 	test_check_file (test.directory, "Custom_Label.1.pem",

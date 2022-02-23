@@ -1,0 +1,10 @@
+--- old/screen.c	2016-09-20 11:19:59 +0200
++++ new/screen.c	2016-09-20 11:20:21 +0200
+@@ -39,6 +39,7 @@
+  */
+ 
+ #include <sys/types.h>
++#include <sys/socket.h>
+ #include <ctype.h>
+ 
+ #include <fcntl.h>

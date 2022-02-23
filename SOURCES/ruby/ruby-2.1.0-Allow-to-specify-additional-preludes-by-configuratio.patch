@@ -1,0 +1,58 @@
+From 996012f6abe0ce4d68a2de9f249935c6d5b467bc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?V=C3=ADt=20Ondruch?= <vondruch@redhat.com>
+Date: Fri, 4 Oct 2013 22:13:11 +0200
+Subject: [PATCH] Allow to specify addition preludes by configuration option.
+
+---
+ Makefile.in  | 2 ++
+ common.mk    | 2 +-
+ configure.in | 7 +++++++
+ 3 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 7e8ed82..7916993 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -116,6 +116,8 @@ XRUBY_RUBYLIBDIR = @XRUBY_RUBYLIBDIR@
+ XRUBY_RUBYHDRDIR = @XRUBY_RUBYHDRDIR@
+ BOOTSTRAPRUBY = @BOOTSTRAPRUBY@
+ 
++OPTIONAL_PRELUDES = @OPTIONAL_PRELUDES@
++
+ #### End of system configuration section. ####
+ 
+ MAJOR=	@MAJOR@
+diff --git a/common.mk b/common.mk
+index 5cfbc3d..3f0a82e 100644
+--- a/common.mk
++++ b/common.mk
+@@ -127,7 +127,7 @@ ALLOBJS       = $(NORMALMAINOBJ) $(MINIOBJS) $(COMMONOBJS) $(INITOBJS)
+ GOLFOBJS      = goruby.$(OBJEXT) golf_prelude.$(OBJEXT)
+ 
+ DEFAULT_PRELUDES = $(GEM_PRELUDE)
+-PRELUDE_SCRIPTS = $(srcdir)/prelude.rb $(srcdir)/enc/prelude.rb $(DEFAULT_PRELUDES)
++PRELUDE_SCRIPTS = $(srcdir)/prelude.rb $(srcdir)/enc/prelude.rb $(DEFAULT_PRELUDES) $(OPTIONAL_PRELUDES)
+ GEM_PRELUDE   = $(srcdir)/gem_prelude.rb
+ PRELUDES      = {$(srcdir)}prelude.c {$(srcdir)}miniprelude.c
+ GOLFPRELUDES  = {$(srcdir)}golf_prelude.c
+diff --git a/configure.in b/configure.in
+index 0e371e2..d4f1dcb 100644
+--- a/configure.in
++++ b/configure.in
+@@ -4374,6 +4374,13 @@ AC_SUBST(rubyarchhdrdir)dnl
+ AC_SUBST(sitearchhdrdir)dnl
+ AC_SUBST(vendorarchhdrdir)dnl
+ 
++AC_ARG_WITH(prelude,
++		AS_HELP_STRING([--with-prelude=FILE-LIST], [specify additional preludes separated by space]),
++		[prelude=$withval])
++if test "$prelude" != ""; then
++    AC_SUBST(OPTIONAL_PRELUDES, $prelude)
++fi
++
+ AC_ARG_WITH(mantype,
+ 	AS_HELP_STRING([--with-mantype=TYPE], [specify man page type; TYPE is one of man and doc]),
+ 		[
+-- 
+1.8.3.1
+

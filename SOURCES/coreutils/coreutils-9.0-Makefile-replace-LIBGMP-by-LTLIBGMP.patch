@@ -1,0 +1,29 @@
+From a9d8e0097e475b0c7ffa778177aa0a89d21d3da4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 4 Oct 2021 13:05:15 +0200
+Subject: [PATCH] Makefile: replace LIBGMP by LTLIBGMP
+
+LIBGMP will hardcode the path in library for libgmp.a, while LTLIBGMP
+is using -lgmp thus, without hardcoding the path.
+---
+ src/local.mk | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/local.mk b/src/local.mk
+index 0c8b65d..8c1c4d1 100644
+--- a/src/local.mk
++++ b/src/local.mk
+@@ -278,8 +278,8 @@ src_sort_LDADD += $(LIB_NANOSLEEP)
+ src_tail_LDADD += $(LIB_NANOSLEEP)
+ 
+ # for various GMP functions
+-src_expr_LDADD += $(LIBGMP)
+-src_factor_LDADD += $(LIBGMP)
++src_expr_LDADD += $(LTLIBGMP)
++src_factor_LDADD += $(LTLIBGMP)
+ 
+ # for getloadavg
+ src_uptime_LDADD += $(GETLOADAVG_LIBS)
+-- 
+2.33.0
+

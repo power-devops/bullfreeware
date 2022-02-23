@@ -1,0 +1,30 @@
+From 31c7edcf4f9b9beef7c47146d1ab4c39e2d2e229 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 15 Sep 2021 14:38:50 +0200
+Subject: [PATCH] collect2: avoid passing -fdump options when building the
+ internal C file
+
+---
+ gcc/collect2.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/collect2.c b/gcc/collect2.c
+index cf04a58ba4d..6f913041f26 100644
+--- a/gcc/collect2.c
++++ b/gcc/collect2.c
+@@ -1198,7 +1198,11 @@ main (int argc, char **argv)
+     {
+       const char *q = extract_string (&p);
+       if (*q == '-' && (q[1] == 'm' || q[1] == 'f'))
+-	*c_ptr++ = xstrdup (q);
++	{
++	  /* Avoid creating dumps when compiling c_file.  */
++	  if (strncmp (q, "-fdump", 6) != 0)
++	    *c_ptr++ = xstrdup (q);
++	}
+       if (strcmp (q, "-EL") == 0 || strcmp (q, "-EB") == 0)
+ 	*c_ptr++ = xstrdup (q);
+       if (strcmp (q, "-shared") == 0)
+-- 
+2.33.0
+

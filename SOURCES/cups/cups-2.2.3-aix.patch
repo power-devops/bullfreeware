@@ -1,0 +1,11 @@
+--- scheduler/cups.sh.in.ORG	2018-03-29 17:17:54.080303645 +0530
++++ scheduler/cups.sh.in	2018-03-29 17:19:41.699440251 +0530
+@@ -132,7 +132,7 @@
+ 	SunOS*)
+ 		pid=`ps -e | nawk '{if (match($4, ".*/cupsd$") || $4 == "cupsd") print $1}'`
+ 		;;
+-	Linux* | *BSD* | Darwin*)
++	Linux* | *BSD* | Darwin* | AIX*)
+ 		pid=`ps ax | awk '{if (match($5, ".*/cupsd$") || $5 == "cupsd") print $1}'`
+ 		;;
+ 	*)

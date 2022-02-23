@@ -1,0 +1,38 @@
+--- ./cmake/plugin.cmake.orig	2019-06-27 11:38:07.000000000 +0200
++++ ./cmake/plugin.cmake	2019-06-27 11:38:07.000000000 +0200
+@@ -206,6 +206,10 @@
+       IF(MSVC)
+         ADD_DEPENDENCIES(${target} gen_mysqld_lib)
+         TARGET_LINK_LIBRARIES(${target} mysqld_import_lib)
++      ELSEIF(AIX)
++        ADD_DEPENDENCIES(${target} mysql_symbols)
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:/tmp/libmariadbd.exp")
++        message("Target is ${target}")
+       ELSEIF(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+         TARGET_LINK_LIBRARIES (${target} mysqld)
+       ENDIF()
+--- ./libmariadb/cmake/plugins.cmake.orig	2019-06-27 11:38:40.000000000 +0200
++++ ./libmariadb/cmake/plugins.cmake	2019-06-27 11:38:40.000000000 +0200
+@@ -63,6 +63,10 @@
+         set(CC_PLUGIN_SOURCES ${CC_PLUGIN_SOURCES} ${CC_BINARY_DIR}/win/${target}.rc ${CC_SOURCE_DIR}/plugins/plugin.def)
+       endif()
+       add_library(${CC_PLUGIN_TARGET} MODULE ${CC_PLUGIN_SOURCES})
++      IF(AIX)
++        ADD_DEPENDENCIES(${CC_PLUGIN_TARGET} mysql_symbols)
++        TARGET_LINK_OPTIONS(${CC_PLUGIN_TARGET} PRIVATE "-Wl,-bI:/tmp/libmariadbd.exp")
++      ENDIF()
+       target_link_libraries(${CC_PLUGIN_TARGET} ${CC_PLUGIN_LIBRARIES})
+       set_target_properties(${CC_PLUGIN_TARGET} PROPERTIES PREFIX "")
+       if (NOT "${CC_PLUGIN_INCLUDES}" STREQUAL "")
+--- ./cmake/ctest.cmake.orig	2019-06-27 11:38:07.000000000 +0200
++++ ./cmake/ctest.cmake	2019-07-26 17:15:25.968038510 +0200
+@@ -19,6 +19,9 @@
+     ADD_EXECUTABLE(${name}-t "${name}-t.${ARG_EXT}")
+     TARGET_LINK_LIBRARIES(${name}-t mytap ${ARG_LINK_LIBRARIES})
+     MY_ADD_TEST(${name})
++    IF(AIX)
++      TARGET_LINK_OPTIONS(${name}-t PRIVATE "-Wl,-berok")
++    ENDIF()
+   ENDFOREACH()
+ ENDMACRO()
+ 

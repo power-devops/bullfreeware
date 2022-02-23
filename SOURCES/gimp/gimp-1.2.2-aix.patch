@@ -1,0 +1,26 @@
+diff -ur gimp-1.2.2/libgimp/Makefile.am gimp-1.2.2-xlc/libgimp/Makefile.am
+--- gimp-1.2.2/libgimp/Makefile.am	Sat Oct 14 14:17:26 2000
++++ gimp-1.2.2-xlc/libgimp/Makefile.am	Fri Oct  5 13:23:53 2001
+@@ -269,7 +269,7 @@
+ libgimp_la_LDFLAGS = \
+ 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+ 	-release $(LT_RELEASE)
+-libgimp_la_LIBADD = $(GLIB_LIBS) -lm
++libgimp_la_LIBADD = $(GLIB_LIBS) -lm $(INTLLIBS)
+ 
+ libgimpui_la_LDFLAGS = \
+ 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+diff -ur gimp-1.2.2/plug-ins/common/jpeg.c gimp-1.2.2-xlc/plug-ins/common/jpeg.c
+--- gimp-1.2.2/plug-ins/common/jpeg.c	Fri Jul 20 09:20:37 2001
++++ gimp-1.2.2-xlc/plug-ins/common/jpeg.c	Fri Oct  5 13:02:06 2001
+@@ -135,6 +135,10 @@
+ #ifdef HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
++#ifdef _AIX
++#undef HAVE_STDDEF_H
++#undef HAVE_STDLIB_H
++#endif
+ #include <jpeglib.h>
+ #include <jerror.h>
+ 

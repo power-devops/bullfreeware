@@ -1,0 +1,13 @@
+Index: fdupes-1.51/Makefile
+===================================================================
+--- fdupes-1.51.orig/Makefile
++++ fdupes-1.51/Makefile
+@@ -102,7 +102,7 @@ OBJECT_FILES = fdupes.o md5/md5.o $(ADDI
+ all: fdupes
+ 
+ fdupes: $(OBJECT_FILES)
+-	$(CC) $(CFLAGS) -o fdupes $(OBJECT_FILES)
++	$(CC) $(CFLAGS) $(LDFLAGS) -o fdupes $(OBJECT_FILES)
+ 
+ installdirs:
+ 	test -d $(DESTDIR)$(BIN_DIR) || $(MKDIR) $(DESTDIR)$(BIN_DIR)

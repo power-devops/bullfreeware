@@ -1,0 +1,123 @@
+#!/bin/sh
+# Author: Timo Hoenig <thoenig@suse.de>
+#
+# /etc/init.d/dbus
+#
+### BEGIN INIT INFO
+# Provides:          dbus
+# Required-Start:    $local_fs
+# Should-Start:
+# Required-Stop:     $local_fs
+# Should-Stop:
+# Default-Start:     2 3 5
+# Default-Stop:      
+# Short-Description: D-Bus is a message bus system for applications to talk to one another.
+# Description:       D-Bus supplies both a system daemon and a per-user-login-session daemon.
+#                    Also, the message bus is built on top of a general one-to-one message
+#                    passing framework, which can be used by any two apps to communicate
+#                    directly (without going through the message bus daemon).
+### END INIT INFO
+
+DBUS_DAEMON_BIN=/bin/dbus-daemon
+test -x $DBUS_DAEMON_BIN || exit 5
+
+DBUS_DAEMON_PARAMETER="--system";
+DBUS_DAEMON_PID_DIR="/var/run/dbus"
+DBUS_DAEMON_PID=$DBUS_DAEMON_PID_DIR/pid
+
+DBUS_MACHINE_ID_DIR="/var/lib/dbus"
+DBUS_MACHINE_ID=$DBUS_MACHINE_ID_DIR/machine-id
+
+DBUS_UUIIDGEN_BIN=/bin/dbus-uuidgen
+
+CONSOLEKIT_DAEMON_BIN="/usr/sbin/console-kit-daemon"
+CONSOLEKIT_PID_DIR="/var/run/ConsoleKit"
+CONSOLEKIT_PID=$CONSOLEKIT_PID_DIR/pid
+
+# Source LSB init functions
+# providing start_daemon, killproc, pidofproc, 
+# log_success_msg, log_failure_msg and log_warning_msg.
+# This is currently not used by UnitedLinux based distributions and
+# not needed for init scripts for UnitedLinux only. If it is used,
+# the functions from rc.status should not be sourced or used.
+#. /lib/lsb/init-functions
+
+. /etc/rc.status
+
+# Reset status of this service
+rc_reset
+
+case "$1" in
+    start)
+	if [ -x $DBUS_UUIIDGEN_BIN -a ! -e $DBUS_MACHINE_ID ] ; then
+		if [ ! -d $DBUS_MACHINE_ID_DIR ] ; then
+			mkdir -p $DBUS_MACHINE_ID_DIR
+			chown messagebus:messagebus $DBUS_MACHINE_ID_DIR
+		fi
+		echo -n "Creating universally unique ID..."
+		$DBUS_UUIIDGEN_BIN --ensure
+		rc_status -v
+	fi
+	if checkproc -k -p $DBUS_DAEMON_PID $DBUS_DAEMON_BIN ; then
+		echo "D-Bus already started. Not starting."
+		exit 0
+	fi
+	if [ ! -d $DBUS_DAEMON_PID_DIR ] ; then
+		mkdir -p $DBUS_DAEMON_PID_DIR
+		chown messagebus:messagebus $DBUS_DAEMON_PID_DIR
+	fi
+	if [ -e $DBUS_DAEMON_PID ] ; then
+		echo "Removing stale PID file $DBUS_DAEMON_PID."
+		rm -f $DBUS_DAEMON_PID
+	fi
+	echo -n "Starting D-Bus daemon"
+	start_daemon -f $DBUS_DAEMON_BIN $DBUS_DAEMON_PARAMETER
+	rc_status -v
+	;;
+    stop)
+	echo -n "Shutting down D-Bus daemon"
+	if [ -x $CONSOLEKIT_DAEMON_BIN ] ; then
+		killproc -p $CONSOLEKIT_PID  -TERM $CONSOLEKIT_DAEMON_BIN
+	fi
+	killproc -p $DBUS_DAEMON_PID -TERM $DBUS_DAEMON_BIN
+	rc_status -v
+	;;
+    try-restart)
+	$0 status >/dev/null &&  $0 restart
+	rc_status
+	;;
+    restart)
+	$0 stop
+	$0 start
+	rc_status
+	;;
+    force-reload)
+	$0 reload
+	rc_status
+	;;
+    reload)
+	echo -n "Reload service D-Bus daemon"
+	dbus-send --type=method_call --system --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+	rc_status -v
+	;;
+    status)
+	echo -n "Checking for service D-Bus daemon"
+	checkproc -k -p $DBUS_DAEMON_PID $DBUS_DAEMON_BIN
+	if [ $? -eq 7 ]; then
+		rc_failed 3
+	fi
+	rc_status -v
+	;;
+    probe)
+	## Optional: Probe for the necessity of a reload, print out the
+	## argument to this init script which is required for a reload.
+	## Note: probe is not (yet) part of LSB (as of 1.2)
+	# test /etc/FOO/FOO.conf -nt /var/run/FOO.pid && echo reload
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload|probe}"
+	exit 1
+	;;
+esac
+rc_exit
+

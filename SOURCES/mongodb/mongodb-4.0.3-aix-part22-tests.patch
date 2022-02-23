@@ -1,0 +1,22 @@
+--- ./src/third_party/IntelRDFPMathLib20U1/TESTS/readtest.c.ORIGIN	2018-09-25 16:56:42 -0500
++++ ./src/third_party/IntelRDFPMathLib20U1/TESTS/readtest.c	2019-05-29 19:00:21 -0500
+@@ -1611,7 +1611,7 @@
+   }
+   if (wp1n != wp2n)
+     return 1;
+-#ifdef LINUX
++#if defined LINUX || defined _AIX
+   qsort (wp1, wp1n, sizeof (char *), (__compar_fn_t) st_compare);
+   qsort (wp2, wp2n, sizeof (char *), (__compar_fn_t) st_compare);
+ #else
+--- ./buildscripts/resmokelib/logging/handlers.py.ORIGIN	2018-09-25 16:56:42.000000000 -0500
++++ ./buildscripts/resmokelib/logging/handlers.py	2019-06-03 16:16:10.000000000 -0500
+@@ -18,7 +18,7 @@
+     # Versions of the requests package prior to 1.2.0 did not vendor the urllib3 package.
+     urllib3_exceptions = None
+ 
+-import urllib3.util.retry as urllib3_retry
++import requests.packages.urllib3.util.retry as urllib3_retry
+ 
+ from . import flush
+ from .. import utils

@@ -1,0 +1,25 @@
+From 2089cab72b38d6d5e7ba2b596e41014209acad30 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?V=C3=ADt=20Ondruch?= <vondruch@redhat.com>
+Date: Mon, 19 Nov 2012 14:37:28 +0100
+Subject: [PATCH] Always use i386.
+
+---
+ configure.in | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/configure.in b/configure.in
+index 553d4d0..03a4152 100644
+--- a/configure.in
++++ b/configure.in
+@@ -4292,6 +4292,8 @@ AC_SUBST(vendorarchdir)dnl
+ AC_SUBST(CONFIGURE, "`echo $0 | sed 's|.*/||'`")dnl
+ AC_SUBST(configure_args, "`echo "${ac_configure_args}" | sed 's/\\$/$$/g'`")dnl
+ 
++target_cpu=`echo $target_cpu | sed s/i.86/i386/`
++
+ if test "${universal_binary-no}" = yes ; then
+     arch="universal-${target_os}"
+     if test "${rb_cv_architecture_available}" = yes; then
+-- 
+1.8.3.1
+

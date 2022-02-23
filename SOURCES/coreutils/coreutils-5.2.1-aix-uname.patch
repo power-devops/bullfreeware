@@ -1,0 +1,34 @@
+--- src/uname.c.orig	2006-01-26 13:53:02.000000000 -0600
++++ src/uname.c	2006-01-26 13:57:22.000000000 -0600
+@@ -44,6 +44,10 @@
+ # endif
+ #endif
+ 
++#ifdef _AIX
++#include <sys/systemcfg.h>
++#endif
++
+ #include "system.h"
+ #include "error.h"
+ 
+@@ -250,6 +254,20 @@
+ 	  element = processor;
+       }
+ #endif
++#ifdef _AIX
++      switch (_system_configuration.architecture) 
++	{
++	  case POWER_RS:
++	    element = "power";
++	    break;
++	  case POWER_PC:
++	    element = "powerpc";
++	    break;
++	  case IA64:
++	    element = "ia64";
++	    break;
++	}
++#endif
+ #ifdef UNAME_PROCESSOR
+       if (element == unknown)
+ 	{

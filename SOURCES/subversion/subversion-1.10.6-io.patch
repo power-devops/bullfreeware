@@ -1,0 +1,30 @@
+--- subversion/libsvn_fs_fs/util.c.orig	2019-06-08 10:24:37 +0000
++++ subversion/libsvn_fs_fs/util.c	2019-06-08 10:30:57 +0000
+@@ -650,7 +650,11 @@
+           SVN_ERR(svn_io_file_close(file, pool));
+         }
+ 
+-#ifdef SVN_ON_POSIX
++#ifdef SVN_ON_POSIX && !defined(_AIX)
++
++/* fsync called on a directory returns errno=EBADF which makes svn_io_flush_to_disk fail in AIX.
++   Hence, in AIX it is ignored. */
++
+       if (flush_to_disk)
+         {
+           /* On POSIX, the file name is stored in the file's directory entry.
+--- subversion/libsvn_subr/io.c.orig	2019-06-08 10:29:19 +0000
++++ subversion/libsvn_subr/io.c	2019-06-08 10:30:35 +0000
+@@ -4293,7 +4293,11 @@
+                               svn_dirent_local_style(from_path, pool),
+                               svn_dirent_local_style(to_path, pool));
+ 
+-#if defined(SVN_ON_POSIX)
++#if defined(SVN_ON_POSIX) && !defined(_AIX)
++
++/* fsync called on a directory returns errno=EBADF which makes svn_io_flush_to_disk fail in AIX.
++Hence, in AIX it is ignored. */
++
+   if (flush_to_disk)
+     {
+       /* On POSIX, the file name is stored in the file's directory entry.

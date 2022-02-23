@@ -1,0 +1,13 @@
+--- ./src/CMakeLists.txt.orig	2020-06-04 10:46:58 +0200
++++ ./src/CMakeLists.txt	2020-10-09 10:21:52 +0200
+@@ -201,7 +201,9 @@
+ 
+ # Optional external dependency: libssh2
+ IF (USE_SSH)
+-	FIND_PKGLIBRARIES(LIBSSH2 libssh2)
++	# This does not work alone FIND_PACKAGE(LIBSSH2), it requires
++	# FindLIBSSH2.cmake, LIBSSH2Config.cmake or libssh2-config.cmake
++	FIND_PKGLIBRARIES(LIBSSH2 libssh2)
+ ENDIF()
+ IF (LIBSSH2_FOUND)
+ 	SET(GIT_SSH 1)

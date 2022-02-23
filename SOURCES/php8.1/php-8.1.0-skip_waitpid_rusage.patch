@@ -1,0 +1,12 @@
+diff --git a/ext/pcntl/tests/pcntl_waitpid_rusage1.phpt b/ext/pcntl/tests/pcntl_waitpid_rusage1.phpt
+index 01b6c29e..1842f4ff 100644
+--- a/ext/pcntl/tests/pcntl_waitpid_rusage1.phpt
++++ b/ext/pcntl/tests/pcntl_waitpid_rusage1.phpt
+@@ -1,5 +1,7 @@
+ --TEST--
+ pcntl_waitpid() and rusage
++--SKIPIF--
++<?php if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') die("skip Hang on AIX"); ?>
+ --EXTENSIONS--
+ pcntl
+ posix

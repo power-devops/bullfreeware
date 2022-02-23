@@ -1,0 +1,22 @@
+--- ./tests/test-mongoc-cursor.c.int64-lld-v2	2018-04-09 21:26:08 +0200
++++ ./tests/test-mongoc-cursor.c	2018-04-24 16:47:13 +0200
+@@ -186,11 +186,17 @@
+ 
+       mongoc_cursor_destroy (cursor);
+ 
++#ifdef _AIX
++#define NUMBERLONG_FORMAT "'%lld'"
++#else
++#define NUMBERLONG_FORMAT "'%d'"
++#endif
++
+       if (limits[i] > 0) {
+-         opts = tmp_bson ("{'limit': {'$numberLong': '%d'}}", limits[i]);
++         opts = tmp_bson ("{'limit': {'$numberLong': " NUMBERLONG_FORMAT "}}", limits[i]);
+       } else {
+          opts =
+-            tmp_bson ("{'singleBatch': true, 'limit': {'$numberLong': '%d'}}",
++            tmp_bson ("{'singleBatch': true, 'limit': {'$numberLong': " NUMBERLONG_FORMAT "}}",
+                       -limits[i]);
+       }
+ 

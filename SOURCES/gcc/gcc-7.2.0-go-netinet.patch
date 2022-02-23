@@ -1,0 +1,48 @@
+--- ./libgo/configure.ac.ORIGIN	2017-09-27 16:41:38 -0500
++++ ./libgo/configure.ac	2017-09-27 16:43:59 -0500
+@@ -580,7 +580,11 @@
+ 
+ GCC_CHECK_UNWIND_GETIPINFO
+ 
+-AC_CHECK_HEADERS(port.h sched.h semaphore.h sys/file.h sys/mman.h syscall.h sys/epoll.h sys/event.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/fs.h linux/reboot.h netinet/icmp6.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h)
++AC_CHECK_HEADERS(port.h sched.h semaphore.h sys/file.h sys/mman.h syscall.h sys/epoll.h sys/event.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/fs.h linux/reboot.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h)
++
++AC_CHECK_HEADERS([netinet/icmp6.h], [], [],
++[#include <netinet/in.h>
++])
+ 
+ AC_CHECK_HEADERS([linux/filter.h linux/if_addr.h linux/if_ether.h linux/if_tun.h linux/netlink.h linux/rtnetlink.h], [], [],
+ [#ifdef HAVE_SYS_SOCKET_H
+--- ./libgo/configure.ORIGIN	2017-09-27 16:48:20 -0500
++++ ./libgo/configure	2017-09-27 16:53:22 -0500
+@@ -14782,7 +14782,7 @@
+   fi
+ 
+ 
+-for ac_header in port.h sched.h semaphore.h sys/file.h sys/mman.h syscall.h sys/epoll.h sys/event.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/fs.h linux/reboot.h netinet/icmp6.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h
++for ac_header in port.h sched.h semaphore.h sys/file.h sys/mman.h syscall.h sys/epoll.h sys/event.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/fs.h linux/reboot.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h
+ do :
+   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+@@ -14793,6 +14793,21 @@
+ _ACEOF
+ 
+ fi
++
++done
++
++
++for ac_header in netinet/icmp6.h
++do :
++  ac_fn_c_check_header_compile "$LINENO" "netinet/icmp6.h" "ac_cv_header_netinet_icmp6_h" "#include <netinet/in.h>
++
++"
++if test "x$ac_cv_header_netinet_icmp6_h" = x""yes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_NETINET_ICMP6_H 1
++_ACEOF
++
++fi
+ 
+ done
+ 

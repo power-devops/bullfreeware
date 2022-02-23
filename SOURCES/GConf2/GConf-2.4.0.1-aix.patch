@@ -1,0 +1,164 @@
+diff -crN ./GConf/backends/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/backends/Makefile.am
+*** ./GConf/backends/Makefile.am	Tue May  6 19:40:29 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/backends/Makefile.am	Fri Feb 21 14:30:40 2003
+***************
+*** 1,10 ****
+  INCLUDES= -I$(top_srcdir) -I$(top_builddir) -I$(top_builddir)/gconf \
+! 	$(DEPENDENT_WITH_XML_CFLAGS) \
+  	-DGCONF_ENABLE_INTERNALS=1 -DG_LOG_DOMAIN=\"GConf-Backends\"
+  
+  backenddir = $(pkglibdir)/$(MAJOR_VERSION)
+  
+! backend_LTLIBRARIES = libgconfbackend-xml.la
+  noinst_LTLIBRARIES = libgconfbackend-markup.la
+  
+  libgconfbackend_xml_la_SOURCES = \
+--- 1,18 ----
+  INCLUDES= -I$(top_srcdir) -I$(top_builddir) -I$(top_builddir)/gconf \
+! 	$(DEPENDENT_WITH_XML_CFLAGS) $(BDB_CFLAGS) \
+  	-DGCONF_ENABLE_INTERNALS=1 -DG_LOG_DOMAIN=\"GConf-Backends\"
+  
++ EXTRA_DIST=README.bdb
++ 
+  backenddir = $(pkglibdir)/$(MAJOR_VERSION)
+  
+! if BDB
+! BDBBACKEND=libgconfbackend-bdb.la
+! else
+! BDBBACKEND=
+! endif
+! 
+! backend_LTLIBRARIES = libgconfbackend-xml.la $(BDBBACKEND)
+  noinst_LTLIBRARIES = libgconfbackend-markup.la
+  
+  libgconfbackend_xml_la_SOURCES = \
+***************
+*** 16,31 ****
+  	xml-entry.c		\
+  	xml-backend.c
+  
+! libgconfbackend_xml_la_LDFLAGS = -avoid-version -module -no-undefined
+! libgconfbackend_xml_la_LIBADD  = $(DEPENDENT_WITH_XML_LIBS) $(top_builddir)/gconf/libgconf-$(MAJOR_VERSION).la
+  
+  libgconfbackend_markup_la_SOURCES = 	\
+  	markup-backend.c		\
+  	markup-tree.h			\
+  	markup-tree.c
+  
+! libgconfbackend_markup_la_LDFLAGS = -avoid-version -module -no-undefined
+! libgconfbackend_markup_la_LIBADD  = $(DEPENDENT_LIBS) $(top_builddir)/gconf/libgconf-$(MAJOR_VERSION).la
+  
+  noinst_PROGRAMS = xml-test
+  
+--- 24,46 ----
+  	xml-entry.c		\
+  	xml-backend.c
+  
+! libgconfbackend_xml_la_LDFLAGS = -avoid-version -module
+! libgconfbackend_xml_la_LIBADD  = $(DEPENDENT_WITH_XML_LIBS) ../gconf/libgconf-$(MAJOR_VERSION).la
+! 
+! libgconfbackend_bdb_la_SOURCES = bdb.c bdb.h bdb-backend.c val-encode.c val-encode.h dir-utils.c dir-utils.h
+! 
+! 
+! libgconfbackend_bdb_la_LDFLAGS = -avoid-version -module
+! libgconfbackend_bdb_la_LIBADD = $(DEPENDENT_LIBS) $(BDB_LIBS)
+  
+  libgconfbackend_markup_la_SOURCES = 	\
+  	markup-backend.c		\
+  	markup-tree.h			\
+  	markup-tree.c
+  
+! libgconfbackend_markup_la_LDFLAGS = -avoid-version -module
+! libgconfbackend_markup_la_LIBADD  = $(DEPENDENT_LIBS) ../gconf/libgconf-$(MAJOR_VERSION).la
+! 
+  
+  noinst_PROGRAMS = xml-test
+  
+diff -crN ./GConf/doc/gconf/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/doc/gconf/Makefile.am
+*** ./GConf/doc/gconf/Makefile.am	Sat May 11 07:37:46 2002
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/doc/gconf/Makefile.am	Fri Jun 28 18:58:55 2002
+***************
+*** 39,45 ****
+  
+  # CFLAGS and LDFLAGS for compiling scan program. Only needed
+  # if $(DOC_MODULE).types is non-empty.
+! GTKDOC_CFLAGS = -I$(top_srcdir) $(CFLAGS) $(DEPENDENT_CFLAGS)
+  
+  GTKDOC_LIBS = $(LDFLAGS) $(DEPENDENT_LIBS) $(top_builddir)/gconf/libgconf-$(MAJOR_VERSION).la
+  
+--- 39,46 ----
+  
+  # CFLAGS and LDFLAGS for compiling scan program. Only needed
+  # if $(DOC_MODULE).types is non-empty.
+! GTKDOC_CPPFLAGS = -I$(top_srcdir) @CPPFLAGS@
+! GTKDOC_CFLAGS = $(DEPENDENT_CFLAGS)
+  
+  GTKDOC_LIBS = $(LDFLAGS) $(DEPENDENT_LIBS) $(top_builddir)/gconf/libgconf-$(MAJOR_VERSION).la
+  
+***************
+*** 85,91 ****
+  scan-build.stamp: $(HFILE_GLOB)
+  	@echo '*** Scanning header files ***'
+  	if grep -l '^..*$$' $(srcdir)/$(DOC_MODULE).types > /dev/null ; then \
+! 	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)" CFLAGS="$(GTKDOC_CFLAGS)" LDFLAGS="$(GTKDOC_LIBS)" gtkdoc-scangobj --module=$(DOC_MODULE) --output-dir=$(srcdir) $(OBJSCAN_OPTIONS); \
+  	else \
+  	    cd $(srcdir) ; \
+  	    for i in $(SCANOBJ_FILES) ; do \
+--- 86,92 ----
+  scan-build.stamp: $(HFILE_GLOB)
+  	@echo '*** Scanning header files ***'
+  	if grep -l '^..*$$' $(srcdir)/$(DOC_MODULE).types > /dev/null ; then \
+! 	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)" CFLAGS="$(GTKDOC_CPPFLAGS) $(GTKDOC_CFLAGS)" LDFLAGS="$(GTKDOC_LIBS)" gtkdoc-scangobj --module=$(DOC_MODULE) --output-dir=$(srcdir) $(OBJSCAN_OPTIONS); \
+  	else \
+  	    cd $(srcdir) ; \
+  	    for i in $(SCANOBJ_FILES) ; do \
+diff -crN ./GConf/examples/basic-gconf-app.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/examples/basic-gconf-app.c
+*** ./GConf/examples/basic-gconf-app.c	Sat Apr 27 16:25:11 2002
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/examples/basic-gconf-app.c	Fri Jun 27 10:15:47 2003
+***************
+*** 341,347 ****
+   */
+  
+  /* Commit changes to the GConf database. */
+! static void
+  config_entry_commit (GtkWidget *entry)
+  {
+    gchar *text;
+--- 341,347 ----
+   */
+  
+  /* Commit changes to the GConf database. */
+! static gint
+  config_entry_commit (GtkWidget *entry)
+  {
+    gchar *text;
+***************
+*** 361,366 ****
+--- 361,367 ----
+      gconf_client_unset (client, key, NULL);
+    
+    g_free (text);
++   return FALSE;
+  }
+  
+  /* Create an entry used to edit the given config key */
+diff -crN ./GConf/tests/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/tests/Makefile.am
+*** ./GConf/tests/Makefile.am	Thu Sep 19 03:49:09 2002
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./GConf/tests/Makefile.am	Fri Jun 27 10:15:48 2003
+***************
+*** 2,8 ****
+  EFENCE=
+  
+  INCLUDES = -I$(top_srcdir) -I$(top_builddir) \
+! 	 $(DEPENDENT_CFLAGS) \
+  	 -DG_LOG_DOMAIN=\"GConf-Tests\" -DGCONF_ENABLE_INTERNALS=1
+  
+  noinst_PROGRAMS=testgconf testlisteners testschemas testchangeset testencode testunique testpersistence testdirlist testaddress testbackend
+--- 2,8 ----
+  EFENCE=
+  
+  INCLUDES = -I$(top_srcdir) -I$(top_builddir) \
+! 	 $(DEPENDENT_CFLAGS) -I$(top_builddir)/gconf \
+  	 -DG_LOG_DOMAIN=\"GConf-Tests\" -DGCONF_ENABLE_INTERNALS=1
+  
+  noinst_PROGRAMS=testgconf testlisteners testschemas testchangeset testencode testunique testpersistence testdirlist testaddress testbackend

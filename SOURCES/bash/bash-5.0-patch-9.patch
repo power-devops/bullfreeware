@@ -1,0 +1,38 @@
+From 9f597fd10993313262cab400bf3c46ffb3f6fd1e Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Wed, 14 Aug 2019 14:58:44 -0400
+Subject: [PATCH] Bash-5.0 patch 9: fix file descriptor leak with zero-length
+ history file
+
+---
+ lib/readline/histfile.c | 1 +
+ patchlevel.h            | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/readline/histfile.c b/lib/readline/histfile.c
+index dc64bde1..a8a92aa3 100644
+--- a/lib/readline/histfile.c
++++ b/lib/readline/histfile.c
+@@ -305,6 +305,7 @@ read_history_range (const char *filename, int from, int to)
+   if (file_size == 0)
+     {
+       free (input);
++      close (file);
+       return 0;	/* don't waste time if we don't have to */
+     }
+ 
+diff --git a/patchlevel.h b/patchlevel.h
+index 16c87404..02f1d606 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 8
++#define PATCHLEVEL 9
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.21.0
+

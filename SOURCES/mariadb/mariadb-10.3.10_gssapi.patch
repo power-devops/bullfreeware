@@ -1,0 +1,25 @@
+--- ./plugin/auth_gssapi/CMakeLists.txt-ORIGIN	2018-08-22 13:52:32 -0500
++++ ./plugin/auth_gssapi/CMakeLists.txt	2018-08-22 14:11:02 -0500
+@@ -15,16 +15,16 @@
+    INCLUDE_DIRECTORIES(${GSSAPI_INCS})
+    ADD_DEFINITIONS(-DPLUGIN_GSSAPI)
+    SET(GSSAPI_CLIENT gssapi_client.cc)
+-   SET(GSSAPI_SERVER gssapi_server.cc)
++#   SET(GSSAPI_SERVER gssapi_server.cc)
+    SET(GSSAPI_ERRMSG gssapi_errmsg.cc)
+ 
+    SET(CMAKE_REQUIRED_INCLUDES ${GSSAPI_INCS})
+    SET(CMAKE_REQUIRED_LIBRARIES ${GSSAPI_LIBS})
+-   INCLUDE(CheckCXXSymbolExists)
+-   CHECK_CXX_SYMBOL_EXISTS(krb5_free_unparsed_name "krb5.h" HAVE_KRB5_FREE_UNPARSED_NAME)
+-   IF(HAVE_KRB5_FREE_UNPARSED_NAME)
+-     ADD_DEFINITIONS(-DHAVE_KRB5_FREE_UNPARSED_NAME=1)
+-   ENDIF()
++#   INCLUDE(CheckCXXSymbolExists)
++#   CHECK_CXX_SYMBOL_EXISTS(krb5_free_unparsed_name "krb5.h" HAVE_KRB5_FREE_UNPARSED_NAME)
++#   IF(HAVE_KRB5_FREE_UNPARSED_NAME)
++#     ADD_DEFINITIONS(-DHAVE_KRB5_FREE_UNPARSED_NAME=1)
++#   ENDIF()
+ 
+  ELSE()
+    # Can't build plugin

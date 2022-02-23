@@ -1,0 +1,55 @@
+From 1bc74278b3393aeb559b0bcd3c7e2bd476f2754b Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Mon, 14 Jan 2019 17:14:42 -0500
+Subject: [PATCH] In rd_req_dec, always log non-permitted enctypes
+
+The buffer specified in negotiate_etype() is too small for use with
+the AES enctypes when used with krb5_enctype_to_string(), so switch to
+using krb5_enctype_to_name().
+
+(cherry picked from commit bf75ebf583a51bf00005a96d17924818d19377be)
+(cherry picked from commit e595f7a4c1c95aadcb1bc3ea2bb88fce66fb826b)
+---
+ src/lib/krb5/krb/rd_req_dec.c  | 5 ++---
+ src/tests/gssapi/t_enctypes.py | 5 +++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/lib/krb5/krb/rd_req_dec.c b/src/lib/krb5/krb/rd_req_dec.c
+index 4cd429a11..e75192fee 100644
+--- a/src/lib/krb5/krb/rd_req_dec.c
++++ b/src/lib/krb5/krb/rd_req_dec.c
+@@ -864,9 +864,8 @@ negotiate_etype(krb5_context context,
+         if (permitted == FALSE) {
+             char enctype_name[30];
+ 
+-            if (krb5_enctype_to_string(desired_etypes[i],
+-                                       enctype_name,
+-                                       sizeof(enctype_name)) == 0)
++            if (krb5_enctype_to_name(desired_etypes[i], FALSE, enctype_name,
++                                     sizeof(enctype_name)) == 0)
+                 k5_setmsg(context, KRB5_NOPERM_ETYPE,
+                           _("Encryption type %s not permitted"), enctype_name);
+             return KRB5_NOPERM_ETYPE;
+diff --git a/src/tests/gssapi/t_enctypes.py b/src/tests/gssapi/t_enctypes.py
+index ee43ff028..5d9f80e04 100755
+--- a/src/tests/gssapi/t_enctypes.py
++++ b/src/tests/gssapi/t_enctypes.py
+@@ -85,7 +85,8 @@ test('both aes128', 'aes128-cts', 'aes128-cts',
+ # If only the acceptor constrains the permitted session enctypes to
+ # aes128, subkey negotiation fails because the acceptor considers the
+ # aes256 session key to be non-permitted.
+-test_err('acc aes128', None, 'aes128-cts', 'Encryption type not permitted')
++test_err('acc aes128', None, 'aes128-cts',
++         'Encryption type aes256-cts-hmac-sha1-96 not permitted')
+ 
+ # If the initiator constrains the permitted session enctypes to des3,
+ # no acceptor subkey will be generated because we can't upgrade to a
+@@ -128,7 +129,7 @@ test('upgrade init des3+rc4', 'des3 rc4', None,
+ # is only for the sake of the kernel, since we could upgrade to an
+ # aes128 subkey, but it's the current semantics.)
+ test_err('upgrade acc aes128', None, 'aes128-cts',
+-         'Encryption type ArcFour with HMAC/md5 not permitted')
++         'Encryption type arcfour-hmac not permitted')
+ 
+ # If the acceptor permits rc4 but prefers aes128, it will negotiate an
+ # upgrade to aes128.

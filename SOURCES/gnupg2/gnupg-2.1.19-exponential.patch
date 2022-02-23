@@ -1,0 +1,38 @@
+diff -up gnupg-2.1.19/common/asshelp.c.exponential gnupg-2.1.19/common/asshelp.c
+--- gnupg-2.1.19/common/asshelp.c.exponential	2017-03-01 14:04:33.000000000 +0100
++++ gnupg-2.1.19/common/asshelp.c	2017-03-15 17:18:14.279792654 +0100
+@@ -434,12 +434,12 @@ start_new_gpg_agent (assuan_context_t *r
+                        agent_program, gpg_strerror (err));
+           else
+             {
+-              for (i=0; i < SECS_TO_WAIT_FOR_AGENT; i++)
++              for (i=2; i < SECS_TO_WAIT_FOR_AGENT*1000; i<<=1) /* start with 2 ms */
+                 {
+-                  if (verbose)
++                  if (verbose && i > 500)
+                     log_info (_("waiting for the agent to come up ... (%ds)\n"),
+-                              SECS_TO_WAIT_FOR_AGENT - i);
+-                  gnupg_sleep (1);
++                              SECS_TO_WAIT_FOR_AGENT - i/1000);
++                  gnupg_usleep (i*1000);
+                   err = assuan_socket_connect (ctx, sockname, 0, 0);
+                   if (!err)
+                     {
+@@ -587,13 +587,13 @@ start_new_dirmngr (assuan_context_t *r_c
+             {
+               int i;
+ 
+-              for (i=0; i < SECS_TO_WAIT_FOR_DIRMNGR; i++)
++              for (i=2; i < SECS_TO_WAIT_FOR_DIRMNGR*1000; i<<=1) /* start with 2 ms */
+                 {
+-                  if (verbose)
++                  if (verbose && i > 500)
+                     log_info (_("waiting for the dirmngr "
+                                 "to come up ... (%ds)\n"),
+-                              SECS_TO_WAIT_FOR_DIRMNGR - i);
+-                  gnupg_sleep (1);
++                              SECS_TO_WAIT_FOR_DIRMNGR - i/1000);
++                  gnupg_usleep (i*1000);
+                   err = assuan_socket_connect (ctx, sockname, 0, 0);
+                   if (!err)
+                     {

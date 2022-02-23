@@ -1,0 +1,76 @@
+From 0d58d3dcc9092a44bba5bb2e4551f5722ab55248 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Fri, 22 Mar 2019 11:50:24 -0500
+Subject: [PATCH 3/7] cmd/link: enable -buildmode=pie on aix/ppc64
+
+---
+ src/cmd/dist/test.go               | 3 ++-
+ src/cmd/go/internal/work/init.go   | 1 +
+ src/cmd/link/internal/ld/config.go | 2 +-
+ src/cmd/link/internal/ld/lib.go    | 4 ++--
+ 4 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/cmd/dist/test.go b/src/cmd/dist/test.go
+index eaed9c4946..ec78890f8c 100644
+--- a/src/cmd/dist/test.go
++++ b/src/cmd/dist/test.go
+@@ -963,7 +963,8 @@ func (t *tester) supportedBuildmode(mode string) bool {
+ 		return false
+ 	case "pie":
+ 		switch pair {
+-		case "linux-386", "linux-amd64", "linux-arm", "linux-arm64", "linux-ppc64le", "linux-s390x",
++		case "aix/ppc64",
++			"linux-386", "linux-amd64", "linux-arm", "linux-arm64", "linux-ppc64le", "linux-s390x",
+ 			"android-amd64", "android-arm", "android-arm64", "android-386":
+ 			return true
+ 		case "darwin-amd64":
+diff --git a/src/cmd/go/internal/work/init.go b/src/cmd/go/internal/work/init.go
+index 3381ab544c..d60295ce53 100644
+--- a/src/cmd/go/internal/work/init.go
++++ b/src/cmd/go/internal/work/init.go
+@@ -164,6 +164,7 @@ func buildModeInit() {
+ 				codegenArg = "-shared"
+ 			case "darwin/amd64":
+ 				codegenArg = "-shared"
++			case "aix/ppc64":
+ 			default:
+ 				base.Fatalf("-buildmode=pie not supported on %s\n", platform)
+ 			}
+diff --git a/src/cmd/link/internal/ld/config.go b/src/cmd/link/internal/ld/config.go
+index 40be3a553c..5d59d4067b 100644
+--- a/src/cmd/link/internal/ld/config.go
++++ b/src/cmd/link/internal/ld/config.go
+@@ -38,7 +38,7 @@ func (mode *BuildMode) Set(s string) error {
+ 		*mode = BuildModeExe
+ 	case "pie":
+ 		switch objabi.GOOS {
+-		case "android", "linux":
++		case "aix", "android", "linux":
+ 		case "darwin", "freebsd":
+ 			switch objabi.GOARCH {
+ 			case "amd64":
+diff --git a/src/cmd/link/internal/ld/lib.go b/src/cmd/link/internal/ld/lib.go
+index 2900268a57..f2a9921c8e 100644
+--- a/src/cmd/link/internal/ld/lib.go
++++ b/src/cmd/link/internal/ld/lib.go
+@@ -179,7 +179,7 @@ func (ctxt *Link) CanUsePlugins() bool {
+ func (ctxt *Link) UseRelro() bool {
+ 	switch ctxt.BuildMode {
+ 	case BuildModeCArchive, BuildModeCShared, BuildModeShared, BuildModePIE, BuildModePlugin:
+-		return ctxt.IsELF
++		return ctxt.IsELF || ctxt.HeadType == objabi.Haix
+ 	default:
+ 		return ctxt.linkShared || (ctxt.HeadType == objabi.Haix && ctxt.LinkMode == LinkExternal)
+ 	}
+@@ -1173,7 +1173,7 @@ func (ctxt *Link) hostlink() {
+ 		}
+ 	case BuildModePIE:
+ 		// ELF.
+-		if ctxt.HeadType != objabi.Hdarwin {
++		if ctxt.HeadType != objabi.Hdarwin && ctxt.HeadType != objabi.Haix {
+ 			if ctxt.UseRelro() {
+ 				argv = append(argv, "-Wl,-z,relro")
+ 			}
+-- 
+2.21.0
+

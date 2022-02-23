@@ -1,0 +1,59 @@
+From 0440b94fce25d394346ea0135594ca9c35eed8c6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 9 Jan 2020 10:51:15 +0100
+Subject: [PATCH] vendor: update github.com/insomniacslk/dhcp/dhcpv4
+
+---
+ .../insomniacslk/dhcp/dhcpv4/bindtodevice_bsd.go | 16 ++++++++++++++++
+ .../dhcp/dhcpv4/bindtodevice_darwin.go           | 16 ----------------
+ 2 files changed, 16 insertions(+), 16 deletions(-)
+ create mode 100644 vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_bsd.go
+ delete mode 100644 vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_darwin.go
+
+diff --git a/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_bsd.go b/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_bsd.go
+new file mode 100644
+index 0000000..0a6a282
+--- /dev/null
++++ b/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_bsd.go
+@@ -0,0 +1,16 @@
++// +build aix darwin
++
++package dhcpv4
++
++import (
++	"net"
++	"syscall"
++)
++
++func BindToInterface(fd int, ifname string) error {
++	iface, err := net.InterfaceByName(ifname)
++	if err != nil {
++		return err
++	}
++	return syscall.SetsockoptInt(fd, syscall.IPPROTO_IP, syscall.IP_RECVIF, iface.Index)
++}
+diff --git a/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_darwin.go b/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_darwin.go
+deleted file mode 100644
+index e9580ce..0000000
+--- a/vendor/github.com/insomniacslk/dhcp/dhcpv4/bindtodevice_darwin.go
++++ /dev/null
+@@ -1,16 +0,0 @@
+-// +build darwin
+-
+-package dhcpv4
+-
+-import (
+-	"net"
+-	"syscall"
+-)
+-
+-func BindToInterface(fd int, ifname string) error {
+-	iface, err := net.InterfaceByName(ifname)
+-	if err != nil {
+-		return err
+-	}
+-	return syscall.SetsockoptInt(fd, syscall.IPPROTO_IP, syscall.IP_BOUND_IF, iface.Index)
+-}
+-- 
+2.22.0
+

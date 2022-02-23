@@ -1,0 +1,58 @@
+diff -crN ./desktop-file-utils/src/desktop_file.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./desktop-file-utils/src/desktop_file.c
+*** ./desktop-file-utils/src/desktop_file.c	Mon Sep 27 17:46:07 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./desktop-file-utils/src/desktop_file.c	Mon Jan 24 14:34:23 2005
+***************
+*** 1485,1491 ****
+    {"EUC-CN", {"zh_TW"}},
+    {"EUC-JP", {"ja"}},
+    {"EUC-KR", {"ko"}},
+!   {"GEORGIAN-ACADEMY", {}},
+    {"GEORGIAN-PS", {"ka"}},
+    {"ISO-8859-1", {"br", "ca", "da", "de", "en", "es", "eu", "fi", "fr", "gl", "it", "nl", "wa", "no", "pt", "pt", "sv"}},
+    {"ISO-8859-2", {"cs", "hr", "hu", "pl", "ro", "sk", "sl", "sq", "sr"}},
+--- 1485,1491 ----
+    {"EUC-CN", {"zh_TW"}},
+    {"EUC-JP", {"ja"}},
+    {"EUC-KR", {"ko"}},
+!   {"GEORGIAN-ACADEMY", {""}},
+    {"GEORGIAN-PS", {"ka"}},
+    {"ISO-8859-1", {"br", "ca", "da", "de", "en", "es", "eu", "fi", "fr", "gl", "it", "nl", "wa", "no", "pt", "pt", "sv"}},
+    {"ISO-8859-2", {"cs", "hr", "hu", "pl", "ro", "sk", "sl", "sq", "sr"}},
+***************
+*** 1500,1506 ****
+    {"KOI8-U", {"uk"}},
+    {"TCVN-5712", {"vi"}},
+    {"TIS-620", {"th"}},
+!   {"VISCII", {}},
+  };
+  
+  struct {
+--- 1500,1506 ----
+    {"KOI8-U", {"uk"}},
+    {"TCVN-5712", {"vi"}},
+    {"TIS-620", {"th"}},
+!   {"VISCII", {""}},
+  };
+  
+  struct {
+diff -crN ./desktop-file-utils/src/eggdesktopentries.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./desktop-file-utils/src/eggdesktopentries.c
+*** ./desktop-file-utils/src/eggdesktopentries.c	Tue Sep 28 13:31:01 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./desktop-file-utils/src/eggdesktopentries.c	Mon Jan 24 14:35:32 2005
+***************
+*** 884,889 ****
+--- 884,898 ----
+    gchar *key, *value, *key_end, *value_start, *locale;
+    gsize key_len, value_len;
+  
++   if (entries->current_group->name == NULL)
++     {
++       g_set_error (error, EGG_DESKTOP_ENTRIES_ERROR,
++ 		  EGG_DESKTOP_ENTRIES_ERROR_BAD_START_GROUP,
++ 		  _("desktop entry file does not start with "
++ 		    "legal start group"));
++       return;
++     }
++ 
+    key_end = value_start = strchr (line, '=');
+  
+    g_assert (key_end != NULL);

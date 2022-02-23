@@ -1,0 +1,23 @@
+--- ./gettext-tools/gnulib-lib/Makefile.gnulib.orig	2020-10-02 17:05:53 +0200
++++ ./gettext-tools/gnulib-lib/Makefile.gnulib	2020-10-02 17:06:16 +0200
+@@ -206,8 +206,8 @@
+ libgettextlib_la_LDFLAGS += $(LIB_SETLOCALE)
+ libgettextlib_la_LDFLAGS += $(LIB_SETLOCALE_NULL)
+ libgettextlib_la_LDFLAGS += $(LOG10_LIBM)
+-libgettextlib_la_LDFLAGS += $(LTLIBICONV)
+ libgettextlib_la_LDFLAGS += $(LTLIBINTL)
++libgettextlib_la_LDFLAGS += $(LTLIBICONV)
+ libgettextlib_la_LDFLAGS += $(LTLIBUNISTRING)
+ libgettextlib_la_LDFLAGS += $(POW_LIBM)
+ libgettextlib_la_LDFLAGS += @INTL_MACOSX_LIBS@
+--- ./gettext-tools/gnulib-lib/Makefile.in.orig	2020-10-02 17:06:26 +0200
++++ ./gettext-tools/gnulib-lib/Makefile.in	2020-10-02 17:07:31 +0200
+@@ -2828,7 +2828,7 @@
+ 	$(ISNAND_LIBM) $(ISNANF_LIBM) $(ISNANL_LIBM) $(LIBTHREAD) \
+ 	$(LIB_ACL) $(LIB_CLOCK_GETTIME) $(LIB_GETRANDOM) \
+ 	$(LIB_HARD_LOCALE) $(LIB_MBRTOWC) $(LIB_SETLOCALE) \
+-	$(LIB_SETLOCALE_NULL) $(LOG10_LIBM) $(LTLIBICONV) $(LTLIBINTL) \
++	$(LIB_SETLOCALE_NULL) $(LOG10_LIBM) $(LTLIBINTL) $(LTLIBICONV) \
+ 	$(LTLIBUNISTRING) $(POW_LIBM) @INTL_MACOSX_LIBS@ -release \
+ 	@VERSION@ $(am__append_3) $(am__append_8) $(am__append_25) \
+ 	$(am__append_26)

@@ -1,0 +1,64 @@
+From 1b5b08d10a372ef3e3a21442fade2d2b4e3be343 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:50:29 +0100
+Subject: [PATCH] cmd/nm: fix cgo tests for aix/ppc64
+
+This commit handles AIX cgo in cmd/nm tests.
+
+Change-Id: I6753a0102e4f2c4c7bd4d7c999f62a0cb3d2183c
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164017
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/nm/nm_cgo_test.go b/src/cmd/nm/nm_cgo_test.go
+index 1dfdf7f..143a297 100644
+--- a/src/cmd/nm/nm_cgo_test.go
++++ b/src/cmd/nm/nm_cgo_test.go
+@@ -20,6 +20,8 @@
+ 		case "arm64", "mips64", "mips64le", "mips", "mipsle", "ppc64", "ppc64le":
+ 			return false
+ 		}
++	case "aix":
++		return false
+ 	}
+ 	return true
+ }
+diff --git a/src/cmd/nm/nm_test.go b/src/cmd/nm/nm_test.go
+index 8176ddd..e47d57d 100644
+--- a/src/cmd/nm/nm_test.go
++++ b/src/cmd/nm/nm_test.go
+@@ -136,6 +136,11 @@
+ 		"runtime.noptrdata": "D",
+ 	}
+ 
++	if runtime.GOOS == "aix" && iscgo {
++		// pclntab is moved to .data section on AIX.
++		runtimeSyms["runtime.epclntab"] = "D"
++	}
++
+ 	out, err = exec.Command(testnmpath, exe).CombinedOutput()
+ 	if err != nil {
+ 		t.Fatalf("go tool nm: %v\n%s", err, string(out))
+@@ -146,7 +151,10 @@
+ 			// On AIX, .data and .bss addresses are changed by the loader.
+ 			// Therefore, the values returned by the exec aren't the same
+ 			// than the ones inside the symbol table.
++			// In case of cgo, .text symbols are also changed.
+ 			switch code {
++			case "T", "t", "R", "r":
++				return iscgo
+ 			case "D", "d", "B", "b":
+ 				return true
+ 			}
+@@ -267,6 +275,9 @@
+ 		if runtime.GOOS == "darwin" || (runtime.GOOS == "windows" && runtime.GOARCH == "386") {
+ 			syms = append(syms, symType{"D", "_cgodata", true, false})
+ 			syms = append(syms, symType{"T", "_cgofunc", true, false})
++		} else if runtime.GOOS == "aix" {
++			syms = append(syms, symType{"D", "cgodata", true, false})
++			syms = append(syms, symType{"T", ".cgofunc", true, false})
+ 		} else {
+ 			syms = append(syms, symType{"D", "cgodata", true, false})
+ 			syms = append(syms, symType{"T", "cgofunc", true, false})

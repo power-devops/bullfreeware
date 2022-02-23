@@ -1,0 +1,1849 @@
+From c078704ce3f582879cb09d7922671100e1dde391 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 2 Jan 2020 11:25:34 +0100
+Subject: [PATCH 2/6] vendor: update elastic/go-txfile and gofrs/flock
+
+---
+ .../elastic/go-txfile/file_other.go           |   2 +-
+ vendor/github.com/elastic/go-txfile/go.sum    |   2 +
+ .../go-txfile/internal/vfs/osfs/lock_gofrs.go |  90 ++++++
+ .../internal/vfs/osfs/lock_windows.go         |  88 ------
+ .../go-txfile/internal/vfs/osfs/mmap_other.go |   2 +-
+ .../go-txfile/internal/vfs/osfs/sync_other.go |   2 +-
+ vendor/github.com/gofrs/flock/LICENSE         |  27 ++
+ vendor/github.com/gofrs/flock/README.md       |  41 +++
+ vendor/github.com/gofrs/flock/appveyor.yml    |  25 ++
+ vendor/github.com/gofrs/flock/flock.go        | 136 +++++++++
+ vendor/github.com/gofrs/flock/flock_aix.go    | 269 ++++++++++++++++++
+ vendor/github.com/gofrs/flock/flock_unix.go   | 195 +++++++++++++
+ vendor/github.com/gofrs/flock/flock_winapi.go |  76 +++++
+ .../github.com/gofrs/flock/flock_windows.go   | 140 +++++++++
+ vendor/github.com/theckman/go-flock/LICENSE   |  27 --
+ vendor/github.com/theckman/go-flock/README.md |  40 ---
+ vendor/github.com/theckman/go-flock/flock.go  | 107 -------
+ .../theckman/go-flock/flock_unix.go           | 146 ----------
+ .../theckman/go-flock/flock_winapi.go         |  76 -----
+ .../theckman/go-flock/flock_windows.go        | 140 ---------
+ vendor/vendor.json                            |  14 +-
+ 22 files changed, 1011 insertions(+), 636 deletions(-)
+ create mode 100644 vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_gofrs.go
+ delete mode 100644 vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_windows.go
+ create mode 100644 vendor/github.com/gofrs/flock/LICENSE
+ create mode 100644 vendor/github.com/gofrs/flock/README.md
+ create mode 100644 vendor/github.com/gofrs/flock/appveyor.yml
+ create mode 100644 vendor/github.com/gofrs/flock/flock.go
+ create mode 100644 vendor/github.com/gofrs/flock/flock_aix.go
+ create mode 100644 vendor/github.com/gofrs/flock/flock_unix.go
+ create mode 100644 vendor/github.com/gofrs/flock/flock_winapi.go
+ create mode 100644 vendor/github.com/gofrs/flock/flock_windows.go
+ delete mode 100644 vendor/github.com/theckman/go-flock/LICENSE
+ delete mode 100644 vendor/github.com/theckman/go-flock/README.md
+ delete mode 100644 vendor/github.com/theckman/go-flock/flock.go
+ delete mode 100644 vendor/github.com/theckman/go-flock/flock_unix.go
+ delete mode 100644 vendor/github.com/theckman/go-flock/flock_winapi.go
+ delete mode 100644 vendor/github.com/theckman/go-flock/flock_windows.go
+
+diff --git a/vendor/github.com/elastic/go-txfile/file_other.go b/vendor/github.com/elastic/go-txfile/file_other.go
+index 8d304b2e6..51a3ba2f6 100644
+--- a/vendor/github.com/elastic/go-txfile/file_other.go
++++ b/vendor/github.com/elastic/go-txfile/file_other.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+
+ package txfile
+
+diff --git a/vendor/github.com/elastic/go-txfile/go.sum b/vendor/github.com/elastic/go-txfile/go.sum
+index 757963551..53e6083ce 100644
+--- a/vendor/github.com/elastic/go-txfile/go.sum
++++ b/vendor/github.com/elastic/go-txfile/go.sum
+@@ -17,5 +17,7 @@ github.com/urso/qcgen v0.0.0-20180131103024-0b059e7db4f4 h1:hhA8EBThzz9PztawVTyc
+ github.com/urso/qcgen v0.0.0-20180131103024-0b059e7db4f4/go.mod h1:RspW+E2Yb7Fs7HclB2tiDaiu6Rp41BiIG4Wo1YaoXGc=
+ golang.org/x/sys v0.0.0-20180802203216-0ffbfd41fbef h1:ESfhYoBNk2UQGmavscFPKfwmc4ZTB2+UdQYsVw6Bq9M=
+ golang.org/x/sys v0.0.0-20180802203216-0ffbfd41fbef/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
++golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8 h1:JA8d3MPx/IToSyXZG/RhwYEtfrKO1Fxrqe8KrkiLXKM=
++golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+ gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 h1:qIbj1fsPNlZgppZ+VLlY7N33q108Sa+fhmuc+sWQYwY=
+ gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+diff --git a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_gofrs.go b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_gofrs.go
+new file mode 100644
+index 000000000..fc88c8e5a
+--- /dev/null
++++ b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_gofrs.go
+@@ -0,0 +1,90 @@
++// Licensed to Elasticsearch B.V. under one or more contributor
++// license agreements. See the NOTICE file distributed with
++// this work for additional information regarding copyright
++// ownership. Elasticsearch B.V. licenses this file to you under
++// the Apache License, Version 2.0 (the "License"); you may
++// not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing,
++// software distributed under the License is distributed on an
++// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++// KIND, either express or implied.  See the License for the
++// specific language governing permissions and limitations
++// under the License.
++
++//+build aix windows
++
++package osfs
++
++import (
++	"errors"
++
++	flock "github.com/gofrs/flock"
++
++	"github.com/elastic/go-txfile/internal/vfs"
++)
++
++const (
++	lockExt = ".lock"
++)
++
++type lockState struct {
++	*flock.Flock
++}
++
++var (
++	errAlreadyLocked     = errors.New("file is already locked")
++	errNotLocked         = errors.New("file is not locked")
++	errCanNotBeLockedNow = errors.New("file can not be locked right now")
++)
++
++func (f *File) Lock(exclusive, blocking bool) error {
++	err := f.doLock(blocking)
++	return f.wrapErrKind("file/lock", vfs.ErrLockFailed, err)
++}
++
++func (f *File) Unlock() error {
++	err := f.doUnlock()
++	return f.wrapErrKind("file/unlock", vfs.ErrLockFailed, err)
++}
++
++func (f *File) doLock(blocking bool) error {
++	if f.state.lock.Flock != nil {
++		return errAlreadyLocked
++	}
++
++	var ok bool
++	var err error
++	lock := flock.NewFlock(f.Name() + lockExt)
++	if blocking {
++		err = lock.Lock()
++		ok = err == nil
++	} else {
++		ok, err = lock.TryLock()
++	}
++
++	if err != nil {
++		return err
++	}
++	if !ok {
++		return errCanNotBeLockedNow
++	}
++
++	f.state.lock.Flock = lock
++	return nil
++}
++
++func (f *File) doUnlock() error {
++	if f.state.lock.Flock == nil {
++		return errNotLocked
++	}
++
++	err := f.state.lock.Unlock()
++	if err == nil {
++		f.state.lock.Flock = nil
++	}
++	return err
++}
+diff --git a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_windows.go b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_windows.go
+deleted file mode 100644
+index 67c063c73..000000000
+--- a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/lock_windows.go
++++ /dev/null
+@@ -1,88 +0,0 @@
+-// Licensed to Elasticsearch B.V. under one or more contributor
+-// license agreements. See the NOTICE file distributed with
+-// this work for additional information regarding copyright
+-// ownership. Elasticsearch B.V. licenses this file to you under
+-// the Apache License, Version 2.0 (the "License"); you may
+-// not use this file except in compliance with the License.
+-// You may obtain a copy of the License at
+-//
+-//     http://www.apache.org/licenses/LICENSE-2.0
+-//
+-// Unless required by applicable law or agreed to in writing,
+-// software distributed under the License is distributed on an
+-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+-// KIND, either express or implied.  See the License for the
+-// specific language governing permissions and limitations
+-// under the License.
+-
+-package osfs
+-
+-import (
+-	"errors"
+-
+-	flock "github.com/theckman/go-flock"
+-
+-	"github.com/elastic/go-txfile/internal/vfs"
+-)
+-
+-const (
+-	lockExt = ".lock"
+-)
+-
+-type lockState struct {
+-	*flock.Flock
+-}
+-
+-var (
+-	errAlreadyLocked     = errors.New("file is already locked")
+-	errNotLocked         = errors.New("file is not locked")
+-	errCanNotBeLockedNow = errors.New("file can not be locked right now")
+-)
+-
+-func (f *File) Lock(exclusive, blocking bool) error {
+-	err := f.doLock(blocking)
+-	return f.wrapErrKind("file/lock", vfs.ErrLockFailed, err)
+-}
+-
+-func (f *File) Unlock() error {
+-	err := f.doUnlock()
+-	return f.wrapErrKind("file/unlock", vfs.ErrLockFailed, err)
+-}
+-
+-func (f *File) doLock(blocking bool) error {
+-	if f.state.lock.Flock != nil {
+-		return errAlreadyLocked
+-	}
+-
+-	var ok bool
+-	var err error
+-	lock := flock.NewFlock(f.Name() + lockExt)
+-	if blocking {
+-		err = lock.Lock()
+-		ok = err == nil
+-	} else {
+-		ok, err = lock.TryLock()
+-	}
+-
+-	if err != nil {
+-		return err
+-	}
+-	if !ok {
+-		return errCanNotBeLockedNow
+-	}
+-
+-	f.state.lock.Flock = lock
+-	return nil
+-}
+-
+-func (f *File) doUnlock() error {
+-	if f.state.lock.Flock == nil {
+-		return errNotLocked
+-	}
+-
+-	err := f.state.lock.Unlock()
+-	if err == nil {
+-		f.state.lock.Flock = nil
+-	}
+-	return err
+-}
+diff --git a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/mmap_other.go b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/mmap_other.go
+index 3bf5414be..97bc66ddd 100644
+--- a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/mmap_other.go
++++ b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/mmap_other.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+
+ package osfs
+
+diff --git a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/sync_other.go b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/sync_other.go
+index eebd8ecb7..2460b5661 100644
+--- a/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/sync_other.go
++++ b/vendor/github.com/elastic/go-txfile/internal/vfs/osfs/sync_other.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+
+-// +build dragonfly freebsd netbsd openbsd solaris
++// +build aix dragonfly freebsd netbsd openbsd solaris
+
+ package osfs
+
+diff --git a/vendor/github.com/gofrs/flock/LICENSE b/vendor/github.com/gofrs/flock/LICENSE
+new file mode 100644
+index 000000000..aff7d358e
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/LICENSE
+@@ -0,0 +1,27 @@
++Copyright (c) 2015, Tim Heckman
++All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are met:
++
++* Redistributions of source code must retain the above copyright notice, this
++  list of conditions and the following disclaimer.
++
++* Redistributions in binary form must reproduce the above copyright notice,
++  this list of conditions and the following disclaimer in the documentation
++  and/or other materials provided with the distribution.
++
++* Neither the name of linode-netint nor the names of its
++  contributors may be used to endorse or promote products derived from
++  this software without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+diff --git a/vendor/github.com/gofrs/flock/README.md b/vendor/github.com/gofrs/flock/README.md
+new file mode 100644
+index 000000000..71ce63692
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/README.md
+@@ -0,0 +1,41 @@
++# flock
++[![TravisCI Build Status](https://img.shields.io/travis/gofrs/flock/master.svg?style=flat)](https://travis-ci.org/gofrs/flock)
++[![GoDoc](https://img.shields.io/badge/godoc-flock-blue.svg?style=flat)](https://godoc.org/github.com/gofrs/flock)
++[![License](https://img.shields.io/badge/license-BSD_3--Clause-brightgreen.svg?style=flat)](https://github.com/gofrs/flock/blob/master/LICENSE)
++[![Go Report Card](https://goreportcard.com/badge/github.com/gofrs/flock)](https://goreportcard.com/report/github.com/gofrs/flock)
++
++`flock` implements a thread-safe sync.Locker interface for file locking. It also
++includes a non-blocking TryLock() function to allow locking without blocking execution.
++
++## License
++`flock` is released under the BSD 3-Clause License. See the `LICENSE` file for more details.
++
++## Go Compatibility
++This package makes use of the `context` package that was introduced in Go 1.7. As such, this
++package has an implicit dependency on Go 1.7+.
++
++## Installation
++```
++go get -u github.com/gofrs/flock
++```
++
++## Usage
++```Go
++import "github.com/gofrs/flock"
++
++fileLock := flock.New("/var/lock/go-lock.lock")
++
++locked, err := fileLock.TryLock()
++
++if err != nil {
++	// handle locking error
++}
++
++if locked {
++	// do work
++	fileLock.Unlock()
++}
++```
++
++For more detailed usage information take a look at the package API docs on
++[GoDoc](https://godoc.org/github.com/gofrs/flock).
+diff --git a/vendor/github.com/gofrs/flock/appveyor.yml b/vendor/github.com/gofrs/flock/appveyor.yml
+new file mode 100644
+index 000000000..6848e94bf
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/appveyor.yml
+@@ -0,0 +1,25 @@
++version: '{build}'
++
++build: false
++deploy: false
++
++clone_folder: 'c:\gopath\src\github.com\gofrs\flock'
++
++environment:
++  GOPATH: 'c:\gopath'
++  GOVERSION: '1.11'
++
++init:
++  - git config --global core.autocrlf input
++
++install:
++  - rmdir c:\go /s /q
++  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.msi
++  - msiexec /i go%GOVERSION%.windows-amd64.msi /q
++  - set Path=c:\go\bin;c:\gopath\bin;%Path%
++  - go version
++  - go env
++
++test_script:
++  - go get -t ./...
++  - go test -race -v ./...
+diff --git a/vendor/github.com/gofrs/flock/flock.go b/vendor/github.com/gofrs/flock/flock.go
+new file mode 100644
+index 000000000..a3c660a2e
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/flock.go
+@@ -0,0 +1,136 @@
++// Copyright 2015 Tim Heckman. All rights reserved.
++// Use of this source code is governed by the BSD 3-Clause
++// license that can be found in the LICENSE file.
++
++// Package flock implements a thread-safe interface for file locking.
++// It also includes a non-blocking TryLock() function to allow locking
++// without blocking execution.
++//
++// Package flock is released under the BSD 3-Clause License. See the LICENSE file
++// for more details.
++//
++// While using this library, remember that the locking behaviors are not
++// guaranteed to be the same on each platform. For example, some UNIX-like
++// operating systems will transparently convert a shared lock to an exclusive
++// lock. If you Unlock() the flock from a location where you believe that you
++// have the shared lock, you may accidentally drop the exclusive lock.
++package flock
++
++import (
++	"context"
++	"os"
++	"runtime"
++	"sync"
++	"time"
++)
++
++// Flock is the struct type to handle file locking. All fields are unexported,
++// with access to some of the fields provided by getter methods (Path() and Locked()).
++type Flock struct {
++	path string
++	m    sync.RWMutex
++	fh   *os.File
++	l    bool
++	r    bool
++}
++
++// New returns a new instance of *Flock. The only parameter
++// it takes is the path to the desired lockfile.
++func New(path string) *Flock {
++	return &Flock{path: path}
++}
++
++// NewFlock returns a new instance of *Flock. The only parameter
++// it takes is the path to the desired lockfile.
++//
++// Deprecated: Use New instead.
++func NewFlock(path string) *Flock {
++	return New(path)
++}
++
++// Close is equivalent to calling Unlock.
++//
++// This will release the lock and close the underlying file descriptor.
++// It will not remove the file from disk, that's up to your application.
++func (f *Flock) Close() error {
++	return f.Unlock()
++}
++
++// Path returns the path as provided in NewFlock().
++func (f *Flock) Path() string {
++	return f.path
++}
++
++// Locked returns the lock state (locked: true, unlocked: false).
++//
++// Warning: by the time you use the returned value, the state may have changed.
++func (f *Flock) Locked() bool {
++	f.m.RLock()
++	defer f.m.RUnlock()
++	return f.l
++}
++
++// RLocked returns the read lock state (locked: true, unlocked: false).
++//
++// Warning: by the time you use the returned value, the state may have changed.
++func (f *Flock) RLocked() bool {
++	f.m.RLock()
++	defer f.m.RUnlock()
++	return f.r
++}
++
++func (f *Flock) String() string {
++	return f.path
++}
++
++// TryLockContext repeatedly tries to take an exclusive lock until one of the
++// conditions is met: TryLock succeeds, TryLock fails with error, or Context
++// Done channel is closed.
++func (f *Flock) TryLockContext(ctx context.Context, retryDelay time.Duration) (bool, error) {
++	return tryCtx(ctx, f.TryLock, retryDelay)
++}
++
++// TryRLockContext repeatedly tries to take a shared lock until one of the
++// conditions is met: TryRLock succeeds, TryRLock fails with error, or Context
++// Done channel is closed.
++func (f *Flock) TryRLockContext(ctx context.Context, retryDelay time.Duration) (bool, error) {
++	return tryCtx(ctx, f.TryRLock, retryDelay)
++}
++
++func tryCtx(ctx context.Context, fn func() (bool, error), retryDelay time.Duration) (bool, error) {
++	if ctx.Err() != nil {
++		return false, ctx.Err()
++	}
++	for {
++		if ok, err := fn(); ok || err != nil {
++			return ok, err
++		}
++		select {
++		case <-ctx.Done():
++			return false, ctx.Err()
++		case <-time.After(retryDelay):
++			// try again
++		}
++	}
++}
++
++func (f *Flock) setFh() error {
++	// open a new os.File instance
++	// create it if it doesn't exist, and open the file read-only.
++	flags := os.O_CREATE
++	if runtime.GOOS == "aix" {
++		// AIX cannot preform write-lock (ie exclusive) on a
++		// read-only file.
++		flags |= os.O_RDWR
++	} else {
++		flags |= os.O_RDONLY
++	}
++	fh, err := os.OpenFile(f.path, flags, os.FileMode(0600))
++	if err != nil {
++		return err
++	}
++
++	// set the filehandle on the struct
++	f.fh = fh
++	return nil
++}
+diff --git a/vendor/github.com/gofrs/flock/flock_aix.go b/vendor/github.com/gofrs/flock/flock_aix.go
+new file mode 100644
+index 000000000..47d73a71d
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/flock_aix.go
+@@ -0,0 +1,269 @@
++// Copyright 2019 Tim Heckman. All rights reserved. Use of this source code is
++// governed by the BSD 3-Clause license that can be found in the LICENSE file.
++
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// This code implements the filelock API using POSIX 'fcntl' locks, which attach
++// to an (inode, process) pair rather than a file descriptor. To avoid unlocking
++// files prematurely when the same file is opened through different descriptors,
++// we allow only one read-lock at a time.
++//
++// This code is adapted from the Go package:
++// cmd/go/internal/lockedfile/internal/filelock
++
++//+build aix
++
++package flock
++
++import (
++	"errors"
++	"io"
++	"os"
++	"sync"
++	"syscall"
++
++	"golang.org/x/sys/unix"
++)
++
++type lockType int16
++
++const (
++	readLock  lockType = unix.F_RDLCK
++	writeLock lockType = unix.F_WRLCK
++)
++
++type inode = uint64
++
++type inodeLock struct {
++	owner *Flock
++	queue []<-chan *Flock
++}
++
++var (
++	mu     sync.Mutex
++	inodes = map[*Flock]inode{}
++	locks  = map[inode]inodeLock{}
++)
++
++// Lock is a blocking call to try and take an exclusive file lock. It will wait
++// until it is able to obtain the exclusive file lock. It's recommended that
++// TryLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already exclusive-locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++//
++// If the *Flock has a shared lock (RLock), this may transparently replace the
++// shared lock with an exclusive lock on some UNIX-like operating systems. Be
++// careful when using exclusive locks in conjunction with shared locks
++// (RLock()), because calling Unlock() may accidentally release the exclusive
++// lock that was once a shared lock.
++func (f *Flock) Lock() error {
++	return f.lock(&f.l, writeLock)
++}
++
++// RLock is a blocking call to try and take a shared file lock. It will wait
++// until it is able to obtain the shared file lock. It's recommended that
++// TryRLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already shared-locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++func (f *Flock) RLock() error {
++	return f.lock(&f.r, readLock)
++}
++
++func (f *Flock) lock(locked *bool, flag lockType) error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return err
++		}
++	}
++
++	if _, err := f.doLock(flag, true); err != nil {
++		return err
++	}
++
++	*locked = true
++	return nil
++}
++
++func (f *Flock) doLock(lt lockType, blocking bool) (bool, error) {
++	// POSIX locks apply per inode and process, and the lock for an inode is
++	// released when *any* descriptor for that inode is closed. So we need to
++	// synchronize access to each inode internally, and must serialize lock and
++	// unlock calls that refer to the same inode through different descriptors.
++	fi, err := f.fh.Stat()
++	if err != nil {
++		return false, err
++	}
++	ino := inode(fi.Sys().(*syscall.Stat_t).Ino)
++
++	mu.Lock()
++	if i, dup := inodes[f]; dup && i != ino {
++		mu.Unlock()
++		return false, &os.PathError{
++			Path: f.Path(),
++			Err:  errors.New("inode for file changed since last Lock or RLock"),
++		}
++	}
++
++	inodes[f] = ino
++
++	var wait chan *Flock
++	l := locks[ino]
++	if l.owner == f {
++		// This file already owns the lock, but the call may change its lock type.
++	} else if l.owner == nil {
++		// No owner: it's ours now.
++		l.owner = f
++	} else if !blocking {
++		// Already owned: cannot take the lock.
++		mu.Unlock()
++		return false, nil
++	} else {
++		// Already owned: add a channel to wait on.
++		wait = make(chan *Flock)
++		l.queue = append(l.queue, wait)
++	}
++	locks[ino] = l
++	mu.Unlock()
++
++	if wait != nil {
++		wait <- f
++	}
++
++	err = setlkw(f.fh.Fd(), lt)
++
++	if err != nil {
++		f.doUnlock()
++		return false, err
++	}
++
++	return true, nil
++}
++
++func (f *Flock) Unlock() error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	// if we aren't locked or if the lockfile instance is nil
++	// just return a nil error because we are unlocked
++	if (!f.l && !f.r) || f.fh == nil {
++		return nil
++	}
++
++	if err := f.doUnlock(); err != nil {
++		return err
++	}
++
++	f.fh.Close()
++
++	f.l = false
++	f.r = false
++	f.fh = nil
++
++	return nil
++}
++
++func (f *Flock) doUnlock() (err error) {
++	var owner *Flock
++	mu.Lock()
++	ino, ok := inodes[f]
++	if ok {
++		owner = locks[ino].owner
++	}
++	mu.Unlock()
++
++	if owner == f {
++		err = setlkw(f.fh.Fd(), unix.F_UNLCK)
++	}
++
++	mu.Lock()
++	l := locks[ino]
++	if len(l.queue) == 0 {
++		// No waiters: remove the map entry.
++		delete(locks, ino)
++	} else {
++		// The first waiter is sending us their file now.
++		// Receive it and update the queue.
++		l.owner = <-l.queue[0]
++		l.queue = l.queue[1:]
++		locks[ino] = l
++	}
++	delete(inodes, f)
++	mu.Unlock()
++
++	return err
++}
++
++// TryLock is the preferred function for taking an exclusive file lock. This
++// function takes an RW-mutex lock before it tries to lock the file, so there is
++// the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the exclusive
++// file lock, the function will return false instead of waiting for the lock. If
++// we get the lock, we also set the *Flock instance as being exclusive-locked.
++func (f *Flock) TryLock() (bool, error) {
++	return f.try(&f.l, writeLock)
++}
++
++// TryRLock is the preferred function for taking a shared file lock. This
++// function takes an RW-mutex lock before it tries to lock the file, so there is
++// the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the shared file
++// lock, the function will return false instead of waiting for the lock. If we
++// get the lock, we also set the *Flock instance as being share-locked.
++func (f *Flock) TryRLock() (bool, error) {
++	return f.try(&f.r, readLock)
++}
++
++func (f *Flock) try(locked *bool, flag lockType) (bool, error) {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return true, nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return false, err
++		}
++	}
++
++	haslock, err := f.doLock(flag, false)
++	if err != nil {
++		return false, err
++	}
++
++	*locked = haslock
++	return haslock, nil
++}
++
++// setlkw calls FcntlFlock with F_SETLKW for the entire file indicated by fd.
++func setlkw(fd uintptr, lt lockType) error {
++	for {
++		err := unix.FcntlFlock(fd, unix.F_SETLKW, &unix.Flock_t{
++			Type:   int16(lt),
++			Whence: io.SeekStart,
++			Start:  0,
++			Len:    0, // All bytes.
++		})
++		if err != unix.EINTR {
++			return err
++		}
++	}
++}
+diff --git a/vendor/github.com/gofrs/flock/flock_unix.go b/vendor/github.com/gofrs/flock/flock_unix.go
+new file mode 100644
+index 000000000..b781a5685
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/flock_unix.go
+@@ -0,0 +1,195 @@
++// Copyright 2015 Tim Heckman. All rights reserved.
++// Use of this source code is governed by the BSD 3-Clause
++// license that can be found in the LICENSE file.
++
++// +build !aix,!windows
++
++package flock
++
++import (
++	"os"
++	"syscall"
++)
++
++// Lock is a blocking call to try and take an exclusive file lock. It will wait
++// until it is able to obtain the exclusive file lock. It's recommended that
++// TryLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already exclusive-locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++//
++// If the *Flock has a shared lock (RLock), this may transparently replace the
++// shared lock with an exclusive lock on some UNIX-like operating systems. Be
++// careful when using exclusive locks in conjunction with shared locks
++// (RLock()), because calling Unlock() may accidentally release the exclusive
++// lock that was once a shared lock.
++func (f *Flock) Lock() error {
++	return f.lock(&f.l, syscall.LOCK_EX)
++}
++
++// RLock is a blocking call to try and take a shared file lock. It will wait
++// until it is able to obtain the shared file lock. It's recommended that
++// TryRLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already shared-locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++func (f *Flock) RLock() error {
++	return f.lock(&f.r, syscall.LOCK_SH)
++}
++
++func (f *Flock) lock(locked *bool, flag int) error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return err
++		}
++	}
++
++	if err := syscall.Flock(int(f.fh.Fd()), flag); err != nil {
++		shouldRetry, reopenErr := f.reopenFDOnError(err)
++		if reopenErr != nil {
++			return reopenErr
++		}
++
++		if !shouldRetry {
++			return err
++		}
++
++		if err = syscall.Flock(int(f.fh.Fd()), flag); err != nil {
++			return err
++		}
++	}
++
++	*locked = true
++	return nil
++}
++
++// Unlock is a function to unlock the file. This file takes a RW-mutex lock, so
++// while it is running the Locked() and RLocked() functions will be blocked.
++//
++// This function short-circuits if we are unlocked already. If not, it calls
++// syscall.LOCK_UN on the file and closes the file descriptor. It does not
++// remove the file from disk. It's up to your application to do.
++//
++// Please note, if your shared lock became an exclusive lock this may
++// unintentionally drop the exclusive lock if called by the consumer that
++// believes they have a shared lock. Please see Lock() for more details.
++func (f *Flock) Unlock() error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	// if we aren't locked or if the lockfile instance is nil
++	// just return a nil error because we are unlocked
++	if (!f.l && !f.r) || f.fh == nil {
++		return nil
++	}
++
++	// mark the file as unlocked
++	if err := syscall.Flock(int(f.fh.Fd()), syscall.LOCK_UN); err != nil {
++		return err
++	}
++
++	f.fh.Close()
++
++	f.l = false
++	f.r = false
++	f.fh = nil
++
++	return nil
++}
++
++// TryLock is the preferred function for taking an exclusive file lock. This
++// function takes an RW-mutex lock before it tries to lock the file, so there is
++// the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the exclusive
++// file lock, the function will return false instead of waiting for the lock. If
++// we get the lock, we also set the *Flock instance as being exclusive-locked.
++func (f *Flock) TryLock() (bool, error) {
++	return f.try(&f.l, syscall.LOCK_EX)
++}
++
++// TryRLock is the preferred function for taking a shared file lock. This
++// function takes an RW-mutex lock before it tries to lock the file, so there is
++// the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the shared file
++// lock, the function will return false instead of waiting for the lock. If we
++// get the lock, we also set the *Flock instance as being share-locked.
++func (f *Flock) TryRLock() (bool, error) {
++	return f.try(&f.r, syscall.LOCK_SH)
++}
++
++func (f *Flock) try(locked *bool, flag int) (bool, error) {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return true, nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return false, err
++		}
++	}
++
++	var retried bool
++retry:
++	err := syscall.Flock(int(f.fh.Fd()), flag|syscall.LOCK_NB)
++
++	switch err {
++	case syscall.EWOULDBLOCK:
++		return false, nil
++	case nil:
++		*locked = true
++		return true, nil
++	}
++	if !retried {
++		if shouldRetry, reopenErr := f.reopenFDOnError(err); reopenErr != nil {
++			return false, reopenErr
++		} else if shouldRetry {
++			retried = true
++			goto retry
++		}
++	}
++
++	return false, err
++}
++
++// reopenFDOnError determines whether we should reopen the file handle
++// in readwrite mode and try again. This comes from util-linux/sys-utils/flock.c:
++//  Since Linux 3.4 (commit 55725513)
++//  Probably NFSv4 where flock() is emulated by fcntl().
++func (f *Flock) reopenFDOnError(err error) (bool, error) {
++	if err != syscall.EIO && err != syscall.EBADF {
++		return false, nil
++	}
++	if st, err := f.fh.Stat(); err == nil {
++		// if the file is able to be read and written
++		if st.Mode()&0600 == 0600 {
++			f.fh.Close()
++			f.fh = nil
++
++			// reopen in read-write mode and set the filehandle
++			fh, err := os.OpenFile(f.path, os.O_CREATE|os.O_RDWR, os.FileMode(0600))
++			if err != nil {
++				return false, err
++			}
++			f.fh = fh
++			return true, nil
++		}
++	}
++
++	return false, nil
++}
+diff --git a/vendor/github.com/gofrs/flock/flock_winapi.go b/vendor/github.com/gofrs/flock/flock_winapi.go
+new file mode 100644
+index 000000000..fe405a255
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/flock_winapi.go
+@@ -0,0 +1,76 @@
++// Copyright 2015 Tim Heckman. All rights reserved.
++// Use of this source code is governed by the BSD 3-Clause
++// license that can be found in the LICENSE file.
++
++// +build windows
++
++package flock
++
++import (
++	"syscall"
++	"unsafe"
++)
++
++var (
++	kernel32, _         = syscall.LoadLibrary("kernel32.dll")
++	procLockFileEx, _   = syscall.GetProcAddress(kernel32, "LockFileEx")
++	procUnlockFileEx, _ = syscall.GetProcAddress(kernel32, "UnlockFileEx")
++)
++
++const (
++	winLockfileFailImmediately = 0x00000001
++	winLockfileExclusiveLock   = 0x00000002
++	winLockfileSharedLock      = 0x00000000
++)
++
++// Use of 0x00000000 for the shared lock is a guess based on some the MS Windows
++// `LockFileEX` docs, which document the `LOCKFILE_EXCLUSIVE_LOCK` flag as:
++//
++// > The function requests an exclusive lock. Otherwise, it requests a shared
++// > lock.
++//
++// https://msdn.microsoft.com/en-us/library/windows/desktop/aa365203(v=vs.85).aspx
++
++func lockFileEx(handle syscall.Handle, flags uint32, reserved uint32, numberOfBytesToLockLow uint32, numberOfBytesToLockHigh uint32, offset *syscall.Overlapped) (bool, syscall.Errno) {
++	r1, _, errNo := syscall.Syscall6(
++		uintptr(procLockFileEx),
++		6,
++		uintptr(handle),
++		uintptr(flags),
++		uintptr(reserved),
++		uintptr(numberOfBytesToLockLow),
++		uintptr(numberOfBytesToLockHigh),
++		uintptr(unsafe.Pointer(offset)))
++
++	if r1 != 1 {
++		if errNo == 0 {
++			return false, syscall.EINVAL
++		}
++
++		return false, errNo
++	}
++
++	return true, 0
++}
++
++func unlockFileEx(handle syscall.Handle, reserved uint32, numberOfBytesToLockLow uint32, numberOfBytesToLockHigh uint32, offset *syscall.Overlapped) (bool, syscall.Errno) {
++	r1, _, errNo := syscall.Syscall6(
++		uintptr(procUnlockFileEx),
++		5,
++		uintptr(handle),
++		uintptr(reserved),
++		uintptr(numberOfBytesToLockLow),
++		uintptr(numberOfBytesToLockHigh),
++		uintptr(unsafe.Pointer(offset)),
++		0)
++
++	if r1 != 1 {
++		if errNo == 0 {
++			return false, syscall.EINVAL
++		}
++
++		return false, errNo
++	}
++
++	return true, 0
++}
+diff --git a/vendor/github.com/gofrs/flock/flock_windows.go b/vendor/github.com/gofrs/flock/flock_windows.go
+new file mode 100644
+index 000000000..9f4a5f10d
+--- /dev/null
++++ b/vendor/github.com/gofrs/flock/flock_windows.go
+@@ -0,0 +1,140 @@
++// Copyright 2015 Tim Heckman. All rights reserved.
++// Use of this source code is governed by the BSD 3-Clause
++// license that can be found in the LICENSE file.
++
++package flock
++
++import (
++	"syscall"
++)
++
++// ErrorLockViolation is the error code returned from the Windows syscall when a
++// lock would block and you ask to fail immediately.
++const ErrorLockViolation syscall.Errno = 0x21 // 33
++
++// Lock is a blocking call to try and take an exclusive file lock. It will wait
++// until it is able to obtain the exclusive file lock. It's recommended that
++// TryLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++func (f *Flock) Lock() error {
++	return f.lock(&f.l, winLockfileExclusiveLock)
++}
++
++// RLock is a blocking call to try and take a shared file lock. It will wait
++// until it is able to obtain the shared file lock. It's recommended that
++// TryRLock() be used over this function. This function may block the ability to
++// query the current Locked() or RLocked() status due to a RW-mutex lock.
++//
++// If we are already locked, this function short-circuits and returns
++// immediately assuming it can take the mutex lock.
++func (f *Flock) RLock() error {
++	return f.lock(&f.r, winLockfileSharedLock)
++}
++
++func (f *Flock) lock(locked *bool, flag uint32) error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return err
++		}
++	}
++
++	if _, errNo := lockFileEx(syscall.Handle(f.fh.Fd()), flag, 0, 1, 0, &syscall.Overlapped{}); errNo > 0 {
++		return errNo
++	}
++
++	*locked = true
++	return nil
++}
++
++// Unlock is a function to unlock the file. This file takes a RW-mutex lock, so
++// while it is running the Locked() and RLocked() functions will be blocked.
++//
++// This function short-circuits if we are unlocked already. If not, it calls
++// UnlockFileEx() on the file and closes the file descriptor. It does not remove
++// the file from disk. It's up to your application to do.
++func (f *Flock) Unlock() error {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	// if we aren't locked or if the lockfile instance is nil
++	// just return a nil error because we are unlocked
++	if (!f.l && !f.r) || f.fh == nil {
++		return nil
++	}
++
++	// mark the file as unlocked
++	if _, errNo := unlockFileEx(syscall.Handle(f.fh.Fd()), 0, 1, 0, &syscall.Overlapped{}); errNo > 0 {
++		return errNo
++	}
++
++	f.fh.Close()
++
++	f.l = false
++	f.r = false
++	f.fh = nil
++
++	return nil
++}
++
++// TryLock is the preferred function for taking an exclusive file lock. This
++// function does take a RW-mutex lock before it tries to lock the file, so there
++// is the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the exclusive
++// file lock, the function will return false instead of waiting for the lock. If
++// we get the lock, we also set the *Flock instance as being exclusive-locked.
++func (f *Flock) TryLock() (bool, error) {
++	return f.try(&f.l, winLockfileExclusiveLock)
++}
++
++// TryRLock is the preferred function for taking a shared file lock. This
++// function does take a RW-mutex lock before it tries to lock the file, so there
++// is the possibility that this function may block for a short time if another
++// goroutine is trying to take any action.
++//
++// The actual file lock is non-blocking. If we are unable to get the shared file
++// lock, the function will return false instead of waiting for the lock. If we
++// get the lock, we also set the *Flock instance as being shared-locked.
++func (f *Flock) TryRLock() (bool, error) {
++	return f.try(&f.r, winLockfileSharedLock)
++}
++
++func (f *Flock) try(locked *bool, flag uint32) (bool, error) {
++	f.m.Lock()
++	defer f.m.Unlock()
++
++	if *locked {
++		return true, nil
++	}
++
++	if f.fh == nil {
++		if err := f.setFh(); err != nil {
++			return false, err
++		}
++	}
++
++	_, errNo := lockFileEx(syscall.Handle(f.fh.Fd()), flag|winLockfileFailImmediately, 0, 1, 0, &syscall.Overlapped{})
++
++	if errNo > 0 {
++		if errNo == ErrorLockViolation || errNo == syscall.ERROR_IO_PENDING {
++			return false, nil
++		}
++
++		return false, errNo
++	}
++
++	*locked = true
++
++	return true, nil
++}
+diff --git a/vendor/github.com/theckman/go-flock/LICENSE b/vendor/github.com/theckman/go-flock/LICENSE
+deleted file mode 100644
+index aff7d358e..000000000
+--- a/vendor/github.com/theckman/go-flock/LICENSE
++++ /dev/null
+@@ -1,27 +0,0 @@
+-Copyright (c) 2015, Tim Heckman
+-All rights reserved.
+-
+-Redistribution and use in source and binary forms, with or without
+-modification, are permitted provided that the following conditions are met:
+-
+-* Redistributions of source code must retain the above copyright notice, this
+-  list of conditions and the following disclaimer.
+-
+-* Redistributions in binary form must reproduce the above copyright notice,
+-  this list of conditions and the following disclaimer in the documentation
+-  and/or other materials provided with the distribution.
+-
+-* Neither the name of linode-netint nor the names of its
+-  contributors may be used to endorse or promote products derived from
+-  this software without specific prior written permission.
+-
+-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+diff --git a/vendor/github.com/theckman/go-flock/README.md b/vendor/github.com/theckman/go-flock/README.md
+deleted file mode 100644
+index 38c794c81..000000000
+--- a/vendor/github.com/theckman/go-flock/README.md
++++ /dev/null
+@@ -1,40 +0,0 @@
+-# go-flock
+-[![TravisCI Build Status](https://img.shields.io/travis/theckman/go-flock/master.svg?style=flat)](https://travis-ci.org/theckman/go-flock)
+-[![GoDoc](https://img.shields.io/badge/godoc-go--flock-blue.svg?style=flat)](https://godoc.org/github.com/theckman/go-flock)
+-[![License](https://img.shields.io/badge/license-BSD_3--Clause-brightgreen.svg?style=flat)](https://github.com/theckman/go-flock/blob/master/LICENSE)
+-
+-`flock` implements a thread-safe sync.Locker interface for file locking. It also
+-includes a non-blocking TryLock() function to allow locking without blocking execution.
+-
+-## License
+-`flock` is released under the BSD 3-Clause License. See the `LICENSE` file for more details.
+-
+-## Go Compatibility
+-This package makes use of the `context` package that was introduced in Go 1.7. As such, this
+-package has an implicit dependency on Go 1.7+.
+-
+-## Installation
+-```
+-go get -u github.com/theckman/go-flock
+-```
+-
+-## Usage
+-```Go
+-import "github.com/theckman/go-flock"
+-
+-fileLock := flock.NewFlock("/var/lock/go-lock.lock")
+-
+-locked, err := fileLock.TryLock()
+-
+-if err != nil {
+-	// handle locking error
+-}
+-
+-if locked {
+-	// do work
+-	fileLock.Unlock()
+-}
+-```
+-
+-For more detailed usage information take a look at the package API docs on
+-[GoDoc](https://godoc.org/github.com/theckman/go-flock).
+diff --git a/vendor/github.com/theckman/go-flock/flock.go b/vendor/github.com/theckman/go-flock/flock.go
+deleted file mode 100644
+index 867c765f1..000000000
+--- a/vendor/github.com/theckman/go-flock/flock.go
++++ /dev/null
+@@ -1,107 +0,0 @@
+-// Copyright 2015 Tim Heckman. All rights reserved.
+-// Use of this source code is governed by the BSD 3-Clause
+-// license that can be found in the LICENSE file.
+-
+-// Package flock implements a thread-safe sync.Locker interface for file locking.
+-// It also includes a non-blocking TryLock() function to allow locking
+-// without blocking execution.
+-//
+-// Package flock is released under the BSD 3-Clause License. See the LICENSE file
+-// for more details.
+-//
+-// While using this library, remember that the locking behaviors are not
+-// guaranteed to be the same on each platform. For example, some UNIX-like
+-// operating systems will transparently convert a shared lock to an exclusive
+-// lock. If you Unlock() the flock from a location where you believe that you
+-// have the shared lock, you may accidently drop the exclusive lock.
+-package flock
+-
+-import (
+-	"context"
+-	"os"
+-	"sync"
+-	"time"
+-)
+-
+-// Flock is the struct type to handle file locking. All fields are unexported,
+-// with access to some of the fields provided by getter methods (Path() and Locked()).
+-type Flock struct {
+-	path string
+-	m    sync.RWMutex
+-	fh   *os.File
+-	l    bool
+-	r    bool
+-}
+-
+-// NewFlock is a function to return a new instance of *Flock. The only parameter
+-// it takes is the path to the desired lockfile.
+-func NewFlock(path string) *Flock {
+-	return &Flock{path: path}
+-}
+-
+-// Path is a function to return the path as provided in NewFlock().
+-func (f *Flock) Path() string {
+-	return f.path
+-}
+-
+-// Locked is a function to return the current lock state (locked: true, unlocked: false).
+-func (f *Flock) Locked() bool {
+-	f.m.RLock()
+-	defer f.m.RUnlock()
+-	return f.l
+-}
+-
+-// RLocked is a function to return the current read lock state (locked: true, unlocked: false).
+-func (f *Flock) RLocked() bool {
+-	f.m.RLock()
+-	defer f.m.RUnlock()
+-	return f.r
+-}
+-
+-func (f *Flock) String() string {
+-	return f.path
+-}
+-
+-// TryLockContext repeatedly tries to take an exclusive lock until one of the
+-// conditions is met: TryLock succeeds, TryLock fails with error, or Context
+-// Done channel is closed.
+-func (f *Flock) TryLockContext(ctx context.Context, retryDelay time.Duration) (bool, error) {
+-	return tryCtx(f.TryLock, ctx, retryDelay)
+-}
+-
+-// TryRLockContext repeatedly tries to take a shared lock until one of the
+-// conditions is met: TryRLock succeeds, TryRLock fails with error, or Context
+-// Done channel is closed.
+-func (f *Flock) TryRLockContext(ctx context.Context, retryDelay time.Duration) (bool, error) {
+-	return tryCtx(f.TryRLock, ctx, retryDelay)
+-}
+-
+-func tryCtx(fn func() (bool, error), ctx context.Context, retryDelay time.Duration) (bool, error) {
+-	if ctx.Err() != nil {
+-		return false, ctx.Err()
+-	}
+-	for {
+-		if ok, err := fn(); ok || err != nil {
+-			return ok, err
+-		}
+-		select {
+-		case <-ctx.Done():
+-			return false, ctx.Err()
+-		case <-time.After(retryDelay):
+-			// try again
+-		}
+-	}
+-}
+-
+-func (f *Flock) setFh() error {
+-	// open a new os.File instance
+-	// create it if it doesn't exist, and open the file read-only.
+-	fh, err := os.OpenFile(f.path, os.O_CREATE|os.O_RDONLY, os.FileMode(0600))
+-	if err != nil {
+-		return err
+-	}
+-
+-	// set the filehandle on the struct
+-	f.fh = fh
+-	return nil
+-}
+diff --git a/vendor/github.com/theckman/go-flock/flock_unix.go b/vendor/github.com/theckman/go-flock/flock_unix.go
+deleted file mode 100644
+index a9ae0a896..000000000
+--- a/vendor/github.com/theckman/go-flock/flock_unix.go
++++ /dev/null
+@@ -1,146 +0,0 @@
+-// Copyright 2015 Tim Heckman. All rights reserved.
+-// Use of this source code is governed by the BSD 3-Clause
+-// license that can be found in the LICENSE file.
+-
+-// +build !windows
+-
+-package flock
+-
+-import (
+-	"syscall"
+-)
+-
+-// Lock is a blocking call to try and take an exclusive file lock. It will wait
+-// until it is able to obtain the exclusive file lock. It's recommended that
+-// TryLock() be used over this function. This function may block the ability to
+-// query the current Locked() or RLocked() status due to a RW-mutex lock.
+-//
+-// If we are already exclusive-locked, this function short-circuits and returns
+-// immediately assuming it can take the mutex lock.
+-//
+-// If the *Flock has a shared lock (RLock), this may transparently replace the
+-// shared lock with an exclusive lock on some UNIX-like operating systems. Be
+-// careful when using exclusive locks in conjunction with shared locks
+-// (RLock()), because calling Unlock() may accidentally release the exclusive
+-// lock that was once a shared lock.
+-func (f *Flock) Lock() error {
+-	return f.lock(&f.l, syscall.LOCK_EX)
+-}
+-
+-// RLock is a blocking call to try and take a ahred file lock. It will wait
+-// until it is able to obtain the shared file lock. It's recommended that
+-// TryRLock() be used over this function. This function may block the ability to
+-// query the current Locked() or RLocked() status due to a RW-mutex lock.
+-//
+-// If we are already shared-locked, this function short-circuits and returns
+-// immediately assuming it can take the mutex lock.
+-func (f *Flock) RLock() error {
+-	return f.lock(&f.r, syscall.LOCK_SH)
+-}
+-
+-func (f *Flock) lock(locked *bool, flag int) error {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	if *locked {
+-		return nil
+-	}
+-
+-	if f.fh == nil {
+-		if err := f.setFh(); err != nil {
+-			return err
+-		}
+-	}
+-
+-	if err := syscall.Flock(int(f.fh.Fd()), flag); err != nil {
+-		return err
+-	}
+-
+-	*locked = true
+-	return nil
+-}
+-
+-// Unlock is a function to unlock the file. This file takes a RW-mutex lock, so
+-// while it is running the Locked() and RLocked() functions will be blocked.
+-//
+-// This function short-circuits if we are unlocked already. If not, it calls
+-// syscall.LOCK_UN on the file and closes the file descriptor. It does not
+-// remove the file from disk. It's up to your application to do.
+-//
+-// Please note, if your shared lock became an exclusive lock this may
+-// unintentionally drop the exclusive lock if called by the consumer that
+-// believes they have a shared lock. Please see Lock() for more details.
+-func (f *Flock) Unlock() error {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	// if we aren't locked or if the lockfile instance is nil
+-	// just return a nil error because we are unlocked
+-	if (!f.l && !f.r) || f.fh == nil {
+-		return nil
+-	}
+-
+-	// mark the file as unlocked
+-	if err := syscall.Flock(int(f.fh.Fd()), syscall.LOCK_UN); err != nil {
+-		return err
+-	}
+-
+-	f.fh.Close()
+-
+-	f.l = false
+-	f.r = false
+-	f.fh = nil
+-
+-	return nil
+-}
+-
+-// TryLock is the preferred function for taking an exclusive file lock. This
+-// function takes an RW-mutex lock before it tries to lock the file, so there is
+-// the possibility that this function may block for a short time if another
+-// goroutine is trying to take any action.
+-//
+-// The actual file lock is non-blocking. If we are unable to get the exclusive
+-// file lock, the function will return false instead of waiting for the lock. If
+-// we get the lock, we also set the *Flock instance as being exclusive-locked.
+-func (f *Flock) TryLock() (bool, error) {
+-	return f.try(&f.l, syscall.LOCK_EX)
+-}
+-
+-// TryRLock is the preferred function for taking a shared file lock. This
+-// function takes an RW-mutex lock before it tries to lock the file, so there is
+-// the possibility that this function may block for a short time if another
+-// goroutine is trying to take any action.
+-//
+-// The actual file lock is non-blocking. If we are unable to get the shared file
+-// lock, the function will return false instead of waiting for the lock. If we
+-// get the lock, we also set the *Flock instance as being share-locked.
+-func (f *Flock) TryRLock() (bool, error) {
+-	return f.try(&f.r, syscall.LOCK_SH)
+-}
+-
+-func (f *Flock) try(locked *bool, flag int) (bool, error) {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	if *locked {
+-		return true, nil
+-	}
+-
+-	if f.fh == nil {
+-		if err := f.setFh(); err != nil {
+-			return false, err
+-		}
+-	}
+-
+-	err := syscall.Flock(int(f.fh.Fd()), flag|syscall.LOCK_NB)
+-
+-	switch err {
+-	case syscall.EWOULDBLOCK:
+-		return false, nil
+-	case nil:
+-		*locked = true
+-		return true, nil
+-	}
+-
+-	return false, err
+-}
+diff --git a/vendor/github.com/theckman/go-flock/flock_winapi.go b/vendor/github.com/theckman/go-flock/flock_winapi.go
+deleted file mode 100644
+index fe405a255..000000000
+--- a/vendor/github.com/theckman/go-flock/flock_winapi.go
++++ /dev/null
+@@ -1,76 +0,0 @@
+-// Copyright 2015 Tim Heckman. All rights reserved.
+-// Use of this source code is governed by the BSD 3-Clause
+-// license that can be found in the LICENSE file.
+-
+-// +build windows
+-
+-package flock
+-
+-import (
+-	"syscall"
+-	"unsafe"
+-)
+-
+-var (
+-	kernel32, _         = syscall.LoadLibrary("kernel32.dll")
+-	procLockFileEx, _   = syscall.GetProcAddress(kernel32, "LockFileEx")
+-	procUnlockFileEx, _ = syscall.GetProcAddress(kernel32, "UnlockFileEx")
+-)
+-
+-const (
+-	winLockfileFailImmediately = 0x00000001
+-	winLockfileExclusiveLock   = 0x00000002
+-	winLockfileSharedLock      = 0x00000000
+-)
+-
+-// Use of 0x00000000 for the shared lock is a guess based on some the MS Windows
+-// `LockFileEX` docs, which document the `LOCKFILE_EXCLUSIVE_LOCK` flag as:
+-//
+-// > The function requests an exclusive lock. Otherwise, it requests a shared
+-// > lock.
+-//
+-// https://msdn.microsoft.com/en-us/library/windows/desktop/aa365203(v=vs.85).aspx
+-
+-func lockFileEx(handle syscall.Handle, flags uint32, reserved uint32, numberOfBytesToLockLow uint32, numberOfBytesToLockHigh uint32, offset *syscall.Overlapped) (bool, syscall.Errno) {
+-	r1, _, errNo := syscall.Syscall6(
+-		uintptr(procLockFileEx),
+-		6,
+-		uintptr(handle),
+-		uintptr(flags),
+-		uintptr(reserved),
+-		uintptr(numberOfBytesToLockLow),
+-		uintptr(numberOfBytesToLockHigh),
+-		uintptr(unsafe.Pointer(offset)))
+-
+-	if r1 != 1 {
+-		if errNo == 0 {
+-			return false, syscall.EINVAL
+-		}
+-
+-		return false, errNo
+-	}
+-
+-	return true, 0
+-}
+-
+-func unlockFileEx(handle syscall.Handle, reserved uint32, numberOfBytesToLockLow uint32, numberOfBytesToLockHigh uint32, offset *syscall.Overlapped) (bool, syscall.Errno) {
+-	r1, _, errNo := syscall.Syscall6(
+-		uintptr(procUnlockFileEx),
+-		5,
+-		uintptr(handle),
+-		uintptr(reserved),
+-		uintptr(numberOfBytesToLockLow),
+-		uintptr(numberOfBytesToLockHigh),
+-		uintptr(unsafe.Pointer(offset)),
+-		0)
+-
+-	if r1 != 1 {
+-		if errNo == 0 {
+-			return false, syscall.EINVAL
+-		}
+-
+-		return false, errNo
+-	}
+-
+-	return true, 0
+-}
+diff --git a/vendor/github.com/theckman/go-flock/flock_windows.go b/vendor/github.com/theckman/go-flock/flock_windows.go
+deleted file mode 100644
+index a0103f6da..000000000
+--- a/vendor/github.com/theckman/go-flock/flock_windows.go
++++ /dev/null
+@@ -1,140 +0,0 @@
+-// Copyright 2015 Tim Heckman. All rights reserved.
+-// Use of this source code is governed by the BSD 3-Clause
+-// license that can be found in the LICENSE file.
+-
+-package flock
+-
+-import (
+-	"syscall"
+-)
+-
+-// ErrorLockViolation is the error code returned from the Windows syscall when a
+-// lock would block and you ask to fail immediately.
+-const ErrorLockViolation syscall.Errno = 0x21 // 33
+-
+-// Lock is a blocking call to try and take an exclusive file lock. It will wait
+-// until it is able to obtain the exclusive file lock. It's recommended that
+-// TryLock() be used over this function. This function may block the ability to
+-// query the current Locked() or RLocked() status due to a RW-mutex lock.
+-//
+-// If we are already locked, this function short-circuits and returns
+-// immediately assuming it can take the mutex lock.
+-func (f *Flock) Lock() error {
+-	return f.lock(&f.l, winLockfileExclusiveLock)
+-}
+-
+-// RLock is a blocking call to try and take a sahred file lock. It will wait
+-// until it is able to obtain the shared file lock. It's recommended that
+-// TryRLock() be used over this function. This function may block the ability to
+-// query the current Locked() or RLocked() status due to a RW-mutex lock.
+-//
+-// If we are already locked, this function short-circuits and returns
+-// immediately assuming it can take the mutex lock.
+-func (f *Flock) RLock() error {
+-	return f.lock(&f.r, winLockfileSharedLock)
+-}
+-
+-func (f *Flock) lock(locked *bool, flag uint32) error {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	if *locked {
+-		return nil
+-	}
+-
+-	if f.fh == nil {
+-		if err := f.setFh(); err != nil {
+-			return err
+-		}
+-	}
+-
+-	if _, errNo := lockFileEx(syscall.Handle(f.fh.Fd()), flag, 0, 1, 0, &syscall.Overlapped{}); errNo > 0 {
+-		return errNo
+-	}
+-
+-	*locked = true
+-	return nil
+-}
+-
+-// Unlock is a function to unlock the file. This file takes a RW-mutex lock, so
+-// while it is running the Locked() and RLocked() functions will be blocked.
+-//
+-// This function short-circuits if we are unlocked already. If not, it calls
+-// UnlockFileEx() on the file and closes the file descriptor. It does not remove
+-// the file from disk. It's up to your application to do.
+-func (f *Flock) Unlock() error {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	// if we aren't locked or if the lockfile instance is nil
+-	// just return a nil error because we are unlocked
+-	if (!f.l && !f.r) || f.fh == nil {
+-		return nil
+-	}
+-
+-	// mark the file as unlocked
+-	if _, errNo := unlockFileEx(syscall.Handle(f.fh.Fd()), 0, 1, 0, &syscall.Overlapped{}); errNo > 0 {
+-		return errNo
+-	}
+-
+-	f.fh.Close()
+-
+-	f.l = false
+-	f.r = false
+-	f.fh = nil
+-
+-	return nil
+-}
+-
+-// TryLock is the preferred function for taking an exlusive file lock. This
+-// function does take a RW-mutex lock before it tries to lock the file, so there
+-// is the possibility that this function may block for a short time if another
+-// goroutine is trying to take any action.
+-//
+-// The actual file lock is non-blocking. If we are unable to get the exclusive
+-// file lock, the function will return false instead of waiting for the lock. If
+-// we get the lock, we also set the *Flock instance as being exclusive-locked.
+-func (f *Flock) TryLock() (bool, error) {
+-	return f.try(&f.l, winLockfileExclusiveLock)
+-}
+-
+-// TryRLock is the preferred function for taking a shared file lock. This
+-// function does take a RW-mutex lock before it tries to lock the file, so there
+-// is the possibility that this function may block for a short time if another
+-// goroutine is trying to take any action.
+-//
+-// The actual file lock is non-blocking. If we are unable to get the shared file
+-// lock, the function will return false instead of waiting for the lock. If we
+-// get the lock, we also set the *Flock instance as being shared-locked.
+-func (f *Flock) TryRLock() (bool, error) {
+-	return f.try(&f.r, winLockfileSharedLock)
+-}
+-
+-func (f *Flock) try(locked *bool, flag uint32) (bool, error) {
+-	f.m.Lock()
+-	defer f.m.Unlock()
+-
+-	if *locked {
+-		return true, nil
+-	}
+-
+-	if f.fh == nil {
+-		if err := f.setFh(); err != nil {
+-			return false, err
+-		}
+-	}
+-
+-	_, errNo := lockFileEx(syscall.Handle(f.fh.Fd()), flag|winLockfileFailImmediately, 0, 1, 0, &syscall.Overlapped{})
+-
+-	if errNo > 0 {
+-		if errNo == ErrorLockViolation || errNo == syscall.ERROR_IO_PENDING {
+-			return false, nil
+-		}
+-
+-		return false, errNo
+-	}
+-
+-	*locked = true
+-
+-	return true, nil
+-}
+diff --git a/vendor/vendor.json b/vendor/vendor.json
+index ee25c797e..20341d801 100644
+--- a/vendor/vendor.json
++++ b/vendor/vendor.json
+@@ -3191,6 +3191,12 @@
+ 			"revision": "ffef3ffc77bec026fefa6f76bd53d158cfa0e669",
+ 			"revisionTime": "2017-03-24T09:53:51Z"
+ 		},
++		{
++			"checksumSHA1": "MlaWEe1K+Kpb9wDF88qPoqO1uro=",
++			"path": "github.com/gofrs/flock",
++			"revision": "5135e617513b1e6e205a3a89b042249dee6730c8",
++			"revisionTime": "2019-03-20T16:07:11Z"
++		},
+ 		{
+ 			"checksumSHA1": "BfjvAbPn5t/2KrdC5E7418OuzV8=",
+ 			"path": "github.com/gofrs/uuid",
+@@ -4139,14 +4145,6 @@
+ 			"version": "v1.2.2",
+ 			"versionExact": "v1.2.2"
+ 		},
+-		{
+-			"checksumSHA1": "CpcG17Q/0k1g2uy8AL26Uu7TouU=",
+-			"path": "github.com/theckman/go-flock",
+-			"revision": "b139a2487364247d91814e4a7c7b8fdc69e342b2",
+-			"revisionTime": "2018-01-24T01:19:07Z",
+-			"version": "v0.4.0",
+-			"versionExact": "v0.4.0"
+-		},
+ 		{
+ 			"checksumSHA1": "M0S9278lG9Fztu+ZUsLUi40GDJU=",
+ 			"path": "github.com/tsg/gopacket",
+--
+2.22.0

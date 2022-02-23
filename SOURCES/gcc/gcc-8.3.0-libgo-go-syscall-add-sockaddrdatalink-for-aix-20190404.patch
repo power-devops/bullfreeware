@@ -1,0 +1,39 @@
+Index: ./libgo/go/syscall/socket_aix.go
+===================================================================
+--- ./libgo/go/syscall/socket_aix.go	(revision 269987)
++++ ./libgo/go/syscall/socket_aix.go	(working copy)
+@@ -11,6 +11,7 @@ import "unsafe"
+ const SizeofSockaddrInet4 = 16
+ const SizeofSockaddrInet6 = 28
+ const SizeofSockaddrUnix = 1025
++const SizeofSockaddrDatalink = 128
+ 
+ type RawSockaddrInet4 struct {
+        Len    uint8
+@@ -87,3 +88,26 @@ func GetsockoptIPv6MTUInfo(fd, level, opt int) (*I
+ 	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
+ 	return &value, err
+ }
++
++type SockaddrDatalink struct {
++	Len    uint8
++	Family uint8
++	Index  uint16
++	Type   uint8
++	Nlen   uint8
++	Alen   uint8
++	Slen   uint8
++	Data   [120]uint8
++	raw    RawSockaddrDatalink
++}
++
++type RawSockaddrDatalink struct {
++	Len    uint8
++	Family uint8
++	Index  uint16
++	Type   uint8
++	Nlen   uint8
++	Alen   uint8
++	Slen   uint8
++	Data   [120]uint8
++}

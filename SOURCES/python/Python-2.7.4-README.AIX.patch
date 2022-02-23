@@ -1,0 +1,29 @@
+Index: Python-2.7.4/Misc/README.AIX
+===================================================================
+--- Python-2.7.4.orig/Misc/README.AIX	2013-04-06 16:02:34.000000000 +0200
++++ Python-2.7.4/Misc/README.AIX	2013-05-07 10:32:27.000000000 +0200
+@@ -91,10 +91,6 @@
+   consider using the provided patch that implements a custom malloc
+   implementation
+ 
+-* issue 11184: support for large files is currently broken
+-
+-* issue 11185: os.wait4 does not behave correctly with option WNOHANG
+-
+ * issue 1745108: there may be some problems with curses.panel
+ 
+ * issue 11192: test_socket fails
+@@ -103,12 +99,9 @@
+ 
+ * issue 11193: test_subprocess fails
+ 
+-* issue 9920: minor arithmetic issues in cmath
+-
+-* issue 11215: test_fileio fails
+-
+ * issue 11188: test_time fails
+ 
++* many issue: test_hotshot fails
+ 
+ ======================================================================
+ 		Implementation details for developers

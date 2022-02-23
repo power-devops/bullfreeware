@@ -1,0 +1,99 @@
+Index: src/login.c
+===================================================================
+RCS file: /cvs/ccvs/src/login.c,v
+retrieving revision 1.70.4.5
+diff -u -p -r1.70.4.5 login.c
+--- src/login.c	28 Feb 2005 15:55:56 -0000	1.70.4.5
++++ src/login.c	22 Mar 2005 21:14:32 -0000
+@@ -119,7 +119,7 @@ password_entry_parseline (cvsroot_canoni
+
+ 	if (isspace(*(linebuf + 1)))
+ 	    /* special case since strtoul ignores leading white space */
+-	    entry_version = 0;
++	    q = linebuf + 1;
+ 	else
+ 	    entry_version = strtoul (linebuf + 1, &q, 10);
+
+Index: src/patch.c
+===================================================================
+RCS file: /cvs/ccvs/src/patch.c,v
+retrieving revision 1.80.4.10
+diff -u -p -r1.80.4.10 patch.c
+--- src/patch.c	15 Mar 2005 17:44:40 -0000	1.80.4.10
++++ src/patch.c	22 Mar 2005 21:14:32 -0000
+@@ -391,6 +391,7 @@ patch_fileproc (callerdat, finfo)
+     struct utimbuf t;
+     char *vers_tag, *vers_head;
+     char *rcs = NULL;
++    char *rcs_orig = NULL;
+     RCSNode *rcsfile;
+     FILE *fp1, *fp2, *fp3;
+     int ret = 0;
+@@ -421,7 +422,7 @@ patch_fileproc (callerdat, finfo)
+     if ((rcsfile->flags & VALID) && (rcsfile->flags & INATTIC))
+ 	isattic = 1;
+
+-    rcs = xmalloc (strlen (finfo->file) + sizeof (RCSEXT) + 5);
++    rcs_orig = rcs = xmalloc (strlen (finfo->file) + sizeof (RCSEXT) + 5);
+     (void) sprintf (rcs, "%s%s", finfo->file, RCSEXT);
+
+     /* if vers_head is NULL, may have been removed from the release */
+@@ -763,8 +764,8 @@ failed to read diff file header %s for %
+ 	free (vers_tag);
+     if (vers_head != NULL)
+ 	free (vers_head);
+-    if (rcs != NULL)
+-	free (rcs);
++    if (rcs_orig)
++	free (rcs_orig);
+     return ret;
+ }
+
+Index: src/rcs.c
+===================================================================
+RCS file: /cvs/ccvs/src/rcs.c,v
+retrieving revision 1.262.4.35
+diff -u -p -r1.262.4.35 rcs.c
+--- src/rcs.c	17 Mar 2005 16:31:48 -0000	1.262.4.35
++++ src/rcs.c	22 Mar 2005 21:14:34 -0000
+@@ -3067,8 +3067,7 @@ RCS_getdate (rcs, date, force_tag_match)
+     if (retval != NULL)
+ 	return (retval);
+
+-    if (!force_tag_match ||
+-	(vers != NULL && RCS_datecmp (vers->date, date) <= 0))
++    if (vers && (!force_tag_match || RCS_datecmp (vers->date, date) <= 0))
+ 	return xstrdup (vers->version);
+     else
+ 	return NULL;
+@@ -4155,7 +4154,7 @@ RCS_checkout (rcs, workfile, rev, nameta
+     size_t len;
+     int free_value = 0;
+     char *log = NULL;
+-    size_t loglen;
++    size_t loglen = 0;
+     Node *vp = NULL;
+ #ifdef PRESERVE_PERMISSIONS_SUPPORT
+     uid_t rcs_owner = (uid_t) -1;
+@@ -7529,7 +7528,7 @@ RCS_deltas (rcs, fp, rcsbuf, version, op
+
+ 		for (ln = 0; ln < headlines.nlines; ++ln)
+ 		{
+-		    char buf[80];
++		    char *buf;
+ 		    /* Period which separates year from month in date.  */
+ 		    char *ym;
+ 		    /* Period which separates month from day in date.  */
+@@ -7540,10 +7539,12 @@ RCS_deltas (rcs, fp, rcsbuf, version, op
+ 		    if (prvers == NULL)
+ 			prvers = vers;
+
++		    buf = xmalloc (strlen (prvers->version) + 24);
+ 		    sprintf (buf, "%-12s (%-8.8s ",
+ 			     prvers->version,
+ 			     prvers->author);
+ 		    cvs_output (buf, 0);
++		    free (buf);
+
+ 		    /* Now output the date.  */
+ 		    ym = strchr (prvers->date, '.');

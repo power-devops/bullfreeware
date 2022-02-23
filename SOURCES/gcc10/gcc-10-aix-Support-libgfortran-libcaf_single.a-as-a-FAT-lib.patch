@@ -1,0 +1,32 @@
+From 26fdc47da756435f5411a858141521487478bcfa Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Sun, 16 Aug 2020 20:10:47 -0400
+Subject: [PATCH] aix: Support libgfortran libcaf_single.a as a FAT library
+
+Build libgfortran static library libcaf_single.a as a FAT 32/64 bit library.
+
+libgfortran/ChangeLog:
+
+2020-08-17  David Edelsohn  <dje.gcc@gmail.com>
+	    Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Add complementary mode object file to libcaf_single.a.
+---
+ libgfortran/config/t-aix | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/libgfortran/config/t-aix b/libgfortran/config/t-aix
+index e661286da12..e398b15c9eb 100644
+--- a/libgfortran/config/t-aix
++++ b/libgfortran/config/t-aix
+@@ -6,5 +6,6 @@ MAJOR=5
+ all-local:
+ 	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ 	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc .libs/libcaf_single.a ../ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/libcaf_single.a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
+ endif
+-
+-- 
+2.25.0
+

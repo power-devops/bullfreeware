@@ -1,0 +1,129 @@
+Index: gc6.8/config.guess
+===================================================================
+--- gc6.8.orig/config.guess	2002-05-25 01:18:38.000000000 +0200
++++ gc6.8/config.guess	2014-11-13 12:43:38.000000000 +0100
+@@ -509,7 +509,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit 0 ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: gc6.8/configure
+===================================================================
+--- gc6.8.orig/configure	2006-03-24 01:42:55.000000000 +0100
++++ gc6.8/configure	2014-11-13 12:45:49.000000000 +0100
+@@ -4761,7 +4761,7 @@
+ # whether `pass_all' will *always* work, you probably want this one.
+ 
+ case $host_os in
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+@@ -6361,7 +6361,7 @@
+   else
+     # PORTME Check for PIC flags for the system compiler.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6* | aix7*)
+       lt_cv_prog_cc_wl='-Wl,'
+       # All AIX code is PIC.
+       if test "$host_cpu" = ia64; then
+@@ -6921,7 +6921,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6* | aix7*)
+     # On AIX, the GNU linker is very broken
+     # Note:Check GNU linker on AIX 5-IA64 when/if it becomes available.
+     ld_shlibs=no
+@@ -7122,7 +7122,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6* | aix7*)
+     if test "$host_cpu" = ia64; then
+       # On IA64, the linker does run time linking by default, so we don't
+       # have to do anything special.
+@@ -7135,7 +7135,7 @@
+       # Test if we are trying to use run time linking or normal
+       # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+       # need to do runtime linking.
+-      case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++      case $host_os in aix4.[23]|aix4.[23].*|aix5* | aix6* | aix7*)
+ 	for ld_flag in $LDFLAGS; do
+ 	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+ 	    aix_use_runtimelinking=yes
+@@ -7627,7 +7627,7 @@
+   soname_spec='${libname}${release}.so$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   version_type=linux
+   if test "$host_cpu" = ia64; then
+     # AIX 5 supports IA64
+Index: gc6.8/libtool.m4
+===================================================================
+--- gc6.8.orig/libtool.m4	2002-03-07 01:44:23.000000000 +0100
++++ gc6.8/libtool.m4	2014-11-13 12:47:59.000000000 +0100
+@@ -890,7 +890,7 @@
+   else
+     # PORTME Check for PIC flags for the system compiler.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6* | aix7*)
+       lt_cv_prog_cc_wl='-Wl,'
+       # All AIX code is PIC.
+       if test "$host_cpu" = ia64; then
+@@ -1246,7 +1246,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6* | aix7*)
+     # On AIX, the GNU linker is very broken
+     # Note:Check GNU linker on AIX 5-IA64 when/if it becomes available.
+     ld_shlibs=no
+@@ -1447,7 +1447,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6* | aix7*)
+     if test "$host_cpu" = ia64; then
+       # On IA64, the linker does run time linking by default, so we don't
+       # have to do anything special.
+@@ -1460,7 +1460,7 @@
+       # Test if we are trying to use run time linking or normal
+       # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+       # need to do runtime linking.
+-      case $host_os in aix4.[[23]]|aix4.[[23]].*|aix5*)
++      case $host_os in aix4.[[23]]|aix4.[[23]].*|aix5* | aix6* | aix7*)
+ 	for ld_flag in $LDFLAGS; do
+ 	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+ 	    aix_use_runtimelinking=yes
+@@ -1945,7 +1945,7 @@
+   soname_spec='${libname}${release}.so$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   version_type=linux
+   if test "$host_cpu" = ia64; then
+     # AIX 5 supports IA64
+@@ -3290,7 +3290,7 @@
+ # whether `pass_all' will *always* work, you probably want this one.
+ 
+ case $host_os in
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 

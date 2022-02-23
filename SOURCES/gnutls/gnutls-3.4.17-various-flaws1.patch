@@ -1,0 +1,270 @@
+diff --git a/lib/opencdk/pubkey.c b/lib/opencdk/pubkey.c
+index 6e753bd..da43129 100644
+--- a/lib/opencdk/pubkey.c
++++ b/lib/opencdk/pubkey.c
+@@ -518,6 +518,7 @@ u32 cdk_pk_get_keyid(cdk_pubkey_t pk, u32 * keyid)
+ {
+ 	u32 lowbits = 0;
+ 	byte buf[24];
++	int rc;
+ 
+ 	if (pk && (!pk->keyid[0] || !pk->keyid[1])) {
+ 		if (pk->version < 4 && is_RSA(pk->pubkey_algo)) {
+@@ -525,7 +526,12 @@ u32 cdk_pk_get_keyid(cdk_pubkey_t pk, u32 * keyid)
+ 			size_t n;
+ 
+ 			n = MAX_MPI_BYTES;
+-			_gnutls_mpi_print(pk->mpi[0], p, &n);
++			rc = _gnutls_mpi_print(pk->mpi[0], p, &n);
++			if (rc < 0 || n < 8) {
++				keyid[0] = keyid[1] = (u32)-1;
++				return (u32)-1;
++			}
++
+ 			pk->keyid[0] =
+ 			    p[n - 8] << 24 | p[n - 7] << 16 | p[n -
+ 								6] << 8 |
+diff --git a/lib/opencdk/read-packet.c b/lib/opencdk/read-packet.c
+index 932c95e..a9b9855 100644
+--- a/lib/opencdk/read-packet.c
++++ b/lib/opencdk/read-packet.c
+@@ -50,13 +50,13 @@ stream_read(cdk_stream_t s, void *buf, size_t buflen, size_t * r_nread)
+ static u32 read_32(cdk_stream_t s)
+ {
+ 	byte buf[4];
+-	size_t nread;
++	size_t nread = 0;
+ 
+ 	assert(s != NULL);
+ 
+ 	stream_read(s, buf, 4, &nread);
+ 	if (nread != 4)
+-		return (u32) - 1;
++		return (u32) -1;
+ 	return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
+ }
+ 
+@@ -65,7 +65,7 @@ static u32 read_32(cdk_stream_t s)
+ static u16 read_16(cdk_stream_t s)
+ {
+ 	byte buf[2];
+-	size_t nread;
++	size_t nread = 0;
+ 
+ 	assert(s != NULL);
+ 
+@@ -477,44 +477,57 @@ read_attribute(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t attr,
+ 		return CDK_Out_Of_Core;
+ 	rc = stream_read(inp, buf, pktlen, &nread);
+ 	if (rc) {
+-		cdk_free(buf);
+-		return CDK_Inv_Packet;
++		gnutls_assert();
++		rc = CDK_Inv_Packet;
++		goto error;
+ 	}
+ 	p = buf;
+ 	len = *p++;
+ 	pktlen--;
+ 	if (len == 255) {
++		if (pktlen < 4) {
++			gnutls_assert();
++			rc = CDK_Inv_Packet;
++			goto error;
++		}
+ 		len = _cdk_buftou32(p);
+ 		p += 4;
+ 		pktlen -= 4;
+ 	} else if (len >= 192) {
+ 		if (pktlen < 2) {
+-			cdk_free(buf);
+-			return CDK_Inv_Packet;
++			gnutls_assert();
++			rc = CDK_Inv_Packet;
++			goto error;
+ 		}
+ 		len = ((len - 192) << 8) + *p + 192;
+ 		p++;
+ 		pktlen--;
+ 	}
+ 
+-	if (*p != 1) {		/* Currently only 1, meaning an image, is defined. */
+-		cdk_free(buf);
+-		return CDK_Inv_Packet;
++	if (!len || *p != 1) {		/* Currently only 1, meaning an image, is defined. */
++		rc = CDK_Inv_Packet;
++		goto error;
+ 	}
+ 	p++;
+ 	len--;
+ 
+-	if (len >= pktlen)
+-		return CDK_Inv_Packet;
++	if (len >= pktlen) {
++		rc = CDK_Inv_Packet;
++		goto error;
++	}
+ 	attr->attrib_img = cdk_calloc(1, len);
+ 	if (!attr->attrib_img) {
+-		cdk_free(buf);
+-		return CDK_Out_Of_Core;
++		rc = CDK_Out_Of_Core;
++		goto error;
+ 	}
+ 	attr->attrib_len = len;
+ 	memcpy(attr->attrib_img, p, len);
+ 	cdk_free(buf);
+ 	return rc;
++
++ error:
++	cdk_free(buf);
++	return rc;
+ }
+ 
+ 
+@@ -547,7 +560,7 @@ read_user_id(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t user_id)
+ static cdk_error_t
+ read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
+ {
+-	byte c, c1;
++	int c, c1;
+ 	size_t size, nread, n;
+ 	cdk_subpkt_t node;
+ 	cdk_error_t rc;
+@@ -562,11 +575,18 @@ read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
+ 	*r_nbytes = 0;
+ 	c = cdk_stream_getc(inp);
+ 	n++;
++
+ 	if (c == 255) {
+ 		size = read_32(inp);
++		if (size == (u32)-1)
++			return CDK_Inv_Packet;
++
+ 		n += 4;
+ 	} else if (c >= 192 && c < 255) {
+ 		c1 = cdk_stream_getc(inp);
++		if (c1 == EOF)
++			return CDK_Inv_Packet;
++
+ 		n++;
+ 		if (c1 == 0)
+ 			return 0;
+@@ -831,17 +851,29 @@ static void
+ read_old_length(cdk_stream_t inp, int ctb, size_t * r_len, size_t * r_size)
+ {
+ 	int llen = ctb & 0x03;
++	int c;
+ 
+ 	if (llen == 0) {
+-		*r_len = cdk_stream_getc(inp);
++		c = cdk_stream_getc(inp);
++		if (c == EOF)
++			goto fail;
++
++		*r_len = c;
+ 		(*r_size)++;
+ 	} else if (llen == 1) {
+ 		*r_len = read_16(inp);
++		if (*r_len == (u16)-1)
++			goto fail;
+ 		(*r_size) += 2;
+ 	} else if (llen == 2) {
+ 		*r_len = read_32(inp);
++		if (*r_len == (u32)-1) {
++			goto fail;
++		}
++
+ 		(*r_size) += 4;
+ 	} else {
++ fail:
+ 		*r_len = 0;
+ 		*r_size = 0;
+ 	}
+@@ -856,15 +888,25 @@ read_new_length(cdk_stream_t inp,
+ 	int c, c1;
+ 
+ 	c = cdk_stream_getc(inp);
++	if (c == EOF)
++		return;
++
+ 	(*r_size)++;
+ 	if (c < 192)
+ 		*r_len = c;
+ 	else if (c >= 192 && c <= 223) {
+ 		c1 = cdk_stream_getc(inp);
++		if (c1 == EOF)
++			return;
++
+ 		(*r_size)++;
+ 		*r_len = ((c - 192) << 8) + c1 + 192;
+ 	} else if (c == 255) {
+ 		*r_len = read_32(inp);
++		if (*r_len == (u32)-1) {
++			return;
++		}
++
+ 		(*r_size) += 4;
+ 	} else {
+ 		*r_len = 1 << (c & 0x1f);
+diff --git a/lib/x509/x509_ext.c b/lib/x509/x509_ext.c
+index 59c3b8e..9d93f0c 100644
+--- a/lib/x509/x509_ext.c
++++ b/lib/x509/x509_ext.c
+@@ -1415,7 +1415,8 @@ int gnutls_x509_ext_import_proxy(const gnutls_datum_t * ext, int *pathlen,
+ {
+ 	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+ 	int result;
+-	gnutls_datum_t value = { NULL, 0 };
++	gnutls_datum_t value1 = { NULL, 0 };
++	gnutls_datum_t value2 = { NULL, 0 };
+ 
+ 	if ((result = asn1_create_element
+ 	     (_gnutls_get_pkix(), "PKIX1.ProxyCertInfo",
+@@ -1445,20 +1446,18 @@ int gnutls_x509_ext_import_proxy(const gnutls_datum_t * ext, int *pathlen,
+ 	}
+ 
+ 	result = _gnutls_x509_read_value(c2, "proxyPolicy.policyLanguage",
+-					 &value);
++					 &value1);
+ 	if (result < 0) {
+ 		gnutls_assert();
+ 		goto cleanup;
+ 	}
+ 
+ 	if (policyLanguage) {
+-		*policyLanguage = (char *)value.data;
+-	} else {
+-		gnutls_free(value.data);
+-		value.data = NULL;
++		*policyLanguage = (char *)value1.data;
++		value1.data = NULL;
+ 	}
+ 
+-	result = _gnutls_x509_read_value(c2, "proxyPolicy.policy", &value);
++	result = _gnutls_x509_read_value(c2, "proxyPolicy.policy", &value2);
+ 	if (result == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND) {
+ 		if (policy)
+ 			*policy = NULL;
+@@ -1469,16 +1468,17 @@ int gnutls_x509_ext_import_proxy(const gnutls_datum_t * ext, int *pathlen,
+ 		goto cleanup;
+ 	} else {
+ 		if (policy) {
+-			*policy = (char *)value.data;
+-			value.data = NULL;
++			*policy = (char *)value2.data;
++			value2.data = NULL;
+ 		}
+ 		if (sizeof_policy)
+-			*sizeof_policy = value.size;
++			*sizeof_policy = value2.size;
+ 	}
+ 
+ 	result = 0;
+  cleanup:
+-	gnutls_free(value.data);
++	gnutls_free(value1.data);
++	gnutls_free(value2.data);
+ 	asn1_delete_structure(&c2);
+ 
+ 	return result;

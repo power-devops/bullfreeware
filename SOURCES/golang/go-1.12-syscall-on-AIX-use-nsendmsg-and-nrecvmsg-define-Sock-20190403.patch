@@ -1,0 +1,208 @@
+From e014184c438699b1637b1d623492f33669105002 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 03 Apr 2019 13:58:57 +0200
+Subject: [PATCH] syscall: on AIX use nsendmsg and nrecvmsg, define SockaddrDatalink
+
+This commit changes sendmsg, recvmsg to use nsendmsg, nrecvmsg on AIX.
+These syscalls support the new msghdr structure (with Control
+and Controllen) which is needed for golang.org/x/net.
+Also define SockaddrDataLink.
+
+Change-Id: I233fbd24f9eb86648e0d4d50c2b56da3626292d0
+Reviewed-on: https://go-review.googlesource.com/c/go/+/170537
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Tobias Klauser <tobias.klauser@gmail.com>
+---
+
+diff --git a/src/syscall/syscall_aix.go b/src/syscall/syscall_aix.go
+index 703cbf7..0110ec1 100644
+--- a/src/syscall/syscall_aix.go
++++ b/src/syscall/syscall_aix.go
+@@ -225,8 +225,11 @@
+ //sys	recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error)
+ //sys	sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error)
+ //sys	Shutdown(s int, how int) (err error)
+-//sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error)
+-//sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error)
++
++// In order to use msghdr structure with Control, Controllen in golang.org/x/net,
++// nrecvmsg and nsendmsg must be used.
++//sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error) = nrecvmsg
++//sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error) = nsendmsg
+ 
+ func (sa *SockaddrInet4) sockaddr() (unsafe.Pointer, _Socklen, error) {
+ 	if sa.Port < 0 || sa.Port > 0xFFFF {
+@@ -442,6 +445,18 @@
+ 	return nil, EAFNOSUPPORT
+ }
+ 
++type SockaddrDatalink struct {
++	Len    uint8
++	Family uint8
++	Index  uint16
++	Type   uint8
++	Nlen   uint8
++	Alen   uint8
++	Slen   uint8
++	Data   [120]uint8
++	raw    RawSockaddrDatalink
++}
++
+ /*
+  * Wait
+  */
+diff --git a/src/syscall/types_aix.go b/src/syscall/types_aix.go
+index ee9380a..cbc47cc 100644
+--- a/src/syscall/types_aix.go
++++ b/src/syscall/types_aix.go
+@@ -23,6 +23,7 @@
+ #include <sys/statfs.h>
+ 
+ #include <net/if.h>
++#include <net/if_dl.h>
+ #include <netinet/in.h>
+ #include <netinet/icmp6.h>
+ 
+@@ -113,6 +114,8 @@
+ 
+ type RawSockaddrUnix C.struct_sockaddr_un
+ 
++type RawSockaddrDatalink C.struct_sockaddr_dl
++
+ type RawSockaddr C.struct_sockaddr
+ 
+ type RawSockaddrAny C.struct_sockaddr_any
+@@ -134,16 +137,17 @@
+ type Msghdr C.struct_msghdr
+ 
+ const (
+-	SizeofSockaddrInet4 = C.sizeof_struct_sockaddr_in
+-	SizeofSockaddrInet6 = C.sizeof_struct_sockaddr_in6
+-	SizeofSockaddrAny   = C.sizeof_struct_sockaddr_any
+-	SizeofSockaddrUnix  = C.sizeof_struct_sockaddr_un
+-	SizeofLinger        = C.sizeof_struct_linger
+-	SizeofIPMreq        = C.sizeof_struct_ip_mreq
+-	SizeofIPv6Mreq      = C.sizeof_struct_ipv6_mreq
+-	SizeofMsghdr        = C.sizeof_struct_msghdr
+-	SizeofCmsghdr       = C.sizeof_struct_cmsghdr
+-	SizeofICMPv6Filter  = C.sizeof_struct_icmp6_filter
++	SizeofSockaddrInet4    = C.sizeof_struct_sockaddr_in
++	SizeofSockaddrInet6    = C.sizeof_struct_sockaddr_in6
++	SizeofSockaddrAny      = C.sizeof_struct_sockaddr_any
++	SizeofSockaddrUnix     = C.sizeof_struct_sockaddr_un
++	SizeofSockaddrDatalink = C.sizeof_struct_sockaddr_dl
++	SizeofLinger           = C.sizeof_struct_linger
++	SizeofIPMreq           = C.sizeof_struct_ip_mreq
++	SizeofIPv6Mreq         = C.sizeof_struct_ipv6_mreq
++	SizeofMsghdr           = C.sizeof_struct_msghdr
++	SizeofCmsghdr          = C.sizeof_struct_cmsghdr
++	SizeofICMPv6Filter     = C.sizeof_struct_icmp6_filter
+ )
+ 
+ // Ptrace requests
+diff --git a/src/syscall/zsyscall_aix_ppc64.go b/src/syscall/zsyscall_aix_ppc64.go
+index 5ee4f49d..63ed69a 100644
+--- a/src/syscall/zsyscall_aix_ppc64.go
++++ b/src/syscall/zsyscall_aix_ppc64.go
+@@ -32,8 +32,8 @@
+ //go:cgo_import_dynamic libc_recvfrom recvfrom "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_sendto sendto "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Shutdown shutdown "libc.a/shr_64.o"
+-//go:cgo_import_dynamic libc_recvmsg recvmsg "libc.a/shr_64.o"
+-//go:cgo_import_dynamic libc_sendmsg sendmsg "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_nrecvmsg nrecvmsg "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_nsendmsg nsendmsg "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_accept accept "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Openat openat "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_ptrace64 ptrace64 "libc.a/shr_64.o"
+@@ -122,8 +122,8 @@
+ //go:linkname libc_recvfrom libc_recvfrom
+ //go:linkname libc_sendto libc_sendto
+ //go:linkname libc_Shutdown libc_Shutdown
+-//go:linkname libc_recvmsg libc_recvmsg
+-//go:linkname libc_sendmsg libc_sendmsg
++//go:linkname libc_nrecvmsg libc_nrecvmsg
++//go:linkname libc_nsendmsg libc_nsendmsg
+ //go:linkname libc_accept libc_accept
+ //go:linkname libc_Openat libc_Openat
+ //go:linkname libc_ptrace64 libc_ptrace64
+@@ -215,8 +215,8 @@
+ 	libc_recvfrom,
+ 	libc_sendto,
+ 	libc_Shutdown,
+-	libc_recvmsg,
+-	libc_sendmsg,
++	libc_nrecvmsg,
++	libc_nsendmsg,
+ 	libc_accept,
+ 	libc_Openat,
+ 	libc_ptrace64,
+@@ -578,7 +578,7 @@
+ // THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+ 
+ func recvmsg(s int, msg *Msghdr, flags int) (n int, err error) {
+-	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_recvmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_nrecvmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
+ 	n = int(r0)
+ 	if e1 != 0 {
+ 		err = errnoErr(e1)
+@@ -589,7 +589,7 @@
+ // THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+ 
+ func sendmsg(s int, msg *Msghdr, flags int) (n int, err error) {
+-	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_sendmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_nsendmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
+ 	n = int(r0)
+ 	if e1 != 0 {
+ 		err = errnoErr(e1)
+diff --git a/src/syscall/ztypes_aix_ppc64.go b/src/syscall/ztypes_aix_ppc64.go
+index 68810db..e7a25ec 100644
+--- a/src/syscall/ztypes_aix_ppc64.go
++++ b/src/syscall/ztypes_aix_ppc64.go
+@@ -166,6 +166,17 @@
+ 	Path   [1023]uint8
+ }
+ 
++type RawSockaddrDatalink struct {
++	Len    uint8
++	Family uint8
++	Index  uint16
++	Type   uint8
++	Nlen   uint8
++	Alen   uint8
++	Slen   uint8
++	Data   [120]uint8
++}
++
+ type RawSockaddr struct {
+ 	Len    uint8
+ 	Family uint8
+@@ -220,16 +231,17 @@
+ }
+ 
+ const (
+-	SizeofSockaddrInet4 = 0x10
+-	SizeofSockaddrInet6 = 0x1c
+-	SizeofSockaddrAny   = 0x404
+-	SizeofSockaddrUnix  = 0x401
+-	SizeofLinger        = 0x8
+-	SizeofIPMreq        = 0x8
+-	SizeofIPv6Mreq      = 0x14
+-	SizeofMsghdr        = 0x30
+-	SizeofCmsghdr       = 0xc
+-	SizeofICMPv6Filter  = 0x20
++	SizeofSockaddrInet4    = 0x10
++	SizeofSockaddrInet6    = 0x1c
++	SizeofSockaddrAny      = 0x404
++	SizeofSockaddrUnix     = 0x401
++	SizeofSockaddrDatalink = 0x80
++	SizeofLinger           = 0x8
++	SizeofIPMreq           = 0x8
++	SizeofIPv6Mreq         = 0x14
++	SizeofMsghdr           = 0x30
++	SizeofCmsghdr          = 0xc
++	SizeofICMPv6Filter     = 0x20
+ )
+ 
+ const (

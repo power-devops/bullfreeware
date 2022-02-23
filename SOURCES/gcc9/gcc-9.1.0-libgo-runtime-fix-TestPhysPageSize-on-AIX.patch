@@ -1,0 +1,31 @@
+From b117b468264665cfe6ec2cf3affb48330a704fa7 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 26 Apr 2019 17:01:51 +0200
+Subject: [PATCH] runtime: fix TestPhysPageSize on AIX
+
+AIX doesn't allow to mmap an address range which is already mmap.
+Therefore, once the region has been allocated, it must munmap before
+being able to play with it.
+The corresponding Go Toolchain patch is CL 174059.
+
+Change-Id: I3dbadb7f5d7bf78714b7a28f41d41c75c61772ab
+Reviewed-on: https://go-review.googlesource.com/c/gofrontend/+/174138
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/libgo/go/runtime/runtime_mmap_test.go b/libgo/go/runtime/runtime_mmap_test.go
+index c004041..188fd5d 100644
+--- a/libgo/go/runtime/runtime_mmap_test.go
++++ b/libgo/go/runtime/runtime_mmap_test.go
+@@ -32,6 +32,11 @@
+ 		t.Fatalf("Mmap: %v", err)
+ 	}
+ 
++	if runtime.GOOS == "aix" {
++		// AIX does not allow mapping a range that is already mapped.
++		runtime.Munmap(unsafe.Pointer(uintptr(b)), 2*ps)
++	}
++
+ 	// Mmap should fail at a half page into the buffer.
+ 	_, err = runtime.Mmap(unsafe.Pointer(uintptr(b)+ps/2), ps, 0, runtime.MAP_ANON|runtime.MAP_PRIVATE|runtime.MAP_FIXED, -1, 0)
+ 	if err == 0 {

@@ -1,0 +1,11 @@
+--- a/erts/emulator/nifs/common/prim_net_nif.c.orig	2020-07-17 11:41:34 -0500
++++ b/erts/emulator/nifs/common/prim_net_nif.c	2020-07-17 11:42:44 -0500
+@@ -1100,7 +1100,7 @@
+ 
+     return result;
+ #else // HAVE_GETIFADDRS
+-    return esock_make_error(env, esock_atom_enotsup);
++    return enif_raise_exception(env, MKA(env, "notsup"));
+ #endif
+ }
+ 

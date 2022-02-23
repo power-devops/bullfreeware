@@ -1,0 +1,16 @@
+FILE=$1
+
+grep -e "\*passed" -e "\.failed " -e "\.skipped" $FILE \
+	| sed -e "s/\.test$//" -e "s/\.run\.\.\.$//" -e "s/\.run$//" -e "s/\.\.\.//g" -e "s/for lack of.*//" -e "s/visibility-hidden>//" \
+	| grep -v " targets$" > /tmp/b-$$-1
+cat /tmp/b-$$-1 | awk '{
+		if($1=="**passed**"){ print("P/" $2); }
+		if($1=="failed")    { print("F/" $3); }
+		if($1=="skipped")   { print("S/" $2); }
+		}' > /tmp/b-$$-2
+cat /tmp/b-$$-2 | awk -F/ '{print $1, $5, $NF}' > /tmp/b-$$-3
+cat /tmp/b-$$-3 | awk '{L[$2]++;P[$2,$1]++}END{for(l in L){printf("%s %6d %6d %6d %6d\n", l, L[l], P[l,"P"], P[l,"F"], P[l,"S"])}}' | sort > /tmp/b-$$-4
+echo "" | awk '{}END{printf("%-20s %6s %6s %6s %6s\n", "", "Total", "Pass", "Fail", "Skip" )}'
+cat /tmp/b-$$-4 | awk '{printf("%-20s %6d %6d %6d %6d\n", $1, $2, $3, $4, $5)}'
+cat /tmp/b-$$-3 | awk '{T++;P[$1]++}END{printf("%-20s %6d %6d %6d %6d\n", "", T, P["P"], P["F"], P["S"])}'
+rm -f /tmp/b-$$-?

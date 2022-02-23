@@ -1,0 +1,48 @@
+Index: pango-1.30.1/configure
+===================================================================
+--- pango-1.30.1.orig/configure	2012-06-05 12:52:21.000000000 +0200
++++ pango-1.30.1/configure	2012-06-21 11:36:59.000000000 +0200
+@@ -5633,7 +5633,7 @@
+ 
+ 
+ # Make sure we don't link to libstdc++ (needs de-gcc-fication)
+-CXXFLAGS="$CXXFLAGS -fno-rtti -fno-exceptions"
++CXXFLAGS="$CXXFLAGS -qno-rtti -qno-exceptions"
+ 
+ 
+ #
+Index: pango-1.30.1/configure.in
+===================================================================
+--- pango-1.30.1.orig/configure.in	2012-06-05 12:11:41.000000000 +0200
++++ pango-1.30.1/configure.in	2012-06-21 11:37:30.000000000 +0200
+@@ -140,7 +140,7 @@
+ AC_CHECK_HEADERS(unistd.h sys/mman.h)
+ 
+ # Make sure we don't link to libstdc++ (needs de-gcc-fication)
+-CXXFLAGS="$CXXFLAGS -fno-rtti -fno-exceptions"
++CXXFLAGS="$CXXFLAGS -qno-rtti -qno-exceptions"
+ 
+ 
+ #
+Index: pango-1.30.1/pango/opentype/hb-open-type-private.hh
+===================================================================
+--- pango-1.30.1.orig/pango/opentype/hb-open-type-private.hh	2011-08-16 03:11:08.000000000 +0200
++++ pango-1.30.1/pango/opentype/hb-open-type-private.hh	2012-06-21 11:43:34.000000000 +0200
+@@ -172,7 +172,7 @@
+     hb_blob_unlock (context->blob);
+ }
+ 
+-static HB_GNUC_UNUSED inline bool
++inline HB_GNUC_UNUSED bool
+ _hb_sanitize_check (SANITIZE_ARG_DEF,
+ 		    const char *base,
+ 		    unsigned int len)
+@@ -213,7 +213,7 @@
+   return HB_LIKELY (!overflows) && _hb_sanitize_check (SANITIZE_ARG, base, record_size * len);
+ }
+ 
+-static HB_GNUC_UNUSED inline bool
++inline HB_GNUC_UNUSED bool
+ _hb_sanitize_edit (SANITIZE_ARG_DEF,
+ 		   const char *base HB_GNUC_UNUSED,
+ 		   unsigned int len HB_GNUC_UNUSED)

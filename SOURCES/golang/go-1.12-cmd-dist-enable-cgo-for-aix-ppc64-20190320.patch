@@ -1,0 +1,25 @@
+From af7b7571c4575748cf8cb2ffe683e97286666e1c Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:58:42 +0100
+Subject: [PATCH] cmd/dist: enable cgo for aix/ppc64
+
+Change-Id: I78be2b0b857d1ea2fb0b6906eb5afd796580f52d
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164019
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/dist/build.go b/src/cmd/dist/build.go
+index 5392272..b3e9ad3 100644
+--- a/src/cmd/dist/build.go
++++ b/src/cmd/dist/build.go
+@@ -1459,7 +1459,7 @@
+ // single point of truth for supported platforms. This list is used
+ // by 'go tool dist list'.
+ var cgoEnabled = map[string]bool{
+-	"aix/ppc64":       false,
++	"aix/ppc64":       true,
+ 	"darwin/386":      true,
+ 	"darwin/amd64":    true,
+ 	"darwin/arm":      true,

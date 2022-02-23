@@ -1,0 +1,16 @@
+Index: tcsh-6.14.00/sh.dol.c
+===================================================================
+--- tcsh-6.14.00.orig/sh.dol.c	2004-12-25 22:15:06.000000000 +0100
++++ tcsh-6.14.00/sh.dol.c	2010-12-03 17:15:31.000000000 +0100
+@@ -491,9 +491,10 @@
+ 	    (void) sigrelse(SIGINT);
+ #endif /* BSDSIGS */
+ 	    np = wbuf;
+-	    while (force_read(OLDSTD, cbuf + cbp++, 1) == 1) {
++	    while (force_read(OLDSTD, cbuf + cbp, 1) == 1) {
+ 	        int len;
+ 
++		cbp++;
+ 		len = normal_mbtowc(np, cbuf, cbp);
+ 		if (len == -1) {
+ 		    reset_mbtowc();

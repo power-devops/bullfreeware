@@ -1,0 +1,12 @@
+--- ./boost/gil/io/path_spec.hpp.ORIGIN	2020-04-27 17:55:23 -0500
++++ ./boost/gil/io/path_spec.hpp	2020-04-27 17:55:50 -0500
+@@ -34,6 +34,9 @@
+ 
+ #include <cstdlib>
+ #include <string>
++#ifdef _AIX
++#include <alloca.h>
++#endif
+ #include <type_traits>
+ 
+ namespace boost { namespace gil { namespace detail {

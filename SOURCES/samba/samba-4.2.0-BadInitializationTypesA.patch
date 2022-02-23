@@ -1,0 +1,29 @@
+Index: samba-4.2.0/source3/locking/brlock.c
+===================================================================
+--- samba-4.2.0.orig/source3/locking/brlock.c	2014-12-20 16:07:55.000000000 +0100
++++ samba-4.2.0/source3/locking/brlock.c	2015-05-21 16:52:57.000000000 +0200
+@@ -1012,16 +1012,14 @@
+ 	}
+ #endif
+ 
+-	lock = (struct lock_struct) {
+-		.context.smblctx = smblctx,
+-		.context.pid = pid,
+-		.context.tid = br_lck->fsp->conn->cnum,
+-		.start = start,
+-		.size = size,
+-		.fnum = br_lck->fsp->fnum,
+-		.lock_type = lock_type,
+-		.lock_flav = lock_flav
+-	};
++		lock.context.smblctx = smblctx;
++		lock.context.pid = pid;
++		lock.context.tid = br_lck->fsp->conn->cnum;
++		lock.start = start;
++		lock.size = size;
++		lock.fnum = br_lck->fsp->fnum;
++		lock.lock_type = lock_type;
++		lock.lock_flav = lock_flav;
+ 
+ 	if (lock_flav == WINDOWS_LOCK) {
+ 		ret = SMB_VFS_BRL_LOCK_WINDOWS(br_lck->fsp->conn, br_lck,

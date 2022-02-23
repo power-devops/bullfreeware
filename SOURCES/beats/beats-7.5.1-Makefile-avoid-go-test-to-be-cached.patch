@@ -1,0 +1,11 @@
+--- a/libbeat/scripts/Makefile	2020-01-30 15:20:16 +0100
++++ b/libbeat/scripts/Makefile	2020-01-30 15:20:31 +0100
+@@ -185,7 +185,7 @@
+ .PHONY: unit
+ unit: ## @testing Runs the unit tests without coverage reports.
+ 	go test -i ${GOPACKAGES}
+-	go test $(RACE) ${GOPACKAGES}
++	go test -count=1 $(RACE) ${GOPACKAGES}
+ 
+ .PHONY: integration-tests
+ integration-tests: ## @testing Run integration tests. Unit tests are run as part of the integration tests.

@@ -1,0 +1,52 @@
+From 51ca05031959d3accffe873e87d4bc4fbd22e9e9 Mon Sep 17 00:00:00 2001
+From: "Vladimir N. Makarov" <vmakarov@redhat.com>
+Date: Fri, 24 Sep 2021 10:06:45 -0400
+Subject: [PATCH] Make profitability calculation of RA conflict presentations
+ independent of host compiler type sizes. [PR102147]
+
+gcc/ChangeLog:
+
+2021-09-24  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/102147
+	* ira-build.c (ira_conflict_vector_profitable_p): Make
+	profitability calculation independent of host compiler pointer and
+	IRA_INT_BITS sizes.
+---
+ gcc/ira-build.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/gcc/ira-build.c b/gcc/ira-build.c
+index 42120656366..2a30efc4f2f 100644
+--- a/gcc/ira-build.c
++++ b/gcc/ira-build.c
+@@ -629,7 +629,7 @@ ior_hard_reg_conflicts (ira_allocno_t a, const_hard_reg_set set)
+ bool
+ ira_conflict_vector_profitable_p (ira_object_t obj, int num)
+ {
+-  int nw;
++  int nbytes;
+   int max = OBJECT_MAX (obj);
+   int min = OBJECT_MIN (obj);
+ 
+@@ -638,9 +638,14 @@ ira_conflict_vector_profitable_p (ira_object_t obj, int num)
+        in allocation.  */
+     return false;
+ 
+-  nw = (max - min + IRA_INT_BITS) / IRA_INT_BITS;
+-  return (2 * sizeof (ira_object_t) * (num + 1)
+-	  < 3 * nw * sizeof (IRA_INT_TYPE));
++  nbytes = (max - min) / 8 + 1;
++  STATIC_ASSERT (sizeof (ira_object_t) <= 8);
++  /* Don't use sizeof (ira_object_t), use constant 8.  Size of ira_object_t (a
++     pointer) is different on 32-bit and 64-bit targets.  Usage sizeof
++     (ira_object_t) can result in different code generation by GCC built as 32-
++     and 64-bit program.  In any case the profitability is just an estimation
++     and border cases are rare.  */
++  return (2 * 8 /* sizeof (ira_object_t) */ * (num + 1) < 3 * nbytes);
+ }
+ 
+ /* Allocates and initialize the conflict vector of OBJ for NUM
+-- 
+2.25.1
+

@@ -1,0 +1,773 @@
+From fe5097eb17fc60b0b181d674b43591c3f03aaefb Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Tue, 20 Mar 2018 16:48:33 +0100
+Subject: [PATCH 01/12] talloc: use a library destructor instead of atexit() if
+ available
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=7587
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ lib/talloc/talloc.c | 72 ++++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 44 insertions(+), 28 deletions(-)
+
+diff --git a/lib/talloc/talloc.c b/lib/talloc/talloc.c
+index cd159ef..46da1ba 100644
+--- a/lib/talloc/talloc.c
++++ b/lib/talloc/talloc.c
+@@ -121,8 +121,12 @@ static unsigned int talloc_magic = TALLOC_MAGIC_NON_RANDOM;
+    NULL
+ */
+ static void *null_context;
++static bool talloc_report_null;
++static bool talloc_report_null_full;
+ static void *autofree_context;
+ 
++static void talloc_setup_atexit(void);
++
+ /* used to enable fill of memory on free, which can be useful for
+  * catching use after free errors when valgrind is too slow
+  */
+@@ -426,6 +430,41 @@ void talloc_lib_init(void)
+ #warning "No __attribute__((constructor)) support found on this platform, additional talloc security measures not available"
+ #endif
+ 
++#ifdef HAVE_DESTRUCTOR_ATTRIBUTE
++void talloc_lib_fini(void) __attribute__((destructor));
++void talloc_lib_fini(void)
++#else /* ! HAVE_DESTRUCTOR_ATTRIBUTE */
++static void talloc_lib_fini(void)
++#endif /* ! HAVE_DESTRUCTOR_ATTRIBUTE */
++{
++	TALLOC_FREE(autofree_context);
++
++	if (talloc_total_size(null_context) == 0) {
++		return;
++	}
++
++	if (talloc_report_null_full) {
++		talloc_report_full(null_context, stderr);
++	} else if (talloc_report_null) {
++		talloc_report(null_context, stderr);
++	}
++}
++
++static void talloc_setup_atexit(void)
++{
++#ifndef HAVE_DESTRUCTOR_ATTRIBUTE
++	static bool done;
++
++	if (done) {
++		return;
++	}
++
++#warning "No __attribute__((destructor)) support found on this platform, using atexit"
++	atexit(talloc_lib_fini);
++	done = true;
++#endif /* ! HAVE_DESTRUCTOR_ATTRIBUTE */
++}
++
+ static void talloc_log(const char *fmt, ...) PRINTF_ATTRIBUTE(1,2);
+ static void talloc_log(const char *fmt, ...)
+ {
+@@ -2295,26 +2334,6 @@ _PUBLIC_ void talloc_report(const void *ptr, FILE *f)
+ }
+ 
+ /*
+-  report on any memory hanging off the null context
+-*/
+-static void talloc_report_null(void)
+-{
+-	if (talloc_total_size(null_context) != 0) {
+-		talloc_report(null_context, stderr);
+-	}
+-}
+-
+-/*
+-  report on any memory hanging off the null context
+-*/
+-static void talloc_report_null_full(void)
+-{
+-	if (talloc_total_size(null_context) != 0) {
+-		talloc_report_full(null_context, stderr);
+-	}
+-}
+-
+-/*
+   enable tracking of the NULL context
+ */
+ _PUBLIC_ void talloc_enable_null_tracking(void)
+@@ -2369,7 +2388,8 @@ _PUBLIC_ void talloc_disable_null_tracking(void)
+ _PUBLIC_ void talloc_enable_leak_report(void)
+ {
+ 	talloc_enable_null_tracking();
+-	atexit(talloc_report_null);
++	talloc_report_null = true;
++	talloc_setup_atexit();
+ }
+ 
+ /*
+@@ -2378,7 +2398,8 @@ _PUBLIC_ void talloc_enable_leak_report(void)
+ _PUBLIC_ void talloc_enable_leak_report_full(void)
+ {
+ 	talloc_enable_null_tracking();
+-	atexit(talloc_report_null_full);
++	talloc_report_null_full = true;
++	talloc_setup_atexit();
+ }
+ 
+ /*
+@@ -2760,11 +2781,6 @@ static int talloc_autofree_destructor(void *ptr)
+ 	return 0;
+ }
+ 
+-static void talloc_autofree(void)
+-{
+-	talloc_free(autofree_context);
+-}
+-
+ /*
+   return a context which will be auto-freed on exit
+   this is useful for reducing the noise in leak reports
+@@ -2774,7 +2790,7 @@ _PUBLIC_ void *talloc_autofree_context(void)
+ 	if (autofree_context == NULL) {
+ 		autofree_context = _talloc_named_const(NULL, 0, "autofree_context");
+ 		talloc_set_destructor(autofree_context, talloc_autofree_destructor);
+-		atexit(talloc_autofree);
++		talloc_setup_atexit();
+ 	}
+ 	return autofree_context;
+ }
+-- 
+1.9.1
+
+
+From 75a4692618ef7092e203ce0d1ef7268f47a028c2 Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Wed, 21 Mar 2018 08:24:06 +0100
+Subject: [PATCH 02/12] talloc: version 2.1.12
+
+* Fix documentation typo
+* Use a library destructor instead of atexit() if available
+  (bug #7587)
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ lib/talloc/ABI/pytalloc-util-2.1.12.sigs     | 16 +++++++
+ lib/talloc/ABI/pytalloc-util.py3-2.1.12.sigs | 15 +++++++
+ lib/talloc/ABI/talloc-2.1.12.sigs            | 65 ++++++++++++++++++++++++++++
+ 3 files changed, 96 insertions(+), 0 deletion(-)
+ create mode 100644 lib/talloc/ABI/pytalloc-util-2.1.12.sigs
+ create mode 100644 lib/talloc/ABI/pytalloc-util.py3-2.1.12.sigs
+ create mode 100644 lib/talloc/ABI/talloc-2.1.12.sigs
+
+diff --git a/lib/talloc/ABI/pytalloc-util-2.1.12.sigs b/lib/talloc/ABI/pytalloc-util-2.1.12.sigs
+new file mode 100644
+index 0000000..9d4d4d1
+--- /dev/null
++++ b/lib/talloc/ABI/pytalloc-util-2.1.12.sigs
+@@ -0,0 +1,16 @@
++_pytalloc_check_type: int (PyObject *, const char *)
++_pytalloc_get_mem_ctx: TALLOC_CTX *(PyObject *)
++_pytalloc_get_ptr: void *(PyObject *)
++_pytalloc_get_type: void *(PyObject *, const char *)
++pytalloc_BaseObject_PyType_Ready: int (PyTypeObject *)
++pytalloc_BaseObject_check: int (PyObject *)
++pytalloc_BaseObject_size: size_t (void)
++pytalloc_CObject_FromTallocPtr: PyObject *(void *)
++pytalloc_Check: int (PyObject *)
++pytalloc_GenericObject_reference_ex: PyObject *(TALLOC_CTX *, void *)
++pytalloc_GenericObject_steal_ex: PyObject *(TALLOC_CTX *, void *)
++pytalloc_GetBaseObjectType: PyTypeObject *(void)
++pytalloc_GetObjectType: PyTypeObject *(void)
++pytalloc_reference_ex: PyObject *(PyTypeObject *, TALLOC_CTX *, void *)
++pytalloc_steal: PyObject *(PyTypeObject *, void *)
++pytalloc_steal_ex: PyObject *(PyTypeObject *, TALLOC_CTX *, void *)
+diff --git a/lib/talloc/ABI/pytalloc-util.py3-2.1.12.sigs b/lib/talloc/ABI/pytalloc-util.py3-2.1.12.sigs
+new file mode 100644
+index 0000000..62f066f
+--- /dev/null
++++ b/lib/talloc/ABI/pytalloc-util.py3-2.1.12.sigs
+@@ -0,0 +1,15 @@
++_pytalloc_check_type: int (PyObject *, const char *)
++_pytalloc_get_mem_ctx: TALLOC_CTX *(PyObject *)
++_pytalloc_get_ptr: void *(PyObject *)
++_pytalloc_get_type: void *(PyObject *, const char *)
++pytalloc_BaseObject_PyType_Ready: int (PyTypeObject *)
++pytalloc_BaseObject_check: int (PyObject *)
++pytalloc_BaseObject_size: size_t (void)
++pytalloc_Check: int (PyObject *)
++pytalloc_GenericObject_reference_ex: PyObject *(TALLOC_CTX *, void *)
++pytalloc_GenericObject_steal_ex: PyObject *(TALLOC_CTX *, void *)
++pytalloc_GetBaseObjectType: PyTypeObject *(void)
++pytalloc_GetObjectType: PyTypeObject *(void)
++pytalloc_reference_ex: PyObject *(PyTypeObject *, TALLOC_CTX *, void *)
++pytalloc_steal: PyObject *(PyTypeObject *, void *)
++pytalloc_steal_ex: PyObject *(PyTypeObject *, TALLOC_CTX *, void *)
+diff --git a/lib/talloc/ABI/talloc-2.1.12.sigs b/lib/talloc/ABI/talloc-2.1.12.sigs
+new file mode 100644
+index 0000000..9969ce3
+--- /dev/null
++++ b/lib/talloc/ABI/talloc-2.1.12.sigs
+@@ -0,0 +1,65 @@
++_talloc: void *(const void *, size_t)
++_talloc_array: void *(const void *, size_t, unsigned int, const char *)
++_talloc_free: int (void *, const char *)
++_talloc_get_type_abort: void *(const void *, const char *, const char *)
++_talloc_memdup: void *(const void *, const void *, size_t, const char *)
++_talloc_move: void *(const void *, const void *)
++_talloc_pooled_object: void *(const void *, size_t, const char *, unsigned int, size_t)
++_talloc_realloc: void *(const void *, void *, size_t, const char *)
++_talloc_realloc_array: void *(const void *, void *, size_t, unsigned int, const char *)
++_talloc_reference_loc: void *(const void *, const void *, const char *)
++_talloc_set_destructor: void (const void *, int (*)(void *))
++_talloc_steal_loc: void *(const void *, const void *, const char *)
++_talloc_zero: void *(const void *, size_t, const char *)
++_talloc_zero_array: void *(const void *, size_t, unsigned int, const char *)
++talloc_asprintf: char *(const void *, const char *, ...)
++talloc_asprintf_append: char *(char *, const char *, ...)
++talloc_asprintf_append_buffer: char *(char *, const char *, ...)
++talloc_autofree_context: void *(void)
++talloc_check_name: void *(const void *, const char *)
++talloc_disable_null_tracking: void (void)
++talloc_enable_leak_report: void (void)
++talloc_enable_leak_report_full: void (void)
++talloc_enable_null_tracking: void (void)
++talloc_enable_null_tracking_no_autofree: void (void)
++talloc_find_parent_byname: void *(const void *, const char *)
++talloc_free_children: void (void *)
++talloc_get_name: const char *(const void *)
++talloc_get_size: size_t (const void *)
++talloc_increase_ref_count: int (const void *)
++talloc_init: void *(const char *, ...)
++talloc_is_parent: int (const void *, const void *)
++talloc_named: void *(const void *, size_t, const char *, ...)
++talloc_named_const: void *(const void *, size_t, const char *)
++talloc_parent: void *(const void *)
++talloc_parent_name: const char *(const void *)
++talloc_pool: void *(const void *, size_t)
++talloc_realloc_fn: void *(const void *, void *, size_t)
++talloc_reference_count: size_t (const void *)
++talloc_reparent: void *(const void *, const void *, const void *)
++talloc_report: void (const void *, FILE *)
++talloc_report_depth_cb: void (const void *, int, int, void (*)(const void *, int, int, int, void *), void *)
++talloc_report_depth_file: void (const void *, int, int, FILE *)
++talloc_report_full: void (const void *, FILE *)
++talloc_set_abort_fn: void (void (*)(const char *))
++talloc_set_log_fn: void (void (*)(const char *))
++talloc_set_log_stderr: void (void)
++talloc_set_memlimit: int (const void *, size_t)
++talloc_set_name: const char *(const void *, const char *, ...)
++talloc_set_name_const: void (const void *, const char *)
++talloc_show_parents: void (const void *, FILE *)
++talloc_strdup: char *(const void *, const char *)
++talloc_strdup_append: char *(char *, const char *)
++talloc_strdup_append_buffer: char *(char *, const char *)
++talloc_strndup: char *(const void *, const char *, size_t)
++talloc_strndup_append: char *(char *, const char *, size_t)
++talloc_strndup_append_buffer: char *(char *, const char *, size_t)
++talloc_test_get_magic: int (void)
++talloc_total_blocks: size_t (const void *)
++talloc_total_size: size_t (const void *)
++talloc_unlink: int (const void *, void *)
++talloc_vasprintf: char *(const void *, const char *, va_list)
++talloc_vasprintf_append: char *(char *, const char *, va_list)
++talloc_vasprintf_append_buffer: char *(char *, const char *, va_list)
++talloc_version_major: int (void)
++talloc_version_minor: int (void)
+-- 
+1.9.1
+
+
+From 20456ff026b56ebb60ec34bfdcc242f821219dc0 Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Tue, 20 Mar 2018 16:49:30 +0100
+Subject: [PATCH 03/12] lib/util: remove unused '#include <sys/syscall.h>' from
+ tests/tfork.c
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13342
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+Reviewed-by: Ralph Boehme <slow@samba.org>
+---
+ lib/util/tests/tfork.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/lib/util/tests/tfork.c b/lib/util/tests/tfork.c
+index bf642fe..9bcdc2f 100644
+--- a/lib/util/tests/tfork.c
++++ b/lib/util/tests/tfork.c
+@@ -32,7 +32,6 @@
+ #include "lib/util/sys_rw.h"
+ #ifdef HAVE_PTHREAD
+ #include <pthread.h>
+-#include <sys/syscall.h>
+ #endif
+ 
+ static bool test_tfork_simple(struct torture_context *tctx)
+-- 
+1.9.1
+
+
+From 757b83e17e969213a4cdec77088dc90c56451d1c Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Tue, 20 Mar 2018 21:46:12 +0100
+Subject: [PATCH 04/12] lib/replace: define __[u]intptr_t_defined if we prove
+ an replacement
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13344
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ lib/replace/replace.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/replace/replace.h b/lib/replace/replace.h
+index e2a5541..626d305 100644
+--- a/lib/replace/replace.h
++++ b/lib/replace/replace.h
+@@ -691,10 +691,12 @@ typedef int bool;
+ 
+ #if !defined(HAVE_INTPTR_T)
+ typedef long long intptr_t ;
++#define __intptr_t_defined
+ #endif
+ 
+ #if !defined(HAVE_UINTPTR_T)
+ typedef unsigned long long uintptr_t ;
++#define __uintptr_t_defined
+ #endif
+ 
+ #if !defined(HAVE_PTRDIFF_T)
+-- 
+1.9.1
+
+
+From 318d6b793e367fe452b4b131b26b6ef327dffc4f Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Sat, 21 Oct 2017 14:08:15 +0200
+Subject: [PATCH 05/12] nsswitch: maintain prototypes for the linux based
+ functions only once
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13344
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ nsswitch/winbind_nss.h         |  6 ++++++
+ nsswitch/winbind_nss_freebsd.c | 19 -------------------
+ nsswitch/winbind_nss_linux.c   | 22 ----------------------
+ nsswitch/winbind_nss_linux.h   | 24 +++++++++++++++++++++---
+ nsswitch/winbind_nss_netbsd.c  | 26 --------------------------
+ nsswitch/winbind_nss_solaris.h | 26 --------------------------
+ 6 files changed, 27 insertions(+), 96 deletions(-)
+
+diff --git a/nsswitch/winbind_nss.h b/nsswitch/winbind_nss.h
+index 05e07ad..e98a961 100644
+--- a/nsswitch/winbind_nss.h
++++ b/nsswitch/winbind_nss.h
+@@ -30,6 +30,7 @@
+  */
+ 
+ #include "nsswitch/winbind_nss_solaris.h"
++#include "nsswitch/winbind_nss_linux.h"
+ 
+ #elif HAVE_NSS_H
+ 
+@@ -37,6 +38,10 @@
+  * Linux (glibc)
+  */
+ 
++#include <nss.h>
++
++typedef enum nss_status NSS_STATUS;
++
+ #include "nsswitch/winbind_nss_linux.h"
+ 
+ #elif HAVE_NS_API_H
+@@ -60,6 +65,7 @@
+  */
+ 
+ #include "nsswitch/winbind_nss_netbsd.h"
++#include "nsswitch/winbind_nss_linux.h"
+ 
+ #else /* Nothing's defined. Neither gnu nor netbsd nor sun nor hp */
+ 
+diff --git a/nsswitch/winbind_nss_freebsd.c b/nsswitch/winbind_nss_freebsd.c
+index e283872..f424adb 100644
+--- a/nsswitch/winbind_nss_freebsd.c
++++ b/nsswitch/winbind_nss_freebsd.c
+@@ -24,25 +24,6 @@
+ #include "winbind_client.h"
+ 
+ /* Make sure that the module gets registered needed by freebsd 5.1 */
+-extern enum nss_status _nss_winbind_getgrent_r(struct group *, char *, size_t,
+-    int *);
+-extern enum nss_status _nss_winbind_getgrnam_r(const char *, struct group *,
+-    char *, size_t, int *);
+-extern enum nss_status _nss_winbind_getgrgid_r(gid_t gid, struct group *, char *,
+-    size_t, int *);
+-extern enum nss_status _nss_winbind_setgrent(void);
+-extern enum nss_status _nss_winbind_endgrent(void);
+-extern enum nss_status _nss_winbind_initgroups_dyn(char *, gid_t, long int *,
+-    long int *, gid_t **, long int , int *);
+-
+-extern enum nss_status _nss_winbind_getpwent_r(struct passwd *, char *, size_t,
+-    int *);
+-extern enum nss_status _nss_winbind_getpwnam_r(const char *, struct passwd *,
+-    char *, size_t, int *);
+-extern enum nss_status _nss_winbind_getpwuid_r(gid_t gid, struct passwd *, char *,
+-    size_t, int *);
+-extern enum nss_status _nss_winbind_setpwent(void);
+-extern enum nss_status _nss_winbind_endpwent(void);
+ ns_mtab *nss_module_register(const char *, unsigned int *, nss_module_unregister_fn *);
+ 
+ NSS_METHOD_PROTOTYPE(__nss_compat_getgrnam_r);
+diff --git a/nsswitch/winbind_nss_linux.c b/nsswitch/winbind_nss_linux.c
+index b5c50ef..fc165a1 100644
+--- a/nsswitch/winbind_nss_linux.c
++++ b/nsswitch/winbind_nss_linux.c
+@@ -36,28 +36,6 @@ static pthread_mutex_t winbind_nss_mutex = PTHREAD_MUTEX_INITIALIZER;
+ #define MAX_GETPWENT_USERS 250
+ #define MAX_GETGRENT_USERS 250
+ 
+-NSS_STATUS _nss_winbind_setpwent(void);
+-NSS_STATUS _nss_winbind_endpwent(void);
+-NSS_STATUS _nss_winbind_getpwent_r(struct passwd *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getpwuid_r(uid_t uid, struct passwd *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getpwnam_r(const char *name, struct passwd *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_setgrent(void);
+-NSS_STATUS _nss_winbind_endgrent(void);
+-NSS_STATUS _nss_winbind_getgrent_r(struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrlst_r(struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrnam_r(const char *name, struct group *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrgid_r(gid_t gid, struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
+-				       long int *size, gid_t **groups,
+-				       long int limit, int *errnop);
+-
+ /*************************************************************************
+  ************************************************************************/
+ 
+diff --git a/nsswitch/winbind_nss_linux.h b/nsswitch/winbind_nss_linux.h
+index db5a378..61e5261 100644
+--- a/nsswitch/winbind_nss_linux.h
++++ b/nsswitch/winbind_nss_linux.h
+@@ -22,8 +22,26 @@
+ #ifndef _WINBIND_NSS_LINUX_H
+ #define _WINBIND_NSS_LINUX_H
+ 
+-#include <nss.h>
+-
+-typedef enum nss_status NSS_STATUS;
++NSS_STATUS _nss_winbind_setpwent(void);
++NSS_STATUS _nss_winbind_endpwent(void);
++NSS_STATUS _nss_winbind_getpwent_r(struct passwd *result, char *buffer,
++				   size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_getpwuid_r(uid_t uid, struct passwd *result,
++				   char *buffer, size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_getpwnam_r(const char *name, struct passwd *result,
++				   char *buffer, size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_setgrent(void);
++NSS_STATUS _nss_winbind_endgrent(void);
++NSS_STATUS _nss_winbind_getgrent_r(struct group *result, char *buffer,
++				   size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_getgrlst_r(struct group *result, char *buffer,
++				   size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_getgrnam_r(const char *name, struct group *result,
++				   char *buffer, size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_getgrgid_r(gid_t gid, struct group *result, char *buffer,
++				   size_t buflen, int *errnop);
++NSS_STATUS _nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
++				       long int *size, gid_t **groups,
++				       long int limit, int *errnop);
+ 
+ #endif /* _WINBIND_NSS_LINUX_H */
+diff --git a/nsswitch/winbind_nss_netbsd.c b/nsswitch/winbind_nss_netbsd.c
+index d3a558c..4edf64c 100644
+--- a/nsswitch/winbind_nss_netbsd.c
++++ b/nsswitch/winbind_nss_netbsd.c
+@@ -38,32 +38,6 @@
+ static struct group	_winbind_group;
+ static char		_winbind_groupbuf[1024];
+ 
+-/*
+- * We need a proper prototype for this :-)
+- */
+-
+-NSS_STATUS _nss_winbind_setpwent(void);
+-NSS_STATUS _nss_winbind_endpwent(void);
+-NSS_STATUS _nss_winbind_getpwent_r(struct passwd *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getpwuid_r(uid_t uid, struct passwd *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getpwnam_r(const char *name, struct passwd *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_setgrent(void);
+-NSS_STATUS _nss_winbind_endgrent(void);
+-NSS_STATUS _nss_winbind_getgrent_r(struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrlst_r(struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrnam_r(const char *name, struct group *result,
+-				   char *buffer, size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrgid_r(gid_t gid, struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
+-				       long int *size, gid_t **groups,
+-				       long int limit, int *errnop);
+-
+ int
+ netbsdwinbind_endgrent(void *nsrv, void *nscb, va_list ap)
+ {
+diff --git a/nsswitch/winbind_nss_solaris.h b/nsswitch/winbind_nss_solaris.h
+index f0cc099..8e26d0d 100644
+--- a/nsswitch/winbind_nss_solaris.h
++++ b/nsswitch/winbind_nss_solaris.h
+@@ -34,30 +34,4 @@ typedef nss_status_t NSS_STATUS;
+ #define NSS_STATUS_UNAVAIL     NSS_UNAVAIL
+ #define NSS_STATUS_TRYAGAIN    NSS_TRYAGAIN
+ 
+-/* The solaris winbind is implemented as a wrapper around the linux
+-   version. */
+-
+-NSS_STATUS _nss_winbind_setpwent(void);
+-NSS_STATUS _nss_winbind_endpwent(void);
+-NSS_STATUS _nss_winbind_getpwent_r(struct passwd* result, char* buffer,
+-				   size_t buflen, int* errnop);
+-NSS_STATUS _nss_winbind_getpwuid_r(uid_t, struct passwd*, char* buffer,
+-				   size_t buflen, int* errnop);
+-NSS_STATUS _nss_winbind_getpwnam_r(const char* name, struct passwd* result,
+-				   char* buffer, size_t buflen, int* errnop);
+-
+-NSS_STATUS _nss_winbind_setgrent(void);
+-NSS_STATUS _nss_winbind_endgrent(void);
+-NSS_STATUS _nss_winbind_getgrent_r(struct group* result, char* buffer,
+-				   size_t buflen, int* errnop);
+-NSS_STATUS _nss_winbind_getgrnam_r(const char *name,
+-				   struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_getgrgid_r(gid_t gid,
+-				   struct group *result, char *buffer,
+-				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
+-				       long int *size, gid_t **groups,
+-				       long int limit, int *errnop);
+-
+ #endif /* _WINBIND_NSS_SOLARIS_H */
+-- 
+1.9.1
+
+
+From 51dd5aac5735f132b524c0b24a37fa2a83507522 Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Sat, 21 Oct 2017 14:14:34 +0200
+Subject: [PATCH 06/12] nsswitch: add some const to
+ _nss_winbind_initgroups_dyn() prototype
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13344
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ nsswitch/winbind_nss_linux.c | 2 +-
+ nsswitch/winbind_nss_linux.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/nsswitch/winbind_nss_linux.c b/nsswitch/winbind_nss_linux.c
+index fc165a1..442c06e 100644
+--- a/nsswitch/winbind_nss_linux.c
++++ b/nsswitch/winbind_nss_linux.c
+@@ -1024,7 +1024,7 @@ _nss_winbind_getgrgid_r(gid_t gid,
+ /* Initialise supplementary groups */
+ 
+ NSS_STATUS
+-_nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
++_nss_winbind_initgroups_dyn(const char *user, gid_t group, long int *start,
+ 			    long int *size, gid_t **groups, long int limit,
+ 			    int *errnop)
+ {
+diff --git a/nsswitch/winbind_nss_linux.h b/nsswitch/winbind_nss_linux.h
+index 61e5261..d18799e 100644
+--- a/nsswitch/winbind_nss_linux.h
++++ b/nsswitch/winbind_nss_linux.h
+@@ -40,7 +40,7 @@ NSS_STATUS _nss_winbind_getgrnam_r(const char *name, struct group *result,
+ 				   char *buffer, size_t buflen, int *errnop);
+ NSS_STATUS _nss_winbind_getgrgid_r(gid_t gid, struct group *result, char *buffer,
+ 				   size_t buflen, int *errnop);
+-NSS_STATUS _nss_winbind_initgroups_dyn(char *user, gid_t group, long int *start,
++NSS_STATUS _nss_winbind_initgroups_dyn(const char *user, gid_t group, long int *start,
+ 				       long int *size, gid_t **groups,
+ 				       long int limit, int *errnop);
+ 
+-- 
+1.9.1
+
+
+From bfb36d7677be48ef46cab745b02d72129367121b Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Sat, 21 Oct 2017 14:15:12 +0200
+Subject: [PATCH 07/12] nsswitch: fix the developer build of nsswitch/wins.c on
+ freebsd 11
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13344
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ nsswitch/wins.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/nsswitch/wins.c b/nsswitch/wins.c
+index 19d3c5b..72055f0 100644
+--- a/nsswitch/wins.c
++++ b/nsswitch/wins.c
+@@ -19,7 +19,7 @@
+ */
+ 
+ #include "includes.h"
+-#include "nsswitch/winbind_nss.h"
++#include "nsswitch/winbind_client.h"
+ #include "nsswitch/libwbclient/wbclient.h"
+ 
+ #ifdef HAVE_NS_API_H
+-- 
+1.9.1
+
+
+From 8a20a85581fa137e604915fbac47e32d06bc52a6 Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Wed, 21 Mar 2018 07:33:16 +0100
+Subject: [PATCH 10/12] lib/crypto: avoid 'return void_function();' which isn't
+ portable
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13343
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ lib/crypto/aes.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/lib/crypto/aes.c b/lib/crypto/aes.c
+index c226ac1..9d69d44 100644
+--- a/lib/crypto/aes.c
++++ b/lib/crypto/aes.c
+@@ -252,18 +252,20 @@ void
+ AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key)
+ {
+ 	if (has_intel_aes_instructions()) {
+-		return AES_encrypt_aesni(in, out, key);
++		AES_encrypt_aesni(in, out, key);
++		return;
+ 	}
+-	return AES_encrypt_rj(in, out, key);
++	AES_encrypt_rj(in, out, key);
+ }
+ 
+ void
+ AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key)
+ {
+ 	if (has_intel_aes_instructions()) {
+-		return AES_decrypt_aesni(in, out, key);
++		AES_decrypt_aesni(in, out, key);
++		return;
+ 	}
+-	return AES_decrypt_rj(in, out, key);
++	AES_decrypt_rj(in, out, key);
+ }
+ 
+ #endif /* SAMBA_RIJNDAEL */
+-- 
+1.9.1
+
+
+From b50841fd1feb0cf9e624f55a7dd341634f5a45fd Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Wed, 21 Mar 2018 07:33:16 +0100
+Subject: [PATCH 11/12] ldb/tests: avoid 'return void_function();' which isn't
+ portable
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13343
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ lib/ldb/tests/ldb_mod_op_test.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/lib/ldb/tests/ldb_mod_op_test.c b/lib/ldb/tests/ldb_mod_op_test.c
+index b911302..d024ab6 100644
+--- a/lib/ldb/tests/ldb_mod_op_test.c
++++ b/lib/ldb/tests/ldb_mod_op_test.c
+@@ -1954,22 +1954,22 @@ static void test_ldb_modify_during_search(void **state, bool add_index,
+ 
+ static void test_ldb_modify_during_indexed_search(void **state)
+ {
+-	return test_ldb_modify_during_search(state, true, false);
++	test_ldb_modify_during_search(state, true, false);
+ }
+ 
+ static void test_ldb_modify_during_unindexed_search(void **state)
+ {
+-	return test_ldb_modify_during_search(state, false, false);
++	test_ldb_modify_during_search(state, false, false);
+ }
+ 
+ static void test_ldb_rename_during_indexed_search(void **state)
+ {
+-	return test_ldb_modify_during_search(state, true, true);
++	test_ldb_modify_during_search(state, true, true);
+ }
+ 
+ static void test_ldb_rename_during_unindexed_search(void **state)
+ {
+-	return test_ldb_modify_during_search(state, false, true);
++	test_ldb_modify_during_search(state, false, true);
+ }
+ 
+ /*
+-- 
+1.9.1
+
+
+From 49cbc569b45357184be4e84f68af5435b4f00477 Mon Sep 17 00:00:00 2001
+From: Stefan Metzmacher <metze@samba.org>
+Date: Wed, 21 Mar 2018 07:48:16 +0100
+Subject: [PATCH 12/12] s3:modules: fix the build of vfs_aixacl2.c
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13345
+
+Signed-off-by: Stefan Metzmacher <metze@samba.org>
+---
+ source3/modules/vfs_aixacl2.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/source3/modules/vfs_aixacl2.c b/source3/modules/vfs_aixacl2.c
+index d0cd2c1..e094be1 100644
+--- a/source3/modules/vfs_aixacl2.c
++++ b/source3/modules/vfs_aixacl2.c
+@@ -476,7 +476,8 @@ int aixjfs2_sys_acl_set_file(vfs_handle_struct *handle,
+ 	acl_type_t	acl_type_info;
+ 	int	rc;
+ 
+-	DEBUG(10, ("aixjfs2_sys_acl_set_file invoked for %s", name));
++	DEBUG(10, ("aixjfs2_sys_acl_set_file invoked for %s",
++		   smb_fname->base_name));
+ 
+ 	rc = aixjfs2_query_acl_support((char *)smb_fname->base_name,
+ 			ACL_AIXC, &acl_type_info);
+@@ -490,7 +491,7 @@ int aixjfs2_sys_acl_set_file(vfs_handle_struct *handle,
+ 		return -1;
+ 
+ 	rc = aclx_put(
+-		(char *)name,
++		(char *)smb_fname->base_name,
+ 		SET_ACL, /* set only the ACL, not mode bits */
+ 		acl_type_info,
+ 		acl_aixc,
+-- 
+1.9.1
+

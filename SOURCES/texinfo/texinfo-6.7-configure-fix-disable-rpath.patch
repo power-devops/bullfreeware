@@ -1,0 +1,26 @@
+--- a/configure	2019-10-23 11:30:56 +0200
++++ b/configure	2019-10-23 11:32:51 +0200
+@@ -9051,7 +9039,10 @@
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                    aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name";;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so";;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -23206,7 +23197,10 @@
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                    aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name";;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so";;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do

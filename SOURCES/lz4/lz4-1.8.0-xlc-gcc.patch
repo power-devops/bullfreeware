@@ -1,0 +1,16 @@
+--- ./lib/Makefile.ORIGIN	2019-04-17 16:35:23 +0200
++++ ./lib/Makefile	2019-04-17 17:55:27 +0200
+@@ -100,7 +100,12 @@
+ else
+ ifeq ($(shell uname), AIX)
+ 	CreateExportList liblz4.exp liblz4.a
+-	$(CC) -qmkshrobj liblz4.a -o $@ -bE:liblz4.exp -bernotok
++	echo "CC: ${CC}"
++ifeq ($(CC),gcc)
++		$(CC)  $(CFLAGS) -shared    liblz4.a -o $@ -Wl,-bE:liblz4.exp -Wl,-bernotok
++else
++		$(CC)            -qmkshrobj liblz4.a -o $@     -bE:liblz4.exp     -bernotok
++endif
+ 	/usr/bin/rm -f liblz4.exp
+ 	/usr/bin/rm -f liblz4.a
+ else

@@ -1,0 +1,5 @@
+#! /bin/sh
+
+# This will default to the 32 bit version if it exists
+[ -x /opt/freeware/bin/fc-cache_32 ] && /opt/freeware/bin/fc-cache_32 "$@" || :
+[ -x /opt/freeware/bin/fc-cache_64 ] && /opt/freeware/bin/fc-cache_64 "$@" || :

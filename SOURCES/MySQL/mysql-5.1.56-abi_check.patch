@@ -1,0 +1,120 @@
+Index: mysql-5.1.56/mysql-debug-5.1.56/Makefile.am
+===================================================================
+--- mysql-5.1.56.orig/mysql-debug-5.1.56/Makefile.am	2011-02-11 20:20:23.000000000 +0100
++++ mysql-5.1.56/mysql-debug-5.1.56/Makefile.am	2011-05-18 14:14:25.000000000 +0200
+@@ -310,24 +310,7 @@
+ 	$(MAKE) abi_headers="$^" do_abi_check
+ 
+ do_abi_check:
+-	set -ex; \
+-	for file in $(abi_headers); do \
+-	         @CC@ -E -nostdinc -dI -DMYSQL_ABI_CHECK \
+-	                  -I$(top_srcdir)/include \
+-	                  -I$(top_srcdir)/include/mysql \
+-	                  -I$(top_srcdir)/sql \
+-	                  -I$(top_builddir)/include \
+-	                  -I$(top_builddir)/include/mysql \
+-	                  -I$(top_builddir)/sql \
+-	                                 $$file 2>/dev/null | \
+-	                  @SED@ -e '/^# /d' \
+-	                            -e '/^[ 	]*$$/d' \
+-	                            -e '/^#pragma GCC set_debug_pwd/d' \
+-	                            -e '/^#ident/d' > \
+-	                                       $(top_builddir)/abi_check.out; \
+-	                  @DIFF@ -w $$file.pp $(top_builddir)/abi_check.out; \
+-	                  @RM@ $(top_builddir)/abi_check.out; \
+-	done
++	echo "Skipping do_abi_check"
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+Index: mysql-5.1.56/mysql-debug-5.1.56/Makefile.in
+===================================================================
+--- mysql-5.1.56.orig/mysql-debug-5.1.56/Makefile.in	2011-02-11 20:24:28.000000000 +0100
++++ mysql-5.1.56/mysql-debug-5.1.56/Makefile.in	2011-05-18 14:13:48.000000000 +0200
+@@ -1130,24 +1130,7 @@
+ 	$(MAKE) abi_headers="$^" do_abi_check
+ 
+ do_abi_check:
+-	set -ex; \
+-	for file in $(abi_headers); do \
+-	         @CC@ -E -nostdinc -dI -DMYSQL_ABI_CHECK \
+-	                  -I$(top_srcdir)/include \
+-	                  -I$(top_srcdir)/include/mysql \
+-	                  -I$(top_srcdir)/sql \
+-	                  -I$(top_builddir)/include \
+-	                  -I$(top_builddir)/include/mysql \
+-	                  -I$(top_builddir)/sql \
+-	                                 $$file 2>/dev/null | \
+-	                  @SED@ -e '/^# /d' \
+-	                            -e '/^[ 	]*$$/d' \
+-	                            -e '/^#pragma GCC set_debug_pwd/d' \
+-	                            -e '/^#ident/d' > \
+-	                                       $(top_builddir)/abi_check.out; \
+-	                  @DIFF@ -w $$file.pp $(top_builddir)/abi_check.out; \
+-	                  @RM@ $(top_builddir)/abi_check.out; \
+-	done
++	echo "Skipping do_abi_check"
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+Index: mysql-5.1.56/mysql-release-5.1.56/Makefile.am
+===================================================================
+--- mysql-5.1.56.orig/mysql-release-5.1.56/Makefile.am	2011-02-11 20:20:23.000000000 +0100
++++ mysql-5.1.56/mysql-release-5.1.56/Makefile.am	2011-05-18 14:15:38.000000000 +0200
+@@ -310,24 +310,6 @@
+ 	$(MAKE) abi_headers="$^" do_abi_check
+ 
+ do_abi_check:
+-	set -ex; \
+-	for file in $(abi_headers); do \
+-	         @CC@ -E -nostdinc -dI -DMYSQL_ABI_CHECK \
+-	                  -I$(top_srcdir)/include \
+-	                  -I$(top_srcdir)/include/mysql \
+-	                  -I$(top_srcdir)/sql \
+-	                  -I$(top_builddir)/include \
+-	                  -I$(top_builddir)/include/mysql \
+-	                  -I$(top_builddir)/sql \
+-	                                 $$file 2>/dev/null | \
+-	                  @SED@ -e '/^# /d' \
+-	                            -e '/^[ 	]*$$/d' \
+-	                            -e '/^#pragma GCC set_debug_pwd/d' \
+-	                            -e '/^#ident/d' > \
+-	                                       $(top_builddir)/abi_check.out; \
+-	                  @DIFF@ -w $$file.pp $(top_builddir)/abi_check.out; \
+-	                  @RM@ $(top_builddir)/abi_check.out; \
+-	done
+-
++	echo "Skipping do_abi_check"
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+Index: mysql-5.1.56/mysql-release-5.1.56/Makefile.in
+===================================================================
+--- mysql-5.1.56.orig/mysql-release-5.1.56/Makefile.in	2011-02-11 20:24:28.000000000 +0100
++++ mysql-5.1.56/mysql-release-5.1.56/Makefile.in	2011-05-18 14:14:58.000000000 +0200
+@@ -1130,24 +1130,7 @@
+ 	$(MAKE) abi_headers="$^" do_abi_check
+ 
+ do_abi_check:
+-	set -ex; \
+-	for file in $(abi_headers); do \
+-	         @CC@ -E -nostdinc -dI -DMYSQL_ABI_CHECK \
+-	                  -I$(top_srcdir)/include \
+-	                  -I$(top_srcdir)/include/mysql \
+-	                  -I$(top_srcdir)/sql \
+-	                  -I$(top_builddir)/include \
+-	                  -I$(top_builddir)/include/mysql \
+-	                  -I$(top_builddir)/sql \
+-	                                 $$file 2>/dev/null | \
+-	                  @SED@ -e '/^# /d' \
+-	                            -e '/^[ 	]*$$/d' \
+-	                            -e '/^#pragma GCC set_debug_pwd/d' \
+-	                            -e '/^#ident/d' > \
+-	                                       $(top_builddir)/abi_check.out; \
+-	                  @DIFF@ -w $$file.pp $(top_builddir)/abi_check.out; \
+-	                  @RM@ $(top_builddir)/abi_check.out; \
+-	done
++	echo "Skipping do_abi_check"
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%

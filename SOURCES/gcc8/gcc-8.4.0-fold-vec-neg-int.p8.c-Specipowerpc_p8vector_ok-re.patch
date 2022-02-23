@@ -1,0 +1,54 @@
+From d5e545a7cc2c9d5e5ed4534e8f7901723ded4d89 Mon Sep 17 00:00:00 2001
+From: Will Schmidt <will_schmidt@vnet.ibm.com>
+Date: Tue, 26 Jun 2018 15:26:14 +0000
+Subject: [PATCH] fold-vec-neg-int.p8.c: Specify powerpc_p8vector_ok
+ requirement for this test.
+
+[testsuite]
+
+2018-06-12  Will Schmidt  <will_schmidt@vnet.ibm.com>
+
+	* gcc.target/powerpc/fold-vec-neg-int.p8.c: Specify powerpc_p8vector_ok
+	requirement for this test.
+	* gcc.target/powerpc/fold-vec-neg-int.c: Specify powerpc_p8vector_ok
+	requirement, and -mpower8-vector compile option.
+
+From-SVN: r262153
+---
+ gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.c    | 4 ++--
+ gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.p8.c | 4 ++--
+ 3 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.c b/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.c
+index 4f358560c98..f7682adfdd8 100644
+--- a/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.c
++++ b/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.c
+@@ -2,8 +2,8 @@
+    inputs produce the right code.  */
+ 
+ /* { dg-do compile } */
+-/* { dg-require-effective-target powerpc_altivec_ok } */
+-/* { dg-options "-maltivec -O2" } */
++/* { dg-require-effective-target powerpc_p8vector_ok } */
++/* { dg-options "-mpower8-vector -O2" } */
+ 
+ #include <altivec.h>
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.p8.c b/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.p8.c
+index 91067ab6916..09cfd351640 100644
+--- a/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.p8.c
++++ b/gcc/testsuite/gcc.target/powerpc/fold-vec-neg-int.p8.c
+@@ -2,8 +2,8 @@
+    inputs produce the right code when -mcpu=power8 is specified.  */
+ 
+ /* { dg-do compile } */
+-/* { dg-require-effective-target powerpc_altivec_ok } */
+-/* { dg-options "-maltivec -O2 -mcpu=power8" } */
++/* { dg-require-effective-target powerpc_p8vector_ok } */
++/* { dg-options "-O2 -mcpu=power8" } */
+ /* { dg-skip-if "do not override -mcpu" { powerpc*-*-* } { "-mcpu=*" } { "-mcpu=power8" } } */
+ 
+ #include <altivec.h>
+-- 
+2.25.0
+

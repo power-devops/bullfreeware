@@ -1,0 +1,53 @@
+--- ./libmysql/CMakeLists.txt.ORIGIN	2019-06-05 10:26:49 -0500
++++ ./libmysql/CMakeLists.txt	2019-08-28 14:47:44 -0500
+@@ -175,6 +175,11 @@
+ CACHE INTERNAL "Nonblocking functions exported by client API"
+ )
+ 
++ADD_CUSTOM_TARGET(libmysql_exp
++  COMMAND echo "${CLIENT_API_FUNCTIONS};${CLIENT_API_NONBLOCKING_FUNCTIONS}" | /opt/freeware/bin/sed -f ../../libmysql/libmysql.exp.sed > ./libmysql.exp
++  VERBATIM
++)
++
+ SET(CLIENT_SOURCES
+   libmysql.cc
+   errmsg.cc
+@@ -287,6 +292,7 @@
+     EXPORTS ${CLIENT_API_FUNCTIONS} ${CLIENT_API_FUNCTIONS_UNDOCUMENTED} ${CLIENT_API_NONBLOCKING_FUNCTIONS}
+     COMPONENT SharedLibraries)
+   TARGET_LINK_LIBRARIES(libmysql PRIVATE ${LIBS_TO_LINK})
++  ADD_DEPENDENCIES(libmysql libmysql_exp)
+ 
+   IF(WIN32)
+     # So that libmysql_api_test below can find the .dll
+--- ./cmake/libutils.cmake.ORIGIN	2019-08-27 15:44:17 -0500
++++ ./cmake/libutils.cmake	2019-08-27 15:52:11 -0500
+@@ -166,13 +166,17 @@
+     # Mark every export as explicitly needed, so that ld won't remove the
+     # .a files containing them. This has a similar effect as
+     # --Wl,--no-whole-archive, but is more focused.
+-    FOREACH(SYMBOL ${ARG_EXPORTS})
+-      IF(APPLE)
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
+-      ELSE()
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
+-      ENDIF()
+-    ENDFOREACH()
++    IF(AIX)
++        SET(export_link_flags "${export_link_flags} -Wl,-bE:./libmysql.exp")
++    ELSE()
++      FOREACH(SYMBOL ${ARG_EXPORTS})
++        IF(APPLE)
++          SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
++        ELSE()
++          SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
++        ENDIF()
++      ENDFOREACH()
++    ENDIF()
+   ENDIF()
+ 
+   IF(NOT ARG_SKIP_INSTALL)
+--- /dev/null	2019-06-05 14:45:01 -0500
++++ ./libmysql/libmysql.exp.sed	2019-06-05 14:51:01 -0500
+@@ -0,0 +1 @@
++s/;/\n/g

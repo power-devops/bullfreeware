@@ -1,0 +1,13 @@
+Index: nss-3.13.2/mozilla/security/nss/lib/certhigh/ocsp.h
+===================================================================
+--- nss-3.13.2.orig/mozilla/security/nss/lib/certhigh/ocsp.h	2011-01-15 20:47:11.000000000 +0100
++++ nss-3.13.2/mozilla/security/nss/lib/certhigh/ocsp.h	2012-04-16 16:38:00.000000000 +0200
+@@ -610,7 +610,7 @@
+ 			    CERTOCSPResponse *response,
+ 			    CERTOCSPCertID   *certID,
+ 			    CERTCertificate  *signerCert,
+-                            PRTime            time);
++                            int64            time);
+ 
+ /*
+  * FUNCTION CERT_GetOCSPResponseStatus

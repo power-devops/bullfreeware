@@ -1,0 +1,11 @@
+--- ./libgo/go/net/internal/socktest/sys_unix.go.ORIGIN	2017-04-04 09:34:48 -0500
++++ ./libgo/go/net/internal/socktest/sys_unix.go	2017-04-04 09:34:56 -0500
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package socktest
+ 

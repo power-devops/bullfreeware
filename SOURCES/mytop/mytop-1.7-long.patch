@@ -1,0 +1,11 @@
+--- mytop-1.7/mytop~	2009-03-21 16:31:23.000000000 +0100
++++ mytop-1.7/mytop	2010-05-03 10:44:08.000000000 +0200
+@@ -156,7 +156,7 @@
+     "idle|i"              => \$config{idle},
+     "resolve|r"           => \$config{resolve},
+     "prompt!"             => \$config{prompt},
+-    "long|!"              => \$config{long_nums},
++#    "long|!"              => \$config{long_nums},
+     "mode|m=s"            => \$config{mode},
+     "sort=s"              => \$config{sort},
+ );

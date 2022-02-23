@@ -1,0 +1,22 @@
+--- ./configure	2020-09-16 15:47:05 +0200
++++ ./configure.orig	2020-09-16 15:46:14 +0200
+@@ -8663,7 +8663,7 @@
+   *-*-linux*)		stty_reads_stdout=0 ;;
+   # Not sure about old convex but 5.2 definitely reads from stdout
+   c[12]-*-*)		stty_reads_stdout=1 ;;
++  *-*-aix*)		stty_reads_stdout=0 ;;
+-  *-*-aix[34]*)	stty_reads_stdout=0 ;;
+   *-*-hpux9*)		stty_reads_stdout=0 ;;
+   *-*-hpux10*)		stty_reads_stdout=0 ;;
+   *-*-osf[234]*)	stty_reads_stdout=0 ;;
+--- ./configure.in	2020-09-16 15:46:44 +0200
++++ ./configure.in.orig	2020-09-16 15:46:09 +0200
+@@ -369,7 +369,7 @@
+   *-*-linux*)		stty_reads_stdout=0 ;;
+   # Not sure about old convex but 5.2 definitely reads from stdout
+   c[[12]]-*-*)		stty_reads_stdout=1 ;;
++  *-*-aix*)		stty_reads_stdout=0 ;;
+-  *-*-aix[[34]]*)	stty_reads_stdout=0 ;;
+   *-*-hpux9*)		stty_reads_stdout=0 ;;
+   *-*-hpux10*)		stty_reads_stdout=0 ;;
+   *-*-osf[[234]]*)	stty_reads_stdout=0 ;;

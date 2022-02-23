@@ -1,0 +1,816 @@
+From 1d0c0db7755076834519fd02c271a78bbf26bb19 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 3 Jul 2018 01:20:50 -0400
+Subject: [PATCH] Explicitly look for python2 in configure.in
+
+The executable "python" has traditionally been Python 2, but is
+becoming more ambiguous as operating systems transition towards Python
+3.  Look for "python2" in the path in preference to "python", and
+check that what we found isn't Python 3.
+
+Remove the "#!/usr/bin/python" headers at the start of Python test
+scripts since we run them explicitly under python, not as executables.
+Execute paste-kdcproxy.py via sys.executable in t_proxy.py so that it
+doesn't need a #!/usr/bin/python header.
+
+ticket: 8709 (new)
+(cherry picked from commit 2bd410ecdb366083fe9b4e5f6ac4b741b624230b)
+---
+ src/appl/gss-sample/t_gss_sample.py     | 2 --
+ src/appl/user_user/t_user2user.py       | 1 -
+ src/configure.in                        | 9 ++++++---
+ src/kadmin/dbutil/t_tdumputil.py        | 2 --
+ src/kdc/t_bigreply.py                   | 1 -
+ src/kdc/t_emptytgt.py                   | 1 -
+ src/kdc/t_workers.py                    | 1 -
+ src/lib/kdb/t_stringattr.py             | 1 -
+ src/lib/krad/t_daemon.py                | 2 --
+ src/lib/krb5/ccache/t_cccol.py          | 1 -
+ src/lib/krb5/krb/t_expire_warn.py       | 2 --
+ src/lib/krb5/krb/t_in_ccache_patypes.py | 2 --
+ src/lib/krb5/krb/t_vfy_increds.py       | 2 --
+ src/lib/krb5/os/t_discover_uri.py       | 1 -
+ src/tests/gssapi/t_authind.py           | 1 -
+ src/tests/gssapi/t_ccselect.py          | 2 --
+ src/tests/gssapi/t_client_keytab.py     | 1 -
+ src/tests/gssapi/t_enctypes.py          | 1 -
+ src/tests/gssapi/t_export_cred.py       | 1 -
+ src/tests/gssapi/t_gssapi.py            | 1 -
+ src/tests/gssapi/t_s4u.py               | 1 -
+ src/tests/jsonwalker.py                 | 2 --
+ src/tests/t_audit.py                    | 1 -
+ src/tests/t_authdata.py                 | 1 -
+ src/tests/t_bogus_kdc_req.py            | 2 --
+ src/tests/t_ccache.py                   | 2 --
+ src/tests/t_certauth.py                 | 1 -
+ src/tests/t_changepw.py                 | 1 -
+ src/tests/t_crossrealm.py               | 2 --
+ src/tests/t_cve-2012-1014.py            | 2 --
+ src/tests/t_cve-2012-1015.py            | 2 --
+ src/tests/t_cve-2013-1416.py            | 2 --
+ src/tests/t_cve-2013-1417.py            | 2 --
+ src/tests/t_dump.py                     | 1 -
+ src/tests/t_errmsg.py                   | 1 -
+ src/tests/t_etype_info.py               | 1 -
+ src/tests/t_general.py                  | 1 -
+ src/tests/t_hooks.py                    | 1 -
+ src/tests/t_hostrealm.py                | 1 -
+ src/tests/t_iprop.py                    | 2 --
+ src/tests/t_kadm5_auth.py               | 1 -
+ src/tests/t_kadm5_hook.py               | 1 -
+ src/tests/t_kadmin_acl.py               | 1 -
+ src/tests/t_kadmin_parsing.py           | 1 -
+ src/tests/t_kdb.py                      | 1 -
+ src/tests/t_kdb_locking.py              | 2 --
+ src/tests/t_kdc_log.py                  | 2 --
+ src/tests/t_kdcpolicy.py                | 1 -
+ src/tests/t_keydata.py                  | 1 -
+ src/tests/t_keyrollover.py              | 1 -
+ src/tests/t_keytab.py                   | 1 -
+ src/tests/t_kprop.py                    | 1 -
+ src/tests/t_localauth.py                | 1 -
+ src/tests/t_mkey.py                     | 1 -
+ src/tests/t_otp.py                      | 2 --
+ src/tests/t_pkinit.py                   | 1 -
+ src/tests/t_policy.py                   | 1 -
+ src/tests/t_preauth.py                  | 1 -
+ src/tests/t_princflags.py               | 1 -
+ src/tests/t_proxy.py                    | 4 ++--
+ src/tests/t_pwqual.py                   | 1 -
+ src/tests/t_rdreq.py                    | 1 -
+ src/tests/t_referral.py                 | 1 -
+ src/tests/t_renew.py                    | 1 -
+ src/tests/t_renprinc.py                 | 2 --
+ src/tests/t_salt.py                     | 1 -
+ src/tests/t_sesskeynego.py              | 1 -
+ src/tests/t_skew.py                     | 1 -
+ src/tests/t_sn2princ.py                 | 1 -
+ src/tests/t_spake.py                    | 1 -
+ src/tests/t_stringattr.py               | 2 --
+ src/tests/t_tabdump.py                  | 1 -
+ src/tests/t_unlockiter.py               | 1 -
+ src/tests/t_y2038.py                    | 1 -
+ src/util/paste-kdcproxy.py              | 1 -
+ 75 files changed, 8 insertions(+), 99 deletions(-)
+
+diff --git a/src/appl/gss-sample/t_gss_sample.py b/src/appl/gss-sample/t_gss_sample.py
+index 0299e4590..2f537823a 100755
+--- a/src/appl/gss-sample/t_gss_sample.py
++++ b/src/appl/gss-sample/t_gss_sample.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2010 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ #
+diff --git a/src/appl/user_user/t_user2user.py b/src/appl/user_user/t_user2user.py
+index 2a7d03f8d..2c054f181 100755
+--- a/src/appl/user_user/t_user2user.py
++++ b/src/appl/user_user/t_user2user.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # If uuserver is not compiled under -DDEBUG, then set to 0
+diff --git a/src/configure.in b/src/configure.in
+index 08c63beca..3f45784b5 100644
+--- a/src/configure.in
++++ b/src/configure.in
+@@ -1098,13 +1098,16 @@ fi
+ AC_SUBST(HAVE_RUNTEST)
+ 
+ # For Python tests.
+-AC_CHECK_PROG(PYTHON,python,python)
++AC_CHECK_PROG(PYTHON,python2,python2)
++if text x"$PYTHON" = x; then
++	AC_CHECK_PROG(PYTHON,python,python)
++fi
+ HAVE_PYTHON=no
+ if test x"$PYTHON" != x; then
+ 	# k5test.py requires python 2.4 (for the subprocess module).
+ 	# Some code needs python 2.5 (for syntax like conditional expressions).
+-	vercheck="import sys;sys.exit((sys.hexversion < 0x2050000) and 1 or 0)"
+-	if python -c "$vercheck"; then
++	wantver="(sys.hexversion >= 0x2050000 and sys.hexversion < 0x3000000)"
++	if "$PYTHON" -c "import sys; sys.exit(not $wantver and 1 or 0)"; then
+ 		HAVE_PYTHON=yes
+ 	fi
+ fi
+diff --git a/src/kadmin/dbutil/t_tdumputil.py b/src/kadmin/dbutil/t_tdumputil.py
+index 5d7ac38d2..52e356533 100755
+--- a/src/kadmin/dbutil/t_tdumputil.py
++++ b/src/kadmin/dbutil/t_tdumputil.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ from k5test import *
+ from subprocess import *
+ 
+diff --git a/src/kdc/t_bigreply.py b/src/kdc/t_bigreply.py
+index 6bc9a8fe0..b6300154f 100644
+--- a/src/kdc/t_bigreply.py
++++ b/src/kdc/t_bigreply.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Set the maximum UDP reply size very low, so that all replies go
+diff --git a/src/kdc/t_emptytgt.py b/src/kdc/t_emptytgt.py
+index 2d0432e33..c601c010c 100755
+--- a/src/kdc/t_emptytgt.py
++++ b/src/kdc/t_emptytgt.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_host=False)
+diff --git a/src/kdc/t_workers.py b/src/kdc/t_workers.py
+index 6dd4f6805..8de3f34d9 100755
+--- a/src/kdc/t_workers.py
++++ b/src/kdc/t_workers.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(start_kdc=False, create_host=False)
+diff --git a/src/lib/kdb/t_stringattr.py b/src/lib/kdb/t_stringattr.py
+index 085e179e4..93e2b0c01 100755
+--- a/src/lib/kdb/t_stringattr.py
++++ b/src/lib/kdb/t_stringattr.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_kdb=False)
+diff --git a/src/lib/krad/t_daemon.py b/src/lib/krad/t_daemon.py
+index dcda0050b..7d7a5d0c8 100755
+--- a/src/lib/krad/t_daemon.py
++++ b/src/lib/krad/t_daemon.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-#
+ # Copyright 2013 Red Hat, Inc.  All rights reserved.
+ #
+ # Redistribution and use in source and binary forms, with or without
+diff --git a/src/lib/krb5/ccache/t_cccol.py b/src/lib/krb5/ccache/t_cccol.py
+index f7f178564..1467512e2 100755
+--- a/src/lib/krb5/ccache/t_cccol.py
++++ b/src/lib/krb5/ccache/t_cccol.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_kdb=False)
+diff --git a/src/lib/krb5/krb/t_expire_warn.py b/src/lib/krb5/krb/t_expire_warn.py
+index aed39e399..781f2728a 100755
+--- a/src/lib/krb5/krb/t_expire_warn.py
++++ b/src/lib/krb5/krb/t_expire_warn.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2010 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ #
+diff --git a/src/lib/krb5/krb/t_in_ccache_patypes.py b/src/lib/krb5/krb/t_in_ccache_patypes.py
+index c04234064..b2812688c 100755
+--- a/src/lib/krb5/krb/t_in_ccache_patypes.py
++++ b/src/lib/krb5/krb/t_in_ccache_patypes.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2010,2012 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ #
+diff --git a/src/lib/krb5/krb/t_vfy_increds.py b/src/lib/krb5/krb/t_vfy_increds.py
+index c820cc690..b899308a8 100755
+--- a/src/lib/krb5/krb/t_vfy_increds.py
++++ b/src/lib/krb5/krb/t_vfy_increds.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ #
+diff --git a/src/lib/krb5/os/t_discover_uri.py b/src/lib/krb5/os/t_discover_uri.py
+index 278f98371..87bac1792 100644
+--- a/src/lib/krb5/os/t_discover_uri.py
++++ b/src/lib/krb5/os/t_discover_uri.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ entries = ('URI _kerberos.TEST krb5srv::kkdcp:https://kdc1 1 1\n',
+diff --git a/src/tests/gssapi/t_authind.py b/src/tests/gssapi/t_authind.py
+index 84793beb6..af1741a23 100644
+--- a/src/tests/gssapi/t_authind.py
++++ b/src/tests/gssapi/t_authind.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Test authentication indicators.  Load the test preauth module so we
+diff --git a/src/tests/gssapi/t_ccselect.py b/src/tests/gssapi/t_ccselect.py
+index 3503f9269..cd62da231 100755
+--- a/src/tests/gssapi/t_ccselect.py
++++ b/src/tests/gssapi/t_ccselect.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ 
+diff --git a/src/tests/gssapi/t_client_keytab.py b/src/tests/gssapi/t_client_keytab.py
+index 2da87f45b..e474a27c7 100755
+--- a/src/tests/gssapi/t_client_keytab.py
++++ b/src/tests/gssapi/t_client_keytab.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Set up a basic realm and a client keytab containing two user principals.
+diff --git a/src/tests/gssapi/t_enctypes.py b/src/tests/gssapi/t_enctypes.py
+index f513db2b5..ee43ff028 100755
+--- a/src/tests/gssapi/t_enctypes.py
++++ b/src/tests/gssapi/t_enctypes.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Define some convenience abbreviations for enctypes we will see in
+diff --git a/src/tests/gssapi/t_export_cred.py b/src/tests/gssapi/t_export_cred.py
+index b98962788..89167bcc5 100755
+--- a/src/tests/gssapi/t_export_cred.py
++++ b/src/tests/gssapi/t_export_cred.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Test gss_export_cred and gss_import_cred for initiator creds,
+diff --git a/src/tests/gssapi/t_gssapi.py b/src/tests/gssapi/t_gssapi.py
+index 6da5fceff..a7dda20fb 100755
+--- a/src/tests/gssapi/t_gssapi.py
++++ b/src/tests/gssapi/t_gssapi.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Test krb5 negotiation under SPNEGO for all enctype configurations.  Also
+diff --git a/src/tests/gssapi/t_s4u.py b/src/tests/gssapi/t_s4u.py
+index e4cd68469..fc9d9e8a4 100755
+--- a/src/tests/gssapi/t_s4u.py
++++ b/src/tests/gssapi/t_s4u.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_host=False, get_creds=False)
+diff --git a/src/tests/jsonwalker.py b/src/tests/jsonwalker.py
+index 265c69c70..942ca2db7 100644
+--- a/src/tests/jsonwalker.py
++++ b/src/tests/jsonwalker.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ import sys
+ try:
+     import cjson
+diff --git a/src/tests/t_audit.py b/src/tests/t_audit.py
+index 00e96bfea..0f880edb2 100755
+--- a/src/tests/t_audit.py
++++ b/src/tests/t_audit.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ conf = {'plugins': {'audit': {
+diff --git a/src/tests/t_authdata.py b/src/tests/t_authdata.py
+index 8a577b4b1..5cff80348 100644
+--- a/src/tests/t_authdata.py
++++ b/src/tests/t_authdata.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Load the sample KDC authdata module.
+diff --git a/src/tests/t_bogus_kdc_req.py b/src/tests/t_bogus_kdc_req.py
+index b6208ca68..a101c0e10 100755
+--- a/src/tests/t_bogus_kdc_req.py
++++ b/src/tests/t_bogus_kdc_req.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ import base64
+ import socket
+ from k5test import *
+diff --git a/src/tests/t_ccache.py b/src/tests/t_ccache.py
+index 61d549b7b..a913eb025 100755
+--- a/src/tests/t_ccache.py
++++ b/src/tests/t_ccache.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ 
+diff --git a/src/tests/t_certauth.py b/src/tests/t_certauth.py
+index e64a57b0d..9c7094525 100644
+--- a/src/tests/t_certauth.py
++++ b/src/tests/t_certauth.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Skip this test if pkinit wasn't built.
+diff --git a/src/tests/t_changepw.py b/src/tests/t_changepw.py
+index 37fe4fce1..211cda6c3 100755
+--- a/src/tests/t_changepw.py
++++ b/src/tests/t_changepw.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # This file is intended to cover any password-changing mechanism.  For
+diff --git a/src/tests/t_crossrealm.py b/src/tests/t_crossrealm.py
+index 4d595dca6..09028bfa7 100755
+--- a/src/tests/t_crossrealm.py
++++ b/src/tests/t_crossrealm.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ #
+diff --git a/src/tests/t_cve-2012-1014.py b/src/tests/t_cve-2012-1014.py
+index e02162d6c..dcff95f6e 100755
+--- a/src/tests/t_cve-2012-1014.py
++++ b/src/tests/t_cve-2012-1014.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ import base64
+ import socket
+ from k5test import *
+diff --git a/src/tests/t_cve-2012-1015.py b/src/tests/t_cve-2012-1015.py
+index e00c4dc90..28b1e619b 100755
+--- a/src/tests/t_cve-2012-1015.py
++++ b/src/tests/t_cve-2012-1015.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ import base64
+ import socket
+ from k5test import *
+diff --git a/src/tests/t_cve-2013-1416.py b/src/tests/t_cve-2013-1416.py
+index 94fb6d5ef..8c4391a86 100755
+--- a/src/tests/t_cve-2013-1416.py
++++ b/src/tests/t_cve-2013-1416.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ from k5test import *
+ 
+ realm = K5Realm()
+diff --git a/src/tests/t_cve-2013-1417.py b/src/tests/t_cve-2013-1417.py
+index c26930a30..ce47d21ca 100755
+--- a/src/tests/t_cve-2013-1417.py
++++ b/src/tests/t_cve-2013-1417.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ from k5test import *
+ 
+ realm = K5Realm(realm='TEST')
+diff --git a/src/tests/t_dump.py b/src/tests/t_dump.py
+index 8a9462bd8..2cfeada6c 100755
+--- a/src/tests/t_dump.py
++++ b/src/tests/t_dump.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ from filecmp import cmp
+ 
+diff --git a/src/tests/t_errmsg.py b/src/tests/t_errmsg.py
+index c9ae6637f..4aacf4e0a 100755
+--- a/src/tests/t_errmsg.py
++++ b/src/tests/t_errmsg.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_kdb=False)
+diff --git a/src/tests/t_etype_info.py b/src/tests/t_etype_info.py
+index b2eb0f7af..b12fb53c8 100644
+--- a/src/tests/t_etype_info.py
++++ b/src/tests/t_etype_info.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ supported_enctypes = 'aes128-cts des3-cbc-sha1 rc4-hmac des-cbc-crc:afs3'
+diff --git a/src/tests/t_general.py b/src/tests/t_general.py
+index 91ad0cb8a..96ba8a4b0 100755
+--- a/src/tests/t_general.py
++++ b/src/tests/t_general.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ for realm in multipass_realms(create_host=False):
+diff --git a/src/tests/t_hooks.py b/src/tests/t_hooks.py
+index 58dff3ae7..4fd3822e8 100755
+--- a/src/tests/t_hooks.py
++++ b/src/tests/t_hooks.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Test that KDC send and recv hooks work correctly.
+diff --git a/src/tests/t_hostrealm.py b/src/tests/t_hostrealm.py
+index 224c067ef..256ba2a38 100755
+--- a/src/tests/t_hostrealm.py
++++ b/src/tests/t_hostrealm.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ plugin = os.path.join(buildtop, "plugins", "hostrealm", "test",
+diff --git a/src/tests/t_iprop.py b/src/tests/t_iprop.py
+index 8e23cd5de..9cbeb3e68 100755
+--- a/src/tests/t_iprop.py
++++ b/src/tests/t_iprop.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ import os
+ import re
+ 
+diff --git a/src/tests/t_kadm5_auth.py b/src/tests/t_kadm5_auth.py
+index ba4ab8ef1..6e0f42b08 100644
+--- a/src/tests/t_kadm5_auth.py
++++ b/src/tests/t_kadm5_auth.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Create a realm with the welcomer and bouncer kadm5_auth test modules
+diff --git a/src/tests/t_kadm5_hook.py b/src/tests/t_kadm5_hook.py
+index c1c8c9419..32fab781d 100755
+--- a/src/tests/t_kadm5_hook.py
++++ b/src/tests/t_kadm5_hook.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ plugin = os.path.join(buildtop, "plugins", "kadm5_hook", "test",
+diff --git a/src/tests/t_kadmin_acl.py b/src/tests/t_kadmin_acl.py
+index 42bdf423c..01a3eda29 100755
+--- a/src/tests/t_kadmin_acl.py
++++ b/src/tests/t_kadmin_acl.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import os
+ 
+diff --git a/src/tests/t_kadmin_parsing.py b/src/tests/t_kadmin_parsing.py
+index 8de387c64..bebb01488 100644
+--- a/src/tests/t_kadmin_parsing.py
++++ b/src/tests/t_kadmin_parsing.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # This file contains tests for kadmin command parsing.  Principal
+diff --git a/src/tests/t_kdb.py b/src/tests/t_kdb.py
+index 6e563b103..983cd93c8 100755
+--- a/src/tests/t_kdb.py
++++ b/src/tests/t_kdb.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import time
+ from itertools import imap
+diff --git a/src/tests/t_kdb_locking.py b/src/tests/t_kdb_locking.py
+index aac0a220f..b5afd6d23 100755
+--- a/src/tests/t_kdb_locking.py
++++ b/src/tests/t_kdb_locking.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # This is a regression test for
+ # https://bugzilla.redhat.com/show_bug.cgi?id=586032 .
+ #
+diff --git a/src/tests/t_kdc_log.py b/src/tests/t_kdc_log.py
+index 8ddb7691b..1b14828de 100755
+--- a/src/tests/t_kdc_log.py
++++ b/src/tests/t_kdc_log.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ from k5test import *
+ 
+ # Make a TGS request with an expired ticket.
+diff --git a/src/tests/t_kdcpolicy.py b/src/tests/t_kdcpolicy.py
+index 5b198bb43..a44adfdb5 100644
+--- a/src/tests/t_kdcpolicy.py
++++ b/src/tests/t_kdcpolicy.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ from datetime import datetime
+ import re
+diff --git a/src/tests/t_keydata.py b/src/tests/t_keydata.py
+index 5c04a8523..b37233b21 100755
+--- a/src/tests/t_keydata.py
++++ b/src/tests/t_keydata.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ realm = K5Realm(create_user=False, create_host=False)
+diff --git a/src/tests/t_keyrollover.py b/src/tests/t_keyrollover.py
+index bfd38914b..7c8d828f0 100755
+--- a/src/tests/t_keyrollover.py
++++ b/src/tests/t_keyrollover.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ rollover_krb5_conf = {'libdefaults': {'allow_weak_crypto': 'true'}}
+diff --git a/src/tests/t_keytab.py b/src/tests/t_keytab.py
+index a48740ba5..228c36334 100755
+--- a/src/tests/t_keytab.py
++++ b/src/tests/t_keytab.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ for realm in multipass_realms(create_user=False):
+diff --git a/src/tests/t_kprop.py b/src/tests/t_kprop.py
+index 39169675d..f352ec8d7 100755
+--- a/src/tests/t_kprop.py
++++ b/src/tests/t_kprop.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ conf_slave = {'dbmodules': {'db': {'database_name': '$testdir/db.slave'}}}
+diff --git a/src/tests/t_localauth.py b/src/tests/t_localauth.py
+index aa625d038..ebc9cdfde 100755
+--- a/src/tests/t_localauth.py
++++ b/src/tests/t_localauth.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Unfortunately, we can't reliably test the k5login module.  We can control
+diff --git a/src/tests/t_mkey.py b/src/tests/t_mkey.py
+index 615cd91ca..48a533059 100755
+--- a/src/tests/t_mkey.py
++++ b/src/tests/t_mkey.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import random
+ import re
+diff --git a/src/tests/t_otp.py b/src/tests/t_otp.py
+index 9b18ff94b..0fd35d576 100755
+--- a/src/tests/t_otp.py
++++ b/src/tests/t_otp.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-#
+ # Author: Nathaniel McCallum <npmccallum@redhat.com>
+ #
+ # Copyright (c) 2013 Red Hat, Inc.
+diff --git a/src/tests/t_pkinit.py b/src/tests/t_pkinit.py
+index 0e964c689..850db4fdd 100755
+--- a/src/tests/t_pkinit.py
++++ b/src/tests/t_pkinit.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Skip this test if pkinit wasn't built.
+diff --git a/src/tests/t_policy.py b/src/tests/t_policy.py
+index 26c4e466e..eb3865d7c 100755
+--- a/src/tests/t_policy.py
++++ b/src/tests/t_policy.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import re
+ 
+diff --git a/src/tests/t_preauth.py b/src/tests/t_preauth.py
+index 32e35b08b..f597c3d08 100644
+--- a/src/tests/t_preauth.py
++++ b/src/tests/t_preauth.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Test that the kdcpreauth client_keyblock() callback matches the key
+diff --git a/src/tests/t_princflags.py b/src/tests/t_princflags.py
+index 6378ef94f..aa3660217 100755
+--- a/src/tests/t_princflags.py
++++ b/src/tests/t_princflags.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ from princflags import *
+ import re
+diff --git a/src/tests/t_proxy.py b/src/tests/t_proxy.py
+index 4e86fce8f..ff1929bef 100755
+--- a/src/tests/t_proxy.py
++++ b/src/tests/t_proxy.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Skip this test if we're missing proxy functionality or parts of the proxy.
+@@ -62,7 +61,8 @@ def start_proxy(realm, keycertpem):
+     conf.write('kpasswd = kpasswd://localhost:%d\n' % (realm.portbase + 2))
+     conf.close()
+     realm.env['KDCPROXY_CONFIG'] = proxy_conf_path
+-    cmd = [proxy_exec_path, str(realm.server_port()), keycertpem]
++    cmd = [sys.executable, proxy_exec_path, str(realm.server_port()),
++           keycertpem]
+     return realm.start_server(cmd, sentinel='proxy server ready')
+ 
+ # Fail: untrusted issuer and hostname doesn't match.
+diff --git a/src/tests/t_pwqual.py b/src/tests/t_pwqual.py
+index 011110bd1..171805697 100755
+--- a/src/tests/t_pwqual.py
++++ b/src/tests/t_pwqual.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ plugin = os.path.join(buildtop, "plugins", "pwqual", "test", "pwqual_test.so")
+diff --git a/src/tests/t_rdreq.py b/src/tests/t_rdreq.py
+index f67c34866..00cd5cbb4 100755
+--- a/src/tests/t_rdreq.py
++++ b/src/tests/t_rdreq.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ conf = {'realms': {'$realm': {'supported_enctypes': 'aes256-cts aes128-cts'}}}
+diff --git a/src/tests/t_referral.py b/src/tests/t_referral.py
+index e12fdc2e9..2f29d5712 100755
+--- a/src/tests/t_referral.py
++++ b/src/tests/t_referral.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Create a pair of realms, where KRBTEST1.COM can authenticate to
+diff --git a/src/tests/t_renew.py b/src/tests/t_renew.py
+index 034190c80..67b4182fd 100755
+--- a/src/tests/t_renew.py
++++ b/src/tests/t_renew.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ from datetime import datetime
+ import re
+diff --git a/src/tests/t_renprinc.py b/src/tests/t_renprinc.py
+index cc780839a..46cbed441 100755
+--- a/src/tests/t_renprinc.py
++++ b/src/tests/t_renprinc.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ 
+diff --git a/src/tests/t_salt.py b/src/tests/t_salt.py
+index ddb1905ed..278911a22 100755
+--- a/src/tests/t_salt.py
++++ b/src/tests/t_salt.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import re
+ 
+diff --git a/src/tests/t_sesskeynego.py b/src/tests/t_sesskeynego.py
+index 732c306ea..448092387 100755
+--- a/src/tests/t_sesskeynego.py
++++ b/src/tests/t_sesskeynego.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ import re
+ 
+diff --git a/src/tests/t_skew.py b/src/tests/t_skew.py
+index f2ae06695..36d5a95c5 100755
+--- a/src/tests/t_skew.py
++++ b/src/tests/t_skew.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Create a realm with the KDC one hour in the past.
+diff --git a/src/tests/t_sn2princ.py b/src/tests/t_sn2princ.py
+index 19a0d2fa7..e2c85e665 100755
+--- a/src/tests/t_sn2princ.py
++++ b/src/tests/t_sn2princ.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ offline = (len(args) > 0 and args[0] != "no")
+diff --git a/src/tests/t_spake.py b/src/tests/t_spake.py
+index 5b47e62d3..65af46d18 100644
+--- a/src/tests/t_spake.py
++++ b/src/tests/t_spake.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # The name and number of each supported SPAKE group.
+diff --git a/src/tests/t_stringattr.py b/src/tests/t_stringattr.py
+index 5672a0f20..c2dc348e9 100755
+--- a/src/tests/t_stringattr.py
++++ b/src/tests/t_stringattr.py
+@@ -1,5 +1,3 @@
+-#!/usr/bin/python
+-
+ # Copyright (C) 2011 by the Massachusetts Institute of Technology.
+ # All rights reserved.
+ 
+diff --git a/src/tests/t_tabdump.py b/src/tests/t_tabdump.py
+index 066e48418..2a86136dd 100755
+--- a/src/tests/t_tabdump.py
++++ b/src/tests/t_tabdump.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ import csv
+diff --git a/src/tests/t_unlockiter.py b/src/tests/t_unlockiter.py
+index 2a438e99a..603cf721d 100755
+--- a/src/tests/t_unlockiter.py
++++ b/src/tests/t_unlockiter.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # Default KDB iteration is locked.  Expect write lock failure unless
+diff --git a/src/tests/t_y2038.py b/src/tests/t_y2038.py
+index 02e946df4..42a4ff7ed 100644
+--- a/src/tests/t_y2038.py
++++ b/src/tests/t_y2038.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ from k5test import *
+ 
+ # These tests will become much less important after the y2038 boundary
+diff --git a/src/util/paste-kdcproxy.py b/src/util/paste-kdcproxy.py
+index 1e56b8954..30467fd74 100755
+--- a/src/util/paste-kdcproxy.py
++++ b/src/util/paste-kdcproxy.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/python
+ import kdcproxy
+ from paste import httpserver
+ import os

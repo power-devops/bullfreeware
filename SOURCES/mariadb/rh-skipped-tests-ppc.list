@@ -1,0 +1,21 @@
+# 10.2.12 & 10.2.13 after some uninedtified Rawhide (and the forked f28) buildroot change
+# failed: 1045: Access denied for user '.....'@'localhost' (using password: YES)
+innodb.temporary_table_optimization :
+
+main.derived_cond_pushdown :
+main.ps :
+
+# From 10.3.9 on ppc64le
+encryption.create_or_replace :
+main.select :
+main.select_jcl6 :
+main.select_pkeycache :
+main.sp :
+main.type_float :
+main.type_newdecimal :
+main.type_ranges :
+
+# 10.3.10
+parts.partition_alter1_2_innodb :
+parts.partition_alter1_1_2_innodb :
+innodb.innodb_defrag_concurrent :

@@ -1,0 +1,11 @@
+--- old/gcc/go/go-backend.c	2016-01-04 15:30:50 +0100
++++ new/gcc/go/go-backend.c	2016-09-27 17:03:44 +0200
+@@ -113,7 +113,7 @@
+   if (sec == NULL)
+     {
+       gcc_assert (targetm_common.have_named_sections);
+-      sec = get_section (GO_EXPORT_SECTION_NAME, SECTION_DEBUG, NULL);
++      sec = get_section (GO_EXPORT_SECTION_NAME, SECTION_EXCLUDE, NULL);
+     }
+ 
+   switch_to_section (sec);

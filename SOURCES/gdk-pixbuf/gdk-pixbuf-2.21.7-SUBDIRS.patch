@@ -1,0 +1,198 @@
+Index: gdk-pixbuf-2.21.7/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/Makefile.in	2010-09-10 15:03:40.000000000 +0200
++++ gdk-pixbuf-2.21.7/Makefile.in	2015-10-08 15:48:08.000000000 +0200
+@@ -902,6 +902,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -913,6 +915,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/contrib/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/contrib/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/contrib/Makefile.in	2015-10-08 15:48:18.000000000 +0200
+@@ -674,6 +674,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -685,6 +687,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/contrib/gdk-pixbuf-xlib/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/contrib/gdk-pixbuf-xlib/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/contrib/gdk-pixbuf-xlib/Makefile.in	2015-10-08 15:48:40.000000000 +0200
+@@ -744,6 +744,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -755,6 +757,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/docs/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/docs/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/docs/Makefile.in	2015-10-08 15:48:58.000000000 +0200
+@@ -673,6 +673,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -684,6 +686,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/docs/reference/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/docs/reference/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/docs/reference/Makefile.in	2015-10-08 15:49:20.000000000 +0200
+@@ -674,6 +674,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -685,6 +687,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/docs/reference/gdk-pixbuf/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/docs/reference/gdk-pixbuf/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/docs/reference/gdk-pixbuf/Makefile.in	2015-10-08 15:49:33.000000000 +0200
+@@ -687,6 +687,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -698,6 +700,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/gdk-pixbuf/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/gdk-pixbuf/Makefile.in	2010-09-10 15:03:39.000000000 +0200
++++ gdk-pixbuf-2.21.7/gdk-pixbuf/Makefile.in	2015-10-08 15:49:49.000000000 +0200
+@@ -2236,6 +2236,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -2247,6 +2249,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/gdk-pixbuf/pixops/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/gdk-pixbuf/pixops/Makefile.in	2010-09-10 15:03:40.000000000 +0200
++++ gdk-pixbuf-2.21.7/gdk-pixbuf/pixops/Makefile.in	2015-10-08 15:50:03.000000000 +0200
+@@ -682,6 +682,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -693,6 +695,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \
+Index: gdk-pixbuf-2.21.7/tests/Makefile.in
+===================================================================
+--- gdk-pixbuf-2.21.7.orig/tests/Makefile.in	2010-09-10 15:03:40.000000000 +0200
++++ gdk-pixbuf-2.21.7/tests/Makefile.in	2015-10-08 15:50:16.000000000 +0200
+@@ -654,6 +654,8 @@
+ # call as: $(XVFB_START) && someprogram
+ 
+ # test: run all tests in cwd and subdirs
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test:	${TEST_PROGS}
+ 	@$(SKIP_GDKTARGET) || test -z "${TEST_PROGS}" || { \
+ 	  $(XVFB_START) && { set -e; ${GTESTER} --verbose ${TEST_PROGS}; }; \
+@@ -665,6 +667,8 @@
+ # test-report: run tests in subdirs and generate report
+ # perf-report: run tests in subdirs with -m perf and generate report
+ # full-report: like test-report: with -m perf and -m slow
++.ONESHELL:
++SHELL = /usr/bin/bash
+ test-report perf-report full-report:	${TEST_PROGS}
+ 	@ ignore_logdir=true ; \
+ 	  if test -z "$$GTESTER_LOGDIR" ; then \

@@ -1,0 +1,35 @@
+*** ./p11-kit/debug.h.ORIG	Tue Nov 22 11:49:27 2011
+--- ./p11-kit/debug.h	Tue Nov 22 11:50:03 2011
+***************
+*** 76,82 ****
+  #undef _p11_debug
+  #define _p11_debug(format, ...) do { \
+  	if (DEBUG_FLAG & _p11_debug_current_flags) \
+! 		_p11_debug_message (DEBUG_FLAG, "%s: " format, __PRETTY_FUNCTION__, ##__VA_ARGS__); \
+  	} while (0)
+  
+  #undef _p11_debugging
+--- 76,82 ----
+  #undef _p11_debug
+  #define _p11_debug(format, ...) do { \
+  	if (DEBUG_FLAG & _p11_debug_current_flags) \
+! 		_p11_debug_message (DEBUG_FLAG, "%s: " format, __FUNCTION__, ##__VA_ARGS__); \
+  	} while (0)
+  
+  #undef _p11_debugging
+*** ./common/compat.c.ORIG	Mon Sep 17 18:58:39 2012
+--- ./common/compat.c	Mon Sep 17 20:30:58 2012
+***************
+*** 65,71 ****
+--- 65,75 ----
+  #elif defined (HAVE_PROGRAM_INVOCATION_SHORT_NAME)
+  	name = program_invocation_short_name;
+  #elif defined (HAVE___PROGNAME)
++ #ifdef _AIX
++         strcpy( name, "p11-kit-0.14" );
++ #else
+  	name = __progname;
++ #endif
+  #else
+  	#error No way to retrieve short program name
+  #endif

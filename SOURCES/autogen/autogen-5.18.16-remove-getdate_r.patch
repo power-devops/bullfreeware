@@ -1,0 +1,38 @@
+From dd0a68aab1d8973c476710e458fea44269d49022 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Jun 2021 16:45:01 +0200
+Subject: [PATCH] remove getdate_r
+
+---
+ autoopts/time.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/autoopts/time.c b/autoopts/time.c
+index debaa7a..d218643 100644
+--- a/autoopts/time.c
++++ b/autoopts/time.c
+@@ -106,10 +106,10 @@ optionTimeDate(tOptions * opts, tOptDesc * od)
+      *  Convert the date to a time since the epoch and stash it in a long int.
+      */
+     {
+-        struct tm stm;
++        struct tm *stm;
+         time_t tm;
+ 
+-        if (getdate_r(od->optArg.argString, &stm) != 0) {
++        if ((stm = getdate(od->optArg.argString)) != 0) {
+             fprintf(stderr, zNotDate, opts->pzProgName,
+                     od->optArg.argString);
+             if ((opts->fOptSet & OPTPROC_ERRSTOP) != 0)
+@@ -117,7 +117,7 @@ optionTimeDate(tOptions * opts, tOptDesc * od)
+             return;
+         }
+ 
+-        tm = mktime(&stm);
++        tm = mktime(stm);
+ 
+         if (od->fOptState & OPTST_ALLOC_ARG) {
+             AGFREE(od->optArg.argString);
+-- 
+2.31.1
+

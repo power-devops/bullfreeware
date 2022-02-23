@@ -1,0 +1,82 @@
+--- ./unix/tcl.m4.orig	2020-11-05 16:42:15 +0100
++++ ./unix/tcl.m4	2019-11-20 20:56:52 +0100
+@@ -1168,7 +1168,7 @@
+ 		LD_SEARCH_FLAGS='-R ${LIB_RUNTIME_DIR}'
+ 	    ], [
+ 		AS_IF([test "$GCC" = yes], [
++		    SHLIB_LD='${CC} -shared'
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
+ 		], [
+ 		    SHLIB_LD="/bin/ld -bhalt:4 -bM:SRE -bexpall -H512 -T512 -bnoentry"
+ 		    LDFLAGS="$LDFLAGS -brtl"
+@@ -1178,6 +1178,8 @@
+ 		CC_SEARCH_FLAGS='-L${LIB_RUNTIME_DIR}'
+ 		LD_SEARCH_FLAGS=${CC_SEARCH_FLAGS}
+ 	    ])
++		SHARED_LIB_SUFFIX='.so.${VERSION}'
++		UNSHARED_LIB_SUFFIX='.a'
+ 	    ;;
+ 	BeOS*)
+ 	    SHLIB_CFLAGS="-fPIC"
+--- ./unix/configure.orig	2020-11-06 15:08:53 +0100
++++ ./unix/configure	2020-11-06 15:09:36 +0100
+@@ -4576,7 +4576,7 @@
+ 
+ 		if test "$GCC" = yes; then
+ 
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
++		    SHLIB_LD='${CC} -shared'
+ 
+ else
+ 
+@@ -4591,6 +4591,8 @@
+ 		LD_SEARCH_FLAGS=${CC_SEARCH_FLAGS}
+ 
+ fi
++		SHARED_LIB_SUFFIX='.so.${VERSION}'
++		UNSHARED_LIB_SUFFIX='.a'
+ 
+ 	    ;;
+ 	BeOS*)
+--- ./unix/configure.orig	2020-11-06 15:14:58 +0100
++++ ./unix/configure	2020-11-06 15:15:47 +0100
+@@ -11056,6 +11056,10 @@
+ 	TK_LIB_FLAG="-ltk`echo ${TK_VERSION} | tr -d .`"
+ 	TK_BUILD_LIB_SPEC="-L\$(TOP_DIR)/win ${TK_LIB_FLAG}"
+     else
++    if test "`uname -s`" = "AIX"; then
++        TK_LIB_FLAG="-ltk"
++        TK_BUILD_LIB_SPEC="-L`pwd | sed -e 's/ /\\\\ /g'` ${TK_LIB_FLAG}"
++    else
+ 	if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
+ 	    TK_LIB_FLAG="-ltk${TK_VERSION}"
+ 	else
+@@ -11065,6 +11068,7 @@
+     fi
+     TK_LIB_SPEC="-L${libdir} ${TK_LIB_FLAG}"
+ fi
++fi
+ 
+ #--------------------------------------------------------------------
+ #       The statements below define various symbols relating to Tk
+--- ./unix/configure.in.orig	2020-11-06 15:12:39 +0100
++++ ./unix/configure.in	2020-11-06 15:14:48 +0100
+@@ -746,6 +746,10 @@
+ 	TK_LIB_FLAG="-ltk`echo ${TK_VERSION} | tr -d .`"
+ 	TK_BUILD_LIB_SPEC="-L\$(TOP_DIR)/win ${TK_LIB_FLAG}"
+     else
++    if test "`uname -s`" = "AIX"; then
++        TK_LIB_FLAG="-ltk"
++        TK_BUILD_LIB_SPEC="-L`pwd | sed -e 's/ /\\\\ /g'` ${TK_LIB_FLAG}"
++    else
+ 	if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
+ 	    TK_LIB_FLAG="-ltk${TK_VERSION}"
+ 	else
+@@ -755,6 +758,7 @@
+     fi
+     TK_LIB_SPEC="-L${libdir} ${TK_LIB_FLAG}"
+ fi
++fi
+ 
+ #--------------------------------------------------------------------
+ #       The statements below define various symbols relating to Tk

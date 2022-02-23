@@ -1,0 +1,14 @@
+--- ../sapi/fpm/tests/bug80024-socket-reduced-inherit.phpt.orig	2021-10-11 09:44:07.238253190 +0000
++++ ../sapi/fpm/tests/bug80024-socket-reduced-inherit.phpt	2021-10-11 09:45:10.822205607 +0000
+@@ -1,7 +1,10 @@
+ --TEST--
+ FPM: bug80024 - Duplication of info about inherited socket after pool removing
+ --SKIPIF--
+-<?php include "skipif.inc"; ?>
++<?php
++ include "skipif.inc";
++ if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') die("skip This tests hang on AIX");
++ ?>
+ --FILE--
+ <?php
+ 

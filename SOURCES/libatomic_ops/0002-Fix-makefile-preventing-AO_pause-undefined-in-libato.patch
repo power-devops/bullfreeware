@@ -1,0 +1,26 @@
+From c634636a66f3afd885b30d0287c78a8b223a4c19 Mon Sep 17 00:00:00 2001
+From: Pavel Raiskup <praiskup@redhat.com>
+Date: Tue, 13 May 2014 13:46:23 +0200
+Subject: [PATCH 02/20] Fix makefile preventing AO_pause undefined in
+ libatomic_ops_gpl
+
+* src/Makefile.am (libatomic_ops_gpl_la_LIBADD): New dependency.
+---
+ src/Makefile.am | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 7d586e9..d2cf718 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -12,6 +12,7 @@ libatomic_ops_la_LDFLAGS = -version-info 1:3:0 -no-undefined
+ 
+ libatomic_ops_gpl_la_SOURCES = atomic_ops_stack.c atomic_ops_malloc.c
+ libatomic_ops_gpl_la_LDFLAGS = -version-info 1:3:0 -no-undefined
++libatomic_ops_gpl_la_LIBADD = libatomic_ops.la
+ 
+ EXTRA_DIST = Makefile.msft atomic_ops/sysdeps/README \
+         atomic_ops/generalize-arithm.template \
+-- 
+1.9.3
+

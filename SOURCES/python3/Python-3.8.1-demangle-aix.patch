@@ -1,0 +1,11 @@
+--- ./Modules/makexp_aix_orig	2019-11-07 19:01:58 +0000
++++ ./Modules/makexp_aix	2019-11-07 19:02:32 +0000
+@@ -72,7 +72,7 @@
+ #
+ 
+ # Use -X32_64 if it appears to be implemented in this version of 'nm'.
+-NM=/usr/ccs/bin/nm
++NM="/usr/ccs/bin/nm -C"
+ xopt=-X32_64
+ $NM -e $xopt $1 >/dev/null 2>&1 || xopt=""
+ 

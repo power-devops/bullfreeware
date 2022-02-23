@@ -1,0 +1,297 @@
+From 51d29b8cacd75865a9ffc46cffffe1e47c33ccff Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 11 Jun 2021 11:00:56 +0200
+Subject: [PATCH] objdump: add DWARF support for AIX
+
+DWARF sections have special names on AIX which need be handled
+by objdump in order to correctly print them.
+This patch also adds the correlation in bfd for future uses.
+
+bfd/
+	* libxcoff.h (struct xcoff_dwsect_name): Add DWARF name.
+	* coff-rs6000.c (xcoff_dwsect_names): Update.
+	* coffcode.h (sec_to_styp_flags): Likewise.
+	(coff_new_section_hook): Likewise.
+binutils/
+	* dwarf.h (struct dwarf_section): Add XCOFF name.
+	* dwarf.c (struct dwarf_section_display): Update.
+	* objdump.c (load_debug_section): Add XCOFF name handler.
+	(dump_dwarf_section): Likewise.
+gas/
+	* config/tc-ppc.c (ppc_change_debug_section): Update to
+	match new name's field.
+---
+ bfd/ChangeLog       |  7 ++++
+ bfd/coff-rs6000.c   | 26 +++++++------
+ bfd/coffcode.h      |  4 +-
+ bfd/libxcoff.h      |  5 ++-
+ binutils/ChangeLog  |  7 ++++
+ binutils/dwarf.c    | 90 ++++++++++++++++++++++-----------------------
+ binutils/dwarf.h    |  4 +-
+ binutils/objdump.c  | 14 +++++--
+ gas/ChangeLog       |  5 +++
+ gas/config/tc-ppc.c |  2 +-
+ 10 files changed, 99 insertions(+), 65 deletions(-)
+
+diff --git a/bfd/coff-rs6000.c b/bfd/coff-rs6000.c
+index a1c62d4e679..689f9f5b37a 100644
+--- a/bfd/coff-rs6000.c
++++ b/bfd/coff-rs6000.c
+@@ -4265,20 +4265,22 @@ static const unsigned long xcoff_glink_code[9] =
+     0x00000000,	/* traceback table */
+   };
+ 
+-/* Table to convert DWARF flags to section names.  */
++/* Table to convert DWARF flags to section names.
++   Remember to update binutils/dwarf.c:debug_displays
++   if new DWARF sections are supported by XCOFF.  */
+ 
+ const struct xcoff_dwsect_name xcoff_dwsect_names[] = {
+-  { SSUBTYP_DWINFO,  ".dwinfo",   true },
+-  { SSUBTYP_DWLINE,  ".dwline",   true },
+-  { SSUBTYP_DWPBNMS, ".dwpbnms",  true },
+-  { SSUBTYP_DWPBTYP, ".dwpbtyp",  true },
+-  { SSUBTYP_DWARNGE, ".dwarnge",  true },
+-  { SSUBTYP_DWABREV, ".dwabrev",  false },
+-  { SSUBTYP_DWSTR,   ".dwstr",    true },
+-  { SSUBTYP_DWRNGES, ".dwrnges",  true },
+-  { SSUBTYP_DWLOC,   ".dwloc",    true },
+-  { SSUBTYP_DWFRAME, ".dwframe",  true },
+-  { SSUBTYP_DWMAC,   ".dwmac",    true }
++  { SSUBTYP_DWINFO,  ".dwinfo",  ".debug_info",     true },
++  { SSUBTYP_DWLINE,  ".dwline",  ".debug_line",     true },
++  { SSUBTYP_DWPBNMS, ".dwpbnms", ".debug_pubnames", true },
++  { SSUBTYP_DWPBTYP, ".dwpbtyp", ".debug_pubtypes", true },
++  { SSUBTYP_DWARNGE, ".dwarnge", ".debug_aranges",  true },
++  { SSUBTYP_DWABREV, ".dwabrev", ".debug_abbrev",   false },
++  { SSUBTYP_DWSTR,   ".dwstr",   ".debug_str",      true },
++  { SSUBTYP_DWRNGES, ".dwrnges", ".debug_ranges",   true },
++  { SSUBTYP_DWLOC,   ".dwloc",   ".debug_loc",      true },
++  { SSUBTYP_DWFRAME, ".dwframe", ".debug_frame",    true },
++  { SSUBTYP_DWMAC,   ".dwmac",   ".debug_macro",    true }
+ };
+ 
+ /* For generic entry points.  */
+diff --git a/bfd/coffcode.h b/bfd/coffcode.h
+index f65f3352e46..9b8798c8631 100644
+--- a/bfd/coffcode.h
++++ b/bfd/coffcode.h
+@@ -577,7 +577,7 @@ sec_to_styp_flags (const char *sec_name, flagword sec_flags)
+       int i;
+ 
+       for (i = 0; i < XCOFF_DWSECT_NBR_NAMES; i++)
+-	if (!strcmp (sec_name, xcoff_dwsect_names[i].name))
++	if (!strcmp (sec_name, xcoff_dwsect_names[i].xcoff_name))
+ 	  {
+ 	    styp_flags = STYP_DWARF | xcoff_dwsect_names[i].flag;
+ 	    break;
+@@ -1809,7 +1809,7 @@ coff_new_section_hook (bfd * abfd, asection * section)
+ 
+       for (i = 0; i < XCOFF_DWSECT_NBR_NAMES; i++)
+ 	if (strcmp (bfd_section_name (section),
+-		    xcoff_dwsect_names[i].name) == 0)
++		    xcoff_dwsect_names[i].xcoff_name) == 0)
+ 	  {
+ 	    section->alignment_power = 0;
+ 	    sclass = C_DWARF;
+diff --git a/bfd/libxcoff.h b/bfd/libxcoff.h
+index 2eeb503d548..4556a38bc15 100644
+--- a/bfd/libxcoff.h
++++ b/bfd/libxcoff.h
+@@ -244,7 +244,10 @@ struct xcoff_dwsect_name {
+   unsigned int flag;
+ 
+   /* Corresponding XCOFF section name.  */
+-  const char *name;
++  const char *xcoff_name;
++
++  /* Corresponding DWARF section name.  */
++  const char *dwarf_name;
+ 
+   /* True if size must be prepended.  */
+   bool def_size;
+diff --git a/binutils/dwarf.c b/binutils/dwarf.c
+index fbd5d6aea5a..bd030f3eb7e 100644
+--- a/binutils/dwarf.c
++++ b/binutils/dwarf.c
+@@ -11678,53 +11678,53 @@ dwarf_select_sections_all (void)
+ 
+ struct dwarf_section_display debug_displays[] =
+ {
+-  { { ".debug_abbrev",	    ".zdebug_abbrev",	NO_ABBREVS },      display_debug_abbrev,   &do_debug_abbrevs,	false },
+-  { { ".debug_aranges",	    ".zdebug_aranges",	NO_ABBREVS },      display_debug_aranges,  &do_debug_aranges,	true },
+-  { { ".debug_frame",       ".zdebug_frame",	NO_ABBREVS },      display_debug_frames,   &do_debug_frames,	true },
+-  { { ".debug_info",	    ".zdebug_info",	ABBREV (abbrev)},  display_debug_info,	   &do_debug_info,	true },
+-  { { ".debug_line",	    ".zdebug_line",	NO_ABBREVS },      display_debug_lines,    &do_debug_lines,	true },
+-  { { ".debug_pubnames",    ".zdebug_pubnames",	NO_ABBREVS },      display_debug_pubnames, &do_debug_pubnames,	false },
+-  { { ".debug_gnu_pubnames", ".zdebug_gnu_pubnames", NO_ABBREVS }, display_debug_gnu_pubnames, &do_debug_pubnames, false },
+-  { { ".eh_frame",	    "",			NO_ABBREVS },      display_debug_frames,   &do_debug_frames,	true },
+-  { { ".debug_macinfo",	    ".zdebug_macinfo",	NO_ABBREVS },      display_debug_macinfo,  &do_debug_macinfo,	false },
+-  { { ".debug_macro",	    ".zdebug_macro",	NO_ABBREVS },      display_debug_macro,    &do_debug_macinfo,	true },
+-  { { ".debug_str",	    ".zdebug_str",	NO_ABBREVS },      display_debug_str,	   &do_debug_str,	false },
+-  { { ".debug_line_str",    ".zdebug_line_str",	NO_ABBREVS },      display_debug_str,	   &do_debug_str,	false },
+-  { { ".debug_loc",	    ".zdebug_loc",	NO_ABBREVS },      display_debug_loc,	   &do_debug_loc,	true },
+-  { { ".debug_loclists",    ".zdebug_loclists",	NO_ABBREVS },      display_debug_loc,	   &do_debug_loc,	true },
+-  { { ".debug_pubtypes",    ".zdebug_pubtypes",	NO_ABBREVS },      display_debug_pubnames, &do_debug_pubtypes,	false },
+-  { { ".debug_gnu_pubtypes", ".zdebug_gnu_pubtypes", NO_ABBREVS }, display_debug_gnu_pubnames, &do_debug_pubtypes, false },
+-  { { ".debug_ranges",	    ".zdebug_ranges",	NO_ABBREVS },      display_debug_ranges,   &do_debug_ranges,	true },
+-  { { ".debug_rnglists",    ".zdebug_rnglists",	NO_ABBREVS },      display_debug_ranges,   &do_debug_ranges,	true },
+-  { { ".debug_static_func", ".zdebug_static_func", NO_ABBREVS },   display_debug_not_supported, NULL,		false },
+-  { { ".debug_static_vars", ".zdebug_static_vars", NO_ABBREVS },   display_debug_not_supported, NULL,		false },
+-  { { ".debug_types",	    ".zdebug_types",	ABBREV (abbrev) }, display_debug_types,    &do_debug_info,	true },
+-  { { ".debug_weaknames",   ".zdebug_weaknames", NO_ABBREVS },     display_debug_not_supported, NULL,		false },
+-  { { ".gdb_index",	    "",			NO_ABBREVS },      display_gdb_index,      &do_gdb_index,	false },
+-  { { ".debug_names",	    "",			NO_ABBREVS },      display_debug_names,    &do_gdb_index,	false },
+-  { { ".trace_info",	    "",			ABBREV (trace_abbrev) }, display_trace_info, &do_trace_info,	true },
+-  { { ".trace_abbrev",	    "",			NO_ABBREVS },      display_debug_abbrev,   &do_trace_abbrevs,	false },
+-  { { ".trace_aranges",	    "",			NO_ABBREVS },      display_debug_aranges,  &do_trace_aranges,	false },
+-  { { ".debug_info.dwo",    ".zdebug_info.dwo",	ABBREV (abbrev_dwo) }, display_debug_info, &do_debug_info,	true },
+-  { { ".debug_abbrev.dwo",  ".zdebug_abbrev.dwo", NO_ABBREVS },    display_debug_abbrev,   &do_debug_abbrevs,	false },
+-  { { ".debug_types.dwo",   ".zdebug_types.dwo", ABBREV (abbrev_dwo) }, display_debug_types, &do_debug_info,	true },
+-  { { ".debug_line.dwo",    ".zdebug_line.dwo", NO_ABBREVS },      display_debug_lines,    &do_debug_lines,	true },
+-  { { ".debug_loc.dwo",	    ".zdebug_loc.dwo",	NO_ABBREVS },      display_debug_loc,	   &do_debug_loc,	true },
+-  { { ".debug_macro.dwo",   ".zdebug_macro.dwo", NO_ABBREVS },     display_debug_macro,    &do_debug_macinfo,	true },
+-  { { ".debug_macinfo.dwo", ".zdebug_macinfo.dwo", NO_ABBREVS },   display_debug_macinfo,  &do_debug_macinfo,	false },
+-  { { ".debug_str.dwo",     ".zdebug_str.dwo",  NO_ABBREVS },      display_debug_str,      &do_debug_str,	true },
+-  { { ".debug_str_offsets", ".zdebug_str_offsets", NO_ABBREVS },   display_debug_str_offsets, &do_debug_str_offsets, true },
+-  { { ".debug_str_offsets.dwo", ".zdebug_str_offsets.dwo", NO_ABBREVS }, display_debug_str_offsets, &do_debug_str_offsets, true },
+-  { { ".debug_addr",	    ".zdebug_addr",     NO_ABBREVS },      display_debug_addr,     &do_debug_addr,	true },
+-  { { ".debug_cu_index",    "",			NO_ABBREVS },      display_cu_index,       &do_debug_cu_index,	false },
+-  { { ".debug_tu_index",    "",			NO_ABBREVS },      display_cu_index,       &do_debug_cu_index,	false },
+-  { { ".gnu_debuglink",     "",                 NO_ABBREVS },      display_debug_links,    &do_debug_links,     false },
+-  { { ".gnu_debugaltlink",  "",                 NO_ABBREVS },      display_debug_links,    &do_debug_links,     false },
+-  { { ".debug_sup",         "",			NO_ABBREVS },      display_debug_sup,      &do_debug_links,	false },
++  { { ".debug_abbrev",	    ".zdebug_abbrev",	     ".dwabrev", NO_ABBREVS },	    display_debug_abbrev,   &do_debug_abbrevs,	false },
++  { { ".debug_aranges",	    ".zdebug_aranges",	     ".dwarnge", NO_ABBREVS },	    display_debug_aranges,  &do_debug_aranges,	true },
++  { { ".debug_frame",	    ".zdebug_frame",	     ".dwframe", NO_ABBREVS },	    display_debug_frames,   &do_debug_frames,	true },
++  { { ".debug_info",	    ".zdebug_info",	     ".dwinfo",	 ABBREV (abbrev)},  display_debug_info,	    &do_debug_info,	true },
++  { { ".debug_line",	    ".zdebug_line",	     ".dwline",	 NO_ABBREVS },	    display_debug_lines,    &do_debug_lines,	true },
++  { { ".debug_pubnames",    ".zdebug_pubnames",	     ".dwpbnms", NO_ABBREVS },	    display_debug_pubnames, &do_debug_pubnames, false },
++  { { ".debug_gnu_pubnames", ".zdebug_gnu_pubnames", "",	 NO_ABBREVS },	    display_debug_gnu_pubnames, &do_debug_pubnames, false },
++  { { ".eh_frame",	    "",			     "",	 NO_ABBREVS },	    display_debug_frames,   &do_debug_frames,	true },
++  { { ".debug_macinfo",	    ".zdebug_macinfo",	     "",	 NO_ABBREVS },	    display_debug_macinfo,  &do_debug_macinfo,	false },
++  { { ".debug_macro",	    ".zdebug_macro",	     ".dwmac",	 NO_ABBREVS },	    display_debug_macro,    &do_debug_macinfo,	true },
++  { { ".debug_str",	    ".zdebug_str",	     ".dwstr",	 NO_ABBREVS },	    display_debug_str,	    &do_debug_str,	false },
++  { { ".debug_line_str",    ".zdebug_line_str",	     "",	 NO_ABBREVS },	    display_debug_str,	    &do_debug_str,	false },
++  { { ".debug_loc",	    ".zdebug_loc",	     ".dwloc",	 NO_ABBREVS },	    display_debug_loc,	    &do_debug_loc,	true },
++  { { ".debug_loclists",    ".zdebug_loclists",	     "",	 NO_ABBREVS },	    display_debug_loc,	    &do_debug_loc,	true },
++  { { ".debug_pubtypes",    ".zdebug_pubtypes",	     ".dwpbtyp", NO_ABBREVS },	    display_debug_pubnames, &do_debug_pubtypes, false },
++  { { ".debug_gnu_pubtypes", ".zdebug_gnu_pubtypes", "",	 NO_ABBREVS },	    display_debug_gnu_pubnames, &do_debug_pubtypes, false },
++  { { ".debug_ranges",	    ".zdebug_ranges",	     ".dwrnges", NO_ABBREVS },	    display_debug_ranges,   &do_debug_ranges,	true },
++  { { ".debug_rnglists",    ".zdebug_rnglists",	     "",	 NO_ABBREVS },	    display_debug_ranges,   &do_debug_ranges,	true },
++  { { ".debug_static_func", ".zdebug_static_func",   "",	 NO_ABBREVS },	    display_debug_not_supported, NULL,		false },
++  { { ".debug_static_vars", ".zdebug_static_vars",   "",	 NO_ABBREVS },	    display_debug_not_supported, NULL,		false },
++  { { ".debug_types",	    ".zdebug_types",	     "",	 ABBREV (abbrev) }, display_debug_types,    &do_debug_info,	true },
++  { { ".debug_weaknames",   ".zdebug_weaknames",     "",	 NO_ABBREVS },	    display_debug_not_supported, NULL,		false },
++  { { ".gdb_index",	    "",			     "",	 NO_ABBREVS },	    display_gdb_index,	    &do_gdb_index,	false },
++  { { ".debug_names",	    "",			     "",	 NO_ABBREVS },	    display_debug_names,    &do_gdb_index,	false },
++  { { ".trace_info",	    "",			     "",	 ABBREV (trace_abbrev) }, display_trace_info, &do_trace_info,	true },
++  { { ".trace_abbrev",	    "",			     "",	 NO_ABBREVS },	    display_debug_abbrev,   &do_trace_abbrevs,	false },
++  { { ".trace_aranges",	    "",			     "",	 NO_ABBREVS },	    display_debug_aranges,  &do_trace_aranges,	false },
++  { { ".debug_info.dwo",    ".zdebug_info.dwo",	     "",	 ABBREV (abbrev_dwo) }, display_debug_info, &do_debug_info,	true },
++  { { ".debug_abbrev.dwo",  ".zdebug_abbrev.dwo",    "",	 NO_ABBREVS },	  display_debug_abbrev,	    &do_debug_abbrevs,	false },
++  { { ".debug_types.dwo",   ".zdebug_types.dwo",     "",	 ABBREV (abbrev_dwo) }, display_debug_types, &do_debug_info,	true },
++  { { ".debug_line.dwo",    ".zdebug_line.dwo",	     "",	 NO_ABBREVS },	    display_debug_lines,    &do_debug_lines,	true },
++  { { ".debug_loc.dwo",	    ".zdebug_loc.dwo",	     "",	 NO_ABBREVS },	    display_debug_loc,	    &do_debug_loc,	true },
++  { { ".debug_macro.dwo",   ".zdebug_macro.dwo",     "",	 NO_ABBREVS },	    display_debug_macro,    &do_debug_macinfo,	true },
++  { { ".debug_macinfo.dwo", ".zdebug_macinfo.dwo",   "",	 NO_ABBREVS },	    display_debug_macinfo,  &do_debug_macinfo,	false },
++  { { ".debug_str.dwo",	    ".zdebug_str.dwo",	     "",	 NO_ABBREVS },	    display_debug_str,	    &do_debug_str,	true },
++  { { ".debug_str_offsets", ".zdebug_str_offsets",   "",	 NO_ABBREVS },	    display_debug_str_offsets, &do_debug_str_offsets, true },
++  { { ".debug_str_offsets.dwo", ".zdebug_str_offsets.dwo", "",	 NO_ABBREVS },	    display_debug_str_offsets, &do_debug_str_offsets, true },
++  { { ".debug_addr",	    ".zdebug_addr",	     "",	 NO_ABBREVS },	    display_debug_addr,	    &do_debug_addr,	true },
++  { { ".debug_cu_index",    "",			     "",	 NO_ABBREVS },	    display_cu_index,	    &do_debug_cu_index, false },
++  { { ".debug_tu_index",    "",			     "",	 NO_ABBREVS },	    display_cu_index,	    &do_debug_cu_index, false },
++  { { ".gnu_debuglink",	    "",			     "",	 NO_ABBREVS },	    display_debug_links,    &do_debug_links,	false },
++  { { ".gnu_debugaltlink",  "",			     "",	 NO_ABBREVS },	    display_debug_links,    &do_debug_links,	false },
++  { { ".debug_sup",	    "",			     "",	 NO_ABBREVS },	    display_debug_sup,	    &do_debug_links,	false },
+   /* Separate debug info files can containt their own .debug_str section,
+      and this might be in *addition* to a .debug_str section already present
+-     in the main file.  Hence we need to have two entries for .debug_str.  */
+-  { { ".debug_str",	    ".zdebug_str",	NO_ABBREVS },      display_debug_str,	   &do_debug_str,	false },
++     in the main file.	Hence we need to have two entries for .debug_str.  */
++  { { ".debug_str",	    ".zdebug_str",	"",	  NO_ABBREVS },	     display_debug_str,	   &do_debug_str,	false },
+ };
+ 
+ /* A static assertion.  */
+diff --git a/binutils/dwarf.h b/binutils/dwarf.h
+index 887b720f632..dd4f4c8251e 100644
+--- a/binutils/dwarf.h
++++ b/binutils/dwarf.h
+@@ -128,11 +128,13 @@ enum dwarf_section_display_enum
+ struct dwarf_section
+ {
+   /* A debug section has a different name when it's stored compressed
+-     or not.  COMPRESSED_NAME and UNCOMPRESSED_NAME are the two
++     or not.  XCOFF DWARF section also have a special name.
++     COMPRESSED_NAME, UNCOMPRESSED_NAME and XCOFF_NAME are the three
+      possibilities.  NAME is set to whichever one is used for this
+      input file, as determined by load_debug_section().  */
+   const char *                     uncompressed_name;
+   const char *                     compressed_name;
++  const char *                     xcoff_name;
+   const char *                     name;
+   /* If non-NULL then FILENAME is the name of the separate debug info
+      file containing the section.  */
+diff --git a/binutils/objdump.c b/binutils/objdump.c
+index a7b8303b992..f78b70a8d40 100644
+--- a/binutils/objdump.c
++++ b/binutils/objdump.c
+@@ -3718,7 +3718,6 @@ load_debug_section (enum dwarf_section_display_enum debug, void *file)
+       if (streq (section->filename, bfd_get_filename (abfd)))
+ 	return true;
+     }
+-
+   /* Locate the debug section.  */
+   sec = bfd_get_section_by_name (abfd, section->uncompressed_name);
+   if (sec != NULL)
+@@ -3728,6 +3727,12 @@ load_debug_section (enum dwarf_section_display_enum debug, void *file)
+       sec = bfd_get_section_by_name (abfd, section->compressed_name);
+       if (sec != NULL)
+         section->name = section->compressed_name;
++      else
++	{
++	  sec = bfd_get_section_by_name (abfd, section->xcoff_name);
++	  if (sec != NULL)
++	    section->name = section->xcoff_name;
++	}
+     }
+   if (sec == NULL)
+     return false;
+@@ -3811,7 +3816,8 @@ dump_dwarf_section (bfd *abfd, asection *section,
+ 
+   for (i = 0; i < max; i++)
+     if ((strcmp (debug_displays [i].section.uncompressed_name, match) == 0
+-	 || strcmp (debug_displays [i].section.compressed_name, match) == 0)
++	 || strcmp (debug_displays [i].section.compressed_name, match) == 0
++	 || strcmp (debug_displays [i].section.xcoff_name, match) == 0)
+ 	&& debug_displays [i].enabled != NULL
+ 	&& *debug_displays [i].enabled)
+       {
+@@ -3819,8 +3825,10 @@ dump_dwarf_section (bfd *abfd, asection *section,
+ 
+ 	if (strcmp (sec->uncompressed_name, match) == 0)
+ 	  sec->name = sec->uncompressed_name;
+-	else
++	else if (strcmp (sec->compressed_name, match) == 0)
+ 	  sec->name = sec->compressed_name;
++	else
++	  sec->name = sec->xcoff_name;
+ 	if (load_specific_debug_section ((enum dwarf_section_display_enum) i,
+                                          section, abfd))
+ 	  {
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index 80818e9c943..567f8011a5f 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -4628,7 +4628,7 @@ ppc_change_debug_section (unsigned int idx, subsegT subseg)
+   flagword oldflags;
+   const struct xcoff_dwsect_name *dw = &xcoff_dwsect_names[idx];
+ 
+-  sec = subseg_new (dw->name, subseg);
++  sec = subseg_new (dw->xcoff_name, subseg);
+   oldflags = bfd_section_flags (sec);
+   if (oldflags == SEC_NO_FLAGS)
+     {
+-- 
+2.33.0
+

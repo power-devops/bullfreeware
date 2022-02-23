@@ -1,0 +1,15 @@
+Index: mysql-5.5.10/mysql-5.5.10/include/m_string.h
+===================================================================
+--- mysql-5.5.10.orig/mysql-5.5.10/include/m_string.h	2011-03-09 16:11:38.000000000 +0100
++++ mysql-5.5.10/mysql-5.5.10/include/m_string.h	2011-04-14 15:17:06.000000000 +0200
+@@ -83,6 +83,10 @@
+ #endif
+ #endif
+ 
++#ifdef _AIX
++# define bzero(A,B)             memset((A),0,(B))
++#endif
++
+ /* Declared in int2str() */
+ extern char _dig_vec_upper[];
+ extern char _dig_vec_lower[];

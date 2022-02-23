@@ -1,0 +1,117 @@
+From e2dd47233f467e2ab80564968be4af6da6505161 Mon Sep 17 00:00:00 2001
+From: Andreas Schneider <asn@samba.org>
+Date: Mon, 3 Sep 2018 10:35:08 +0200
+Subject: [PATCH 1/2] waf: Check for -fstack-protect-strong support
+
+The -fstack-protector* flags are compiler only flags, don't pass them to
+the linker.
+
+https://developers.redhat.com/blog/2018/03/21/compiler-and-linker-flags-gcc/
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13601
+
+Signed-off-by: Andreas Schneider <asn@samba.org>
+Reviewed-by: Andrew Bartlett <abartlet@samba.org>
+(cherry picked from commit 38e97f8b52e85bdfcf2d74a4fb3c848fa46ba371)
+---
+ buildtools/wafsamba/samba_autoconf.py | 36 ++++++++++++++-------------
+ 1 file changed, 19 insertions(+), 17 deletions(-)
+
+diff --git a/buildtools/wafsamba/samba_autoconf.py b/buildtools/wafsamba/samba_autoconf.py
+index c4391d0c4dc..bfd6f9710db 100644
+--- a/buildtools/wafsamba/samba_autoconf.py
++++ b/buildtools/wafsamba/samba_autoconf.py
+@@ -674,23 +674,25 @@ def SAMBA_CONFIG_H(conf, path=None):
+         return
+ 
+     # we need to build real code that can't be optimized away to test
+-    if conf.check(fragment='''
+-        #include <stdio.h>
+-
+-        int main(void)
+-        {
+-            char t[100000];
+-            while (fgets(t, sizeof(t), stdin));
+-            return 0;
+-        }
+-        ''',
+-        execute=0,
+-        ccflags='-fstack-protector',
+-        ldflags='-fstack-protector',
+-        mandatory=False,
+-        msg='Checking if toolchain accepts -fstack-protector'):
+-            conf.ADD_CFLAGS('-fstack-protector')
+-            conf.ADD_LDFLAGS('-fstack-protector')
++    stack_protect_list = ['-fstack-protector-strong', '-fstack-protector']
++    for stack_protect_flag in stack_protect_list:
++        flag_supported = conf.check(fragment='''
++                                    #include <stdio.h>
++
++                                    int main(void)
++                                    {
++                                        char t[100000];
++                                        while (fgets(t, sizeof(t), stdin));
++                                        return 0;
++                                    }
++                                    ''',
++                                    execute=0,
++                                    ccflags=[ '-Werror', '-Wp,-D_FORTIFY_SOURCE=2', stack_protect_flag],
++                                    mandatory=False,
++                                    msg='Checking if compiler accepts %s' % (stack_protect_flag))
++        if flag_supported:
++            conf.ADD_CFLAGS('-Wp,-D_FORTIFY_SOURCE=2 %s' % (stack_protect_flag))
++            break
+ 
+     if Options.options.debug:
+         conf.ADD_CFLAGS('-g', testflags=True)
+-- 
+2.18.0
+
+
+From 09f3acb3497efb9ebb8a0d7d199726a8c318e4f8 Mon Sep 17 00:00:00 2001
+From: Andreas Schneider <asn@samba.org>
+Date: Mon, 3 Sep 2018 10:49:52 +0200
+Subject: [PATCH 2/2] waf: Add -fstack-clash-protection
+
+https://developers.redhat.com/blog/2018/03/21/compiler-and-linker-flags-gcc/
+
+BUG: https://bugzilla.samba.org/show_bug.cgi?id=13601
+
+Signed-off-by: Andreas Schneider <asn@samba.org>
+Reviewed-by: Andrew Bartlett <abartlet@samba.org>
+(cherry picked from commit fc4df251c88365142515a81bea1120b2b84cc4a0)
+---
+ buildtools/wafsamba/samba_autoconf.py | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/buildtools/wafsamba/samba_autoconf.py b/buildtools/wafsamba/samba_autoconf.py
+index bfd6f9710db..f2b3ec8db8d 100644
+--- a/buildtools/wafsamba/samba_autoconf.py
++++ b/buildtools/wafsamba/samba_autoconf.py
+@@ -694,6 +694,23 @@ def SAMBA_CONFIG_H(conf, path=None):
+             conf.ADD_CFLAGS('-Wp,-D_FORTIFY_SOURCE=2 %s' % (stack_protect_flag))
+             break
+ 
++    flag_supported = conf.check(fragment='''
++                                #include <stdio.h>
++
++                                int main(void)
++                                {
++                                    char t[100000];
++                                    while (fgets(t, sizeof(t), stdin));
++                                    return 0;
++                                }
++                                ''',
++                                execute=0,
++                                ccflags=[ '-Werror', '-fstack-clash-protection'],
++                                mandatory=False,
++                                msg='Checking if compiler accepts -fstack-clash-protection')
++    if flag_supported:
++        conf.ADD_CFLAGS('-fstack-clash-protection')
++
+     if Options.options.debug:
+         conf.ADD_CFLAGS('-g', testflags=True)
+ 
+-- 
+2.18.0
+

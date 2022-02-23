@@ -1,0 +1,38 @@
+*** ./32bit/bindings/tcl/Makefile.in.ORIG	Mon Jul  4 00:09:22 2011
+--- ./32bit/bindings/tcl/Makefile.in	Mon Jul  4 00:10:10 2011
+***************
+*** 156,162 ****
+  INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+  INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+  LD = @LD@
+! LDFLAGS = @LDFLAGS@
+  LIBICONV = @LIBICONV@
+  LIBINTL = @LIBINTL@
+  LIBOBJS = @LIBOBJS@
+--- 156,162 ----
+  INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+  INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+  LD = @LD@
+! LDFLAGS = -L/opt/freeware/lib -blibpath:/opt/freeware/lib:/usr/lib:/lib -bmaxdata:0x80000000
+  LIBICONV = @LIBICONV@
+  LIBINTL = @LIBINTL@
+  LIBOBJS = @LIBOBJS@
+*** ./64bit/bindings/tcl/Makefile.in.ORIG	Mon Jul  4 00:10:25 2011
+--- ./64bit/bindings/tcl/Makefile.in	Mon Jul  4 00:10:40 2011
+***************
+*** 156,162 ****
+  INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+  INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+  LD = @LD@
+! LDFLAGS = @LDFLAGS@
+  LIBICONV = @LIBICONV@
+  LIBINTL = @LIBINTL@
+  LIBOBJS = @LIBOBJS@
+--- 156,162 ----
+  INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+  INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+  LD = @LD@
+! LDFLAGS = -L/opt/freeware/lib64 -L/opt/freeware/lib -blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -bmaxdata:0x80000000
+  LIBICONV = @LIBICONV@
+  LIBINTL = @LIBINTL@
+  LIBOBJS = @LIBOBJS@

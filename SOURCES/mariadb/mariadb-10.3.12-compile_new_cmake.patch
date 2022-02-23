@@ -1,0 +1,137 @@
+--- ./libmariadb/include/ma_global.h.orig	2019-04-24 13:17:47.600000000 +0200
++++ ./libmariadb/include/ma_global.h	2019-05-06 11:47:45.087437237 +0200
+@@ -91,7 +91,7 @@
+ 
+ /* Go around some bugs in different OS and compilers */
+ #ifdef _AIX			/* By soren@t.dk */
+-#define _H_STRINGS
++/* #define _H_STRINGS
+ #define _SYS_STREAM_H
+ #define _AIX32_CURSES
+ #define ulonglong2double(A) my_ulonglong2double(A)
+@@ -102,7 +102,7 @@
+ double my_ulonglong2double(unsigned long long A);
+ #ifdef	__cplusplus
+ }
+-#endif
++#endif */
+ #endif /* _AIX */
+ 
+ #ifdef HAVE_BROKEN_SNPRINTF	/* HPUX 10.20 don't have this defined */
+--- ./libmysqld/CMakeLists.txt.orig	2019-04-16 11:19:05.056000000 +0200
++++ ./libmysqld/CMakeLists.txt	2019-06-03 10:17:01.989146655 +0200
+@@ -72,7 +72,7 @@
+            ../sql/sql_admin.cc ../sql/sql_truncate.cc ../sql/sql_reload.cc
+            ../sql/sql_lex.cc ../sql/keycaches.cc
+            ../sql/sql_list.cc ../sql/sql_load.cc ../sql/sql_locale.cc 
+-           ../sql/sql_binlog.cc ../sql/sql_manager.cc
++           ../sql/sql_manager.cc
+            ../sql/sql_parse.cc ../sql/sql_bootstrap.cc
+            ../sql/sql_partition.cc ../sql/sql_plugin.cc 
+            ../sql/debug_sync.cc ../sql/opt_table_elimination.cc
+@@ -126,7 +126,6 @@
+            ${MYSYS_LIBWRAP_SOURCE}
+ )
+ 
+-
+ ADD_CONVENIENCE_LIBRARY(sql_embedded ${SQL_EMBEDDED_SOURCES})
+ DTRACE_INSTRUMENT(sql_embedded)
+ ADD_DEPENDENCIES(sql_embedded GenError GenServerSource)
+@@ -137,6 +136,10 @@
+   SET(MYSQLSERVER_OUTPUT_NAME mysqlserver)
+   SET(COMPONENT_MYSQLSERVER "Embedded")
+   SET(COMPONENT_LIBMYSQLD "Embedded")
++ELSEIF(AIX)
++  SET(MYSQLSERVER_OUTPUT_NAME mariadbd_server)
++  SET(COMPONENT_MYSQLSERVER "Embedded")
++  SET(COMPONENT_LIBMYSQLD "Embedded")
+ ELSE()
+   SET(MYSQLSERVER_OUTPUT_NAME mariadbd)
+   SET(COMPONENT_MYSQLSERVER "Development")
+@@ -165,7 +168,7 @@
+ 
+ MERGE_LIBRARIES(mysqlserver STATIC ${EMBEDDED_LIBS} 
+   OUTPUT_NAME ${MYSQLSERVER_OUTPUT_NAME} COMPONENT ${COMPONENT_MYSQLSERVER})
+-IF(UNIX)
++IF(UNIX AND NOT AIX)
+   INSTALL_SYMLINK(libmysqld.a mysqlserver ${INSTALL_LIBDIR} ${COMPONENT_MYSQLSERVER})
+ ENDIF()
+ INSTALL(FILES embedded_priv.h DESTINATION ${INSTALL_INCLUDEDIR}/server/private COMPONENT  ${COMPONENT_MYSQLSERVER})
+@@ -441,7 +444,11 @@
+     SET_TARGET_PROPERTIES(libmysqld PROPERTIES 
+       OUTPUT_NAME mariadbd
+       SOVERSION "${SHARED_LIB_MAJOR_VERSION}")
+-    INSTALL_SYMLINK(libmysqld.so libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    IF(AIX)
++      INSTALL_SYMLINK(libmysqld.a libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    ELSE()
++      INSTALL_SYMLINK(libmysqld.so libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    ENDIF()
+     # Clean direct output flags, as 2 targets have the same base name
+     # libmysqld
+     SET_TARGET_PROPERTIES(libmysqld PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+--- ./sql/CMakeLists.txt.orig	2019-04-16 11:19:56.900000000 +0200
++++ ./sql/CMakeLists.txt	2019-06-03 10:17:31.358454650 +0200
+@@ -121,7 +121,7 @@
+                opt_index_cond_pushdown.cc opt_subselect.cc
+                opt_table_elimination.cc sql_expression_cache.cc
+                gcalc_slicescan.cc gcalc_tools.cc
+-               threadpool_common.cc ../sql-common/mysql_async.c
++               ../sql-common/mysql_async.c
+                my_apc.cc mf_iocache_encr.cc item_jsonfunc.cc
+                my_json_writer.cc
+                rpl_gtid.cc rpl_parallel.cc
+@@ -154,7 +154,7 @@
+    SET(SQL_SOURCE ${SQL_SOURCE} threadpool_win.cc)
+  ENDIF()
+  SET(SQL_SOURCE ${SQL_SOURCE} threadpool_generic.cc)
+-
++ SET(SQL_SOURCE ${SQL_SOURCE} threadpool_common.cc)
+ ENDIF()
+ 
+ MYSQL_ADD_PLUGIN(partition ha_partition.cc STORAGE_ENGINE DEFAULT STATIC_ONLY
+@@ -273,8 +273,13 @@
+   SET_TARGET_PROPERTIES(mysqld_import_lib PROPERTIES IMPORTED_LOCATION ${MYSQLD_LIB})
+ ENDIF()
+ 
+-MYSQL_ADD_EXECUTABLE(mysqld ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
+-
++IF(AIX)
++  ADD_LIBRARY(mysqld_obj OBJECT ${MYSQLD_SOURCE})
++  MYSQL_ADD_EXECUTABLE(mysqld $<TARGET_OBJECTS:mysqld_obj> DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
++  EXPORTAIX(mysqld mysqld_obj "/tmp/mysqld.exp" ".")
++ELSE()
++  MYSQL_ADD_EXECUTABLE(mysqld ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
++ENDIF()
+ IF(APPLE) 
+   # Add CoreServices framework since some dloadable plugins may need it 
+   FIND_LIBRARY(CORESERVICES NAMES CoreServices) 
+--- ./mysys/CMakeLists.txt.orig	2019-04-16 11:19:40.196000000 +0200
++++ ./mysys/CMakeLists.txt	2019-04-24 12:51:51.184000000 +0200
+@@ -91,7 +91,15 @@
+   TARGET_LINK_LIBRARIES(mysys pthread)
+ ENDIF()
+ 
+-ADD_EXECUTABLE(thr_lock thr_lock.c)
++IF (AIX)
++  ADD_LIBRARY(thr_lock_obj OBJECT thr_lock.c)
++  ADD_EXECUTABLE(thr_lock $<TARGET_OBJECTS:thr_lock_obj>)
++  ADD_DEPENDENCIES(thr_lock mysqld)
++  IMPORTAIX(thr_lock "/tmp/mysqld.exp")
++  EXPORTAIX(thr_lock thr_lock_obj "/tmp/thr_lock.exp" ".")
++ELSE()
++  ADD_EXECUTABLE(thr_lock thr_lock.c)
++ENDIF()
+ TARGET_LINK_LIBRARIES(thr_lock mysys)
+ SET_TARGET_PROPERTIES(thr_lock PROPERTIES COMPILE_FLAGS "-DMAIN")
+ 
+--- ./storage/innobase/CMakeLists.txt.orig	2019-05-06 15:15:12.060002542 +0200
++++ ./storage/innobase/CMakeLists.txt	2019-05-06 15:15:12.052002542 +0200
+@@ -155,7 +155,6 @@
+ 	${ZLIB_LIBRARY}
+ 	${CRC32_LIBRARY}
+ 	${NUMA_LIBRARY}
+-	${LIBSYSTEMD}
+ 	${LINKER_SCRIPT})
+ 
+ IF(NOT TARGET innobase)

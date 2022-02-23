@@ -1,0 +1,15 @@
+prefix=/opt/freeware
+exec_prefix=${prefix}
+libdir=/opt/freeware/lib
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: libssh2
+Description: A library implementing the SSH2 protocol
+Version: 1.9.0
+
+# Requires.private: libcrypto zlib
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lssh2
+Libs.private:
+Cflags: -I${includedir}

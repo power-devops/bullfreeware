@@ -1,0 +1,869 @@
+From c7677e91fb406c7ec55cb115155ed0d4c5943b72 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 19 Feb 2018 00:52:35 -0500
+Subject: [PATCH] Use libkrb5support hex functions where appropriate
+
+(cherry picked from commit b0c700608be7455041a8afc0e4502e8783ee7f30)
+---
+ src/kadmin/dbutil/deps                        | 16 ++---
+ src/kadmin/dbutil/tabdump.c                   | 19 +++---
+ src/kadmin/ktutil/deps                        | 13 ++--
+ src/kadmin/ktutil/ktutil_funcs.c              | 30 ++++-----
+ src/lib/crypto/crypto_tests/deps              | 39 ++++++-----
+ src/lib/crypto/crypto_tests/t_cksum.c         | 35 +++-------
+ src/lib/crypto/crypto_tests/t_crc.c           | 28 ++------
+ src/lib/crypto/crypto_tests/t_hmac.c          | 34 +++++-----
+ src/plugins/kdb/ldap/ldap_util/deps           | 18 ++---
+ .../kdb/ldap/ldap_util/kdb5_ldap_services.c   | 32 +++------
+ .../kdb/ldap/ldap_util/kdb5_ldap_services.h   |  2 -
+ src/plugins/kdb/ldap/libkdb_ldap/deps         | 19 +++---
+ .../kdb/ldap/libkdb_ldap/ldap_service_stash.c | 65 +++----------------
+ .../kdb/ldap/libkdb_ldap/ldap_service_stash.h |  3 -
+ .../kdb/ldap/libkdb_ldap/libkdb_ldap.exports  |  1 -
+ src/slave/deps                                | 15 +++--
+ src/slave/kproplog.c                          | 11 ++--
+ src/tests/gssapi/deps                         | 14 ++--
+ src/tests/gssapi/t_prf.c                      | 13 ++--
+ 19 files changed, 152 insertions(+), 255 deletions(-)
+
+diff --git a/src/kadmin/dbutil/deps b/src/kadmin/dbutil/deps
+index 4dcc33628..8b0965aac 100644
+--- a/src/kadmin/dbutil/deps
++++ b/src/kadmin/dbutil/deps
+@@ -185,14 +185,14 @@ $(OUTPRE)tabdump.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(top_srcdir)/include/gssrpc/xdr.h $(top_srcdir)/include/iprop.h \
+   $(top_srcdir)/include/iprop_hdr.h $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/kdb.h $(top_srcdir)/include/kdb_log.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h kdb5_util.h tabdump.c \
+-  tdumputil.h
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/kdb.h \
++  $(top_srcdir)/include/kdb_log.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  kdb5_util.h tabdump.c tdumputil.h
+ $(OUTPRE)tdumputil.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+diff --git a/src/kadmin/dbutil/tabdump.c b/src/kadmin/dbutil/tabdump.c
+index fb36b060a..2f313dbb0 100644
+--- a/src/kadmin/dbutil/tabdump.c
++++ b/src/kadmin/dbutil/tabdump.c
+@@ -32,6 +32,7 @@
+ 
+ #include <k5-int.h>
+ #include "k5-platform.h"        /* for asprintf */
++#include "k5-hex.h"
+ 
+ #include <limits.h>
+ #include <stdio.h>
+@@ -230,9 +231,7 @@ static int
+ write_data(struct rec_args *args, krb5_data *data)
+ {
+     int ret;
+-    char *p;
+-    size_t i;
+-    struct k5buf buf;
++    char *hex;
+     struct rechandle *h = args->rh;
+     struct tdopts *opts = args->opts;
+ 
+@@ -241,17 +240,15 @@ write_data(struct rec_args *args, krb5_data *data)
+             return -1;
+         return 0;
+     }
+-    k5_buf_init_dynamic(&buf);
+-    p = data->data;
+-    for (i = 0; i < data->length; i++)
+-        k5_buf_add_fmt(&buf, "%02x", (unsigned char)p[i]);
+ 
+-    if (buf.data == NULL) {
+-        errno = ENOMEM;
++    ret = k5_hex_encode(data->data, data->length, FALSE, &hex);
++    if (ret) {
++        errno = ret;
+         return -1;
+     }
+-    ret = writefield(h, "%s", (char *)buf.data);
+-    k5_buf_free(&buf);
++
++    ret = writefield(h, "%s", hex);
++    free(hex);
+     return ret;
+ }
+ 
+diff --git a/src/kadmin/ktutil/deps b/src/kadmin/ktutil/deps
+index 4df399924..5863e63c7 100644
+--- a/src/kadmin/ktutil/deps
++++ b/src/kadmin/ktutil/deps
+@@ -18,9 +18,10 @@ $(OUTPRE)ktutil_funcs.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h ktutil.h ktutil_funcs.c
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  ktutil.h ktutil_funcs.c
+diff --git a/src/kadmin/ktutil/ktutil_funcs.c b/src/kadmin/ktutil/ktutil_funcs.c
+index 7a3aa0dca..5843e24b7 100644
+--- a/src/kadmin/ktutil/ktutil_funcs.c
++++ b/src/kadmin/ktutil/ktutil_funcs.c
+@@ -29,6 +29,7 @@
+  */
+ 
+ #include "k5-int.h"
++#include "k5-hex.h"
+ #include "ktutil.h"
+ #include <string.h>
+ #include <ctype.h>
+@@ -106,9 +107,8 @@ krb5_error_code ktutil_add(context, list, princ_str, kvno,
+     krb5_keyblock key;
+     char buf[BUFSIZ];
+     char promptstr[1024];
+-
+-    char *cp;
+-    int i, tmp;
++    uint8_t *keybytes;
++    size_t keylen;
+     unsigned int pwsize = BUFSIZ;
+ 
+     retval = krb5_parse_name(context, princ_str, &princ);
+@@ -199,24 +199,18 @@ krb5_error_code ktutil_add(context, list, princ_str, kvno,
+             goto cleanup;
+         }
+ 
+-        lp->entry->key.enctype = enctype;
+-        lp->entry->key.contents = (krb5_octet *) malloc((strlen(buf) + 1) / 2);
+-        if (!lp->entry->key.contents) {
+-            retval = ENOMEM;
++        retval = k5_hex_decode(buf, &keybytes, &keylen);
++        if (retval) {
++            if (retval == EINVAL) {
++                fprintf(stderr, _("addent: Illegal character in key.\n"));
++                retval = 0;
++            }
+             goto cleanup;
+         }
+ 
+-        i = 0;
+-        for (cp = buf; *cp; cp += 2) {
+-            if (!isxdigit((int) cp[0]) || !isxdigit((int) cp[1])) {
+-                fprintf(stderr, _("addent: Illegal character in key.\n"));
+-                retval = 0;
+-                goto cleanup;
+-            }
+-            sscanf(cp, "%02x", &tmp);
+-            lp->entry->key.contents[i++] = (krb5_octet) tmp;
+-        }
+-        lp->entry->key.length = i;
++        lp->entry->key.enctype = enctype;
++        lp->entry->key.contents = keybytes;
++        lp->entry->key.length = keylen;
+     }
+     lp->entry->principal = princ;
+     lp->entry->vno = kvno;
+diff --git a/src/lib/crypto/crypto_tests/deps b/src/lib/crypto/crypto_tests/deps
+index bc5422a06..5d94a593d 100644
+--- a/src/lib/crypto/crypto_tests/deps
++++ b/src/lib/crypto/crypto_tests/deps
+@@ -73,12 +73,13 @@ $(OUTPRE)t_hmac.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(srcdir)/../builtin/crypto_mod.h $(srcdir)/../builtin/sha2/sha2.h \
+   $(srcdir)/../krb/crypto_int.h $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h t_hmac.c
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  t_hmac.c
+ $(OUTPRE)t_pkcs5.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+@@ -143,12 +144,13 @@ $(OUTPRE)t_cksum.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h t_cksum.c
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  t_cksum.c
+ $(OUTPRE)t_cksums.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+@@ -165,12 +167,13 @@ $(OUTPRE)t_crc.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(srcdir)/../builtin/crypto_mod.h $(srcdir)/../builtin/sha2/sha2.h \
+   $(srcdir)/../krb/crypto_int.h $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h t_crc.c
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  t_crc.c
+ $(OUTPRE)t_mddriver.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(srcdir)/../builtin/aes/aes.h \
+diff --git a/src/lib/crypto/crypto_tests/t_cksum.c b/src/lib/crypto/crypto_tests/t_cksum.c
+index 2200fe76e..0edaeb850 100644
+--- a/src/lib/crypto/crypto_tests/t_cksum.c
++++ b/src/lib/crypto/crypto_tests/t_cksum.c
+@@ -27,6 +27,7 @@
+ /* Test checksum and checksum compatability for rsa-md[4,5]-des. */
+ 
+ #include "k5-int.h"
++#include "k5-hex.h"
+ 
+ #define MD5_K5BETA_COMPAT
+ #define MD4_K5BETA_COMPAT
+@@ -50,29 +51,6 @@ print_checksum(char *text, int number, char *message, krb5_checksum *checksum)
+     printf("\n");
+ }
+ 
+-static void
+-parse_hexstring(const char *s, krb5_checksum *cksum)
+-{
+-    size_t i, len;
+-    unsigned int byte;
+-    unsigned char *cp;
+-
+-    len = strlen(s);
+-    cp = malloc(len / 2);
+-    cksum->contents = cp;
+-    if (cp == NULL) {
+-        cksum->length = 0;
+-        return;
+-    }
+-    cksum->length = len / 2;
+-    for (i = 0; i + 1 < len; i += 2) {
+-        sscanf(&s[i], "%2x", &byte);
+-        *cp++ = byte;
+-    }
+-    cksum->checksum_type = CKTYPE;
+-    cksum->magic = KV5M_CHECKSUM;
+-}
+-
+ /*
+  * Test the checksum verification of Old Style (tm) and correct RSA-MD[4,5]-DES
+  * checksums.
+@@ -86,6 +64,7 @@ main(argc, argv)
+     char **argv;
+ {
+     int                   msgindex;
++    size_t                len;
+     krb5_boolean          valid;
+     krb5_keyblock         keyblock;
+     krb5_key              key;
+@@ -150,12 +129,14 @@ main(argc, argv)
+         free(checksum.contents);
+ 
+         /* Verify a known-good checksum for this plaintext. */
+-        parse_hexstring(argv[msgindex+1], &knowncksum);
+-        if (knowncksum.contents == NULL) {
+-            printf("parse_hexstring failed\n");
+-            kret = 1;
++        kret = k5_hex_decode(argv[msgindex + 1], &knowncksum.contents, &len);
++        if (kret) {
++            printf("k5_hex_decode failed\n");
+             break;
+         }
++        knowncksum.length = len;
++        knowncksum.checksum_type = CKTYPE;
++        knowncksum.magic = KV5M_CHECKSUM;
+         kret = krb5_k_verify_checksum(NULL, key, 0, &plaintext, &knowncksum,
+                                       &valid);
+         if (kret != 0) {
+diff --git a/src/lib/crypto/crypto_tests/t_crc.c b/src/lib/crypto/crypto_tests/t_crc.c
+index 190773252..1a35cfba5 100644
+--- a/src/lib/crypto/crypto_tests/t_crc.c
++++ b/src/lib/crypto/crypto_tests/t_crc.c
+@@ -32,6 +32,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <k5-hex.h>
+ #include "crypto_int.h"
+ 
+ #define HEX 1
+@@ -139,31 +140,12 @@ timetest(unsigned int nblk, unsigned int blksiz)
+ }
+ #endif
+ 
+-static void gethexstr(char *data, size_t *outlen, unsigned char *outbuf,
+-                      size_t buflen)
+-{
+-    size_t inlen;
+-    char *cp, buf[3];
+-    long n;
+-
+-    inlen = strlen(data);
+-    *outlen = 0;
+-    for (cp = data; (size_t) (cp - data) < inlen; cp += 2) {
+-        strncpy(buf, cp, 2);
+-        buf[2] = '\0';
+-        n = strtol(buf, NULL, 16);
+-        outbuf[(*outlen)++] = n;
+-        if (*outlen > buflen)
+-            break;
+-    }
+-}
+-
+ static void
+ verify(void)
+ {
+     unsigned int i;
+     struct crc_trial trial;
+-    unsigned char buf[4];
++    uint8_t *bytes;
+     size_t len;
+     unsigned long cksum;
+     char *typestr;
+@@ -179,9 +161,11 @@ verify(void)
+             break;
+         case HEX:
+             typestr = "HEX";
+-            gethexstr(trial.data, &len, buf, 4);
++            if (k5_hex_decode(trial.data, &bytes, &len) != 0)
++                abort();
+             cksum = 0;
+-            mit_crc32(buf, len, &cksum);
++            mit_crc32(bytes, len, &cksum);
++            free(bytes);
+             break;
+         default:
+             typestr = "BOGUS";
+diff --git a/src/lib/crypto/crypto_tests/t_hmac.c b/src/lib/crypto/crypto_tests/t_hmac.c
+index 8961380ea..93d54828f 100644
+--- a/src/lib/crypto/crypto_tests/t_hmac.c
++++ b/src/lib/crypto/crypto_tests/t_hmac.c
+@@ -34,6 +34,7 @@
+ #include <string.h>
+ #include <ctype.h>
+ 
++#include <k5-hex.h>
+ #include "crypto_int.h"
+ 
+ #define ASIZE(ARRAY) (sizeof(ARRAY)/sizeof(ARRAY[0]))
+@@ -136,12 +137,10 @@ static void test_hmac()
+ {
+     krb5_keyblock key;
+     krb5_data in, out;
+-    char outbuf[20];
+-    char stroutbuf[80];
++    char outbuf[20], *hexdigest;
+     krb5_error_code err;
+-    unsigned int i, j;
++    unsigned int i;
+     int lose = 0;
+-    struct k5buf buf;
+ 
+     /* RFC 2202 test vector.  */
+     static const struct hmac_test md5tests[] = {
+@@ -151,13 +150,13 @@ static void test_hmac()
+                 0xb, 0xb, 0xb, 0xb, 0xb, 0xb, 0xb, 0xb,
+             },
+             8, "Hi There",
+-            "0x9294727a3638bb1c13f48ef8158bfc9d"
++            "9294727a3638bb1c13f48ef8158bfc9d"
+         },
+ 
+         {
+             4, "Jefe",
+             28, "what do ya want for nothing?",
+-            "0x750c783e6ab0b503eaa86e310a5db738"
++            "750c783e6ab0b503eaa86e310a5db738"
+         },
+ 
+         {
+@@ -172,7 +171,7 @@ static void test_hmac()
+                 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd,
+                 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd,
+             },
+-            "0x56be34521d144c88dbb8c733f0e8b3f6"
++            "56be34521d144c88dbb8c733f0e8b3f6"
+         },
+ 
+         {
+@@ -188,7 +187,7 @@ static void test_hmac()
+                 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd,
+                 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd,
+             },
+-            "0x697eaf0aca3a3aea3a75164746ffaa79"
++            "697eaf0aca3a3aea3a75164746ffaa79"
+         },
+ 
+         {
+@@ -197,7 +196,7 @@ static void test_hmac()
+                 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c
+             },
+             20, "Test With Truncation",
+-            "0x56461ef2342edc00f9bab995690efd4c"
++            "56461ef2342edc00f9bab995690efd4c"
+         },
+ 
+         {
+@@ -212,7 +211,7 @@ static void test_hmac()
+                 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+             },
+             54, "Test Using Larger Than Block-Size Key - Hash Key First",
+-            "0x6b1ab7fe4bd7bf8f0b62e6ce61b9d0cd"
++            "6b1ab7fe4bd7bf8f0b62e6ce61b9d0cd"
+         },
+ 
+         {
+@@ -228,7 +227,7 @@ static void test_hmac()
+             },
+             73,
+             "Test Using Larger Than Block-Size Key and Larger Than One Block-Size Data",
+-            "0x6f630fad67cda0ee1fb1f562db3aa53e"
++            "6f630fad67cda0ee1fb1f562db3aa53e"
+         },
+     };
+ 
+@@ -246,19 +245,16 @@ static void test_hmac()
+             exit(1);
+         }
+ 
+-        k5_buf_init_fixed(&buf, stroutbuf, sizeof(stroutbuf));
+-        k5_buf_add(&buf, "0x");
+-        for (j = 0; j < out.length; j++)
+-            k5_buf_add_fmt(&buf, "%02x", 0xff & outbuf[j]);
+-        if (k5_buf_status(&buf) != 0)
++        if (k5_hex_encode(out.data, out.length, FALSE, &hexdigest) != 0)
+             abort();
+-        if (strcmp(stroutbuf, md5tests[i].hexdigest)) {
++        if (strcmp(hexdigest, md5tests[i].hexdigest)) {
+             printf("*** CHECK FAILED!\n"
+-                   "\tReturned: %s.\n"
+-                   "\tExpected: %s.\n", stroutbuf, md5tests[i].hexdigest);
++                   "\tReturned: 0x%s.\n"
++                   "\tExpected: 0x%s.\n", hexdigest, md5tests[i].hexdigest);
+             lose++;
+         } else
+             printf("Matches expected result.\n");
++        free(hexdigest);
+     }
+ 
+     /* Do again with SHA-1 tests....  */
+diff --git a/src/plugins/kdb/ldap/ldap_util/deps b/src/plugins/kdb/ldap/ldap_util/deps
+index 75d4dd0cf..be0194c00 100644
+--- a/src/plugins/kdb/ldap/ldap_util/deps
++++ b/src/plugins/kdb/ldap/ldap_util/deps
+@@ -89,15 +89,15 @@ $(OUTPRE)kdb5_ldap_services.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(srcdir)/../libkdb_ldap/ldap_krbcontainer.h $(srcdir)/../libkdb_ldap/ldap_misc.h \
+   $(srcdir)/../libkdb_ldap/ldap_realm.h $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/kdb.h $(top_srcdir)/include/krb5.h \
+-  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
+-  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
+-  $(top_srcdir)/lib/kdb/kdb5.h kdb5_ldap_list.h kdb5_ldap_policy.h \
+-  kdb5_ldap_realm.h kdb5_ldap_services.c kdb5_ldap_services.h \
+-  kdb5_ldap_util.h
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/kdb.h \
++  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
++  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
++  $(top_srcdir)/include/socket-utils.h $(top_srcdir)/lib/kdb/kdb5.h \
++  kdb5_ldap_list.h kdb5_ldap_policy.h kdb5_ldap_realm.h \
++  kdb5_ldap_services.c kdb5_ldap_services.h kdb5_ldap_util.h
+ $(OUTPRE)getdate.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(COM_ERR_DEPS) $(top_srcdir)/include/krb5.h \
+   getdate.c
+diff --git a/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.c b/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.c
+index 3d6994c67..ce038fc3d 100644
+--- a/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.c
++++ b/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.c
+@@ -37,6 +37,7 @@
+  */
+ 
+ #include <k5-int.h>
++#include <k5-hex.h>
+ #include "kdb5_ldap_util.h"
+ #include "kdb5_ldap_list.h"
+ 
+@@ -96,11 +97,10 @@ kdb5_ldap_stash_service_password(int argc, char **argv)
+     char *service_object = NULL;
+     char *file_name = NULL, *tmp_file = NULL;
+     char passwd[MAX_SERVICE_PASSWD_LEN];
+-    char *str = NULL;
++    char *str = NULL, *hexpasswd = NULL;
+     char line[MAX_LEN];
+     FILE *pfile = NULL;
+     krb5_boolean print_usage = FALSE;
+-    krb5_data hexpasswd = {0, 0, NULL};
+     mode_t old_mode = 0;
+ 
+     /*
+@@ -183,21 +183,12 @@ kdb5_ldap_stash_service_password(int argc, char **argv)
+     }
+ 
+     /* Convert the password to hexadecimal */
+-    {
+-        krb5_data pwd;
+-
+-        pwd.length = passwd_len;
+-        pwd.data = passwd;
+-
+-        ret = tohex(pwd, &hexpasswd);
+-        if (ret != 0) {
+-            com_err(me, ret,
+-                    _("Failed to convert the password to hexadecimal"));
+-            memset(passwd, 0, passwd_len);
+-            goto cleanup;
+-        }
++    ret = k5_hex_encode(passwd, passwd_len, FALSE, &hexpasswd);
++    zap(passwd, passwd_len);
++    if (ret != 0) {
++        com_err(me, ret, _("Failed to convert the password to hexadecimal"));
++        goto cleanup;
+     }
+-    memset(passwd, 0, passwd_len);
+ 
+     /* TODO: file lock for the service password file */
+ 
+@@ -225,7 +216,7 @@ kdb5_ldap_stash_service_password(int argc, char **argv)
+     if (str == NULL) {
+         if (feof(pfile)) {
+             /* If the service object dn is not present in the service password file */
+-            if (fprintf(pfile, "%s#{HEX}%s\n", service_object, hexpasswd.data) < 0) {
++            if (fprintf(pfile, "%s#{HEX}%s\n", service_object, hexpasswd) < 0) {
+                 com_err(me, errno,
+                         _("Failed to write service object password to file"));
+                 fclose(pfile);
+@@ -277,7 +268,7 @@ kdb5_ldap_stash_service_password(int argc, char **argv)
+         while (fgets(line, MAX_LEN, pfile) != NULL) {
+             if (((str = strstr(line, service_object)) != NULL) &&
+                 (line[strlen(service_object)] == '#')) {
+-                if (fprintf(newfile, "%s#{HEX}%s\n", service_object, hexpasswd.data) < 0) {
++                if (fprintf(newfile, "%s#{HEX}%s\n", service_object, hexpasswd) < 0) {
+                     com_err(me, errno, _("Failed to write service object "
+                                          "password to file"));
+                     fclose(newfile);
+@@ -322,10 +313,7 @@ kdb5_ldap_stash_service_password(int argc, char **argv)
+ 
+ cleanup:
+ 
+-    if (hexpasswd.length != 0) {
+-        memset(hexpasswd.data, 0, hexpasswd.length);
+-        free(hexpasswd.data);
+-    }
++    zapfreestr(hexpasswd);
+ 
+     if (service_object)
+         free(service_object);
+diff --git a/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.h b/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.h
+index cf652c578..08af62e17 100644
+--- a/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.h
++++ b/src/plugins/kdb/ldap/ldap_util/kdb5_ldap_services.h
+@@ -32,6 +32,4 @@
+ #define MAX_LEN                 1024
+ #define MAX_SERVICE_PASSWD_LEN  256
+ 
+-extern int tohex(krb5_data, krb5_data *);
+-
+ extern void kdb5_ldap_stash_service_password(int argc, char **argv);
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/deps b/src/plugins/kdb/ldap/libkdb_ldap/deps
+index 1ff28553f..afca604dc 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/deps
++++ b/src/plugins/kdb/ldap/libkdb_ldap/deps
+@@ -220,15 +220,16 @@ ldap_service_stash.so ldap_service_stash.po $(OUTPRE)ldap_service_stash.$(OBJEXT
+   $(BUILDTOP)/include/autoconf.h $(BUILDTOP)/include/krb5/krb5.h \
+   $(BUILDTOP)/include/osconf.h $(BUILDTOP)/include/profile.h \
+   $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h $(top_srcdir)/include/k5-err.h \
+-  $(top_srcdir)/include/k5-gmt_mktime.h $(top_srcdir)/include/k5-int-pkinit.h \
+-  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
+-  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
+-  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/kdb.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h $(top_srcdir)/lib/kdb/kdb5.h \
+-  kdb_ldap.h ldap_handle.h ldap_krbcontainer.h ldap_main.h \
+-  ldap_misc.h ldap_realm.h ldap_service_stash.c ldap_service_stash.h
++  $(top_srcdir)/include/k5-gmt_mktime.h $(top_srcdir)/include/k5-hex.h \
++  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
++  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
++  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
++  $(top_srcdir)/include/kdb.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  $(top_srcdir)/lib/kdb/kdb5.h kdb_ldap.h ldap_handle.h \
++  ldap_krbcontainer.h ldap_main.h ldap_misc.h ldap_realm.h \
++  ldap_service_stash.c ldap_service_stash.h
+ kdb_xdr.so kdb_xdr.po $(OUTPRE)kdb_xdr.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(top_srcdir)/include/k5-buf.h \
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.c b/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.c
+index 87a2118ff..cb30f4a7f 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.c
++++ b/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.c
+@@ -31,16 +31,16 @@
+ #include "ldap_main.h"
+ #include "kdb_ldap.h"
+ #include "ldap_service_stash.h"
++#include <k5-hex.h>
+ #include <ctype.h>
+ 
+ /* Decode a password of the form {HEX}<hexstring>. */
+ static krb5_error_code
+ dec_password(krb5_context context, const char *str, char **password_out)
+ {
++    krb5_error_code ret;
++    uint8_t *bytes;
+     size_t len;
+-    const unsigned char *p;
+-    unsigned char *password, *q;
+-    unsigned int k;
+ 
+     *password_out = NULL;
+ 
+@@ -48,30 +48,15 @@ dec_password(krb5_context context, const char *str, char **password_out)
+         k5_setmsg(context, EINVAL, _("Not a hexadecimal password"));
+         return EINVAL;
+     }
+-    str += 5;
+ 
+-    len = strlen(str);
+-    if (len % 2 != 0) {
+-        k5_setmsg(context, EINVAL, _("Password corrupt"));
+-        return EINVAL;
++    ret = k5_hex_decode(str + 5, &bytes, &len);
++    if (ret) {
++        if (ret == EINVAL)
++            k5_setmsg(context, ret, _("Password corrupt"));
++        return ret;
+     }
+ 
+-    q = password = malloc(len / 2 + 1);
+-    if (password == NULL)
+-        return ENOMEM;
+-
+-    for (p = (unsigned char *)str; *p != '\0'; p += 2) {
+-        if (!isxdigit(*p) || !isxdigit(p[1])) {
+-            free(password);
+-            k5_setmsg(context, EINVAL, _("Password corrupt"));
+-            return EINVAL;
+-        }
+-        sscanf((char *)p, "%2x", &k);
+-        *q++ = k;
+-    }
+-    *q = '\0';
+-
+-    *password_out = (char *)password;
++    *password_out = (char *)bytes;
+     return 0;
+ }
+ 
+@@ -128,35 +113,3 @@ krb5_ldap_readpassword(krb5_context context, const char *filename,
+     /* Extract the plain password information. */
+     return dec_password(context, val, password_out);
+ }
+-
+-/* Encodes a sequence of bytes in hexadecimal */
+-
+-int
+-tohex(krb5_data in, krb5_data *ret)
+-{
+-    unsigned int       i=0;
+-    int                err = 0;
+-
+-    ret->length = 0;
+-    ret->data = NULL;
+-
+-    ret->data = malloc((unsigned int)in.length * 2 + 1 /*Null termination */);
+-    if (ret->data == NULL) {
+-        err = ENOMEM;
+-        goto cleanup;
+-    }
+-    ret->length = in.length * 2;
+-    ret->data[ret->length] = 0;
+-
+-    for (i = 0; i < in.length; i++)
+-        snprintf(ret->data + 2 * i, 3, "%02x", in.data[i] & 0xff);
+-
+-cleanup:
+-
+-    if (ret->length == 0) {
+-        free(ret->data);
+-        ret->data = NULL;
+-    }
+-
+-    return err;
+-}
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.h b/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.h
+index dbf62443a..03cf9a1f7 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.h
++++ b/src/plugins/kdb/ldap/libkdb_ldap/ldap_service_stash.h
+@@ -37,7 +37,4 @@ krb5_error_code
+ krb5_ldap_readpassword(krb5_context context, const char *filename,
+                        const char *name, char **password_out);
+ 
+-int
+-tohex(krb5_data, krb5_data *);
+-
+ #endif
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/libkdb_ldap.exports b/src/plugins/kdb/ldap/libkdb_ldap/libkdb_ldap.exports
+index 2342f1db8..5376d3453 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/libkdb_ldap.exports
++++ b/src/plugins/kdb/ldap/libkdb_ldap/libkdb_ldap.exports
+@@ -1,4 +1,3 @@
+-tohex
+ krb5_ldap_open
+ krb5_ldap_close
+ krb5_ldap_db_init
+diff --git a/src/slave/deps b/src/slave/deps
+index c3677a5e1..c0f558ecd 100644
+--- a/src/slave/deps
++++ b/src/slave/deps
+@@ -64,10 +64,11 @@ $(OUTPRE)kproplog.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(top_srcdir)/include/gssrpc/xdr.h $(top_srcdir)/include/iprop.h \
+   $(top_srcdir)/include/iprop_hdr.h $(top_srcdir)/include/k5-buf.h \
+   $(top_srcdir)/include/k5-err.h $(top_srcdir)/include/k5-gmt_mktime.h \
+-  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
+-  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
+-  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
+-  $(top_srcdir)/include/kdb.h $(top_srcdir)/include/kdb_log.h \
+-  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
+-  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
+-  $(top_srcdir)/include/socket-utils.h kproplog.c
++  $(top_srcdir)/include/k5-hex.h $(top_srcdir)/include/k5-int-pkinit.h \
++  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
++  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
++  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/kdb.h \
++  $(top_srcdir)/include/kdb_log.h $(top_srcdir)/include/krb5.h \
++  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
++  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
++  kproplog.c
+diff --git a/src/slave/kproplog.c b/src/slave/kproplog.c
+index 4f19eeb8c..d4aed7ba6 100644
+--- a/src/slave/kproplog.c
++++ b/src/slave/kproplog.c
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "k5-int.h"
++#include "k5-hex.h"
+ #include <locale.h>
+ #include <sys/types.h>
+ #include <sys/mman.h>
+@@ -106,15 +107,15 @@ print_deltat(uint32_t *deltat)
+ static void
+ print_hex(const char *tag, utf8str_t *str)
+ {
+-    unsigned int i;
+     unsigned int len;
++    char *hex;
+ 
+     len = str->utf8str_t_len;
+ 
+-    printf("\t\t\t%s(%d): 0x", tag, len);
+-    for (i = 0; i < len; i++)
+-        printf("%02x", (krb5_octet)str->utf8str_t_val[i]);
+-    printf("\n");
++    if (k5_hex_encode(str->utf8str_t_val, len, FALSE, &hex) != 0)
++        abort();
++    printf("\t\t\t%s(%d): 0x%s\n", tag, len, hex);
++    free(hex);
+ }
+ 
+ /* Display string primitive. */
+diff --git a/src/tests/gssapi/deps b/src/tests/gssapi/deps
+index b784deb63..0b50d9ed3 100644
+--- a/src/tests/gssapi/deps
++++ b/src/tests/gssapi/deps
+@@ -149,13 +149,13 @@ $(OUTPRE)t_prf.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
+   $(srcdir)/../../lib/gssapi/krb5/gssapiP_krb5.h $(srcdir)/../../lib/gssapi/krb5/gssapi_krb5.h \
+   $(srcdir)/../../lib/gssapi/mechglue/mechglue.h $(srcdir)/../../lib/gssapi/mechglue/mglueP.h \
+   $(top_srcdir)/include/k5-buf.h $(top_srcdir)/include/k5-err.h \
+-  $(top_srcdir)/include/k5-gmt_mktime.h $(top_srcdir)/include/k5-int-pkinit.h \
+-  $(top_srcdir)/include/k5-int.h $(top_srcdir)/include/k5-platform.h \
+-  $(top_srcdir)/include/k5-plugin.h $(top_srcdir)/include/k5-thread.h \
+-  $(top_srcdir)/include/k5-trace.h $(top_srcdir)/include/krb5.h \
+-  $(top_srcdir)/include/krb5/authdata_plugin.h $(top_srcdir)/include/krb5/plugin.h \
+-  $(top_srcdir)/include/port-sockets.h $(top_srcdir)/include/socket-utils.h \
+-  common.h t_prf.c
++  $(top_srcdir)/include/k5-gmt_mktime.h $(top_srcdir)/include/k5-hex.h \
++  $(top_srcdir)/include/k5-int-pkinit.h $(top_srcdir)/include/k5-int.h \
++  $(top_srcdir)/include/k5-platform.h $(top_srcdir)/include/k5-plugin.h \
++  $(top_srcdir)/include/k5-thread.h $(top_srcdir)/include/k5-trace.h \
++  $(top_srcdir)/include/krb5.h $(top_srcdir)/include/krb5/authdata_plugin.h \
++  $(top_srcdir)/include/krb5/plugin.h $(top_srcdir)/include/port-sockets.h \
++  $(top_srcdir)/include/socket-utils.h common.h t_prf.c
+ $(OUTPRE)t_s4u.$(OBJEXT): $(BUILDTOP)/include/gssapi/gssapi.h \
+   $(BUILDTOP)/include/gssapi/gssapi_ext.h $(BUILDTOP)/include/gssapi/gssapi_krb5.h \
+   $(BUILDTOP)/include/krb5/krb5.h $(COM_ERR_DEPS) $(top_srcdir)/include/krb5.h \
+diff --git a/src/tests/gssapi/t_prf.c b/src/tests/gssapi/t_prf.c
+index 2c8c85188..6a698ce0f 100644
+--- a/src/tests/gssapi/t_prf.c
++++ b/src/tests/gssapi/t_prf.c
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include "k5-int.h"
++#include "k5-hex.h"
+ #include "common.h"
+ #include "mglueP.h"
+ #include "gssapiP_krb5.h"
+@@ -109,12 +110,14 @@ static struct {
+ static size_t
+ fromhex(const char *hexstr, unsigned char *out)
+ {
+-    const char *p;
+-    size_t count;
++    uint8_t *bytes;
++    size_t len;
+ 
+-    for (p = hexstr, count = 0; *p != '\0'; p += 2, count++)
+-        sscanf(p, "%2hhx", &out[count]);
+-    return count;
++    if (k5_hex_decode(hexstr, &bytes, &len) != 0)
++        abort();
++    memcpy(out, bytes, len);
++    free(bytes);
++    return len;
+ }
+ 
+ int

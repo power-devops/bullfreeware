@@ -1,0 +1,13 @@
+--- ./libmariadb/libmariadb/ma_dtoa.c.OOOOORIGIN	2019-04-26 16:07:26 -0500
++++ ./libmariadb/libmariadb/ma_dtoa.c	2019-04-26 16:09:31 -0500
+@@ -512,8 +512,8 @@
+ 
+ typedef union { double d; ULong L[2]; } U;
+ 
+-#if defined(WORDS_BIGENDIAN) || (defined(__FLOAT_WORD_ORDER) &&        \
+-                                 (__FLOAT_WORD_ORDER == __BIG_ENDIAN))
++#if defined(HAVE_BIGENDIAN) || defined(WORDS_BIGENDIAN) || \
++   (defined(__FLOAT_WORD_ORDER) && (__FLOAT_WORD_ORDER == __BIG_ENDIAN))
+ #define word0(x) (x)->L[0]
+ #define word1(x) (x)->L[1]
+ #else

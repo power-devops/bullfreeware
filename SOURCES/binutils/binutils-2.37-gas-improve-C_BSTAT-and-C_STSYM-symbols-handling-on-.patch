@@ -1,0 +1,248 @@
+From cd026728f3bcba878293f9c38f8760512755ed73 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 27 Jul 2021 14:37:50 +0200
+Subject: [PATCH] gas: improve C_BSTAT and C_STSYM symbols handling on XCOFF
+
+A C_BSTAT debug symbol specifies the beginning of a static block.
+Its n_value is the index of the csect containing static symbols.
+A C_STSYM debug symbol represents the stabstring of a statically
+allocated symbol. Its n_value is the offset in the csect pointed
+by the containing C_BSTAT.
+
+These two special n_value were not correctly handled both when
+generating object files with gas or when reading them with objdump.
+This patch tries to improve that and, above all, to allow gas-generated
+object files with such symbols to be accepted by AIX ld.
+
+bfd/
+	* coff-bfd.c (bfd_coff_get_syment): Adjust n_value of symbols
+	having fix_value = 1 in order to be an index and not a memory
+	offset.
+	* coffgen.c (coff_get_symbol_info): Likewize.
+	(coff_print_symbol): Likewize.
+
+gas/
+	* config/tc-ppc.c (ppc_frob_label): Don't change within if
+	already set.
+	(ppc_stabx): Remove workaround changing exp.X_add_symbol's
+	within.
+	* config/tc-ppc.h (struct ppc_tc_sy): Update comments.
+	* symbols.c (resolve_symbol_value): Remove symbol update
+	when final_val is 0 and it's an AIX debug symbol.
+	* testsuite/gas/ppc/aix.exp: Add new tests.
+	* testsuite/gas/ppc/xcoff-stsym-32.d: New test.
+	* testsuite/gas/ppc/xcoff-stsym-64.d: New test.
+	* testsuite/gas/ppc/xcoff-stsym.s: New test.
+---
+ bfd/coff-bfd.c                         |  5 +++--
+ bfd/coffgen.c                          |  9 ++++++---
+ gas/config/tc-ppc.c                    |  8 ++++++--
+ gas/config/tc-ppc.h                    |  1 +
+ gas/symbols.c                          | 12 +++++++++++-
+ gas/testsuite/gas/ppc/aix.exp          |  3 +++
+ gas/testsuite/gas/ppc/xcoff-stsym-32.d | 22 ++++++++++++++++++++++
+ gas/testsuite/gas/ppc/xcoff-stsym-64.d | 22 ++++++++++++++++++++++
+ gas/testsuite/gas/ppc/xcoff-stsym.s    | 16 ++++++++++++++++
+ 9 files changed, 90 insertions(+), 8 deletions(-)
+ create mode 100644 gas/testsuite/gas/ppc/xcoff-stsym-32.d
+ create mode 100644 gas/testsuite/gas/ppc/xcoff-stsym-64.d
+ create mode 100644 gas/testsuite/gas/ppc/xcoff-stsym.s
+
+diff --git a/bfd/coff-bfd.c b/bfd/coff-bfd.c
+index 8af084ef293..dd61bbaf04f 100644
+--- a/bfd/coff-bfd.c
++++ b/bfd/coff-bfd.c
+@@ -45,8 +45,9 @@ bfd_coff_get_syment (bfd *abfd,
+   *psyment = csym->native->u.syment;
+ 
+   if (csym->native->fix_value)
+-    psyment->n_value = psyment->n_value -
+-      (bfd_hostptr_t) obj_raw_syments (abfd);
++    psyment->n_value =
++      ((psyment->n_value - (bfd_hostptr_t) obj_raw_syments (abfd))
++       / sizeof (combined_entry_type));
+ 
+   /* FIXME: We should handle fix_line here.  */
+ 
+diff --git a/bfd/coffgen.c b/bfd/coffgen.c
+index b13e7732962..017d4c31a4e 100644
+--- a/bfd/coffgen.c
++++ b/bfd/coffgen.c
+@@ -2043,8 +2043,10 @@ coff_get_symbol_info (bfd *abfd, asymbol *symbol, symbol_info *ret)
+   if (coffsymbol (symbol)->native != NULL
+       && coffsymbol (symbol)->native->fix_value
+       && coffsymbol (symbol)->native->is_sym)
+-    ret->value = coffsymbol (symbol)->native->u.syment.n_value -
+-      (bfd_hostptr_t) obj_raw_syments (abfd);
++    ret->value =
++      ((coffsymbol (symbol)->native->u.syment.n_value -
++	(bfd_hostptr_t) obj_raw_syments (abfd))
++       / sizeof (combined_entry_type));
+ }
+ 
+ /* Print out information about COFF symbol.  */
+@@ -2092,7 +2094,8 @@ coff_print_symbol (bfd *abfd,
+ 	  if (! combined->fix_value)
+ 	    val = (bfd_vma) combined->u.syment.n_value;
+ 	  else
+-	    val = combined->u.syment.n_value - (bfd_hostptr_t) root;
++	    val = ((combined->u.syment.n_value - (bfd_hostptr_t) root)
++		   / sizeof (combined_entry_type));
+ 
+ 	  fprintf (file, "(sec %2d)(fl 0x%02x)(ty %3x)(scl %3d) (nx %d) 0x",
+ 		   combined->u.syment.n_scnum,
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index 6eeb98c5744..8c3b0a8e7cc 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -2901,8 +2901,13 @@ ppc_frob_label (symbolS *sym)
+       symbol_remove (sym, &symbol_rootP, &symbol_lastP);
+       symbol_append (sym, symbol_get_tc (ppc_current_csect)->within,
+ 		     &symbol_rootP, &symbol_lastP);
++      /* Update last csect symbol.  */
+       symbol_get_tc (ppc_current_csect)->within = sym;
+-      symbol_get_tc (sym)->within = ppc_current_csect;
++
++      /* Some labels like .bs are using within differently.
++         So avoid changing it, if it's already set.  */
++      if (symbol_get_tc (sym)->within == NULL)
++	symbol_get_tc (sym)->within = ppc_current_csect;
+     }
+ #endif
+ 
+@@ -5056,7 +5061,6 @@ ppc_stabx (int ignore ATTRIBUTE_UNUSED)
+             as_bad (_(".stabx of storage class stsym must be within .bs/.es"));
+ 
+           symbol_get_tc (sym)->within = ppc_current_block;
+-          symbol_get_tc (exp.X_add_symbol)->within = ppc_current_block;
+         }
+     }
+ 
+diff --git a/gas/config/tc-ppc.h b/gas/config/tc-ppc.h
+index 4e175b0b70c..fb18730db3c 100644
+--- a/gas/config/tc-ppc.h
++++ b/gas/config/tc-ppc.h
+@@ -130,6 +130,7 @@ struct ppc_tc_sy
+   /* For a csect symbol, the last symbol which has been defined in
+      this csect, or NULL if none have been defined so far.
+      For a .bs symbol, the referenced csect symbol.
++     For a C_STSYM symbol, the containing block (.bs symbol).
+      For a label, the enclosing csect.  */
+   symbolS *within;
+   union
+diff --git a/gas/symbols.c b/gas/symbols.c
+index 12216800edb..302eb4bd6f7 100644
+--- a/gas/symbols.c
++++ b/gas/symbols.c
+@@ -1380,7 +1380,17 @@ resolve_symbol_value (symbolS *symp)
+ 	      && add_symbol->flags.resolving)
+ 	    break;
+ 
+-	  if (finalize_syms && final_val == 0)
++	  if (finalize_syms && final_val == 0
++#ifdef OBJ_XCOFF
++	      /* Avoid changing symp's "within" when dealing with
++		 AIX debug symbols. For some storage classes, "within"
++	         have a special meaning.
++		 C_DWARF should behave like on Linux, thus this check
++		 isn't done to be closer.  */
++	      && ((symbol_get_bfdsym (symp)->flags & BSF_DEBUGGING) == 0
++		  || (S_GET_STORAGE_CLASS (symp) == C_DWARF))
++#endif
++	      )
+ 	    {
+ 	      if (add_symbol->flags.local_symbol)
+ 		add_symbol = local_symbol_convert (add_symbol);
+diff --git a/gas/testsuite/gas/ppc/aix.exp b/gas/testsuite/gas/ppc/aix.exp
+index 38b781969eb..aef295bc3b9 100644
+--- a/gas/testsuite/gas/ppc/aix.exp
++++ b/gas/testsuite/gas/ppc/aix.exp
+@@ -81,4 +81,7 @@ if { [istarget "powerpc*-*-aix*"] || [istarget "rs6000-*-aix*"] } then {
+ 
+     run_dump_test "xcoff-tlsm-32"
+     run_dump_test "xcoff-tlsm-64"
++
++    run_dump_test "xcoff-stsym-32"
++    run_dump_test "xcoff-stsym-64"
+ }
+diff --git a/gas/testsuite/gas/ppc/xcoff-stsym-32.d b/gas/testsuite/gas/ppc/xcoff-stsym-32.d
+new file mode 100644
+index 00000000000..501a1dc30cf
+--- /dev/null
++++ b/gas/testsuite/gas/ppc/xcoff-stsym-32.d
+@@ -0,0 +1,22 @@
++#as: -a32
++#source: xcoff-stsym.s
++#objdump: -t
++#name: XCOFF C_STSYM test (32-bit)
++
++.*
++
++SYMBOL TABLE:
++.*
++.*
++.*
++.*
++\[  4\]\(sec  1\).*\(scl 143\) \(nx 0\) 0x0000000a .bs
++\[  5\]\(sec -2\).*\(scl 133\) \(nx 0\) 0x00000000 x:V6
++\[  6\]\(sec  1\).*\(scl 144\) \(nx 0\) 0x00000000 .es
++\[  7\]\(sec  1\).*\(scl 143\) \(nx 0\) 0x0000000a .bs
++\[  8\]\(sec -2\).*\(scl 133\) \(nx 0\) 0x00000004 y:V6
++\[  9\]\(sec  1\).*\(scl 144\) \(nx 0\) 0x00000000 .es
++\[ 10\].* _main\.rw_
++.*
++
++
+diff --git a/gas/testsuite/gas/ppc/xcoff-stsym-64.d b/gas/testsuite/gas/ppc/xcoff-stsym-64.d
+new file mode 100644
+index 00000000000..8da109b0ab5
+--- /dev/null
++++ b/gas/testsuite/gas/ppc/xcoff-stsym-64.d
+@@ -0,0 +1,22 @@
++#as: -a64
++#source: xcoff-stsym.s
++#objdump: -t
++#name: XCOFF C_STSYM test (64-bit)
++
++.*
++
++SYMBOL TABLE:
++.*
++.*
++.*
++.*
++\[  4\]\(sec  1\).*\(scl 143\) \(nx 0\) 0x000000000000000a .bs
++\[  5\]\(sec -2\).*\(scl 133\) \(nx 0\) 0x0000000000000000 x:V6
++\[  6\]\(sec  1\).*\(scl 144\) \(nx 0\) 0x0000000000000000 .es
++\[  7\]\(sec  1\).*\(scl 143\) \(nx 0\) 0x000000000000000a .bs
++\[  8\]\(sec -2\).*\(scl 133\) \(nx 0\) 0x0000000000000004 y:V6
++\[  9\]\(sec  1\).*\(scl 144\) \(nx 0\) 0x0000000000000000 .es
++\[ 10\].* _main\.rw_
++.*
++
++
+diff --git a/gas/testsuite/gas/ppc/xcoff-stsym.s b/gas/testsuite/gas/ppc/xcoff-stsym.s
+new file mode 100644
+index 00000000000..ae98a81ec7b
+--- /dev/null
++++ b/gas/testsuite/gas/ppc/xcoff-stsym.s
+@@ -0,0 +1,16 @@
++	.file	"main.c"
++	.csect _main.rw_[RW],4
++
++	.csect .text[PR]
++	.bs	_main.rw_[RW]
++	.stabx	"x:V6",x.2,133,0
++	.es
++	.bs	_main.rw_[RW]
++	.stabx	"y:V6",y.1,133,0
++	.es
++
++	.csect _main.rw_[RW],4
++x.2:
++	.long	100
++y.1:
++	.long	110
+-- 
+2.33.0
+

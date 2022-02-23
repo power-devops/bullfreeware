@@ -1,0 +1,20 @@
+--- ./Examples/Makefile.in.ORIGIN	2021-01-11 18:02:12 +0100
++++ ./Examples/Makefile.in	2021-01-11 18:02:52 +0100
+@@ -249,7 +249,7 @@
+ perl5: $(SRCDIR_SRCS)
+ 	$(SWIG) -perl5 $(SWIGOPT) -o $(ISRCS) $(INTERFACEPATH)
+ 	$(CC) -c -Dbool=char $(CCSHARED) $(CPPFLAGS) $(CFLAGS) $(SRCDIR_SRCS) $(ISRCS) $(INCLUDES) $(PERL5_CCFLAGS) $(PERL5_CCCDLFLAGS) -I$(PERL5_INCLUDE)
+-	$(LDSHARED) $(CFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(SO)
++	$(LDSHARED) $(CFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(SO) $(PERL5_LIB)
+ 
+ # ----------------------------------------------------------------
+ # Build a Perl5 dynamically loadable module (C++)
+@@ -258,7 +258,7 @@
+ perl5_cpp: $(SRCDIR_SRCS)
+ 	$(SWIG) -perl5 -c++ $(SWIGOPT) -o $(ICXXSRCS) $(INTERFACEPATH)
+ 	$(CXX) -c $(CCSHARED) $(CPPFLAGS) $(CXXFLAGS) $(SRCDIR_SRCS) $(SRCDIR_CXXSRCS) $(ICXXSRCS) $(INCLUDES) $(PERL5_CCFLAGS) $(PERL5_CCCDLFLAGS) -I$(PERL5_INCLUDE)
+-	$(CXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(SO)
++	$(CXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(SO) $(PERL5_LIB)
+ 
+ # ----------------------------------------------------------------
+ # Build a module from existing XS C source code.   (ie. from xsubpp).

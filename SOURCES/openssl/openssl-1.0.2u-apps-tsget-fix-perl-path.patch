@@ -1,0 +1,8 @@
+--- a/apps/tsget	2019-12-16 12:49:43 +0100
++++ b/apps/tsget	2019-12-16 12:50:14 +0100
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!/opt/freeware/bin/perl -w
+ # Written by Zoltan Glozik <zglozik@stones.com>.
+ # Copyright (c) 2002 The OpenTSA Project.  All rights reserved.
+ $::version = '$Id: tsget,v 1.1.2.2 2009/09/07 17:57:02 steve Exp $';

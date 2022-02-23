@@ -1,0 +1,59 @@
+diff -Naur ocaml-3.09.3/emacs/Makefile ocaml-3.09.3.emacs/emacs/Makefile
+--- ocaml-3.09.3/emacs/Makefile	2007-01-24 09:40:57.000000000 +0100
++++ ocaml-3.09.3.emacs/emacs/Makefile	2007-01-24 10:15:54.000000000 +0100
+@@ -18,6 +18,8 @@
+ FILES=	caml-font.el caml-hilit.el caml.el camldebug.el \
+ 	inf-caml.el caml-compat.el caml-help.el caml-types.el \
+ 	caml-xemacs.el caml-emacs.el
++BYTECODE_FILES= caml-xemacs.elc caml-emacs.elc caml.elc \
++                inf-caml.elc caml-help.elc caml-types.elc camldebug.elc
+ 
+ # Where to install. If empty, automatically determined.
+ #EMACSDIR=
+@@ -39,6 +41,11 @@
+               (byte-compile-file "caml-types.el") \
+               (byte-compile-file "camldebug.el"))
+ 
++all: bytecode
++
++bytecode:
++	$(EMACS) --batch --eval '$(COMPILECMD)';
++
+ install:
+ 	@if test "$(EMACSDIR)" = ""; then \
+           set xxx `($(EMACS) --batch --eval "(mapcar 'print load-path)") \
+@@ -53,19 +60,21 @@
+           $(MAKE) simple-install; \
+         fi
+ 
+-# install the .el files, but do not compile them.
+-install-el:
+-	$(MAKE) NOCOMPILE=true install
+-
+ simple-install:
+ 	@echo "Installing in $(EMACSDIR)..."
+ 	if test -d $(EMACSDIR); then : ; else mkdir -p $(EMACSDIR); fi
+-	cp $(FILES) $(EMACSDIR)
++	  $(MAKE) simple-install-el; \
+ 	if [ -z "$(NOCOMPILE)" ]; then \
+-	  cd $(EMACSDIR); $(EMACS) --batch --eval '$(COMPILECMD)'; \
++	  $(MAKE) simple-install-elc; \
+ 	fi
+ 
+-ocamltags:	ocamltags.in
++simple-install-el:
++	cp $(FILES) $(EMACSDIR)
++
++simple-install-elc: bytecode
++	cp $(BYTECODE_FILES) $(EMACSDIR)
++
++ocamltags: ocamltags.in
+ 	sed -e 's:@EMACS@:$(EMACS):' ocamltags.in >ocamltags
+ 	chmod a+x ocamltags
+ 
+@@ -73,4 +82,4 @@
+ 	cp ocamltags $(SCRIPTDIR)/ocamltags
+ 
+ clean:
+-	rm -f ocamltags *~ #*#
++	rm -f ocamltags *~ *.elc #*#

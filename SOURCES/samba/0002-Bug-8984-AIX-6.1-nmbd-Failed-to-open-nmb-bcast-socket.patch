@@ -1,0 +1,30 @@
+From 62a086cf76a2f09b00b3ec2ddf7ab72dd59ebd80 Mon Sep 17 00:00:00 2001
+From: SATOH Fumiyasu <fumiyas@osstech.co.jp>
+Date: Wed, 19 Dec 2012 00:11:59 +0900
+Subject: [PATCH 2/2] Bug #8984 - AIX 6.1 nmbd Failed to open nmb bcast socket
+ on interface
+
+Fixed by Ben Lentz <blentz@cswg.com>
+
+http://lists.samba.org/archive/samba/2010-August/157763.html
+http://lists.samba.org/archive/samba-technical/2011-August/078954.html
+---
+ lib/replace/getifaddrs.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/replace/getifaddrs.c b/lib/replace/getifaddrs.c
+index f43a039..2953a19 100644
+--- a/lib/replace/getifaddrs.c
++++ b/lib/replace/getifaddrs.c
+@@ -58,7 +58,7 @@ static struct sockaddr *sockaddr_dup(struct sockaddr *sa)
+ {
+ 	struct sockaddr *ret;
+ 	socklen_t socklen;
+-#ifdef HAVE_SOCKADDR_SA_LEN
++#if defined(HAVE_SOCKADDR_SA_LEN) && !defined(AIX)
+ 	socklen = sa->sa_len;
+ #else
+ 	socklen = sizeof(struct sockaddr_storage);
+-- 
+1.7.10.4
+

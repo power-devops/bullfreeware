@@ -1,0 +1,58 @@
+--- ./mysql-test/unstable-tests.orig	2019-06-27 11:46:23.000000000 +0200
++++ ./mysql-test/unstable-tests	2019-07-22 15:52:03.000000000 +0200
+@@ -773,3 +773,55 @@
+ #-----------------------------------------------------------------------
+ 
+ wsrep_info.plugin                                                  : MDEV-13569 - No nodes coming from prim view
++
++
++## From Fedora
++# The SSL test are failing correctly. Fro more explanation, see:
++# https://jira.mariadb.org/browse/MDEV-8404?focusedCommentId=84275&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-84275
++main.ssl_7937                                : #1399847 From Fedora 
++#  main.ssl_crl_clients                         : #1399847 OK on AIX for now
++main.ssl_8k_key                              : From Fedora
++
++# 
++perfschema.nesting                           : #1399847 From Fedora
++perfschema.socket_summary_by_instance_func   : #1399847 From Fedora
++
++# ------------------------------
++# Tests that fails because of 'Self Signed Certificate in the Certificate Chain'
++perfschema.cnf_option                        : From Fedora
++sys_vars.slave_parallel_threads_basic        : From Fedora
++
++# ------------------------------
++# Fails since 10.1.12
++innodb.innodb_defrag_binlog                  : From Fedora
++
++# Fails on ppc and arm since 10.2.15
++parts.partition_alter4_innodb                : From Fedora
++
++
++# For AIX
++
++## Need versioning plugin
++versioning.*                          : test is run even if plugin versioning is not compiled.
++federated.federatedx_versioning       : test is run even if plugin versioning is not compiled.
++period.versioning                     : test is run even if plugin versioning is not compiled.
++
++## Need threadpool
++sys_vars.sysvars_server_notembedded   : Needs threadpool
++sys_vars.thread_pool_*                : Needs threadpool
++
++## Need example plugin
++compat/oracle.plugin                  : test is run even if plugin example is not compiled.
++
++## Need handlersocket plugin
++main.handlersocket                    : test is run even if plugin handlersocket is not compiled.
++
++## Need sql_errlog
++plugins.sql_error_log                 : test is run even if plugin sql_error_log is not compiled.
++
++## Other
++main.connect-abstract                 : abstract socket is not available on AIX
++
++## Too long and space consuming test.
++innodb_gis.rtree_debug                : Not the right errorcode, but OK. 5 hours, 30 Go
++main.sum_distinct-big                 : OK. 4 hours, 60 Go

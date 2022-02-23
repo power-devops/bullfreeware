@@ -1,0 +1,44 @@
+From 2a902bd2075b896d9e8ef5b3595abc2903a8a9d5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 7 May 2019 11:19:44 +0200
+Subject: [PATCH] libgo/testsuite: fix gotest for AIX
+
+DO NOT SUBMIT
+
+Change-Id: I10219a9f5bdab1ca2dec44c9d0537e67fffa4614
+---
+ libgo/testsuite/gotest | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/libgo/testsuite/gotest b/libgo/testsuite/gotest
+index c9c14652..506590a4 100755
+--- a/libgo/testsuite/gotest
++++ b/libgo/testsuite/gotest
+@@ -162,6 +162,24 @@ while $loop; do
+ 	esac
+ done
+ 
++if test "$goos" == "aix"; then
++	GL="${GL} -Wl,-bbigtoc"
++	GL="${GL} -Wl,-bernotok"
++	# Tests must be compiled with -static-libgo, otherwize two symbols
++	# might be created for the same object as tests duplicate code.
++	# This will create a mess between collect2 and the unwind table,
++	# resulting on a lot of test failures.
++	# TODO(aix): This is more a workaround than a true fix.
++	GL="${GL} -static-libgo"
++	if test "$goarch" == "ppc64"; then
++		# On ppc64, if LD_LIBRARY_PATH is set, go tools like go1 won't be
++		# able to load because there are built on 32 bits.
++		# As gccgo seems able to choose the right libgcc_s.a anyway,
++		# that's better to unset LD_LIBRARY_PATH.
++		unset LD_LIBRARY_PATH
++	fi
++fi
++
+ DIR=gotest$$
+ rm -rf $DIR
+ mkdir $DIR
+-- 
+2.17.1
+

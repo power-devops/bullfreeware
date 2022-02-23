@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -A rpm_args -- "$@"
+num_args=${#rpm_args[@]}
+while [[ $num_args -ne -1 ]]
+do
+   option=`echo ${rpm_args[$num_args]} | /usr/bin/cut -c1-2` 
+   if [[ $option == "-b" ]]; then
+       echo "Please use rpmbuild command to build rpm packages using rpm 4 or higher versions."
+       exit 1
+   fi
+   let "num_args=$num_args-1"
+done 
+
+#unset some variables which cause rpm to coredump
+unset AIXTHREAD_MNRATIO
+unset AIXTHREAD_SCOPE
+unset XPG_UNIX98
+
+if [[ $(/usr/bin/uname -v) -gt 5 && -x /usr/sbin/rpm_share ]]; then
+   exec /usr/sbin/rpm_share "$@"
+else
+   exec /opt/freeware/bin/rpm "$@"
+fi

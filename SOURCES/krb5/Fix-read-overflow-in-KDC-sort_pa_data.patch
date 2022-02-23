@@ -1,0 +1,48 @@
+From 20c25d4a2f78d8ab33d4879e1cf843e1fdb8a20b Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Thu, 15 Mar 2018 20:27:30 -0400
+Subject: [PATCH] Fix read overflow in KDC sort_pa_data()
+
+sort_pa_data() could read past the end of pa_order if all preauth
+systems in the table have the PA_REPLACES_KEY flag, causing a
+dereference of preauth_systems[-1].  This situation became possible
+after commit fea1a488924faa3938ef723feaa1ff12d22a91ff with the
+elimination of static_preauth_systems; before that there were always
+table entries which did not have PA_REPLACES_KEY set.
+
+Fix this bug by removing the loop to count n_key_replacers, and
+instead get the count from the prior loop by stopping once we move all
+of the key-replacing modules to the front.
+
+(cherry picked from commit b38e318cea18fd65647189eed64aef83bf1cb772)
+---
+ src/kdc/kdc_preauth.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/src/kdc/kdc_preauth.c b/src/kdc/kdc_preauth.c
+index 80b130222..62ff9a8a7 100644
+--- a/src/kdc/kdc_preauth.c
++++ b/src/kdc/kdc_preauth.c
+@@ -663,17 +663,18 @@ sort_pa_order(krb5_context context, krb5_kdc_req *request, int *pa_order)
+                 break;
+             }
+         }
++        /* If we didn't find one, we have moved all of the key-replacing
++         * modules, and i is the count of those modules. */
++        if (j == n_repliers)
++            break;
+     }
++    n_key_replacers = i;
+ 
+     if (request->padata != NULL) {
+         /* Now reorder the subset of modules which replace the key,
+          * bubbling those which handle pa_data types provided by the
+          * client ahead of the others.
+          */
+-        for (i = 0; preauth_systems[pa_order[i]].flags & PA_REPLACES_KEY; i++) {
+-            continue;
+-        }
+-        n_key_replacers = i;
+         for (i = 0; i < n_key_replacers; i++) {
+             if (pa_list_includes(request->padata,
+                                  preauth_systems[pa_order[i]].type))

@@ -1,0 +1,18 @@
+--- libpng-1.6.27.orig/contrib/libtests/pngvalid.c	2016-12-29 01:45:09 +0100
++++ libpng-1.6.27/contrib/libtests/pngvalid.c	2017-01-06 16:01:39 +0100
+@@ -7742,13 +7742,11 @@
+           * NOTE: this number only affects the internal limit check in pngvalid,
+           * it has no effect on the limits applied to the libpng values.
+           */
+-         that->pm->limit += pow(
+ #        if DIGITIZE
+-            2.0
++         that->pm->limit += pow( 2.0 /255, data.gamma);
+ #        else
+-            1.0
++         that->pm->limit += pow( 1.0 /255, data.gamma);
+ #        endif
+-            /255, data.gamma);
+       }
+    }
+ 

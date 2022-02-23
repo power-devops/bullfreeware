@@ -1,0 +1,98 @@
+From db9e15e68f24120922564365670c2bef6f6869e7 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 25 Oct 2018 10:02:37 +0200
+Subject: [PATCH] os: fix tests for AIX
+
+This commits fixes tests for AIX inside os package.
+
+"hostname" command on AIX returns "name.domain" and not only "name".
+So, "hostname -s" must be called.
+
+Change-Id: I75e193bcb6ad607ce54ad99aabbed9839012f707
+Reviewed-on: https://go-review.googlesource.com/c/144537
+Reviewed-by: Tobias Klauser <tobias.klauser@gmail.com>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+---
+
+diff --git a/src/os/executable_test.go b/src/os/executable_test.go
+index 4a9a883..d513c87 100644
+--- a/src/os/executable_test.go
++++ b/src/os/executable_test.go
+@@ -36,8 +36,8 @@
+ 	// forge argv[0] for child, so that we can verify we could correctly
+ 	// get real path of the executable without influenced by argv[0].
+ 	cmd.Args = []string{"-", "-test.run=XXXX"}
+-	if runtime.GOOS == "openbsd" {
+-		// OpenBSD relies on argv[0]
++	if runtime.GOOS == "openbsd" || runtime.GOOS == "aix" {
++		// OpenBSD and AIX rely on argv[0]
+ 		cmd.Args[0] = fn
+ 	}
+ 	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=1", executable_EnvVar))
+diff --git a/src/os/file_posix.go b/src/os/file_posix.go
+index 544d0ad..1c0de5c 100644
+--- a/src/os/file_posix.go
++++ b/src/os/file_posix.go
+@@ -7,6 +7,7 @@
+ package os
+ 
+ import (
++	"runtime"
+ 	"syscall"
+ 	"time"
+ )
+@@ -19,6 +20,10 @@
+ 	for len := 128; ; len *= 2 {
+ 		b := make([]byte, len)
+ 		n, e := fixCount(syscall.Readlink(fixLongPath(name), b))
++		// buffer too small
++		if runtime.GOOS == "aix" && e == syscall.ERANGE {
++			continue
++		}
+ 		if e != nil {
+ 			return "", &PathError{"readlink", name, e}
+ 		}
+diff --git a/src/os/os_test.go b/src/os/os_test.go
+index 876058e..9f09c9f 100644
+--- a/src/os/os_test.go
++++ b/src/os/os_test.go
+@@ -1493,7 +1493,11 @@
+ 	}
+ 	defer r.Close()
+ 	const path = "/bin/hostname"
+-	p, err := StartProcess(path, []string{"hostname"}, &ProcAttr{Files: []*File{nil, w, Stderr}})
++	argv := []string{"hostname"}
++	if runtime.GOOS == "aix" {
++		argv = []string{"hostname", "-s"}
++	}
++	p, err := StartProcess(path, argv, &ProcAttr{Files: []*File{nil, w, Stderr}})
+ 	if err != nil {
+ 		if _, err := Stat(path); IsNotExist(err) {
+ 			t.Skipf("skipping test; test requires %s but it does not exist", path)
+diff --git a/src/os/sticky_bsd.go b/src/os/sticky_bsd.go
+index 6b54c75..ae2744f 100644
+--- a/src/os/sticky_bsd.go
++++ b/src/os/sticky_bsd.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/sticky_notbsd.go b/src/os/sticky_notbsd.go
+index 834e79b..edb5f69 100644
+--- a/src/os/sticky_notbsd.go
++++ b/src/os/sticky_notbsd.go
+@@ -2,6 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// +build !aix
+ // +build !darwin
+ // +build !dragonfly
+ // +build !freebsd

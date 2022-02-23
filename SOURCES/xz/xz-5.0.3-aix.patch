@@ -1,0 +1,853 @@
+*** ./src/liblzma/delta/delta_decoder.c.ORIG	Fri Jan  8 16:56:19 2010
+--- ./src/liblzma/delta/delta_decoder.c	Fri Jan  8 16:56:44 2010
+***************
+*** 28,36 ****
+  
+  static lzma_ret
+  delta_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	assert(coder->next.code != NULL);
+  
+--- 28,36 ----
+  
+  static lzma_ret
+  delta_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	assert(coder->next.code != NULL);
+  
+*** ./src/liblzma/delta/delta_encoder.c.ORIG	Fri Jan  8 16:56:23 2010
+--- ./src/liblzma/delta/delta_encoder.c	Fri Jan  8 16:56:39 2010
+***************
+*** 19,25 ****
+  /// encoder's filter stack).
+  static void
+  copy_and_encode(lzma_coder *coder,
+! 		const uint8_t *restrict in, uint8_t *restrict out, size_t size)
+  {
+  	const size_t distance = coder->distance;
+  
+--- 19,25 ----
+  /// encoder's filter stack).
+  static void
+  copy_and_encode(lzma_coder *coder,
+! 		const uint8_t *in, uint8_t *out, size_t size)
+  {
+  	const size_t distance = coder->distance;
+  
+***************
+*** 50,58 ****
+  
+  static lzma_ret
+  delta_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	lzma_ret ret;
+  
+--- 50,58 ----
+  
+  static lzma_ret
+  delta_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	lzma_ret ret;
+  
+*** ./src/liblzma/simple/simple_coder.c.ORIG	Fri Jan  8 16:57:02 2010
+--- ./src/liblzma/simple/simple_coder.c	Fri Jan  8 16:57:16 2010
+***************
+*** 19,27 ****
+  /// Copied or encodes/decodes more data to out[].
+  static lzma_ret
+  copy_or_code(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	assert(!coder->end_was_reached);
+  
+--- 19,27 ----
+  /// Copied or encodes/decodes more data to out[].
+  static lzma_ret
+  copy_or_code(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	assert(!coder->end_was_reached);
+  
+***************
+*** 70,78 ****
+  
+  static lzma_ret
+  simple_code(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	// TODO: Add partial support for LZMA_SYNC_FLUSH. We can support it
+  	// in cases when the filter is able to filter everything. With most
+--- 70,78 ----
+  
+  static lzma_ret
+  simple_code(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	// TODO: Add partial support for LZMA_SYNC_FLUSH. We can support it
+  	// in cases when the filter is able to filter everything. With most
+*** ./src/liblzma/lzma/lzma_encoder.h.ORIG	Fri Jan  8 16:52:27 2010
+--- ./src/liblzma/lzma/lzma_encoder.h	Fri Jan  8 16:52:35 2010
+***************
+*** 44,52 ****
+  		lzma_coder *coder, const lzma_options_lzma *options);
+  
+  
+! extern lzma_ret lzma_lzma_encode(lzma_coder *restrict coder,
+! 		lzma_mf *restrict mf, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size,
+  		uint32_t read_limit);
+  
+  #endif
+--- 44,52 ----
+  		lzma_coder *coder, const lzma_options_lzma *options);
+  
+  
+! extern lzma_ret lzma_lzma_encode(lzma_coder *coder,
+! 		lzma_mf *mf, uint8_t *out,
+! 		size_t *out_pos, size_t out_size,
+  		uint32_t read_limit);
+  
+  #endif
+*** ./src/liblzma/lzma/lzma_encoder_private.h.ORIG	Fri Jan  8 16:52:52 2010
+--- ./src/liblzma/lzma/lzma_encoder_private.h	Fri Jan  8 16:53:04 2010
+***************
+*** 138,148 ****
+  
+  
+  extern void lzma_lzma_optimum_fast(
+! 		lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint32_t *restrict back_res, uint32_t *restrict len_res);
+  
+! extern void lzma_lzma_optimum_normal(lzma_coder *restrict coder,
+! 		lzma_mf *restrict mf, uint32_t *restrict back_res,
+! 		uint32_t *restrict len_res, uint32_t position);
+  
+  #endif
+--- 138,148 ----
+  
+  
+  extern void lzma_lzma_optimum_fast(
+! 		lzma_coder *coder, lzma_mf *mf,
+! 		uint32_t *back_res, uint32_t *len_res);
+  
+! extern void lzma_lzma_optimum_normal(lzma_coder *coder,
+! 		lzma_mf *mf, uint32_t *back_res,
+! 		uint32_t *len_res, uint32_t position);
+  
+  #endif
+*** ./src/liblzma/lzma/lzma_encoder.c.ORIG	Fri Jan  8 16:53:18 2010
+--- ./src/liblzma/lzma/lzma_encoder.c	Fri Jan  8 16:53:29 2010
+***************
+*** 309,316 ****
+  
+  
+  extern lzma_ret
+! lzma_lzma_encode(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size, uint32_t limit)
+  {
+  	// Initialize the stream if no data has been encoded yet.
+--- 309,316 ----
+  
+  
+  extern lzma_ret
+! lzma_lzma_encode(lzma_coder *coder, lzma_mf *mf,
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size, uint32_t limit)
+  {
+  	// Initialize the stream if no data has been encoded yet.
+***************
+*** 402,409 ****
+  
+  
+  static lzma_ret
+! lzma_encode(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size)
+  {
+  	// Plain LZMA has no support for sync-flushing.
+--- 402,409 ----
+  
+  
+  static lzma_ret
+! lzma_encode(lzma_coder *coder, lzma_mf *mf,
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size)
+  {
+  	// Plain LZMA has no support for sync-flushing.
+*** ./src/liblzma/lzma/lzma2_decoder.c.ORIG	Fri Jan  8 16:53:56 2010
+--- ./src/liblzma/lzma/lzma2_decoder.c	Fri Jan  8 16:54:33 2010
+***************
+*** 54,61 ****
+  
+  
+  static lzma_ret
+! lzma2_decode(lzma_coder *restrict coder, lzma_dict *restrict dict,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+  		size_t in_size)
+  {
+  	// With SEQ_LZMA it is possible that no new input is needed to do
+--- 54,61 ----
+  
+  
+  static lzma_ret
+! lzma2_decode(lzma_coder *coder, lzma_dict *dict,
+! 		const uint8_t *in, size_t *in_pos,
+  		size_t in_size)
+  {
+  	// With SEQ_LZMA it is possible that no new input is needed to do
+*** ./src/liblzma/lzma/lzma2_encoder.c.ORIG	Fri Jan  8 16:54:00 2010
+--- ./src/liblzma/lzma/lzma2_encoder.c	Fri Jan  8 16:54:37 2010
+***************
+*** 137,144 ****
+  
+  
+  static lzma_ret
+! lzma2_encode(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size)
+  {
+  	while (*out_pos < out_size)
+--- 137,144 ----
+  
+  
+  static lzma_ret
+! lzma2_encode(lzma_coder *coder, lzma_mf *mf,
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size)
+  {
+  	while (*out_pos < out_size)
+*** ./src/liblzma/lzma/lzma_encoder_optimum_fast.c.ORIG	Fri Jan  8 16:54:08 2010
+--- ./src/liblzma/lzma/lzma_encoder_optimum_fast.c	Fri Jan  8 16:54:46 2010
+***************
+*** 17,24 ****
+  
+  
+  extern void
+! lzma_lzma_optimum_fast(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint32_t *restrict back_res, uint32_t *restrict len_res)
+  {
+  	const uint32_t nice_len = mf->nice_len;
+  
+--- 17,24 ----
+  
+  
+  extern void
+! lzma_lzma_optimum_fast(lzma_coder *coder, lzma_mf *mf,
+! 		uint32_t *back_res, uint32_t *len_res)
+  {
+  	const uint32_t nice_len = mf->nice_len;
+  
+*** ./src/liblzma/lzma/lzma_encoder_optimum_normal.c.ORIG	Fri Jan  8 16:54:13 2010
+--- ./src/liblzma/lzma/lzma_encoder_optimum_normal.c	Fri Jan  8 16:55:01 2010
+***************
+*** 222,229 ****
+  
+  
+  static void
+! backward(lzma_coder *restrict coder, uint32_t *restrict len_res,
+! 		uint32_t *restrict back_res, uint32_t cur)
+  {
+  	coder->opts_end_index = cur;
+  
+--- 222,229 ----
+  
+  
+  static void
+! backward(lzma_coder *coder, uint32_t *len_res,
+! 		uint32_t *back_res, uint32_t cur)
+  {
+  	coder->opts_end_index = cur;
+  
+***************
+*** 270,277 ****
+  //////////
+  
+  static inline uint32_t
+! helper1(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint32_t *restrict back_res, uint32_t *restrict len_res,
+  		uint32_t position)
+  {
+  	const uint32_t nice_len = mf->nice_len;
+--- 270,277 ----
+  //////////
+  
+  static inline uint32_t
+! helper1(lzma_coder *coder, lzma_mf *mf,
+! 		uint32_t *back_res, uint32_t *len_res,
+  		uint32_t position)
+  {
+  	const uint32_t nice_len = mf->nice_len;
+***************
+*** 811,818 ****
+  
+  
+  extern void
+! lzma_lzma_optimum_normal(lzma_coder *restrict coder, lzma_mf *restrict mf,
+! 		uint32_t *restrict back_res, uint32_t *restrict len_res,
+  		uint32_t position)
+  {
+  	// If we have symbols pending, return the next pending symbol.
+--- 811,818 ----
+  
+  
+  extern void
+! lzma_lzma_optimum_normal(lzma_coder *coder, lzma_mf *mf,
+! 		uint32_t *back_res, uint32_t *len_res,
+  		uint32_t position)
+  {
+  	// If we have symbols pending, return the next pending symbol.
+*** ./src/liblzma/lzma/lzma_decoder.c.ORIG	Fri Jan  8 17:10:56 2010
+--- ./src/liblzma/lzma/lzma_decoder.c	Fri Jan  8 16:54:41 2010
+***************
+*** 281,289 ****
+  
+  
+  static lzma_ret
+! lzma_decode(lzma_coder *restrict coder, lzma_dict *restrict dictptr,
+! 		const uint8_t *restrict in,
+! 		size_t *restrict in_pos, size_t in_size)
+  {
+  	////////////////////
+  	// Initialization //
+--- 281,289 ----
+  
+  
+  static lzma_ret
+! lzma_decode(lzma_coder *coder, lzma_dict *dictptr,
+! 		const uint8_t *in,
+! 		size_t *in_pos, size_t in_size)
+  {
+  	////////////////////
+  	// Initialization //
+*** ./src/liblzma/rangecoder/range_decoder.h.ORIG	Fri Jan  8 16:55:45 2010
+--- ./src/liblzma/rangecoder/range_decoder.h	Fri Jan  8 16:55:53 2010
+***************
+*** 26,33 ****
+  
+  /// Reads the first five bytes to initialize the range decoder.
+  static inline bool
+! rc_read_init(lzma_range_decoder *rc, const uint8_t *restrict in,
+! 		size_t *restrict in_pos, size_t in_size)
+  {
+  	while (rc->init_bytes_left > 0) {
+  		if (*in_pos == in_size)
+--- 26,33 ----
+  
+  /// Reads the first five bytes to initialize the range decoder.
+  static inline bool
+! rc_read_init(lzma_range_decoder *rc, const uint8_t *in,
+! 		size_t *in_pos, size_t in_size)
+  {
+  	while (rc->init_bytes_left > 0) {
+  		if (*in_pos == in_size)
+*** ./src/liblzma/common/common.h.ORIG	Fri Jan  8 16:34:48 2010
+--- ./src/liblzma/common/common.h	Fri Jan  8 16:35:47 2010
+***************
+*** 95,103 ****
+  /// function prototype.
+  typedef lzma_ret (*lzma_code_function)(
+  		lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size,
+  		lzma_action action);
+  
+  /// Type of a function to free the memory allocated for the coder
+--- 95,103 ----
+  /// function prototype.
+  typedef lzma_ret (*lzma_code_function)(
+  		lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size,
+  		lzma_action action);
+  
+  /// Type of a function to free the memory allocated for the coder
+***************
+*** 219,227 ****
+  
+  /// Copy as much data as possible from in[] to out[] and update *in_pos
+  /// and *out_pos accordingly. Returns the number of bytes copied.
+! extern size_t lzma_bufcpy(const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size);
+  
+  
+  /// \brief      Return if expression doesn't evaluate to LZMA_OK
+--- 219,227 ----
+  
+  /// Copy as much data as possible from in[] to out[] and update *in_pos
+  /// and *out_pos accordingly. Returns the number of bytes copied.
+! extern size_t lzma_bufcpy(const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size);
+  
+  
+  /// \brief      Return if expression doesn't evaluate to LZMA_OK
+*** ./src/liblzma/common/common.c.ORIG	Fri Jan  8 16:41:26 2010
+--- ./src/liblzma/common/common.c	Fri Jan  8 16:41:53 2010
+***************
+*** 70,78 ****
+  //////////
+  
+  extern size_t
+! lzma_bufcpy(const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size)
+  {
+  	const size_t in_avail = in_size - *in_pos;
+  	const size_t out_avail = out_size - *out_pos;
+--- 70,78 ----
+  //////////
+  
+  extern size_t
+! lzma_bufcpy(const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size)
+  {
+  	const size_t in_avail = in_size - *in_pos;
+  	const size_t out_avail = out_size - *out_pos;
+*** ./src/liblzma/common/block_encoder.c.ORIG	Fri Jan  8 16:43:10 2010
+--- ./src/liblzma/common/block_encoder.c	Fri Jan  8 16:43:29 2010
+***************
+*** 46,54 ****
+  
+  static lzma_ret
+  block_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	// Check that our amount of input stays in proper limits.
+  	if (LZMA_VLI_MAX - coder->uncompressed_size < in_size - *in_pos)
+--- 46,54 ----
+  
+  static lzma_ret
+  block_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	// Check that our amount of input stays in proper limits.
+  	if (LZMA_VLI_MAX - coder->uncompressed_size < in_size - *in_pos)
+*** ./src/liblzma/common/block_decoder.c.ORIG	Fri Jan  8 16:45:07 2010
+--- ./src/liblzma/common/block_decoder.c	Fri Jan  8 16:45:19 2010
+***************
+*** 72,80 ****
+  
+  static lzma_ret
+  block_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	switch (coder->sequence) {
+  	case SEQ_CODE: {
+--- 72,80 ----
+  
+  static lzma_ret
+  block_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	switch (coder->sequence) {
+  	case SEQ_CODE: {
+*** ./src/liblzma/common/auto_decoder.c.ORIG	Fri Jan  8 16:48:01 2010
+--- ./src/liblzma/common/auto_decoder.c	Fri Jan  8 16:48:32 2010
+***************
+*** 31,39 ****
+  
+  static lzma_ret
+  auto_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	switch (coder->sequence) {
+  	case SEQ_INIT:
+--- 31,39 ----
+  
+  static lzma_ret
+  auto_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	switch (coder->sequence) {
+  	case SEQ_INIT:
+*** ./src/liblzma/common/stream_decoder.c.ORIG	Fri Jan  8 16:48:11 2010
+--- ./src/liblzma/common/stream_decoder.c	Fri Jan  8 16:48:43 2010
+***************
+*** 97,105 ****
+  
+  static lzma_ret
+  stream_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	// When decoding the actual Block, it may be able to produce more
+  	// output even if we don't give it any new input.
+--- 97,105 ----
+  
+  static lzma_ret
+  stream_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	// When decoding the actual Block, it may be able to produce more
+  	// output even if we don't give it any new input.
+*** ./src/liblzma/common/stream_encoder.c.ORIG	Fri Jan  8 16:48:15 2010
+--- ./src/liblzma/common/stream_encoder.c	Fri Jan  8 16:48:50 2010
+***************
+*** 72,80 ****
+  
+  static lzma_ret
+  stream_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size, lzma_action action)
+  {
+  	// Main loop
+  	while (*out_pos < out_size)
+--- 72,80 ----
+  
+  static lzma_ret
+  stream_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size, lzma_action action)
+  {
+  	// Main loop
+  	while (*out_pos < out_size)
+*** ./src/liblzma/common/vli_decoder.c.ORIG	Fri Jan  8 16:48:19 2010
+--- ./src/liblzma/common/vli_decoder.c	Fri Jan  8 16:48:54 2010
+***************
+*** 14,21 ****
+  
+  
+  extern LZMA_API(lzma_ret)
+! lzma_vli_decode(lzma_vli *restrict vli, size_t *vli_pos,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+  		size_t in_size)
+  {
+  	// If we haven't been given vli_pos, work in single-call mode.
+--- 14,21 ----
+  
+  
+  extern LZMA_API(lzma_ret)
+! lzma_vli_decode(lzma_vli *vli, size_t *vli_pos,
+! 		const uint8_t *in, size_t *in_pos,
+  		size_t in_size)
+  {
+  	// If we haven't been given vli_pos, work in single-call mode.
+*** ./src/liblzma/common/vli_encoder.c.ORIG	Fri Jan  8 16:48:24 2010
+--- ./src/liblzma/common/vli_encoder.c	Fri Jan  8 16:48:58 2010
+***************
+*** 15,21 ****
+  
+  extern LZMA_API(lzma_ret)
+  lzma_vli_encode(lzma_vli vli, size_t *vli_pos,
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size)
+  {
+  	// If we haven't been given vli_pos, work in single-call mode.
+--- 15,21 ----
+  
+  extern LZMA_API(lzma_ret)
+  lzma_vli_encode(lzma_vli vli, size_t *vli_pos,
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size)
+  {
+  	// If we haven't been given vli_pos, work in single-call mode.
+*** ./src/liblzma/lz/lz_decoder.h.ORIG	Fri Jan  8 16:49:58 2010
+--- ./src/liblzma/lz/lz_decoder.h	Fri Jan  8 16:50:16 2010
+***************
+*** 56,64 ****
+  	lzma_coder *coder;
+  
+  	/// Function to decode from in[] to *dict
+! 	lzma_ret (*code)(lzma_coder *restrict coder,
+! 			lzma_dict *restrict dict, const uint8_t *restrict in,
+! 			size_t *restrict in_pos, size_t in_size);
+  
+  	void (*reset)(lzma_coder *coder, const void *options);
+  
+--- 56,64 ----
+  	lzma_coder *coder;
+  
+  	/// Function to decode from in[] to *dict
+! 	lzma_ret (*code)(lzma_coder *coder,
+! 			lzma_dict *dict, const uint8_t *in,
+! 			size_t *in_pos, size_t in_size);
+  
+  	void (*reset)(lzma_coder *coder, const void *options);
+  
+***************
+*** 200,208 ****
+  
+  /// Copies arbitrary amount of data into the dictionary.
+  static inline void
+! dict_write(lzma_dict *restrict dict, const uint8_t *restrict in,
+! 		size_t *restrict in_pos, size_t in_size,
+! 		size_t *restrict left)
+  {
+  	// NOTE: If we are being given more data than the size of the
+  	// dictionary, it could be possible to optimize the LZ decoder
+--- 200,208 ----
+  
+  /// Copies arbitrary amount of data into the dictionary.
+  static inline void
+! dict_write(lzma_dict *dict, const uint8_t *in,
+! 		size_t *in_pos, size_t in_size,
+! 		size_t *left)
+  {
+  	// NOTE: If we are being given more data than the size of the
+  	// dictionary, it could be possible to optimize the LZ decoder
+*** ./src/liblzma/lz/lz_encoder.h.ORIG	Fri Jan  8 16:50:41 2010
+--- ./src/liblzma/lz/lz_encoder.h	Fri Jan  8 16:50:52 2010
+***************
+*** 194,202 ****
+  	lzma_coder *coder;
+  
+  	/// Function to encode from *dict to out[]
+! 	lzma_ret (*code)(lzma_coder *restrict coder,
+! 			lzma_mf *restrict mf, uint8_t *restrict out,
+! 			size_t *restrict out_pos, size_t out_size);
+  
+  	/// Free allocated resources
+  	void (*end)(lzma_coder *coder, lzma_allocator *allocator);
+--- 194,202 ----
+  	lzma_coder *coder;
+  
+  	/// Function to encode from *dict to out[]
+! 	lzma_ret (*code)(lzma_coder *coder,
+! 			lzma_mf *mf, uint8_t *out,
+! 			size_t *out_pos, size_t out_size);
+  
+  	/// Free allocated resources
+  	void (*end)(lzma_coder *coder, lzma_allocator *allocator);
+*** ./src/liblzma/lz/lz_encoder.c.ORIG	Fri Jan  8 16:51:09 2010
+--- ./src/liblzma/lz/lz_encoder.c	Fri Jan  8 16:51:22 2010
+***************
+*** 149,157 ****
+  
+  static lzma_ret
+  lz_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+  		size_t in_size,
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size, lzma_action action)
+  {
+  	while (*out_pos < out_size
+--- 149,157 ----
+  
+  static lzma_ret
+  lz_encode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+  		size_t in_size,
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size, lzma_action action)
+  {
+  	while (*out_pos < out_size
+*** ./configure.ORIG	Fri Jan  8 16:25:14 2010
+--- ./configure	Fri Jan  8 16:30:05 2010
+***************
+*** 5147,5153 ****
+  cat >>conftest.$ac_ext <<_ACEOF
+  /* end confdefs.h.  */
+  #include <stdarg.h>
+! #include <stdbool.h>
+  #include <stdlib.h>
+  #include <wchar.h>
+  #include <stdio.h>
+--- 5147,5153 ----
+  cat >>conftest.$ac_ext <<_ACEOF
+  /* end confdefs.h.  */
+  #include <stdarg.h>
+! #include "stdbool.h"
+  #include <stdlib.h>
+  #include <wchar.h>
+  #include <stdio.h>
+*** ./src/liblzma/common/index.c.ORIG	Tue Nov  2 14:35:17 2010
+--- ./src/liblzma/common/index.c	Tue Nov  2 14:35:29 2010
+***************
+*** 761,767 ****
+  
+  
+  extern LZMA_API(lzma_ret)
+! lzma_index_cat(lzma_index *restrict dest, lzma_index *restrict src,
+  		lzma_allocator *allocator)
+  {
+  	const lzma_vli dest_file_size = lzma_index_file_size(dest);
+--- 761,767 ----
+  
+  
+  extern LZMA_API(lzma_ret)
+! lzma_index_cat(lzma_index *dest, lzma_index *src,
+  		lzma_allocator *allocator)
+  {
+  	const lzma_vli dest_file_size = lzma_index_file_size(dest);
+*** ./src/liblzma/lz/lz_decoder.c.ORIG	Fri Jul  1 12:58:04 2011
+--- ./src/liblzma/lz/lz_decoder.c	Fri Jul  1 12:58:16 2011
+***************
+*** 64,72 ****
+  
+  static lzma_ret
+  decode_buffer(lzma_coder *coder,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size)
+  {
+  	while (true) {
+  		// Wrap the dictionary if needed.
+--- 64,72 ----
+  
+  static lzma_ret
+  decode_buffer(lzma_coder *coder,
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size)
+  {
+  	while (true) {
+  		// Wrap the dictionary if needed.
+***************
+*** 127,135 ****
+  static lzma_ret
+  lz_decode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	if (coder->next.code == NULL)
+--- 127,135 ----
+  static lzma_ret
+  lz_decode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	if (coder->next.code == NULL)
+*** ./src/liblzma/common/alone_encoder.c.ORIG	Fri Jul  1 12:12:43 2011
+--- ./src/liblzma/common/alone_encoder.c	Fri Jul  1 12:13:10 2011
+***************
+*** 33,41 ****
+  static lzma_ret
+  alone_encode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	while (*out_pos < out_size)
+--- 33,41 ----
+  static lzma_ret
+  alone_encode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	while (*out_pos < out_size)
+*** ./src/liblzma/common/index_encoder.c.ORIG	Fri Jul  1 12:14:15 2011
+--- ./src/liblzma/common/index_encoder.c	Fri Jul  1 12:14:27 2011
+***************
+*** 43,52 ****
+  static lzma_ret
+  index_encode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *restrict in lzma_attribute((__unused__)),
+! 		size_t *restrict in_pos lzma_attribute((__unused__)),
+  		size_t in_size lzma_attribute((__unused__)),
+! 		uint8_t *restrict out, size_t *restrict out_pos,
+  		size_t out_size,
+  		lzma_action action lzma_attribute((__unused__)))
+  {
+--- 43,52 ----
+  static lzma_ret
+  index_encode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *in lzma_attribute((__unused__)),
+! 		size_t *in_pos lzma_attribute((__unused__)),
+  		size_t in_size lzma_attribute((__unused__)),
+! 		uint8_t *out, size_t *out_pos,
+  		size_t out_size,
+  		lzma_action action lzma_attribute((__unused__)))
+  {
+*** ./src/liblzma/common/alone_decoder.c.ORIG	Fri Jul  1 12:55:41 2011
+--- ./src/liblzma/common/alone_decoder.c	Fri Jul  1 12:55:51 2011
+***************
+*** 47,55 ****
+  static lzma_ret
+  alone_decode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+! 		size_t in_size, uint8_t *restrict out,
+! 		size_t *restrict out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	while (*out_pos < out_size
+--- 47,55 ----
+  static lzma_ret
+  alone_decode(lzma_coder *coder,
+  		lzma_allocator *allocator lzma_attribute((__unused__)),
+! 		const uint8_t *in, size_t *in_pos,
+! 		size_t in_size, uint8_t *out,
+! 		size_t *out_pos, size_t out_size,
+  		lzma_action action)
+  {
+  	while (*out_pos < out_size
+*** ./src/liblzma/common/index_decoder.c.ORIG	Fri Jul  1 12:56:44 2011
+--- ./src/liblzma/common/index_decoder.c	Fri Jul  1 12:56:53 2011
+***************
+*** 55,64 ****
+  
+  static lzma_ret
+  index_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *restrict in, size_t *restrict in_pos,
+  		size_t in_size,
+! 		uint8_t *restrict out lzma_attribute((__unused__)),
+! 		size_t *restrict out_pos lzma_attribute((__unused__)),
+  		size_t out_size lzma_attribute((__unused__)),
+  		lzma_action action lzma_attribute((__unused__)))
+  {
+--- 55,64 ----
+  
+  static lzma_ret
+  index_decode(lzma_coder *coder, lzma_allocator *allocator,
+! 		const uint8_t *in, size_t *in_pos,
+  		size_t in_size,
+! 		uint8_t *out lzma_attribute((__unused__)),
+! 		size_t *out_pos lzma_attribute((__unused__)),
+  		size_t out_size lzma_attribute((__unused__)),
+  		lzma_action action lzma_attribute((__unused__)))
+  {

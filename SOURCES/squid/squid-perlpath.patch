@@ -1,0 +1,8 @@
+--- squid-2.3.STABLE4/contrib/url-normalizer.pl.perlpath	Wed Mar 15 23:45:15 2000
++++ squid-2.3.STABLE4/contrib/url-normalizer.pl	Wed Mar 15 23:45:33 2000
+@@ -1,4 +1,4 @@
+-#!/usr/local/bin/perl -Tw
++#!/usr/bin/perl -Tw
+ 
+ # From:    Markus Gyger <mgyger@itr.ch>
+ #

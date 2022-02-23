@@ -1,0 +1,309 @@
+diff -crN ./OTHERS/expat/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./OTHERS/expat/Makefile.in
+*** ./OTHERS/expat/Makefile.in	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./OTHERS/expat/Makefile.in	Thu Jan  6 14:06:30 2005
+***************
+*** 0 ****
+--- 1,175 ----
++ ################################################################
++ # Process this file with top-level configure script to produce Makefile
++ #
++ # Copyright 2000 Clark Cooper
++ #
++ #  This file is part of EXPAT.
++ #
++ #  EXPAT is free software; you can redistribute it and/or modify it
++ #  under the terms of the License (based on the MIT/X license) contained
++ #  in the file COPYING that comes with this distribution.
++ #
++ # EXPAT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++ # IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
++ # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
++ # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
++ # SOFTWARE OR THE USE OR OTHER DEALINGS IN EXPAT.
++ #
++ 
++ SHELL = @SHELL@
++ 
++ srcdir = @srcdir@
++ top_srcdir = @top_srcdir@
++ VPATH = @srcdir@
++ 
++ prefix = @prefix@
++ exec_prefix = @exec_prefix@
++ 
++ bindir = @bindir@
++ libdir = @libdir@
++ includedir = @includedir@
++ mandir = ${prefix}/man/man1
++ 
++ DESTDIR =
++ 
++ top_builddir = .
++ 
++ 
++ INSTALL = @INSTALL@
++ INSTALL_PROGRAM = @INSTALL_PROGRAM@
++ INSTALL_DATA = @INSTALL_DATA@
++ mkinstalldirs = $(SHELL) $(top_srcdir)/conftools/mkinstalldirs
++ 
++ MANFILE = $(srcdir)/doc/xmlwf.1
++ APIHEADER = $(srcdir)/lib/expat.h
++ LIBRARY = libexpat.la
++ 
++ 
++ default:  buildlib xmlwf/xmlwf
++ 
++ buildlib: $(LIBRARY)
++ 
++ all: $(LIBRARY) xmlwf/xmlwf examples/elements examples/outline
++ 
++ clean:
++ 	cd lib && rm -f $(LIBRARY) *.o *.lo && rm -rf .libs _libs
++ 	cd xmlwf && rm -f xmlwf *.o *.lo && rm -rf .libs _libs
++ 	cd examples && rm -f elements outline *.o *.lo && rm -rf .libs _libs
++ 	cd tests && rm -rf .libs runtests runtests.o chardata.o
++ 	rm -rf .libs libexpat.la
++ 	rm -f examples/core tests/core xmlwf/core
++ 
++ clobber: clean
++ 
++ distclean: clean
++ 	rm -f expat_config.h config.status config.log config.cache libtool
++ 	rm -f Makefile
++ 
++ extraclean: distclean
++ 	rm -f expat_config.h.in configure
++ 	rm -f conftools/ltconfig conftools/ltmain.sh conftools/libtool.m4
++ 
++ check: tests/runtests
++ 	tests/runtests
++ 
++ install: xmlwf/xmlwf installlib
++ 	$(mkinstalldirs) $(DESTDIR)$(bindir) $(mandir)
++ 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) xmlwf/xmlwf $(DESTDIR)$(bindir)/xmlwf
++ 	$(INSTALL_DATA) $(MANFILE) $(DESTDIR)$(mandir)
++ 
++ installlib: $(LIBRARY) $(APIHEADER)
++ 	$(mkinstalldirs) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
++ 	$(LIBTOOL) --mode=install $(INSTALL) $(LIBRARY) $(DESTDIR)$(libdir)/$(LIBRARY)
++ 	$(INSTALL_DATA) $(APIHEADER) $(DESTDIR)$(includedir)
++ 
++ uninstall: uninstalllib
++ 	$(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(bindir)/xmlwf
++ 	rm -f $(DESTDIR)$(mandir)/xmlwf.1
++ 
++ uninstalllib:
++ 	$(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$(LIBRARY)
++ 	rm -f $(DESTDIR)$(includedir)/$(APIHEADER)
++ 
++ # for VPATH builds (invoked by configure)
++ mkdir-init:
++ 	@for d in lib xmlwf examples tests ; do \
++ 		(mkdir $$d 2> /dev/null || test 1) ; \
++ 	done
++ 
++ CC = @CC@
++ LIBTOOL = @LIBTOOL@
++ 
++ INCLUDES = -I$(srcdir)/lib -I.
++ LDFLAGS = @LDFLAGS@
++ CPPFLAGS = @CPPFLAGS@
++ CFLAGS = @CFLAGS@ -DHAVE_EXPAT_CONFIG_H
++ VSNFLAG = -version-info @LIBCURRENT@:@LIBREVISION@:@LIBAGE@
++ 
++ ### autoconf this?
++ LTFLAGS = --silent
++ 
++ COMPILE = $(CC) $(CFLAGS) $(DEFS) $(CPPFLAGS) $(INCLUDES)
++ LTCOMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(COMPILE)
++ LINK_LIB = $(LIBTOOL) $(LTFLAGS) --mode=link $(COMPILE) -no-undefined $(VSNFLAG) -rpath $(libdir) $(LDFLAGS) -o $@
++ LINK_EXE = $(LIBTOOL) $(LTFLAGS) --mode=link $(COMPILE) $(LDFLAGS) -o $@
++ 
++ LIB_OBJS = lib/xmlparse.lo lib/xmltok.lo lib/xmlrole.lo
++ $(LIBRARY): $(LIB_OBJS)
++ 	$(LINK_LIB) $(LIB_OBJS)
++ 
++ lib/xmlparse.lo: lib/xmlparse.c lib/expat.h lib/xmlrole.h lib/xmltok.h \
++ 	$(top_builddir)/expat_config.h lib/internal.h
++ 
++ lib/xmlrole.lo: lib/xmlrole.c lib/ascii.h lib/xmlrole.h \
++ 	$(top_builddir)/expat_config.h lib/internal.h
++ 
++ lib/xmltok.lo: lib/xmltok.c lib/xmltok_impl.c lib/xmltok_ns.c \
++ 	lib/ascii.h lib/asciitab.h lib/iasciitab.h lib/latin1tab.h \
++ 	lib/nametab.h lib/utf8tab.h lib/xmltok.h lib/xmltok_impl.h \
++ 	$(top_builddir)/expat_config.h
++ 
++ 
++ XMLWF_OBJS = xmlwf/xmlwf.o xmlwf/xmlfile.o xmlwf/codepage.o xmlwf/@FILEMAP@.o
++ xmlwf/xmlwf.o: xmlwf/xmlwf.c
++ xmlwf/xmlfile.o: xmlwf/xmlfile.c
++ xmlwf/codepage.o: xmlwf/codepage.c
++ xmlwf/@FILEMAP@.o: xmlwf/@FILEMAP@.c
++ xmlwf/xmlwf: $(XMLWF_OBJS) $(LIBRARY)
++ 	$(LINK_EXE) $(XMLWF_OBJS) $(LIBRARY)
++ 
++ examples/elements.o: examples/elements.c
++ examples/elements: examples/elements.o $(LIBRARY)
++ 	$(LINK_EXE) $< $(LIBRARY)
++ 
++ examples/outline.o: examples/outline.c
++ examples/outline: examples/outline.o $(LIBRARY)
++ 	$(LINK_EXE) $< $(LIBRARY)
++ 
++ tests/chardata.o: tests/chardata.c tests/chardata.h
++ tests/runtests.o: tests/runtests.c tests/chardata.h
++ tests/runtests: tests/runtests.o tests/chardata.o $(LIBRARY)
++ 	$(LINK_EXE) $^ -lcheck
++ 
++ tests/xmlts.zip:
++ 	wget --output-document=tests/xmlts.zip \
++ 		http://www.w3.org/XML/Test/xmlts20020606.zip
++ 
++ tests/XML-Test-Suite: tests/xmlts.zip
++ 	cd tests && unzip -q xmlts.zip
++ 
++ run-xmltest: xmlwf/xmlwf tests/XML-Test-Suite
++ 	tests/xmltest.sh
++ 
++ .SUFFIXES: .c .lo .o
++ 
++ .c.o:
++ 	$(COMPILE) -o $@ -c $<
++ .c.lo:
++ 	$(LTCOMPILE) -o $@ -c $<
++ 
++ .PHONY: buildlib all \
++ 	clean distclean extraclean maintainer-clean \
++ 	dist distdir \
++ 	install uninstall
+diff -crN ./OTHERS/expat/configure.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./OTHERS/expat/configure.in
+*** ./OTHERS/expat/configure.in	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./OTHERS/expat/configure.in	Thu Jan  6 14:07:03 2005
+***************
+*** 0 ****
+--- 1,122 ----
++ dnl   configuration script for expat
++ dnl   Process this file with autoconf to produce a configure script.
++ dnl
++ dnl   Copyright 2000 Clark Cooper
++ dnl
++ dnl   This file is part of EXPAT.
++ dnl
++ dnl   EXPAT is free software; you can redistribute it and/or modify it
++ dnl   under the terms of the License (based on the MIT/X license) contained
++ dnl   in the file COPYING that comes with this distribution.
++ dnl
++ 
++ dnl Ensure that Expat is configured with autoconf 2.52 or newer
++ AC_PREREQ(2.52)
++ 
++ dnl Get the version number of Expat, using m4's esyscmd() command to run
++ dnl the command at m4-generation time. This allows us to create an m4
++ dnl symbol holding the correct version number. AC_INIT() requires the
++ dnl version number at m4-time, rather than when ./configure is run, so
++ dnl all this must happen as part of m4, not as part of the shell code
++ dnl contained in ./configure.
++ dnl
++ dnl NOTE: esyscmd() is a GNU M4 extension. Thus, we wrap it in an appropriate
++ dnl test. I believe this test will work, but I don't have a place with non-
++ dnl GNU M4 to test it right now.
++ define([expat_version], [1.95.7])
++ AC_INIT(expat, expat_version, expat-bugs@mail.libexpat.org)
++ undefine([expat_version])
++ 
++ AC_CONFIG_SRCDIR(Makefile.in)
++ AC_CONFIG_AUX_DIR(conftools)
++ 
++ 
++ dnl
++ dnl Increment LIBREVISION if source code has changed at all
++ dnl
++ dnl If the API has changed, increment LIBCURRENT and set LIBREVISION to 0
++ dnl
++ dnl If the API changes compatibly (i.e. simply adding a new function
++ dnl without changing or removing earlier interfaces), then increment LIBAGE.
++ dnl 
++ dnl If the API changes incompatibly set LIBAGE back to 0
++ dnl
++ 
++ LIBCURRENT=5
++ LIBREVISION=0
++ LIBAGE=5
++ 
++ AC_CONFIG_HEADER(expat_config.h)
++ 
++ sinclude(conftools/libtool.m4)
++ sinclude(conftools/ac_c_bigendian_cross.m4)
++ 
++ AC_LIBTOOL_WIN32_DLL
++ AC_PROG_LIBTOOL
++ 
++ AC_SUBST(LIBCURRENT)
++ AC_SUBST(LIBREVISION)
++ AC_SUBST(LIBAGE)
++ 
++ dnl Checks for programs.
++ AC_PROG_CC
++ AC_PROG_INSTALL
++ 
++ if test "$GCC" = yes ; then
++     dnl
++     dnl Be careful about adding the -fexceptions option; some versions of
++     dnl GCC don't support it and it causes extra warnings that are only
++     dnl distracting; avoid.
++     dnl
++     OLDCFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
++     CFLAGS="$OLDCFLAGS -fexceptions"
++     AC_MSG_CHECKING(whether gcc accepts -fexceptions)
++     AC_TRY_COMPILE(,(void)1,
++                    AC_MSG_RESULT(yes),
++                    AC_MSG_RESULT(no); CFLAGS="$OLDCFLAGS")
++ fi
++ 
++ dnl Checks for header files.
++ AC_HEADER_STDC
++ 
++ dnl Checks for typedefs, structures, and compiler characteristics.
++ 
++ dnl Note: Avoid using AC_C_BIGENDIAN because it does not
++ dnl work in a cross compile.
++ AC_C_BIGENDIAN_CROSS
++ 
++ AC_C_CONST
++ AC_TYPE_SIZE_T
++ AC_CHECK_FUNCS(memmove bcopy)
++ 
++ dnl Only needed for xmlwf:
++ AC_CHECK_HEADERS(fcntl.h unistd.h)
++ AC_TYPE_OFF_T
++ AC_FUNC_MMAP
++ 
++ if test "$ac_cv_func_mmap_fixed_mapped" = "yes"; then
++     FILEMAP=unixfilemap
++ else
++     FILEMAP=readfilemap
++ fi
++ AC_SUBST(FILEMAP)
++ 
++ dnl Only needed for regression tests:
++ AC_CHECK_HEADERS(check.h)
++ 
++ dnl Some basic configuration:
++ AC_DEFINE([XML_NS], 1,
++           [Define to make XML Namespaces functionality available.])
++ AC_DEFINE([XML_DTD], 1,
++           [Define to make parameter entity parsing functionality available.])
++ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
++           [Define to specify how much context to retain around the current parse point.])
++ 
++ AC_CONFIG_FILES(Makefile)
++ AC_OUTPUT
++ 
++ abs_srcdir="`cd $srcdir && pwd`"
++ abs_builddir="`pwd`"
++ if test "$abs_srcdir" != "$abs_builddir"; then
++   gmake mkdir-init
++ fi

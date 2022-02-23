@@ -1,0 +1,30 @@
+Index: mysql-5.1.56/mysql-debug-5.1.56/include/m_string.h
+===================================================================
+--- mysql-5.1.56.orig/mysql-debug-5.1.56/include/m_string.h	2011-02-11 20:20:24.000000000 +0100
++++ mysql-5.1.56/mysql-debug-5.1.56/include/m_string.h	2011-03-30 11:09:17.000000000 +0200
+@@ -82,6 +82,10 @@
+ #endif
+ #endif
+ 
++#ifdef _AIX
++# define bzero(A,B)             memset((A),0,(B))
++#endif
++
+ /* Declared in int2str() */
+ extern char NEAR _dig_vec_upper[];
+ extern char NEAR _dig_vec_lower[];
+Index: mysql-5.1.56/mysql-release-5.1.56/include/m_string.h
+===================================================================
+--- mysql-5.1.56.orig/mysql-release-5.1.56/include/m_string.h	2011-02-11 20:20:24.000000000 +0100
++++ mysql-5.1.56/mysql-release-5.1.56/include/m_string.h	2011-03-30 11:09:37.000000000 +0200
+@@ -82,6 +82,10 @@
+ #endif
+ #endif
+ 
++#ifdef _AIX
++# define bzero(A,B)             memset((A),0,(B))
++#endif
++
+ /* Declared in int2str() */
+ extern char NEAR _dig_vec_upper[];
+ extern char NEAR _dig_vec_lower[];

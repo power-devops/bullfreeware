@@ -1,0 +1,83 @@
+Index: glib-2.48.0/glib/gconstructor.h
+===================================================================
+--- glib-2.48.0.orig/glib/gconstructor.h	2016-03-15 13:55:11.792340683 +0000
++++ glib-2.48.0/glib/gconstructor.h	2016-03-15 13:55:58.186843156 +0000
+@@ -85,6 +85,25 @@
+ #define G_DEFINE_DESTRUCTOR(_func) \
+   static void _func(void);
+ 
++#elif defined(__xlc__)
++
++#define G_HAS_CONSTRUCTORS 1
++
++#define G_DEFINE_CONSTRUCTOR_NEEDS_PRAGMA 1
++#define G_DEFINE_DESTRUCTOR_NEEDS_PRAGMA 1
++
++#define G_DEFINE_CONSTRUCTOR_PRAGMA_ARGS(_func) \
++  init(_func)
++#define G_DEFINE_CONSTRUCTOR(_func) \
++  static void _func(void); \
++  void _func ## _wrapper(void) { _func(); }
++
++#define G_DEFINE_DESTRUCTOR_PRAGMA_ARGS(_func) \
++  fini(_func)
++#define G_DEFINE_DESTRUCTOR(_func) \
++  static void _func(void); \
++  void _func ## _wrapper(void) { _func(); }
++
+ #else
+ 
+ /* constructors not supported for this compiler */
+Index: configure.ac
+===================================================================
+--- glib-2.48.0.orig/configure.ac	2016-03-15 13:55:51.412476637 +0000
++++ glib-2.48.0/configure.ac	2016-03-15 13:56:03.523900794 +0000
+@@ -768,6 +768,20 @@
+ AC_MSG_RESULT($g_have_sunstudio_visibility)
+ AM_CONDITIONAL(HAVE_SUNSTUDIO_VISIBILITY, [test x$g_have_sunstudio_visibility = xyes])
+ 
++AC_MSG_CHECKING([whether or not on AIX])
++case "$host" in
++  *-*-aix*)
++    AIX_LD_CONSTRUCTOR_FLAGS_GLIB="-Wl,-binitfini:glib_init_ctor_wrapper"
++    AIX_LD_CONSTRUCTOR_FLAGS_GOBJECT="-Wl,-binitfini:gobject_init_ctor_wrapper"
++    AC_MSG_RESULT(yes)
++    ;;
++  *)
++    AC_MSG_RESULT(no)
++    ;;
++esac
++AC_SUBST(AIX_LD_CONSTRUCTOR_FLAGS_GLIB)
++AC_SUBST(AIX_LD_CONSTRUCTOR_FLAGS_GOBJECT)
++
+ # check for bytesex stuff
+ AC_C_BIGENDIAN
+ if test x$ac_cv_c_bigendian = xuniversal ; then
+Index: glib/Makefile.am
+===================================================================
+--- glib-2.48.0.orig/glib/Makefile.am	2016-03-15 13:55:22.940308250 +0000
++++ glib-2.48.0/glib/Makefile.am	2016-03-15 13:55:58.196103784 +0000
+@@ -359,7 +359,8 @@
+ libglib_2_0_la_LDFLAGS = $(GLIB_LINK_FLAGS) \
+ 	 $(glib_win32_res_ldflag) \
+ 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+-	-export-dynamic $(no_undefined)
++	-export-dynamic $(no_undefined) \
++	$(AIX_LD_CONSTRUCTOR_FLAGS_GLIB)
+ 
+ INSTALL_PROGS=
+ 
+Index: gobject/Makefile.am
+===================================================================
+--- glib-2.48.0.orig/gobject/Makefile.am	2016-03-15 13:55:11.781514008 +0000
++++ glib-2.48.0/gobject/Makefile.am	2016-03-15 13:56:21.232760898 +0000
+@@ -47,7 +47,8 @@
+ libgobject_2_0_la_LDFLAGS = $(GLIB_LINK_FLAGS) \
+   $(gobject_win32_res_ldflag) \
+   -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+-  -export-dynamic $(no_undefined)
++  -export-dynamic $(no_undefined) \
++  $(AIX_LD_CONSTRUCTOR_FLAGS_GOBJECT)
+ 
+ libgobject_2_0_la_CFLAGS = $(AM_CFLAGS) $(LIBFFI_CFLAGS) $(GLIB_HIDDEN_VISIBILITY_CFLAGS)
+ 

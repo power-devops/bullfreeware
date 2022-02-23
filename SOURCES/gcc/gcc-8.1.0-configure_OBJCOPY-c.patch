@@ -1,0 +1,18 @@
+--- ./libgo/configure.ac	(revision 256986)
++++ ./libgo/configure.ac	(working copy)
+@@ -43,7 +43,14 @@ AM_MAINTAINER_MODE
+ 
+ AC_PROG_LD
+ AC_PROG_RANLIB
+-AC_CHECK_TOOL(OBJCOPY, objcopy, missing-objcopy)
++case ${target} in
++  *-*-aix*)
++    AC_CHECK_TOOL(OBJCOPY, copycsect, missing-objcopy)
++    ;;
++  *)
++    AC_CHECK_TOOL(OBJCOPY, objcopy, missing-objcopy)
++    ;;
++esac
+ 
+ AC_LIBTOOL_DLOPEN
+ AM_PROG_LIBTOOL

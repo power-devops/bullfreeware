@@ -1,0 +1,51 @@
+From 0e78dc131fcbfa0e1242778d7fa3fdba23820caa Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 16 Sep 2021 09:43:25 +0200
+Subject: [PATCH] include: rename errmsg to errmsgf
+
+"errmsg" is already defined in some parts of the code, as a char*.
+Thus, the macro will try to call that errmsg instead of the function.
+---
+ include/c.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/include/c.h b/include/c.h
+index 6f2ee1d..288fa13 100644
+--- a/include/c.h
++++ b/include/c.h
+@@ -207,7 +207,7 @@ prog_inv_sh_nm_from_file(char *f, char stripext)
+ 
+ #ifndef HAVE_ERR_H
+ static inline void
+-errmsg(char doexit, int excode, char adderr, const char *fmt, ...)
++errmsgf(char doexit, int excode, char adderr, const char *fmt, ...)
+ {
+ 	fprintf(stderr, "%s: ", program_invocation_short_name);
+ 	if (fmt != NULL) {
+@@ -226,19 +226,19 @@ errmsg(char doexit, int excode, char adderr, const char *fmt, ...)
+ }
+ 
+ #ifndef HAVE_ERR
+-# define err(E, FMT...) errmsg(1, E, 1, FMT)
++# define err(E, FMT...) errmsgf(1, E, 1, FMT)
+ #endif
+ 
+ #ifndef HAVE_ERRX
+-# define errx(E, FMT...) errmsg(1, E, 0, FMT)
++# define errx(E, FMT...) errmsgf(1, E, 0, FMT)
+ #endif
+ 
+ #ifndef HAVE_WARN
+-# define warn(FMT...) errmsg(0, 0, 1, FMT)
++# define warn(FMT...) errmsgf(0, 0, 1, FMT)
+ #endif
+ 
+ #ifndef HAVE_WARNX
+-# define warnx(FMT...) errmsg(0, 0, 0, FMT)
++# define warnx(FMT...) errmsgf(0, 0, 0, FMT)
+ #endif
+ #endif /* !HAVE_ERR_H */
+ 
+-- 
+2.33.0
+

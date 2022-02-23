@@ -1,0 +1,39 @@
+*** ./libtiff/tiffio.h.ORIG	Tue Oct 26 14:27:57 2010
+--- ./libtiff/tiffio.h	Tue Oct 26 14:28:23 2010
+***************
+*** 30,35 ****
+--- 30,38 ----
+  /*
+   * TIFF I/O Library Definitions.
+   */
++ #ifdef _AIX
++ #include <sys/types.h>
++ #endif
+  #include "tiff.h"
+  #include "tiffvers.h"
+  
+*** ./libtiff/tiffiop.h.ORIG	Tue Apr 12 23:33:50 2011
+--- ./libtiff/tiffiop.h	Tue Apr 12 23:34:10 2011
+***************
+*** 62,71 ****
+    utilities may use it.  
+  */
+  
+! #if !defined(__xlC__) && !defined(__xlc__) // Already defined there (#2301)
+  typedef TIFF_INT64_T  int64;
+  typedef TIFF_UINT64_T uint64;
+! #endif
+  
+  #include "tiffio.h"
+  #include "tif_dir.h"
+--- 62,71 ----
+    utilities may use it.  
+  */
+  
+! //#if !defined(__xlC__) && !defined(__xlc__) // Already defined there (#2301)
+  typedef TIFF_INT64_T  int64;
+  typedef TIFF_UINT64_T uint64;
+! //#endif
+  
+  #include "tiffio.h"
+  #include "tif_dir.h"

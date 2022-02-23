@@ -1,0 +1,178 @@
+diff -uNr ethereal-0.8.18.orig/Makefile.am ethereal-0.8.18/Makefile.am
+--- ethereal-0.8.18.orig/Makefile.am	Tue May 15 13:47:09 2001
++++ ethereal-0.8.18/Makefile.am	Tue Jun 26 17:03:29 2001
+@@ -459,9 +459,10 @@
+ 	$(ethereal_optional_objects)	\
+ 	$(ethereal_additional_libs)	\
+ 	@SNMP_LIBS@ @SSL_LIBS@ 		\
+-	"-dlopen" self	\
+-	"-dlopen" plugins/gryphon/gryphon.la @PCAP_LIBS@ @GTK_LIBS@ \
+-	"-dlopen" plugins/mgcp/mgcp.la @PCAP_LIBS@ @GTK_LIBS@
++#	"-dlopen" self	
++#	"-dlopen" plugins/gryphon/gryphon.la @PCAP_LIBS@ @GTK_LIBS@ \
++#	"-dlopen" plugins/mgcp/mgcp.la @PCAP_LIBS@ @GTK_LIBS@
++	@PCAP_LIBS@ @GTK_LIBS@
+ 
+ ethereal_static_LDADD = \
+ 	$(ethereal_optional_objects)	\
+@@ -504,10 +505,10 @@
+ 	$(ethereal_optional_objects)	\
+ 	$(tethereal_additional_libs)	\
+ 	@SNMP_LIBS@ @SSL_LIBS@		\
+-	"-dlopen" self	\
+-	"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm \
+-	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm \
+-	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
++#	"-dlopen" self	\
++#	"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm \
++#	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm \
++	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@ @GLIB_LIBS@ -lm
+ 
+ tethereal_static_LDADD = wiretap/libwiretap.a	\
+ 	$(ethereal_optional_objects)	\
+@@ -595,9 +596,9 @@
+ 	$(ethereal_optional_objects)	\
+ 	$(dftest_additional_libs)	\
+ 	@SNMP_LIBS@ @SSL_LIBS@		\
+-	"-dlopen" self	\
+-	"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm \
+-	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm \
++#	"-dlopen" self	\
++#	"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm \
++#	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm \
+ 	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
+ 
+ dftest_LDFLAGS = -export-dynamic
+diff -uNr ethereal-0.8.18.orig/Makefile.in ethereal-0.8.18/Makefile.in
+--- ethereal-0.8.18.orig/Makefile.in	Wed May 16 15:26:02 2001
++++ ethereal-0.8.18/Makefile.in	Tue Jun 26 17:03:35 2001
+@@ -236,7 +236,7 @@
+ # @SOCKET_LIBS@ or @NSL_LIBS@, as those should also be included in
+ # @GTK_LIBS@ (as those are also needed for X applications, and GTK+
+ # applications are X applications).
+-ethereal_LDADD =  	$(ethereal_optional_objects)		$(ethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@ 			"-dlopen" self		"-dlopen" plugins/gryphon/gryphon.la @PCAP_LIBS@ @GTK_LIBS@ 	"-dlopen" plugins/mgcp/mgcp.la @PCAP_LIBS@ @GTK_LIBS@
++ethereal_LDADD =  	$(ethereal_optional_objects)		$(ethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@  @PCAP_LIBS@ @GTK_LIBS@
+ 
+ 
+ ethereal_static_LDADD =  	$(ethereal_optional_objects)		$(ethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@			@PCAP_LIBS@ @GTK_LIBS@
+@@ -264,7 +264,7 @@
+ 
+ 
+ # This automake variable adds to the link-line for the executable
+-tethereal_LDADD = wiretap/libwiretap.a		$(ethereal_optional_objects)		$(tethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@			"-dlopen" self		"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm 	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm 	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
++tethereal_LDADD = wiretap/libwiretap.a		$(ethereal_optional_objects)		$(tethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@ @GLIB_LIBS@ -lm
+ 
+ 
+ tethereal_static_LDADD = wiretap/libwiretap.a		$(ethereal_optional_objects)		$(tethereal_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@			@GLIB_LIBS@ -lm 	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
+@@ -291,7 +291,7 @@
+ 
+ 
+ # This automake variable adds to the link-line for the executable
+-dftest_LDADD =  	$(ethereal_optional_objects)		$(dftest_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@			"-dlopen" self		"-dlopen" plugins/gryphon/gryphon.la @GLIB_LIBS@ -lm 	"-dlopen" plugins/mgcp/mgcp.la @GLIB_LIBS@ -lm 	@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
++dftest_LDADD =  	$(ethereal_optional_objects)		$(dftest_additional_libs)		@SNMP_LIBS@ @SSL_LIBS@			@PCAP_LIBS@ @SOCKET_LIBS@ @NSL_LIBS@
+ 
+ 
+ dftest_LDFLAGS = -export-dynamic
+diff -uNr ethereal-0.8.18.orig/configure ethereal-0.8.18/configure
+--- ethereal-0.8.18.orig/configure	Wed May 16 12:40:56 2001
++++ ethereal-0.8.18/configure	Tue Jun 26 15:54:08 2001
+@@ -4870,7 +4870,7 @@
+ test "$enable_fast_install" = no && libtool_flags="$libtool_flags --disable-fast-install"
+ test "$ac_cv_prog_gcc" = yes && libtool_flags="$libtool_flags --with-gcc"
+ test "$ac_cv_prog_gnu_ld" = yes && libtool_flags="$libtool_flags --with-gnu-ld"
+-libtool_flags="$libtool_flags --enable-dlopen"
++#libtool_flags="$libtool_flags --enable-dlopen"
+ 
+ # Check whether --enable-libtool-lock or --disable-libtool-lock was given.
+ if test "${enable_libtool_lock+set}" = set; then
+diff -uNr ethereal-0.8.18.orig/epan/ftypes/ftype-double.c ethereal-0.8.18/epan/ftypes/ftype-double.c
+--- ethereal-0.8.18.orig/epan/ftypes/ftype-double.c	Fri Mar  2 11:17:56 2001
++++ ethereal-0.8.18/epan/ftypes/ftype-double.c	Tue Jun 26 15:36:01 2001
+@@ -31,6 +31,13 @@
+ #include <math.h>
+ #include <errno.h>
+ 
++#ifdef _AIX
++/* AIX defines log as a macro in math.h. Just undefine it to avoid
++ * clashes with the log function used below.
++ */
++#undef log
++#endif
++
+ static void
+ double_fvalue_new(fvalue_t *fv)
+ {
+diff -uNr ethereal-0.8.18.orig/gtk/Makefile.am ethereal-0.8.18/gtk/Makefile.am
+--- ethereal-0.8.18.orig/gtk/Makefile.am	Fri Mar 23 20:23:08 2001
++++ ethereal-0.8.18/gtk/Makefile.am	Tue Jun 26 17:01:55 2001
+@@ -57,8 +57,8 @@
+ 	follow_dlg.h	\
+ 	goto_dlg.c	\
+ 	goto_dlg.h	\
+-	gtkclist.c	\
+-	gtkclist.h	\
++#	gtkclist.c	\
++#	gtkclist.h	\
+ 	gtkglobals.h	\
+ 	gui_prefs.c	\
+ 	gui_prefs.h	\
+diff -uNr ethereal-0.8.18.orig/gtk/Makefile.in ethereal-0.8.18/gtk/Makefile.in
+--- ethereal-0.8.18.orig/gtk/Makefile.in	Wed May 16 15:27:10 2001
++++ ethereal-0.8.18/gtk/Makefile.in	Tue Jun 26 17:02:21 2001
+@@ -143,7 +143,7 @@
+ CLEANFILES =  	libui.a			*~
+ 
+ 
+-libui_a_SOURCES =  	capture_dlg.c		capture_dlg.h		color_dlg.c		color_dlg.h		colors.c		colors.h		color_utils.c		color_utils.h		column_prefs.c		column_prefs.h	 	decode_as_dlg.c	 	decode_as_dlg.h		dfilter_expr_dlg.c 	dfilter_expr_dlg.h 	display_opts.c		display_opts.h		dlg_utils.c		dlg_utils.h		file_dlg.c		file_dlg.h		filter_prefs.c		filter_prefs.h		find_dlg.c		find_dlg.h		follow_dlg.c		follow_dlg.h		goto_dlg.c		goto_dlg.h		gtkclist.c		gtkclist.h		gtkglobals.h		gui_prefs.c		gui_prefs.h		help_dlg.c		help_dlg.h		keys.h			main.c			main.h			menu.c			menu.h			packet_win.c		packet_win.h		plugins_dlg.c		prefs_dlg.c		prefs_dlg.h		print_dlg.c		print_prefs.c   	print_prefs.h		progress_dlg.c		proto_dlg.c		proto_dlg.h		proto_draw.c		proto_draw.h		proto_hier_stats_dlg.h		proto_hier_stats_dlg.c		simple_dialog.c		stream_prefs.c		stream_prefs.h		summary_dlg.c   	summary_dlg.h   	ui_util.c       	ui_util.h
++libui_a_SOURCES =  	capture_dlg.c		capture_dlg.h		color_dlg.c		color_dlg.h		colors.c		colors.h		color_utils.c		color_utils.h		column_prefs.c		column_prefs.h	 	decode_as_dlg.c	 	decode_as_dlg.h		dfilter_expr_dlg.c 	dfilter_expr_dlg.h 	display_opts.c		display_opts.h		dlg_utils.c		dlg_utils.h		file_dlg.c		file_dlg.h		filter_prefs.c		filter_prefs.h		find_dlg.c		find_dlg.h		follow_dlg.c		follow_dlg.h		goto_dlg.c		goto_dlg.h		gtkglobals.h		gui_prefs.c		gui_prefs.h		help_dlg.c		help_dlg.h		keys.h			main.c			main.h			menu.c			menu.h			packet_win.c		packet_win.h		plugins_dlg.c		prefs_dlg.c		prefs_dlg.h		print_dlg.c		print_prefs.c   	print_prefs.h		progress_dlg.c		proto_dlg.c		proto_dlg.h		proto_draw.c		proto_draw.h		proto_hier_stats_dlg.h		proto_hier_stats_dlg.c		simple_dialog.c		stream_prefs.c		stream_prefs.h		summary_dlg.c   	summary_dlg.h   	ui_util.c       	ui_util.h
+ 
+ 
+ EXTRA_DIST =  	Makefile.nmake
+@@ -162,7 +162,7 @@
+ libui_a_OBJECTS =  capture_dlg.o color_dlg.o colors.o color_utils.o \
+ column_prefs.o decode_as_dlg.o dfilter_expr_dlg.o display_opts.o \
+ dlg_utils.o file_dlg.o filter_prefs.o find_dlg.o follow_dlg.o \
+-goto_dlg.o gtkclist.o gui_prefs.o help_dlg.o main.o menu.o packet_win.o \
++goto_dlg.o gui_prefs.o help_dlg.o main.o menu.o packet_win.o \
+ plugins_dlg.o prefs_dlg.o print_dlg.o print_prefs.o progress_dlg.o \
+ proto_dlg.o proto_draw.o proto_hier_stats_dlg.o simple_dialog.o \
+ stream_prefs.o summary_dlg.o ui_util.o
+diff -uNr ethereal-0.8.18.orig/wiretap/libpcap.c ethereal-0.8.18/wiretap/libpcap.c
+--- ethereal-0.8.18.orig/wiretap/libpcap.c	Thu Mar 15 03:11:03 2001
++++ ethereal-0.8.18/wiretap/libpcap.c	Tue Jun 26 15:36:02 2001
+@@ -81,11 +81,27 @@
+ #ifdef HAVE_PCAP_H
+ #include <pcap.h>
+ #endif
++#ifdef _AIX
++#include <net/if_types.h>
++#endif
+ 
+ static const struct {
+ 	int	dlt_value;
+ 	int	wtap_encap_value;
+ } pcap_to_wtap_map[] = {
++#ifdef _AIX
++	/* AIX is like nothing else, so define all this separate to avoid
++	 * cluttering with tests all over the place below.
++	 */
++	{ 0,		            WTAP_ENCAP_NULL },
++	{ IFT_ETHER,            WTAP_ENCAP_ETHERNET },
++	{ IFT_ISO88025,         WTAP_ENCAP_TOKEN_RING },
++	{ IFT_ARCNET,           WTAP_ENCAP_ARCNET },
++	{ IFT_SLIP,             WTAP_ENCAP_SLIP },
++	{ IFT_PPP,              WTAP_ENCAP_PPP },
++	{ IFT_FDDI,             WTAP_ENCAP_FDDI },
++	{ IFT_ATM,              WTAP_ENCAP_ATM_RFC1483 },
++#else
+ 	/*
+ 	 * These are the values that are almost certainly the same
+ 	 * in all libpcaps (I've yet to find one where the values
+@@ -363,6 +379,7 @@
+ 	 * of libpcap.
+ 	 */
+ 	{ 113,		WTAP_ENCAP_SLL },	/* Linux cooked capture */
++#endif
+ };
+ #define NUM_PCAP_ENCAPS (sizeof pcap_to_wtap_map / sizeof pcap_to_wtap_map[0])
+ 

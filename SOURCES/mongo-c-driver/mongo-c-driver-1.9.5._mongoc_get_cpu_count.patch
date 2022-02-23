@@ -1,0 +1,11 @@
+--- ./src/mongoc/mongoc-counters-private.h.ORIGIN	2018-04-23 17:53:12 +0200
++++ ./src/mongoc/mongoc-counters-private.h	2018-04-23 17:54:02 +0200
+@@ -72,7 +72,7 @@
+    }
+ 
+    return len;
+-#elif defined(__APPLE__) || defined(__sun)
++#elif defined(__APPLE__) || defined(__sun) || defined(_AIX)
+    int ncpu;
+ 
+    ncpu = (int) sysconf (_SC_NPROCESSORS_ONLN);

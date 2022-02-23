@@ -1,0 +1,69 @@
+*** config.guess.ori	Thu Dec  6 17:40:09 2007
+--- config.guess	Fri Nov 30 12:23:57 2007
+***************
+*** 531,537 ****
+  		echo rs6000-ibm-aix3.2
+  	fi
+  	exit ;;
+!     *:AIX:*:[45])
+  	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+  	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+  		IBM_ARCH=rs6000
+--- 531,537 ----
+  		echo rs6000-ibm-aix3.2
+  	fi
+  	exit ;;
+!     *:AIX:*:[456])
+  	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+  	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+  		IBM_ARCH=rs6000
+*** gcc/Makefile.in.ori	Fri Dec  7 11:28:52 2007
+--- gcc/Makefile.in	Fri Dec  7 11:29:18 2007
+***************
+*** 4180,4186 ****
+  
+  STAGE2_FLAGS_TO_PASS = \
+  	CFLAGS="$(BOOT_CFLAGS)" \
+! 	WERROR="$(WERROR_FLAGS)" \
+  
+  STAGEPROFILE_FLAGS_TO_PASS = \
+  	CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"
+--- 4180,4186 ----
+  
+  STAGE2_FLAGS_TO_PASS = \
+  	CFLAGS="$(BOOT_CFLAGS)" \
+! 	WERROR="$(WERROR_FLAGS)" 
+  
+  STAGEPROFILE_FLAGS_TO_PASS = \
+  	CFLAGS="$(BOOT_CFLAGS) -fprofile-generate"
+*** ./gcc/config/rs6000/aix52.h.ori	Fri Dec  7 14:45:52 2007
+--- ./gcc/config/rs6000/aix52.h	Fri Dec  7 14:46:43 2007
+***************
+*** 90,95 ****
+--- 90,96 ----
+        builtin_define ("_AIX43");     \
+        builtin_define ("_AIX51");     \
+        builtin_define ("_AIX52");     \
++       builtin_define ("_AIX61");     \
+        TARGET_OS_AIX_CPP_BUILTINS (); \
+      }                                \
+    while (0)
+*** libiberty/Makefile.in.ori	Wed Dec 12 17:55:16 2007
+--- libiberty/Makefile.in	Wed Dec 12 17:55:32 2007
+***************
+*** 340,346 ****
+  # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+  # default multilib, so we have to take LIBCFLAGS into account as well,
+  # since it will be passed the multilib flags.
+! MULTIOSDIR = `$(CC) $(LIBCFLAGS) -print-multi-os-directory`
+  install_to_libdir: all
+  	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+  	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n
+--- 340,346 ----
+  # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+  # default multilib, so we have to take LIBCFLAGS into account as well,
+  # since it will be passed the multilib flags.
+! MULTIOSDIR = .
+  install_to_libdir: all
+  	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+  	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n

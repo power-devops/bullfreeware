@@ -1,0 +1,244 @@
+From 77baaa524c385d720edcc6944985ddfc5cbc0651 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 20 Feb 2020 14:19:24 +0100
+Subject: [PATCH] process substitution: unlink named pipes when closing shell
+
+This patch forces the removal of named pipes made by process
+substitution when the shell is closing, even if the subprocess still
+exist.
+As the subprocess might be blocked while opening its named pipe,
+the parent process is also opening it to release the subprocess.
+
+This avoids having unkilled subprocesses which are waiting for any
+inputs from their parent.
+---
+ eval.c        |  2 +-
+ execute_cmd.c | 16 ++++++++--------
+ shell.c       |  4 ++--
+ sig.c         |  6 +++---
+ subst.c       | 17 +++++++++++------
+ subst.h       |  2 +-
+ 6 files changed, 26 insertions(+), 21 deletions(-)
+
+diff --git a/eval.c b/eval.c
+index f02d6e40..d98aefe7 100644
+--- a/eval.c
++++ b/eval.c
+@@ -79,7 +79,7 @@ reader_loop ()
+       code = setjmp_nosigs (top_level);
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+       /* XXX - why do we set this every time through the loop?  And why do
+diff --git a/execute_cmd.c b/execute_cmd.c
+index 3864986d..c56be789 100644
+--- a/execute_cmd.c
++++ b/execute_cmd.c
+@@ -400,7 +400,7 @@ execute_command (command)
+   /* don't unlink fifos if we're in a shell function; wait until the function
+      returns. */
+   if (variable_context == 0 && executing_list == 0)
+-    unlink_fifo_list ();
++    unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+   QUIT;
+@@ -665,7 +665,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
+ 
+ #if defined (PROCESS_SUBSTITUTION) && defined (HAVE_DEV_FD)
+ 	  if (variable_context == 0)	/* wait until shell function completes */
+-	    unlink_fifo_list ();
++	    unlink_fifo_list (0);
+ #endif
+ 	  /* If we are part of a pipeline, and not the end of the pipeline,
+ 	     then we should simply return and let the last command in the
+@@ -2444,7 +2444,7 @@ execute_coproc (command, pipe_in, pipe_out, fds_to_close)
+ 
+   close_pipes (pipe_in, pipe_out);
+ #if defined (PROCESS_SUBSTITUTION) && defined (HAVE_DEV_FD)
+-  unlink_fifo_list ();
++  unlink_fifo_list (0);
+ #endif
+   stop_pipeline (1, (COMMAND *)NULL);
+   DESCRIBE_PID (coproc_pid);
+@@ -4030,7 +4030,7 @@ execute_null_command (redirects, pipe_in, pipe_out, async)
+ 	  close_pipes (pipe_in, pipe_out);
+ #if defined (PROCESS_SUBSTITUTION) && defined (HAVE_DEV_FD)
+ 	  if (pipe_out == NO_PIPE)
+-	    unlink_fifo_list ();
++	    unlink_fifo_list (0);
+ #endif
+ 	  return (EXECUTION_SUCCESS);
+ 	}
+@@ -4298,7 +4298,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
+ 	     last child in a (possibly one-element) pipeline.  Defer this
+ 	     until any running shell function completes. */
+ 	  if (pipe_out == NO_PIPE && variable_context == 0)	/* XXX */
+-	    unlink_fifo_list ();		/* XXX */
++	    unlink_fifo_list (0);		/* XXX */
+ #endif
+ #endif
+ 	  command_line = (char *)NULL;      /* don't free this. */
+@@ -5024,7 +5024,7 @@ execute_function (var, words, flags, fds_to_close, async, subshell)
+     {
+       make_funcname_visible (0);
+ #if defined (PROCESS_SUBSTITUTION)
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+ #endif
+     }
+ 
+@@ -5438,7 +5438,7 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
+ #if defined (PROCESS_SUBSTITUTION)
+ 	  /* Try to remove named pipes that may have been created as the
+ 	     result of redirections. */
+-	  unlink_fifo_list ();
++	  unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 	  exit (EXECUTION_FAILURE);
+ 	}
+@@ -5488,7 +5488,7 @@ parent_return:
+ #if defined (PROCESS_SUBSTITUTION) && defined (HAVE_DEV_FD)
+ #if 0
+       if (variable_context == 0)
+-        unlink_fifo_list ();
++        unlink_fifo_list (0);
+ #endif
+ #endif
+       FREE (command);
+diff --git a/shell.c b/shell.c
+index a2b2a55e..2802ff08 100644
+--- a/shell.c
++++ b/shell.c
+@@ -973,7 +973,7 @@ exit_shell (s)
+     s = run_exit_trap ();
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+-  unlink_fifo_list ();
++  unlink_fifo_list (1);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+ #if defined (HISTORY)
+@@ -1397,7 +1397,7 @@ run_one_command (command)
+   if (code != NOT_JUMPED)
+     {
+ #if defined (PROCESS_SUBSTITUTION)
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+       switch (code)
+ 	{
+diff --git a/sig.c b/sig.c
+index f8a0e0f7..ece10274 100644
+--- a/sig.c
++++ b/sig.c
+@@ -376,7 +376,7 @@ top_level_cleanup ()
+     parse_and_execute_cleanup (-1);
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+-  unlink_fifo_list ();
++  unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+   run_unwind_protects ();
+@@ -434,7 +434,7 @@ throw_to_top_level ()
+ #endif /* READLINE */
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+-  unlink_fifo_list ();
++  unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+   run_unwind_protects ();
+@@ -580,7 +580,7 @@ termsig_handler (sig)
+ #endif /* JOB_CONTROL */
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+-  unlink_fifo_list ();
++  unlink_fifo_list (0);
+ #endif /* PROCESS_SUBSTITUTION */
+ 
+   /* Reset execution context */
+diff --git a/subst.c b/subst.c
+index fd6db240..fdbafe63 100644
+--- a/subst.c
++++ b/subst.c
+@@ -5382,7 +5382,8 @@ unlink_fifo (i)
+ }
+ 
+ void
+-unlink_fifo_list ()
++unlink_fifo_list (force)
++     int force;
+ {
+   int saved, i, j;
+ 
+@@ -5391,8 +5392,11 @@ unlink_fifo_list ()
+ 
+   for (i = saved = 0; i < nfifo; i++)
+     {
+-      if ((fifo_list[i].proc == (pid_t)-1) || (fifo_list[i].proc > 0 && (kill(fifo_list[i].proc, 0) == -1)))
++      if ((fifo_list[i].proc == (pid_t)-1) || (fifo_list[i].proc > 0 && (kill(fifo_list[i].proc, 0) == -1)) || force)
+ 	{
++	  // Open the named pipe to release eventual subprocesses
++	  // being blocked on an open syscall.
++	  open(fifo_list[i].file, O_RDWR | O_NONBLOCK);
+ 	  unlink (fifo_list[i].file);
+ 	  free (fifo_list[i].file);
+ 	  fifo_list[i].file = (char *)NULL;
+@@ -5432,7 +5436,7 @@ close_new_fifos (list, lsize)
+ 
+   if (list == 0)
+     {
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+       return;
+     }
+ 
+@@ -5627,7 +5631,8 @@ unlink_fifo (fd)
+ }
+ 
+ void
+-unlink_fifo_list ()
++unlink_fifo_list (force)
++     int force;
+ {
+   register int i;
+ 
+@@ -5654,7 +5659,7 @@ close_new_fifos (list, lsize)
+ 
+   if (list == 0)
+     {
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+       return;
+     }
+ 
+@@ -6349,7 +6354,7 @@ command_substitute (string, quoted, flags)
+       last_command_exit_value = rc;
+       rc = run_exit_trap ();
+ #if defined (PROCESS_SUBSTITUTION)
+-      unlink_fifo_list ();
++      unlink_fifo_list (0);
+ #endif
+       exit (rc);
+     }
+diff --git a/subst.h b/subst.h
+index 34763222..931ec1e8 100644
+--- a/subst.h
++++ b/subst.h
+@@ -270,7 +270,7 @@ extern char *pat_subst __P((char *, char *, char *, int));
+ #if defined (PROCESS_SUBSTITUTION)
+ extern int fifos_pending __P((void));
+ extern int num_fifos __P((void));
+-extern void unlink_fifo_list __P((void));
++extern void unlink_fifo_list __P((int));
+ extern void unlink_fifo __P((int));
+ 
+ extern char *copy_fifo_list __P((int *));
+-- 
+2.17.1
+

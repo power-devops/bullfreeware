@@ -1,0 +1,13 @@
+Index: gettext-0.19.7/gettext-tools/gnulib-lib/clean-temp.c
+===================================================================
+--- gettext-0.19.7.orig/gettext-tools/gnulib-lib/clean-temp.c	2016-04-26 13:13:29.000000000 +0200
++++ gettext-0.19.7/gettext-tools/gnulib-lib/clean-temp.c	2016-04-26 13:14:15.000000000 +0200
+@@ -326,7 +326,7 @@
+       goto quit;
+     }
+   block_fatal_signals ();
+-  tmpdirname = mkdtemp (xtemplate);
++  tmpdirname = (char *) mkdtemp (xtemplate);
+   int saved_errno = errno;
+   if (tmpdirname != NULL)
+     {

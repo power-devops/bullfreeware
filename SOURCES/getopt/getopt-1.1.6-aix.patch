@@ -1,0 +1,80 @@
+*** Makefile.ORIG	Thu Sep  4 11:39:10 2008
+--- Makefile	Thu Sep  4 21:22:50 2008
+***************
+*** 1,7 ****
+  .SUFFIXES:
+  
+  DESTDIR=
+! prefix=/usr/local
+  bindir=$(prefix)/bin
+  mandir=$(prefix)/man
+  man1dir=$(mandir)/man1
+--- 1,7 ----
+  .SUFFIXES:
+  
+  DESTDIR=
+! prefix=/opt/freeware
+  bindir=$(prefix)/bin
+  mandir=$(prefix)/man
+  man1dir=$(mandir)/man1
+***************
+*** 11,17 ****
+  localedir=$(sharedir)/locale
+  
+  # Define this to 0 to use the getopt(3) routines in this package.
+! LIBCGETOPT=1
+  
+  # Define this to 1 if you do not have the gettext routines
+  WITHOUT_GETTEXT=0
+--- 11,17 ----
+  localedir=$(sharedir)/locale
+  
+  # Define this to 0 to use the getopt(3) routines in this package.
+! LIBCGETOPT=0
+  
+  # Define this to 1 if you do not have the gettext routines
+  WITHOUT_GETTEXT=0
+***************
+*** 24,33 ****
+  
+  SHELL=/bin/sh
+  
+! CC=gcc
+  LD=ld
+  RM=rm -f
+! INSTALL=install
+  MSGFMT=msgfmt
+  
+  LANGUAGES = cs de es fr it ja nl pt_BR
+--- 24,33 ----
+  
+  SHELL=/bin/sh
+  
+! CC=/usr/vac/bin/xlc
+  LD=ld
+  RM=rm -f
+! INSTALL=/opt/freeware/bin/install
+  MSGFMT=msgfmt
+  
+  LANGUAGES = cs de es fr it ja nl pt_BR
+***************
+*** 42,50 ****
+           -Wcast-align -Wmissing-declarations \
+           -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
+           -Wnested-externs -Winline
+! OPTIMIZE=-O3 -fno-strength-reduce
+! CFLAGS=$(WARNINGS) $(OPTIMIZE)
+! LDFLAGS=
+  
+  sources=getopt.c
+  ifeq ($(LIBCGETOPT),0)
+--- 42,50 ----
+           -Wcast-align -Wmissing-declarations \
+           -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
+           -Wnested-externs -Winline
+! OPTIMIZE=-O
+! CFLAGS=$(OPTIMIZE)
+! LDFLAGS=-lintl
+  
+  sources=getopt.c
+  ifeq ($(LIBCGETOPT),0)

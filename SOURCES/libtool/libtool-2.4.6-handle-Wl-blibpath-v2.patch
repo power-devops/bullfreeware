@@ -1,0 +1,48 @@
+--- a/build-aux/ltmain.sh	2019-09-24 17:33:46 +0200
++++ b/build-aux/ltmain.sh	2019-09-25 10:18:11 +0200
+@@ -7226,6 +7226,21 @@
+ 	arg=
+ 	save_ifs=$IFS; IFS=,
+ 	for flag in $args; do
++	  case $flag in
++	    -blibpath*)
++	    # On AIX, if -Wl,-blibpath is provided inside args,
++	    # hardcode_libdir_flag_spec must be modified to take this
++	    # new libpath into account.
++	    # Note that we can't directly use the provided -Wl-blibpath as
++	    # it won't have $libdir.
++	    case $host in
++	      *-*-aix*)
++	      hardcode_libdir_flag_spec="\$wl-blibpath:\$libdir:"${flag##-blibpath:}
++	      continue ;;
++	    esac
++	    ;;
++	  esac
++
+ 	  IFS=$save_ifs
+           func_quote_for_eval "$flag"
+ 	  func_append arg " $wl$func_quote_for_eval_result"
+--- a/build-aux/ltmain.in	2019-09-24 16:25:05 +0200
++++ b/build-aux/ltmain.in	2019-09-24 16:58:14 +0200
+@@ -5314,6 +5314,21 @@
+ 	arg=
+ 	save_ifs=$IFS; IFS=,
+ 	for flag in $args; do
++	  case $flag in
++	    -blibpath*)
++	    # On AIX, if -Wl,-blibpath is provided inside args,
++	    # hardcode_libdir_flag_spec must be modified to take this
++	    # new libpath into account.
++	    # Note that we can't directly use the provided -Wl-blibpath as
++	    # it won't have $libdir.
++	    case $host in
++	      *-*-aix*)
++	      hardcode_libdir_flag_spec="\$wl-blibpath:\$libdir:"${flag##-blibpath:}
++	      continue ;;
++	    esac
++	    ;;
++	  esac
++
+ 	  IFS=$save_ifs
+           func_quote_for_eval "$flag"
+ 	  func_append arg " $wl$func_quote_for_eval_result"

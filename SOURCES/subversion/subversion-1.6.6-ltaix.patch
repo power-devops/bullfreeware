@@ -1,0 +1,22 @@
+Index: subversion-1.6.6/build/ltmain.sh
+===================================================================
+--- subversion-1.6.6.orig/build/ltmain.sh	2007-04-16 14:20:53.000000000 +0200
++++ subversion-1.6.6/build/ltmain.sh	2010-03-01 17:32:18.000000000 +0100
+@@ -2742,7 +2742,7 @@
+ 	    add=
+ 	    # Finalize command for both is simple: just hardcode it.
+ 	    if test "$hardcode_direct" = yes; then
+-	      add="$libdir/$linklib"
++	      add="$compile_rpath/$linklib"
+ 	    elif test "$hardcode_minus_L" = yes; then
+ 	      add_dir="-L$libdir"
+ 	      add="-l$name"
+@@ -2778,7 +2778,7 @@
+ 	      test -n "$add" && finalize_deplibs="$add $finalize_deplibs"
+ 	    else
+ 	      test -n "$add_dir" && deplibs="$add_dir $deplibs"
+-	      test -n "$add" && deplibs="$add $deplibs"
++	      test -e "$add" && deplibs="$add $deplibs"
+ 	    fi
+ 	  fi
+ 	elif test "$linkmode" = prog; then

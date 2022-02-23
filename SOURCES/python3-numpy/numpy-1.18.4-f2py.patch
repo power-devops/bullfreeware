@@ -1,0 +1,13 @@
+--- ./numpy/f2py/tests/test_compile_function.py.orig    2020-06-04 16:12:09 +0200
++++ ./numpy/f2py/tests/test_compile_function.py 2020-06-04 16:12:58 +0200
+@@ -85,6 +85,10 @@
+             # Removal from sys.modules, is not as such necessary. Even with
+             # removal, the module (dict) stays alive.
+             del sys.modules[modname]
++            # On AIX, you cannot compile the .so if it was previously loaded.
++            # We must clean it before
++            if sys.platform == 'aix':
++                os.remove(os.path.join(moddir, modname + ".so"))
+ 
+ 
+ def test_f2py_init_compile_failure():

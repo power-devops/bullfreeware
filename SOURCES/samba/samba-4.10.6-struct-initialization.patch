@@ -1,0 +1,13 @@
+--- ./source4/torture/smb2/oplock.c_orig	2019-07-23 19:19:59 +0000
++++ ./source4/torture/smb2/oplock.c	2019-07-23 19:21:56 +0000
+@@ -4012,9 +4012,7 @@
+ 		       io.smb2.out.oplock_level==SMB2_OPLOCK_LEVEL_BATCH,
+ 		       "Did not get BATCH oplock\n");
+ 
+-	closeio = (struct smb2_close) {
+-		.in.file.handle = io.smb2.out.file.handle,
+-	};
++	closeio.in.file.handle = io.smb2.out.file.handle;
+ 	status = smb2_close(tree2, &closeio);
+ 	torture_assert_ntstatus_equal(
+ 		tctx, status, NT_STATUS_OK, "close failed");

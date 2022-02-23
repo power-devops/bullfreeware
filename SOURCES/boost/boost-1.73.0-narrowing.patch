@@ -1,0 +1,48 @@
+--- ./boost/numeric/interval/detail/ppc_rounding_control.hpp.ORIGIN	2020-01-31 14:18:43 -0600
++++ ./boost/numeric/interval/detail/ppc_rounding_control.hpp	2020-01-31 14:19:01 -0600
+@@ -28,10 +28,10 @@
+   double dmode;
+ } rounding_mode_struct;
+ 
+-static const rounding_mode_struct mode_upward      = { 0xFFF8000000000002LL };
+-static const rounding_mode_struct mode_downward    = { 0xFFF8000000000003LL };
+-static const rounding_mode_struct mode_to_nearest  = { 0xFFF8000000000000LL };
+-static const rounding_mode_struct mode_toward_zero = { 0xFFF8000000000001LL };
++static const rounding_mode_struct mode_upward      = { (long long int) 0xFFF8000000000002LL };
++static const rounding_mode_struct mode_downward    = { (long long int) 0xFFF8000000000003LL };
++static const rounding_mode_struct mode_to_nearest  = { (long long int) 0xFFF8000000000000LL };
++static const rounding_mode_struct mode_toward_zero = { (long long int) 0xFFF8000000000001LL };
+ 
+ struct ppc_rounding_control
+ {
+--- ./boost/safe_numerics/utility.hpp.ORIGIN	2020-01-31 14:32:32 -0600
++++ ./boost/safe_numerics/utility.hpp	2020-01-31 14:41:49 -0600
+@@ -69,7 +69,7 @@
+     static const char LogTable256[256] =
+     {
+     #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
+-        -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
++        (char) -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+         LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
+         LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
+     };
+--- ./libs/math/test/test_polynomial.cpp.ORIGIN	2020-01-31 14:23:29 -0600
++++ ./libs/math/test/test_polynomial.cpp	2020-01-31 14:44:44 -0600
+@@ -365,7 +365,7 @@
+     polynomial<T> const zero;
+ 
+     polynomial<T> result = a + b; // different degree
+-    boost::array<T, 4> tmp = {{8, -5, -4, 3}};
++    boost::array<T, 4> tmp = {{8, static_cast<T>(-5), static_cast<T>(-4), 3}};
+     polynomial<T> expected(tmp.begin(), tmp.end());
+     BOOST_CHECK_EQUAL(result, expected);
+     BOOST_CHECK_EQUAL(a + zero, a);
+@@ -389,7 +389,7 @@
+     polynomial<T> const a(d3a.begin(), d3a.end());
+     polynomial<T> const b(d1a.begin(), d1a.end());
+     polynomial<T> const zero;
+-    boost::array<T, 7> const d3a_sq = {{100, -120, -44, 108, -20, -24, 9}};
++    boost::array<T, 7> const d3a_sq = {{100, static_cast<T>(-120), static_cast<T>(-44), 108, static_cast<T>(-20), static_cast<T>(-24), 9}};
+     polynomial<T> const a_sq(d3a_sq.begin(), d3a_sq.end());
+ 
+     BOOST_CHECK_EQUAL(a * T(0), zero);

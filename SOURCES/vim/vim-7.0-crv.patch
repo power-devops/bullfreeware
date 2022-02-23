@@ -1,0 +1,10 @@
+--- vim70aa/src/term.c.orig	2006-03-14 15:40:15.000000000 +0100
++++ vim70aa/src/term.c	2006-03-14 15:43:54.000000000 +0100
+@@ -1284,7 +1284,6 @@
+     {(int)KS_CWS,	"[%dCWS%d]"},
+     {(int)KS_CWP,	"[%dCWP%d]"},
+ #  endif
+-    {(int)KS_CRV,	"[CRV]"},
+     {K_UP,		"[KU]"},
+     {K_DOWN,		"[KD]"},
+     {K_LEFT,		"[KL]"},

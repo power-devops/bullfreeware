@@ -1,0 +1,28 @@
+diff -up gnupg-2.2.23/tools/Makefile.am.insttools gnupg-2.2.23/tools/Makefile.am
+--- gnupg-2.2.23/tools/Makefile.am.insttools	2020-08-13 11:01:57.000000000 +0200
++++ gnupg-2.2.23/tools/Makefile.am	2020-09-04 13:49:34.183246428 +0200
+@@ -35,8 +35,8 @@ AM_CFLAGS = $(LIBGCRYPT_CFLAGS) $(GPG_ER
+ sbin_SCRIPTS = addgnupghome applygnupgdefaults
+ 
+ if HAVE_USTAR
+-# bin_SCRIPTS += gpg-zip
+-noinst_SCRIPTS = gpg-zip
++bin_PROGRAMS += gpg-zip
++#noinst_SCRIPTS = gpg-zip
+ endif
+ 
+ if BUILD_SYMCRYPTRUN
+diff -up gnupg-2.2.23/tools/Makefile.in.insttools gnupg-2.2.23/tools/Makefile.in
+--- gnupg-2.2.23/tools/Makefile.in.insttools	2020-09-03 17:16:55.000000000 +0200
++++ gnupg-2.2.23/tools/Makefile.in	2020-09-04 13:49:34.183246428 +0200
+@@ -618,8 +618,8 @@ libcommontlsnpth = ../common/libcommontl
+ AM_CFLAGS = $(LIBGCRYPT_CFLAGS) $(GPG_ERROR_CFLAGS) $(LIBASSUAN_CFLAGS)
+ sbin_SCRIPTS = addgnupghome applygnupgdefaults
+ 
+-# bin_SCRIPTS += gpg-zip
+-@HAVE_USTAR_TRUE@noinst_SCRIPTS = gpg-zip
++@HAVE_USTAR_TRUE@bin_PROGRAMS += gpg-zip
++#@HAVE_USTAR_TRUE@noinst_SCRIPTS = gpg-zip
+ @BUILD_SYMCRYPTRUN_FALSE@symcryptrun = 
+ @BUILD_SYMCRYPTRUN_TRUE@symcryptrun = symcryptrun
+ @BUILD_WKS_TOOLS_FALSE@gpg_wks_server = 

@@ -1,0 +1,22 @@
+--- a/libgo/Makefile.in	2020-03-13 12:04:58 -0500
++++ b/libgo/Makefile.in	2020-03-13 12:05:02 -0500
+@@ -1122,7 +1122,7 @@
+ 
+ # Check a package.
+ CHECK = \
+-	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
++	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -lz -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
+ 	export GC; \
+ 	GOLIBS="$(extra_check_libs_$(subst /,_,$(@D))) $(MATH_LIBS) $(NET_LIBS) $(LIBS)"; \
+ 	export GOLIBS; \
+--- a/libgo/Makefile.am	2020-03-13 12:03:59 -0500
++++ a/libgo/Makefile.am	2020-03-13 12:04:17 -0500
+@@ -1033,7 +1033,7 @@
+ 
+ # Check a package.
+ CHECK = \
+-	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
++	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -lz -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
+ 	export GC; \
+ 	GOLIBS="$(extra_check_libs_$(subst /,_,$(@D))) $(MATH_LIBS) $(NET_LIBS) $(LIBS)"; \
+ 	export GOLIBS; \

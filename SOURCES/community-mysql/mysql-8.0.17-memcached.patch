@@ -1,0 +1,26 @@
+--- ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.c.ORIGIN	2019-10-29 17:21:54 +0100
++++ ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.c	2019-10-31 14:09:56 +0100
+@@ -622,7 +622,11 @@
+      * is this done for every command?  presumably for UDP
+      * mode.  */
+     if (!settings.socketpath) {
++#ifdef _AIX
++        c->request_addr_size = sizeof(struct sockaddr_in6);
++#else
+         c->request_addr_size = sizeof(c->request_addr);
++#endif
+     } else {
+         c->request_addr_size = 0;
+     }
+@@ -5934,9 +5938,11 @@
+                 settings.extensions.logger->log(EXTENSION_LOG_WARNING, NULL,
+                                                 "bind(): %s",
+                                                 strerror(errno));
++#ifndef _AIX
+                 safe_close(sfd);
+                 freeaddrinfo(ai);
+                 return 1;
++#endif
+             }
+             safe_close(sfd);
+             continue;

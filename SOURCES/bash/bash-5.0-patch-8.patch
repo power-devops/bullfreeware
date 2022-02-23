@@ -1,0 +1,50 @@
+From 01323582f773ef4d08fa26a90e9a21285a8405f5 Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Wed, 14 Aug 2019 14:57:48 -0400
+Subject: [PATCH] Bash-5.0 patch 8: fix history offset when HISTSIZE == 0 that
+ can lead to crashes
+
+---
+ bashhist.c   | 5 ++++-
+ patchlevel.h | 2 +-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/bashhist.c b/bashhist.c
+index 7912cce3..d2155dce 100644
+--- a/bashhist.c
++++ b/bashhist.c
+@@ -560,15 +560,18 @@ pre_process_line (line, print_changes, addit)
+      add that line to the history if ADDIT is non-zero. */
+   if (!history_expansion_inhibited && history_expansion && history_expansion_p (line))
+     {
++      int old_len;
++
+       /* If we are expanding the second or later line of a multi-line
+ 	 command, decrease history_length so references to history expansions
+ 	 in these lines refer to the previous history entry and not the
+ 	 current command. */
++      old_len = history_length;
+       if (history_length > 0 && command_oriented_history && current_command_first_line_saved && current_command_line_count > 1)
+         history_length--;
+       expanded = history_expand (line, &history_value);
+       if (history_length >= 0 && command_oriented_history && current_command_first_line_saved && current_command_line_count > 1)
+-        history_length++;
++        history_length = old_len;
+ 
+       if (expanded)
+ 	{
+diff --git a/patchlevel.h b/patchlevel.h
+index deb9c5b7..16c87404 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 7
++#define PATCHLEVEL 8
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.21.0
+

@@ -1,0 +1,83 @@
+--- ./Makefile.in_orig	2020-04-07 04:26:20 +0000
++++ ./Makefile.in	2020-04-07 08:48:01 +0000
+@@ -177,15 +177,14 @@
+ rpm2cpio_DEPENDENCIES = lib/librpm.la rpmio/librpmio.la
+ am_rpmbuild_OBJECTS = rpmbuild-rpmbuild.$(OBJEXT)
+ rpmbuild_OBJECTS = $(am_rpmbuild_OBJECTS)
+-rpmbuild_DEPENDENCIES = libcliutils.la build/librpmbuild.la \
+-	lib/librpm.la rpmio/librpmio.la
++rpmbuild_DEPENDENCIES = build/librpmbuild.la \
++	lib/librpm.la rpmio/librpmio.la libcliutils.la
+ am_rpmdb_OBJECTS = rpmdb-rpmdb.$(OBJEXT)
+ rpmdb_OBJECTS = $(am_rpmdb_OBJECTS)
+ rpmdb_DEPENDENCIES = libcliutils.la lib/librpm.la rpmio/librpmio.la
+ am_rpmdeps_OBJECTS = tools/rpmdeps.$(OBJEXT)
+ rpmdeps_OBJECTS = $(am_rpmdeps_OBJECTS)
+-rpmdeps_DEPENDENCIES = lib/librpm.la rpmio/librpmio.la \
+-	build/librpmbuild.la
++rpmdeps_DEPENDENCIES = build/librpmbuild.la lib/librpm.la rpmio/librpmio.la
+ am_rpmgraph_OBJECTS = tools/rpmgraph.$(OBJEXT)
+ rpmgraph_OBJECTS = $(am_rpmgraph_OBJECTS)
+ rpmgraph_DEPENDENCIES = lib/librpm.la rpmio/librpmio.la
+@@ -198,8 +197,8 @@
+ 	rpmio/librpmio.la
+ am_rpmspec_OBJECTS = rpmspec-rpmspec.$(OBJEXT)
+ rpmspec_OBJECTS = $(am_rpmspec_OBJECTS)
+-rpmspec_DEPENDENCIES = libcliutils.la build/librpmbuild.la \
+-	lib/librpm.la rpmio/librpmio.la
++rpmspec_DEPENDENCIES = build/librpmbuild.la \
++	lib/librpm.la rpmio/librpmio.la libcliutils.la
+ am__sepdebugcrcfix_SOURCES_DIST = tools/sepdebugcrcfix.c
+ @LIBELF_TRUE@am_sepdebugcrcfix_OBJECTS =  \
+ @LIBELF_TRUE@	tools/sepdebugcrcfix.$(OBJEXT)
+@@ -735,29 +734,29 @@
+ rpm_SOURCES = rpm.c debug.h system.h
+ rpm_CPPFLAGS = $(AM_CPPFLAGS)
+ rpm_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_POPT_LIB@ $(am__empty)
++	@WITH_POPT_LIB@ $(am__empty) -lintl
+ rpmdb_SOURCES = rpmdb.c debug.h system.h
+ rpmdb_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmdb_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_POPT_LIB@ $(am__empty)
++	@WITH_POPT_LIB@ $(am__empty) -lintl
+ rpmkeys_SOURCES = rpmkeys.c debug.h system.h
+ rpmkeys_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmkeys_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_POPT_LIB@ $(am__empty)
++	@WITH_POPT_LIB@ $(am__empty) -lintl
+ rpmsign_SOURCES = rpmsign.c debug.h system.h
+ rpmsign_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmsign_LDADD = libcliutils.la sign/librpmsign.la lib/librpm.la \
+-	rpmio/librpmio.la @WITH_POPT_LIB@
++	rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ rpmbuild_SOURCES = rpmbuild.c debug.h system.h
+ rpmbuild_CPPFLAGS = $(AM_CPPFLAGS)
+-rpmbuild_LDADD = libcliutils.la build/librpmbuild.la lib/librpm.la \
+-	rpmio/librpmio.la @WITH_POPT_LIB@
++rpmbuild_LDADD = build/librpmbuild.la lib/librpm.la \
++	rpmio/librpmio.la libcliutils.la @WITH_POPT_LIB@ -lintl
+ rpmspec_SOURCES = rpmspec.c debug.h system.h
+ rpmspec_CPPFLAGS = $(AM_CPPFLAGS)
+-rpmspec_LDADD = libcliutils.la build/librpmbuild.la lib/librpm.la \
+-	rpmio/librpmio.la @WITH_POPT_LIB@
++rpmspec_LDADD = build/librpmbuild.la lib/librpm.la \
++	rpmio/librpmio.la libcliutils.la @WITH_POPT_LIB@ -lintl
+ rpm2cpio_SOURCES = rpm2cpio.c debug.h system.h
+-rpm2cpio_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
++rpm2cpio_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ rpm2archive_SOURCES = rpm2archive.c debug.h system.h
+ rpm2archive_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ \
+ 	@WITH_ARCHIVE_LIB@ $(am__empty)
+@@ -774,9 +773,9 @@
+ @LIBELF_TRUE@sepdebugcrcfix_SOURCES = tools/sepdebugcrcfix.c
+ @LIBELF_TRUE@sepdebugcrcfix_LDADD = @WITH_LIBELF_LIB@
+ rpmdeps_SOURCES = tools/rpmdeps.c
+-rpmdeps_LDADD = lib/librpm.la rpmio/librpmio.la build/librpmbuild.la @WITH_POPT_LIB@
++rpmdeps_LDADD = build/librpmbuild.la lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ rpmgraph_SOURCES = tools/rpmgraph.c
+-rpmgraph_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
++rpmgraph_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ dist_bin_SCRIPTS = scripts/gendiff
+ rpmconfig_DATA = rpmrc rpmpopt-$(VERSION)
+ noinst_DATA = macros platform $(am__append_12) $(am__append_13)

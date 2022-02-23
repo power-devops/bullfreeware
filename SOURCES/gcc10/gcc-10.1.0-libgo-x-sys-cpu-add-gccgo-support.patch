@@ -1,0 +1,62 @@
+From 0f4e6587975b3b7743f166a8ef96bc4ef6844929 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 13 May 2020 14:22:44 -0500
+Subject: [PATCH] libgo: x/sys/cpu add gccgo support
+
+---
+ .../sys/cpu/{cpu_aix_ppc64.go => cpu_aix.go}  |  2 +-
+ .../golang.org/x/sys/cpu/syscall_aix_gccgo.go | 25 +++++++++++++++++++
+ 2 files changed, 26 insertions(+), 1 deletion(-)
+ rename libgo/go/golang.org/x/sys/cpu/{cpu_aix_ppc64.go => cpu_aix.go} (96%)
+ create mode 100644 libgo/go/golang.org/x/sys/cpu/syscall_aix_gccgo.go
+
+diff --git a/libgo/go/golang.org/x/sys/cpu/cpu_aix_ppc64.go b/libgo/go/golang.org/x/sys/cpu/cpu_aix.go
+similarity index 96%
+rename from libgo/go/golang.org/x/sys/cpu/cpu_aix_ppc64.go
+rename to libgo/go/golang.org/x/sys/cpu/cpu_aix.go
+index b0ede112d4e..02d03129e50 100644
+--- a/libgo/go/golang.org/x/sys/cpu/cpu_aix_ppc64.go
++++ b/libgo/go/golang.org/x/sys/cpu/cpu_aix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build aix,ppc64
++// +build aix
+ 
+ package cpu
+ 
+diff --git a/libgo/go/golang.org/x/sys/cpu/syscall_aix_gccgo.go b/libgo/go/golang.org/x/sys/cpu/syscall_aix_gccgo.go
+new file mode 100644
+index 00000000000..0363ec12ddb
+--- /dev/null
++++ b/libgo/go/golang.org/x/sys/cpu/syscall_aix_gccgo.go
+@@ -0,0 +1,25 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Minimal copy of x/sys/unix so the cpu package can make a
++// system call on AIX without depending on x/sys/unix.
++// (See golang.org/issue/32102)
++
++// +build aix
++// +build gccgo
++
++package cpu
++
++import (
++	"syscall"
++)
++
++//extern getsystemcfg
++func gccgoGetsystemcfg(label uint32) (r uint64)
++
++func callgetsystemcfg(label int) (r1 uintptr, e1 syscall.Errno) {
++	r1 = uintptr(gccgoGetsystemcfg(uint32(label)))
++	e1 = syscall.GetErrno()
++	return
++}
+-- 
+2.25.0
+

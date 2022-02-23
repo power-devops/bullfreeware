@@ -1,0 +1,110 @@
+diff -crN ../ruby-1.8.6.ori/configure ./configure
+*** ../ruby-1.8.6.ori/configure	2007-06-21 15:59:40.000000000 +0200
+--- ./configure	2007-06-21 15:38:33.000000000 +0200
+***************
+*** 4787,4792 ****
+--- 4787,4793 ----
+    { echo "$as_me:$LINENO: result: yes" >&5
+  echo "${ECHO_T}yes" >&6; }
+  cat >>confdefs.h <<\_ACEOF
++ #undef _ALL_SOURCE
+  #define _ALL_SOURCE 1
+  _ACEOF
+  
+diff -crN ../ruby-1.8.6.ori/eval.c ./eval.c
+*** ../ruby-1.8.6.ori/eval.c	2007-06-21 15:59:40.000000000 +0200
+--- ./eval.c	2007-06-21 15:55:15.000000000 +0200
+***************
+*** 11757,11765 ****
+--- 11757,11767 ----
+  #endif
+  	if (!rb_thread_critical) {
+  	    rb_thread_pending = 1;
++ #ifdef HAVE_NATIVETHREAD_KILL
+  	    if (rb_trap_immediate) {
+  		pthread_kill(ruby_thid, SIGVTALRM);
+  	    }
++ #endif
+  	}
+      }
+  }
+***************
+*** 11841,11847 ****
+--- 11843,11851 ----
+  #endif
+  
+  #ifdef _THREAD_SAFE
++ #ifdef HAVE_NATIVETHREAD
+  	pthread_create(&time_thread, 0, thread_timer, 0);
++ #endif
+  #else
+  	rb_thread_start_timer();
+  #endif
+diff -crN ../ruby-1.8.6.ori/ext/tk/tcltklib.c ./ext/tk/tcltklib.c
+*** ../ruby-1.8.6.ori/ext/tk/tcltklib.c	2007-06-21 15:59:52.000000000 +0200
+--- ./ext/tk/tcltklib.c	2007-06-21 15:55:29.000000000 +0200
+***************
+*** 5398,5404 ****
+  #else /* TCL_VERSION >= 8.1 */
+      if (Tcl_GetCharLength(obj) != Tcl_UniCharLen(Tcl_GetUnicode(obj))) {
+          /* possibly binary string */
+!         s = Tcl_GetByteArrayFromObj(obj, &len);
+          binary = 1;
+      } else {
+          /* possibly text string */
+--- 5398,5404 ----
+  #else /* TCL_VERSION >= 8.1 */
+      if (Tcl_GetCharLength(obj) != Tcl_UniCharLen(Tcl_GetUnicode(obj))) {
+          /* possibly binary string */
+!         s = (const char*)Tcl_GetByteArrayFromObj(obj, &len);
+          binary = 1;
+      } else {
+          /* possibly text string */
+***************
+*** 5425,5438 ****
+          StringValue(enc);
+          if (strcmp(RSTRING(enc)->ptr, "binary") == 0) {
+              /* binary string */
+!             return Tcl_NewByteArrayObj(s, RSTRING(str)->len);
+          } else {
+              /* text string */
+              return Tcl_NewStringObj(s, RSTRING(str)->len);
+          }
+      } else if (strlen(s) != RSTRING(str)->len) {
+          /* probably binary string */
+!         return Tcl_NewByteArrayObj(s, RSTRING(str)->len);
+      } else {
+          /* probably text string */
+          return Tcl_NewStringObj(s, RSTRING(str)->len);
+--- 5425,5438 ----
+          StringValue(enc);
+          if (strcmp(RSTRING(enc)->ptr, "binary") == 0) {
+              /* binary string */
+!             return Tcl_NewByteArrayObj((const unsigned char*)s, RSTRING(str)->len);
+          } else {
+              /* text string */
+              return Tcl_NewStringObj(s, RSTRING(str)->len);
+          }
+      } else if (strlen(s) != RSTRING(str)->len) {
+          /* probably binary string */
+!         return Tcl_NewByteArrayObj((const unsigned char*)s, RSTRING(str)->len);
+      } else {
+          /* probably text string */
+          return Tcl_NewStringObj(s, RSTRING(str)->len);
+***************
+*** 6284,6290 ****
+              int  len;
+  
+              StringValue(str);
+!             s = Tcl_GetByteArrayFromObj(Tcl_NewStringObj(RSTRING(str)->ptr, 
+                                                           RSTRING(str)->len), 
+                                          &len);
+              str = rb_tainted_str_new(s, len);
+--- 6284,6290 ----
+              int  len;
+  
+              StringValue(str);
+!             s = (char*)Tcl_GetByteArrayFromObj(Tcl_NewStringObj(RSTRING(str)->ptr, 
+                                                           RSTRING(str)->len), 
+                                          &len);
+              str = rb_tainted_str_new(s, len);

@@ -1,0 +1,81 @@
+diff -crN ./libxklavier/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/Makefile.am
+*** ./libxklavier/Makefile.am	Fri Mar 17 14:59:54 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/Makefile.am	Mon Oct 30 15:47:24 2006
+***************
+*** 1,4 ****
+! SUBDIRS = libxklavier doc tests
+  
+  config_xml_DATA = xfree86.xml
+  config_xmldir = $(datadir)/$(PACKAGE)
+--- 1,5 ----
+! #SUBDIRS = libxklavier doc tests
+! SUBDIRS = libxklavier doc
+  
+  config_xml_DATA = xfree86.xml
+  config_xmldir = $(datadir)/$(PACKAGE)
+diff -crN ./libxklavier/libxklavier/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/Makefile.am
+*** ./libxklavier/libxklavier/Makefile.am	Tue Sep 26 22:19:03 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/Makefile.am	Mon Oct 30 13:23:31 2006
+***************
+*** 25,31 ****
+  xkl_engine_marshal.c: xkl_engine_marshal.h
+  	$(GLIB_GENMARSHAL) --prefix=xkl_engine marshal.list --body > xkl_engine_marshal.c
+  
+! AM_CFLAGS=-Wall -DDATA_DIR=\"$(datadir)/$(PACKAGE)\" \
+    -I. -I$(includedir) $(X_CFLAGS) -I$(top_srcdir) \
+    $(XML_CFLAGS) $(GLIB_CFLAGS) \
+    $(LIBXKBFILE_PRESENT_CFLAG) \
+--- 25,31 ----
+  xkl_engine_marshal.c: xkl_engine_marshal.h
+  	$(GLIB_GENMARSHAL) --prefix=xkl_engine marshal.list --body > xkl_engine_marshal.c
+  
+! AM_CFLAGS= -DDATA_DIR=\"$(datadir)/$(PACKAGE)\" \
+    -I. -I$(includedir) $(X_CFLAGS) -I$(top_srcdir) \
+    $(XML_CFLAGS) $(GLIB_CFLAGS) \
+    $(LIBXKBFILE_PRESENT_CFLAG) \
+diff -crN ./libxklavier/tests/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/Makefile.am
+*** ./libxklavier/tests/Makefile.am	Tue Sep 26 22:19:03 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/Makefile.am	Mon Oct 30 13:24:23 2006
+***************
+*** 4,10 ****
+  
+  test_monitor_SOURCES=test_monitor.c
+  
+! AM_CFLAGS=-Wall -Werror -I$(includedir) $(X_CFLAGS) -I$(top_srcdir) $(GLIB_CFLAGS)
+  
+! AM_LDFLAGS=$(top_builddir)/libxklavier/libxklavier.la $(X_LIBS) -lX11 $(GLIB_LIBS)
+  
+--- 4,10 ----
+  
+  test_monitor_SOURCES=test_monitor.c
+  
+! AM_CFLAGS= -I. -I$(includedir) -I$(x_includes) -I$(top_srcdir)
+  
+! AM_LDFLAGS=$(top_builddir)/libxklavier/libxklavier.la -L$(x_libraries) -lX11
+  
+diff -crN ./libxklavier/tests/test_config.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_config.c
+*** ./libxklavier/tests/test_config.c	Sat Oct  7 18:48:46 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_config.c	Mon Oct 30 13:24:52 2006
+***************
+*** 20,26 ****
+  #include <config.h>
+  #include <stdio.h>
+  #include <unistd.h>
+- #include <getopt.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <X11/Xlib.h>
+--- 20,25 ----
+diff -crN ./libxklavier/tests/test_monitor.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_monitor.c
+*** ./libxklavier/tests/test_monitor.c	Sat Oct  7 18:48:49 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_monitor.c	Mon Oct 30 13:25:09 2006
+***************
+*** 20,26 ****
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <unistd.h>
+- #include <getopt.h>
+  #include <X11/Xlib.h>
+  #include <X11/Xutil.h>
+  #include <X11/XKBlib.h>
+--- 20,25 ----

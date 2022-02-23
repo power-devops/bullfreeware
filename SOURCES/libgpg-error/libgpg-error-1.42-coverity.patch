@@ -1,0 +1,177 @@
+From 89a353f418f5e879ab5564ec0767a6cbdb19d51c Mon Sep 17 00:00:00 2001
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Wed, 7 Apr 2021 16:59:35 +0900
+Subject: [PATCH Libgpg-error 1/4] build: Fix gpgrt-config for handling
+ 'Requires' field.
+
+* src/gpgrt-config.in (get_attr_l): Fix thinko for word split.
+
+--
+
+GnuPG-bug-id: 5381
+Reported-by: Jakub Jelen <jjelen@redhat.com>
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+---
+ src/gpgrt-config.in | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/gpgrt-config.in b/src/gpgrt-config.in
+index 0fe14e8..6352384 100644
+--- a/src/gpgrt-config.in
++++ b/src/gpgrt-config.in
+@@ -1,4 +1,5 @@
+ #!@INSTALLSHELLPATH@
++#                          -*- mode: shell-script; sh-shell: "/bin/sh" -*-
+ # Copyright (C) 2018, 2021 g10 Code GmbH
+ #
+ # This file is free software; as a special exception the author gives
+@@ -41,7 +42,7 @@ get_attr () {
+ 
+ # variant of get_attr for list (separated by ',')
+ get_attr_l () {
+-    (IFS=', '; for x in "$(get_attr $1)"; do echo $x; done)
++    (IFS=', '; echo "$(get_attr $1)")
+ }
+ 
+ # Remove ${varname} part in the beginning of a string.
+-- 
+2.30.2
+
+
+From 956c40f106ead6d0191bc183805021e70c15e760 Mon Sep 17 00:00:00 2001
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Thu, 8 Apr 2021 10:58:56 +0900
+Subject: [PATCH Libgpg-error 2/4] core: Fix gpgrt_wait_processes, by skipping
+ invalid PID.
+
+* src/spawn-posix.c (_gpgrt_wait_processes): Skip invalid PID.
+
+--
+
+The API itself is not good to handle multiple processes.  Given the
+API, skipping invalid PID is better for usefulness.
+
+GnuPG-bug-id: 5381
+Reported-by: Jakub Jelen <jjelen@redhat.com>
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+---
+ src/spawn-posix.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/spawn-posix.c b/src/spawn-posix.c
+index ac4c4ce..d33bade 100644
+--- a/src/spawn-posix.c
++++ b/src/spawn-posix.c
+@@ -703,8 +703,13 @@ _gpgrt_wait_processes (const char **pgmnames, pid_t *pids, size_t count,
+     {
+       int status = -1;
+ 
++      /* Skip invalid PID.  */
+       if (pids[i] == (pid_t)(-1))
+-        return GPG_ERR_INV_VALUE;
++        {
++          r_exitcodes[i] = -1;
++          left -= 1;
++          continue;
++        }
+ 
+       /* See if there was a previously stored result for this pid.  */
+       if (get_result (pids[i], &status))
+-- 
+2.30.2
+
+
+From ad062b0a5b7d598081405ecfb71b51540281a1b7 Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Mon, 12 Apr 2021 13:06:17 +0900
+Subject: [PATCH Libgpg-error 3/4] build,tests: Fix leaks of memory or file
+ pointer.
+
+* src/mkheader.c (parse_config_h): Close FP.
+* tests/t-b64.c (test_b64enc_string): Free STATE.
+(test_b64dec_string): Free BUFFER.
+* tests/t-syserror.c (main): Close FP.
+
+--
+
+GnuPG-bug-id: 5381
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/mkheader.c     | 1 +
+ tests/t-b64.c      | 2 ++
+ tests/t-syserror.c | 1 +
+ 3 files changed, 4 insertions(+)
+
+diff --git a/src/mkheader.c b/src/mkheader.c
+index 77826da..1d2ea20 100644
+--- a/src/mkheader.c
++++ b/src/mkheader.c
+@@ -244,6 +244,7 @@ parse_config_h (const char *fname)
+     {
+       fprintf (stderr, "%s:%d: error reading file: %s\n",
+                fname, lnr, strerror (errno));
++      fclose (fp);
+       return 1;
+     }
+ 
+diff --git a/tests/t-b64.c b/tests/t-b64.c
+index 0171909..db08fc0 100644
+--- a/tests/t-b64.c
++++ b/tests/t-b64.c
+@@ -108,6 +108,7 @@ test_b64enc_string (const char *string, const char *expected, const char *title)
+   err = gpgrt_b64enc_write (state, string, strlen (string));
+   if (err)
+     {
++      free (state);
+       fail ("gpgrt_b64enc_write failed: %s\n", gpg_strerror (err));
+       return err;
+     }
+@@ -191,6 +192,7 @@ test_b64dec_string (const char *string, const char *expected, const char *title)
+           gpgrt_log_debug_string (expected, "expect(len=%zu): ",
+                                   strlen (expected));
+         }
++      free (buffer);
+       return GPG_ERR_FALSE;
+     }
+ 
+diff --git a/tests/t-syserror.c b/tests/t-syserror.c
+index a4cb983..93264dd 100644
+--- a/tests/t-syserror.c
++++ b/tests/t-syserror.c
+@@ -49,6 +49,7 @@ main (int argc, char *argv[])
+     }
+   if (fp)
+     {
++      fclose (fp);
+       fprintf (stderr, "unable to run test\n");
+       return 1;
+     }
+-- 
+2.30.2
+
+
+From 5e60ba508a2b23aa73a9b26616e1dd3f1fc1cb7d Mon Sep 17 00:00:00 2001
+From: Jakub Jelen <jjelen@redhat.com>
+Date: Wed, 7 Apr 2021 11:56:40 +0200
+Subject: [PATCH Libgpg-error 4/4] logging: Supress cppcheck warning
+
+Signed-off-by: Jakub Jelen <jjelen@redhat.com>
+---
+ src/logging.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/logging.c b/src/logging.c
+index e4b7e40..69bf8c5 100644
+--- a/src/logging.c
++++ b/src/logging.c
+@@ -1274,6 +1274,7 @@ _gpgrt_log_printhex (const void *buffer, size_t length,
+        * complains about uninitialized use.  */
+       static va_list dummy_argptr;
+ 
++      // cppcheck-suppress va_list_usedBeforeStarted
+       _gpgrt_logv_printhex (buffer, length, NULL, dummy_argptr);
+     }
+ }
+-- 
+2.30.2
+

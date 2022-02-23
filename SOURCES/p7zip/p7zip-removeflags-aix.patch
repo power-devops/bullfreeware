@@ -1,0 +1,55 @@
+--- ./CPP/7zip/Bundles/Alone/makefile.list_orig	2020-02-24 19:10:28 +0000
++++ ./CPP/7zip/Bundles/Alone/makefile.list	2020-02-24 19:10:37 +0000
+@@ -7,8 +7,6 @@
+ all: $(PCH_NAME) $(PROG)
+ 
+ LOCAL_FLAGS=$(TARGET_FLAGS) \
+-  -D_FILE_OFFSET_BITS=64 \
+-  -D_LARGEFILE_SOURCE \
+   -D_REENTRANT \
+   -DENV_UNIX \
+   -DBREAK_HANDLER \
+--- ./CPP/7zip/Bundles/Alone7z/makefile.list_orig	2020-02-24 19:13:23 +0000
++++ ./CPP/7zip/Bundles/Alone7z/makefile.list	2020-02-24 19:13:33 +0000
+@@ -7,8 +7,6 @@
+ all: $(PCH_NAME) $(PROG)
+ 
+ LOCAL_FLAGS=$(TARGET_FLAGS) \
+-  -D_FILE_OFFSET_BITS=64 \
+-  -D_LARGEFILE_SOURCE \
+   -D_REENTRANT \
+   -DENV_UNIX \
+   -D_NO_CRYPTO \
+--- ./CPP/7zip/Bundles/Format7zFree/makefile.list_orig	2020-02-24 19:11:49 +0000
++++ ./CPP/7zip/Bundles/Format7zFree/makefile.list	2020-02-24 19:12:34 +0000
+@@ -8,8 +8,6 @@
+ 
+ LOCAL_FLAGS=$(TARGET_FLAGS) \
+   -DEXTERNAL_CODECS \
+-  -D_FILE_OFFSET_BITS=64 \
+-  -D_LARGEFILE_SOURCE \
+   -D_REENTRANT \
+   -DENV_UNIX \
+   -DBREAK_HANDLER \
+--- ./CPP/7zip/Bundles/SFXCon/makefile.list_orig	2020-02-24 19:10:57 +0000
++++ ./CPP/7zip/Bundles/SFXCon/makefile.list	2020-02-24 19:11:08 +0000
+@@ -7,8 +7,6 @@
+ all: $(PCH_NAME) $(PROG)
+ 
+ LOCAL_FLAGS=$(TARGET_FLAGS) \
+-  -D_FILE_OFFSET_BITS=64 \
+-  -D_LARGEFILE_SOURCE \
+   -D_REENTRANT \
+   -DENV_UNIX \
+   -DBREAK_HANDLER \
+--- ./CPP/7zip/Compress/Rar/makefile.list_orig	2020-02-24 19:12:56 +0000
++++ ./CPP/7zip/Compress/Rar/makefile.list	2020-02-24 19:13:06 +0000
+@@ -8,8 +8,6 @@
+ 
+ LOCAL_FLAGS=$(TARGET_FLAGS) \
+   -DEXTERNAL_CODECS \
+-  -D_FILE_OFFSET_BITS=64 \
+-  -D_LARGEFILE_SOURCE \
+   -D_REENTRANT \
+   -DENV_UNIX \
+   -DBREAK_HANDLER \

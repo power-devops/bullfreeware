@@ -1,0 +1,27 @@
+diff --git a/gettext-tools/gnulib-lib/Makefile.gnulib b/gettext-tools/gnulib-lib/Makefile.gnulib
+index 9795b14..789a7fb 100644
+--- a/gettext-tools/gnulib-lib/Makefile.gnulib
++++ b/gettext-tools/gnulib-lib/Makefile.gnulib
+@@ -194,8 +194,8 @@ libgettextlib_la_LDFLAGS += $(ISNANL_LIBM)
+ libgettextlib_la_LDFLAGS += $(LIB_ACL)
+ libgettextlib_la_LDFLAGS += $(LIB_CLOCK_GETTIME)
+ libgettextlib_la_LDFLAGS += $(LOG10_LIBM)
+-libgettextlib_la_LDFLAGS += $(LTLIBICONV)
+ libgettextlib_la_LDFLAGS += $(LTLIBINTL)
++libgettextlib_la_LDFLAGS += $(LTLIBICONV)
+ libgettextlib_la_LDFLAGS += $(LTLIBTHREAD)
+ libgettextlib_la_LDFLAGS += $(LTLIBUNISTRING)
+ libgettextlib_la_LDFLAGS += $(POW_LIBM)
+diff --git a/gettext-tools/gnulib-lib/Makefile.in b/gettext-tools/gnulib-lib/Makefile.in
+index c836c6f..7725536 100644
+--- a/gettext-tools/gnulib-lib/Makefile.in
++++ b/gettext-tools/gnulib-lib/Makefile.in
+@@ -2603,7 +2603,7 @@ EXTRA_libgettextlib_la_SOURCES = acl_entries.c atexit.c \
+ #libgettextlib_la_LDFLAGS += $(LTLIBUNISTRING) @LTLIBINTL@ @LTLIBICONV@ @LIB_ACL@
+ libgettextlib_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(FABS_LIBM) \
+ 	$(ISNAND_LIBM) $(ISNANF_LIBM) $(ISNANL_LIBM) $(LIB_ACL) \
+-	$(LIB_CLOCK_GETTIME) $(LOG10_LIBM) $(LTLIBICONV) $(LTLIBINTL) \
++	$(LIB_CLOCK_GETTIME) $(LOG10_LIBM) $(LTLIBINTL) $(LTLIBICONV) \
+ 	$(LTLIBTHREAD) $(LTLIBUNISTRING) $(POW_LIBM) \
+ 	@INTL_MACOSX_LIBS@ -release @VERSION@ $(am__append_3) \
+ 	$(am__append_8) $(am__append_24) $(am__append_25)

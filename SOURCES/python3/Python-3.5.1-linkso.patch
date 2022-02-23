@@ -1,0 +1,14 @@
+--- Python-3.5.1-orig/Lib/distutils/unixccompiler.py	2015-12-07 02:39:07 +0100
++++ Python-3.5.1-aix/Lib/distutils/unixccompiler.py	2016-06-22 14:21:20 +0200
+@@ -187,6 +187,11 @@
+                         while '=' in linker[i]:
+                             i += 1
+                     linker[i] = self.compiler_cxx[i]
++                    if sys.platform.startswith('aix'):
++                        # see http://bugs.python.org/issue17454
++                        if 'ld_so_aix' in linker[i]:
++                            i = i + 1
++                        linker[i] = self.compiler_cxx[0]
+ 
+                 if sys.platform == 'darwin':
+                     linker = _osx_support.compiler_fixup(linker, ld_args)

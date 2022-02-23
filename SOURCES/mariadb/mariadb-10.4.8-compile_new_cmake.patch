@@ -1,0 +1,130 @@
+--- ./libmariadb/include/ma_global.h.orig	2019-10-08 16:31:03.000000000 +0200
++++ ./libmariadb/include/ma_global.h	2019-10-08 16:31:03.000000000 +0200
+@@ -91,7 +91,7 @@
+ 
+ /* Go around some bugs in different OS and compilers */
+ #ifdef _AIX			/* By soren@t.dk */
+-#define _H_STRINGS
++/* #define _H_STRINGS
+ #define _SYS_STREAM_H
+ #define _AIX32_CURSES
+ #define ulonglong2double(A) my_ulonglong2double(A)
+@@ -102,7 +102,7 @@
+ double my_ulonglong2double(unsigned long long A);
+ #ifdef	__cplusplus
+ }
+-#endif
++#endif */
+ #endif /* _AIX */
+ 
+ #ifdef HAVE_BROKEN_SNPRINTF	/* HPUX 10.20 don't have this defined */
+--- ./storage/innobase/CMakeLists.txt.orig	2019-10-08 16:31:05.000000000 +0200
++++ ./storage/innobase/CMakeLists.txt	2019-10-08 16:31:05.000000000 +0200
+@@ -155,7 +155,6 @@
+ 	${ZLIB_LIBRARY}
+ 	${CRC32_LIBRARY}
+ 	${NUMA_LIBRARY}
+-	${LIBSYSTEMD}
+ 	${LINKER_SCRIPT})
+ 
+ IF(NOT TARGET innobase)
+--- ./libmysqld/CMakeLists.txt.orig	2019-10-08 16:31:03.000000000 +0200
++++ ./libmysqld/CMakeLists.txt	2019-10-08 16:31:03.000000000 +0200
+@@ -72,7 +72,7 @@
+            ../sql/sql_admin.cc ../sql/sql_truncate.cc ../sql/sql_reload.cc
+            ../sql/sql_lex.cc ../sql/keycaches.cc
+            ../sql/sql_list.cc ../sql/sql_load.cc ../sql/sql_locale.cc 
+-           ../sql/sql_binlog.cc ../sql/sql_manager.cc
++           ../sql/sql_manager.cc
+            ../sql/sql_parse.cc ../sql/sql_bootstrap.cc
+            ../sql/sql_partition.cc ../sql/sql_plugin.cc 
+            ../sql/debug_sync.cc ../sql/opt_table_elimination.cc
+@@ -126,7 +126,6 @@
+            ${MYSYS_LIBWRAP_SOURCE}
+ )
+ 
+-
+ ADD_CONVENIENCE_LIBRARY(sql_embedded ${SQL_EMBEDDED_SOURCES})
+ DTRACE_INSTRUMENT(sql_embedded)
+ ADD_DEPENDENCIES(sql_embedded GenError GenServerSource)
+@@ -137,6 +136,10 @@
+   SET(MYSQLSERVER_OUTPUT_NAME mysqlserver)
+   SET(COMPONENT_MYSQLSERVER "Embedded")
+   SET(COMPONENT_LIBMYSQLD "Embedded")
++ELSEIF(AIX)
++  SET(MYSQLSERVER_OUTPUT_NAME mariadbd_server)
++  SET(COMPONENT_MYSQLSERVER "Embedded")
++  SET(COMPONENT_LIBMYSQLD "Embedded")
+ ELSE()
+   SET(MYSQLSERVER_OUTPUT_NAME mariadbd)
+   SET(COMPONENT_MYSQLSERVER "Development")
+@@ -165,7 +168,7 @@
+ 
+ MERGE_LIBRARIES(mysqlserver STATIC ${EMBEDDED_LIBS} 
+   OUTPUT_NAME ${MYSQLSERVER_OUTPUT_NAME} COMPONENT ${COMPONENT_MYSQLSERVER})
+-IF(UNIX)
++IF(UNIX AND NOT AIX)
+   INSTALL_SYMLINK(libmysqld.a mysqlserver ${INSTALL_LIBDIR} ${COMPONENT_MYSQLSERVER})
+ ENDIF()
+ INSTALL(FILES embedded_priv.h DESTINATION ${INSTALL_INCLUDEDIR}/server/private COMPONENT  ${COMPONENT_MYSQLSERVER})
+@@ -441,7 +444,11 @@
+     SET_TARGET_PROPERTIES(libmysqld PROPERTIES 
+       OUTPUT_NAME mariadbd
+       SOVERSION "${SHARED_LIB_MAJOR_VERSION}")
+-    INSTALL_SYMLINK(libmysqld.so libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    IF(AIX)
++      INSTALL_SYMLINK(libmysqld.a libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    ELSE()
++      INSTALL_SYMLINK(libmysqld.so libmysqld ${INSTALL_LIBDIR} ${COMPONENT_LIBMYSQLD})
++    ENDIF()
+     # Clean direct output flags, as 2 targets have the same base name
+     # libmysqld
+     SET_TARGET_PROPERTIES(libmysqld PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+--- ./sql/CMakeLists.txt.orig	2019-10-08 17:13:17.390866719 +0200
++++ ./sql/CMakeLists.txt	2019-10-21 16:23:31.245539396 +0200
+@@ -287,6 +287,45 @@
+ 
+ MYSQL_ADD_EXECUTABLE(mysqld ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
+ 
++IF(AIX OR CMAKE_SYSTEM_NAME STREQUAL AIX)
++  SET(SYMBOL_LIB libsql.a libpartition.a libsql_sequence.a ../mysys_ssl/libmysys_ssl.a ../mysys/libmysys.a ../dbug/libdbug.a ../strings/libstrings.a ../vio/libvio.a)
++  add_custom_target(symbols_export
++    COMMAND nm -X32_64 -e ${SYMBOL_LIB} | grep " T " | grep -v "\\." > T.exp
++    COMMAND nm -X32_64 -e ${SYMBOL_LIB} | grep " D " | grep -v "\\." > D.exp
++    COMMAND printf "{print $1}" > awk.txt
++    COMMAND awk -f awk.txt T.exp > T2.exp
++    COMMAND awk -f awk.txt D.exp > D2.exp
++    COMMAND printf "#! .\\n" > head.txt
++    COMMAND cat T2.exp D2.exp | sort | uniq > tmp.exp
++    COMMAND cat head.txt tmp.exp > ${CMAKE_SOURCE_DIR}/libmariadbd.exp
++    COMMAND rm T.exp D.exp awk.txt T2.exp D2.exp head.txt tmp.exp
++    VERBATIM
++  )
++#   add_custom_target(symbols_export
++#     COMMAND CreateExportList /tmp/libmariadbd_tmp.exp libsql.a libpartition.a libsql_sequence.a ../mysys_ssl/libmysys_ssl.a ../mysys/libmysys.a ../dbug/libdbug.a ../strings/libstrings.a ../vio/libvio.a -X${OBJECT_MODE}
++#     COMMAND printf "#! .\\n" > /tmp/tmp.exp
++#     COMMAND cat /tmp/tmp.exp /tmp/libmariadbd_tmp.exp > ${CMAKE_SOURCE_DIR}/libmariadbd.exp
++#     COMMAND rm /tmp/libmariadbd_tmp.exp /tmp/tmp.exp
++#     VERBATIM
++#   )
++  ADD_DEPENDENCIES(symbols_export sql partition sql_sequence mysys_ssl mysys dbug strings vio)
++
++  TARGET_LINK_OPTIONS(mysqld PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/libmariadbd.exp")
++  ADD_DEPENDENCIES(mysqld symbols_export)
++  
++  add_custom_target(symbols_import
++    COMMAND dump -X64 -Tv mysqld | grep "EXP " | awk "{print \$8}" | sort -u > mariadb_dump.exp
++    COMMAND printf "#! .\\n" > head.txt
++    COMMAND cat head.txt mariadb_dump.exp > ${CMAKE_SOURCE_DIR}/libmariadbd.imp
++    COMMAND rm head.txt mariadb_dump.exp
++    VERBATIM
++  )
++#    COMMAND comm ${CMAKE_SOURCE_DIR}/libmariadbd.exp /tmp/mariadb_dump.exp -12 > /tmp/libmariadbd_tmp.imp
++#    COMMAND rm /tmp/libmariadbd_tmp.imp 
++  ADD_DEPENDENCIES(symbols_import mysqld)
++ENDIF()
++
++
+ IF(APPLE) 
+   # Add CoreServices framework since some dloadable plugins may need it 
+   FIND_LIBRARY(CORESERVICES NAMES CoreServices) 

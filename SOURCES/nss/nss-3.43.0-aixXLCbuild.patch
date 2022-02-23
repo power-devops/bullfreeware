@@ -1,0 +1,45 @@
+--- ./nss/lib/ssl/ssl3exthandle.c.ORIGIN	2019-03-16 01:25:08.000000000 +0100
++++ ./nss/lib/ssl/ssl3exthandle.c	2019-06-17 17:09:01.000000000 +0200
+@@ -212,7 +212,7 @@
+  * Clients sends a filled in session ticket if one is available, and otherwise
+  * sends an empty ticket.  Servers always send empty tickets.
+  */
+-PRInt32
++SECStatus
+ ssl3_ClientSendSessionTicketXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                 sslBuffer *buf, PRBool *added)
+ {
+--- ./nss/lib/ssl/sslsnce.c.ORIGIN	2019-03-16 01:25:08.000000000 +0100
++++ ./nss/lib/ssl/sslsnce.c	2019-06-17 17:15:17.000000000 +0200
+@@ -1775,7 +1775,7 @@
+     return SECSuccess;
+ }
+ 
+-static PRBool
++static SECStatus
+ ssl_GenerateSelfEncryptKeys(void *pwArg, PRUint8 *keyName,
+                             PK11SymKey **aesKey, PK11SymKey **macKey);
+ 
+--- ./nss/cmd/bltest/pkcs1_vectors.h.ORIGIN	2019-03-16 01:25:08.000000000 +0100
++++ ./nss/cmd/bltest/pkcs1_vectors.h	2019-06-18 10:28:32.000000000 +0200
+@@ -5,15 +5,15 @@
+ /* Vectors from pkcs1v15sign-vectors.txt */
+ 
+ struct pkcs1_test_vector {
+-    unsigned char *n;
++    unsigned char n[128];
+     unsigned long n_len;
+-    unsigned char *e;
++    unsigned char e[3];
+     unsigned long e_len;
+-    unsigned char *d;
++    unsigned char d[128];
+     unsigned long d_len;
+-    unsigned char *p;
++    unsigned char p[64];
+     unsigned long p_len;
+-    unsigned char *q;
++    unsigned char q[64];
+     unsigned long q_len;
+ };
+ 

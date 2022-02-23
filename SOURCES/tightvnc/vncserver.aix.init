@@ -1,0 +1,84 @@
+#!/usr/bin/ksh
+#
+# description: VNC Server startup and stop script
+#
+
+VNC_BIN=/opt/freeware/bin/vncserver
+
+# Check for missing binaries (stale symlinks should not happen)
+test -x $VNC_BIN || { echo "$VNC_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# Check for existence of needed config file and read it
+VNC_CONFIG=/etc/sysconfig/vncservers
+
+test -r $VNC_CONFIG || { echo "$HTTPD_CONFIG not existing";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 6; fi; }
+
+unset VNCSERVERARGS
+VNCSERVERS=""
+
+[ -f $VNC_CONFIG ] && . $VNC_CONFIG
+
+case "$1" in
+    start)
+	echo "Starting VNC Server(s):"
+	if [ ! -d /tmp/.X11-unix ]
+	then
+	    /bin/mkdir -m 777 /tmp/.X11-unix || :
+	fi
+	NOSERV=1
+	for display in ${VNCSERVERS}
+	do
+	    NOSERV=
+            DISP="${display%%:*}"
+            USER="${display##*:}"
+	    echo "--> on display :$DISP for user $USER"
+            VNCUSERARGS="${VNCSERVERARGS[${DISP}]}"
+	    /bin/su - $USER -c "cd ~${USER} && [ -f .vnc/passwd ] && $VNC_BIN :${DISP} ${VNCUSERARGS}" >/dev/null 2>&1
+	    RETVAL=$?
+	    [ "$RETVAL" -ne 0 ] && break
+	done
+	if test -n "$NOSERV"; then echo "no displays configured "; fi
+        [ "$RETVAL" -eq 0 ] && echo "vncserver start succeeded." || \
+	    echo "vncserver start failed."
+	;;
+    stop)
+	echo "Shutting down VNC Server(s):"
+	for display in ${VNCSERVERS}
+	do
+            DISP="${display%%:*}"
+            USER="${display##*:}"
+	    echo "--> on display :$DISP for user $USER"
+	    /bin/su - $USER -c "$VNC_BIN -kill :${DISP}" >/dev/null 2>&1
+	done
+	;;
+    status)
+	echo "Check if VNC Server(s) are running (one line per VNC server):"
+	for display in ${VNCSERVERS}
+	do
+            DISP="${display%%:*}"
+            USER="${display##*:}"
+	    CURDIR=$PWD
+	    cd ~${USER}
+            PIDFILE=.vnc/`hostname`:$DISP.pid
+	    if [ -f $PIDFILE ]; then
+		echo "--> on display :$DISP for user $USER with PID" `cat ${PIDFILE}`
+            fi
+	    cd $CURDIR
+	done
+	;;
+    restart)
+	## Stop the service and regardless of whether it was
+	## running or not, start it again.
+	$0 stop
+	$0 start
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|restart}"
+	exit 1
+	;;
+esac
+

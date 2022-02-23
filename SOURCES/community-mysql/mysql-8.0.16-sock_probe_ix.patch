@@ -1,0 +1,76 @@
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c.ORIGIN	2019-06-18 11:07:06 -0500
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c	2019-06-18 11:18:12 -0500
+@@ -28,7 +28,7 @@
+ #include <arpa/inet.h>
+ #include <assert.h>
+ #include <errno.h>
+-#include <ifaddrs.h>
++//	#include <ifaddrs.h>
+ #include <net/if.h>
+ #include <netdb.h>
+ #include <stdlib.h>
+@@ -86,6 +86,7 @@
+ 
+   ifa_tmp = s->interfaces;
+ 
++/*
+   while (ifa_tmp) {
+     if ((ifa_tmp->ifa_addr) && ((ifa_tmp->ifa_addr->sa_family == AF_INET) ||
+                                 (ifa_tmp->ifa_addr->sa_family == AF_INET6))) {
+@@ -93,6 +94,7 @@
+     }
+     ifa_tmp = ifa_tmp->ifa_next;
+   }
++ */
+ 
+   return 0;
+ err:
+@@ -123,6 +125,7 @@
+ 
+   int i = 0;
+ 
++/*
+   idx_check_ret(count, number_of_interfaces(s), 0) {
+     while (net_if != NULL) {
+       if ((net_if->ifa_addr) && ((net_if->ifa_addr->sa_family == AF_INET) ||
+@@ -136,6 +139,7 @@
+       net_if = net_if->ifa_next;
+     }
+   }
++ */
+ 
+   return NULL;
+ }
+@@ -147,8 +151,11 @@
+ 
+   struct ifaddrs *net_if = get_interface(s, count);
+ 
++/*
+   return net_if != NULL && (net_if->ifa_flags & IFF_UP) &&
+          (net_if->ifa_flags & IFF_RUNNING);
++ */
++  return(false);
+ }
+ 
+ static void get_sockaddr_address(sock_probe *s, int count,
+@@ -173,10 +180,10 @@
+ 
+   switch (addr_operation) {
+     case kSockaddrOpAddress:
+-      *out = (struct sockaddr *)net_if->ifa_addr;
++//      *out = (struct sockaddr *)net_if->ifa_addr;
+       break;
+     case kSockaddrOpNetmask:
+-      *out = (struct sockaddr *)net_if->ifa_netmask;
++//      *out = (struct sockaddr *)net_if->ifa_netmask;
+       break;
+     default:
+       break;
+@@ -186,5 +193,6 @@
+ static char *get_if_name(sock_probe *s, int count) {
+   struct ifaddrs *net_if = get_interface(s, count);
+ 
+-  return net_if != NULL ? net_if->ifa_name : NULL;
++//  return net_if != NULL ? net_if->ifa_name : NULL;
++  return NULL;
+ }

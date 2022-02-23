@@ -1,0 +1,50 @@
+Index: gcc-4.4.0/libiberty/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/libiberty/Makefile.in	2008-10-22 15:30:19.000000000 +0200
++++ gcc-4.4.0/libiberty/Makefile.in	2009-07-06 15:13:51.000000000 +0200
+@@ -53,9 +53,12 @@
+ AR = @AR@
+ AR_FLAGS = rc
+ 
+-CC = @CC@
++GCC = @CC@
++GCC = @CC@
++CC = $(GCC)
+ CFLAGS = @CFLAGS@
+ CPPFLAGS = @CPPFLAGS@
++LIBCFLAGS = $(CFLAGS)
+ RANLIB = @RANLIB@
+ MAKEINFO = @MAKEINFO@
+ PERL = @PERL@
+@@ -352,7 +355,7 @@
+ # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+ # default multilib, so we have to take CFLAGS into account as well,
+ # since it will be passed the multilib flags.
+-MULTIOSDIR = `$(CC) $(CFLAGS) -print-multi-os-directory`
++MULTIOSDIR = `$(GCC) $(LIBCFLAGS) $(CFLAGS) -print-multi-os-directory`
+ install_to_libdir: all
+ 	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+ 	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n
+Index: gcc-4.4.0/ltmain.sh
+===================================================================
+--- gcc-4.4.0.orig/ltmain.sh	2008-09-26 18:21:02.000000000 +0200
++++ gcc-4.4.0/ltmain.sh	2009-07-06 15:13:51.000000000 +0200
+@@ -2007,8 +2007,7 @@
+ 	func_dirname "$file" "/" ""
+ 	dir="$func_dirname_result"
+ 	dir="$dir$objdir"
+-
+-	if test -n "$relink_command"; then
++	if false ; then # test -n "$relink_command"; then
+ 	  # Determine the prefix the user has applied to our future dir.
+ 	  inst_prefix_dir=`$ECHO "X$destdir" | $Xsed -e "s%$libdir\$%%"`
+ 
+@@ -2040,7 +2039,7 @@
+ 	  shift
+ 
+ 	  srcname="$realname"
+-	  test -n "$relink_command" && srcname="$realname"T
++	  #test -n "$relink_command" && srcname="$realname"T
+ 
+ 	  # Install the shared library and build the symlinks.
+ 	  func_show_eval "$install_prog $dir/$srcname $destdir/$realname" \

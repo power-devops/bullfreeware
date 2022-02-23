@@ -1,0 +1,87 @@
+From 63ac89bfb15b2036741e40b2167d1d2f70af3e40 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 02 Nov 2018 13:50:59 +0100
+Subject: [PATCH] cmd/link/internal/ld: remove R_ADDR relocations inside XCOFF text sections
+
+On XCOFF, it is forbidden relocation of a DATA pointer to a text
+section. It happens when a RODATA symbol needs a DATA symbol's address.
+This commit moves every RODATA symbols with a R_ADDR on a data symbol to
+.data sections to avoid these relocations.
+
+Change-Id: I7f34d8e0ebdc8352a74e6b40e4c893d8d9419f4d
+Reviewed-on: https://go-review.googlesource.com/c/146977
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/data.go b/src/cmd/link/internal/ld/data.go
+index f424f1d..ef796b6 100644
+--- a/src/cmd/link/internal/ld/data.go
++++ b/src/cmd/link/internal/ld/data.go
+@@ -318,8 +318,7 @@
+ 			// must be done by the loader, as the section .data will be moved.
+ 			// The "default" symbol address is still needed by the loader so
+ 			// the current relocation can't be skipped.
+-			// runtime.algarray is different because it will end up in .rodata section
+-			if ctxt.HeadType == objabi.Haix && r.Sym.Sect.Seg == &Segdata && r.Sym.Name != "runtime.algarray" {
++			if ctxt.HeadType == objabi.Haix && r.Sym.Sect.Seg == &Segdata {
+ 				// It's not possible to make a loader relocation to a DWARF section.
+ 				// FIXME
+ 				if s.Sect.Seg != &Segdwarf {
+diff --git a/src/cmd/link/internal/ld/xcoff.go b/src/cmd/link/internal/ld/xcoff.go
+index f06b498..e39f1bb 100644
+--- a/src/cmd/link/internal/ld/xcoff.go
++++ b/src/cmd/link/internal/ld/xcoff.go
+@@ -878,6 +878,38 @@
+ 	toc := ctxt.Syms.Lookup("TOC", 0)
+ 	toc.Type = sym.SXCOFFTOC
+ 	toc.Attr |= sym.AttrReachable
++
++	// XCOFF does not allow relocations of data symbol address to a text symbol.
++	// Such case occurs when a RODATA symbol retrieves a data symbol address.
++	// When it happens, this RODATA symbol is moved to .data section.
++	// runtime.algarray is a readonly symbol but stored inside .data section.
++	// If it stays in .data, all type symbols will be moved to .data which
++	// cannot be done.
++	algarray := ctxt.Syms.Lookup("runtime.algarray", 0)
++	algarray.Type = sym.SRODATA
++	for {
++		again := false
++		for _, s := range ctxt.Syms.Allsym {
++			if s.Type != sym.SRODATA {
++				continue
++			}
++			for ri := range s.R {
++				r := &s.R[ri]
++				if r.Type != objabi.R_ADDR {
++					continue
++				}
++				if r.Sym.Type != sym.Sxxx && r.Sym.Type != sym.STEXT && r.Sym.Type != sym.SRODATA {
++					s.Type = sym.SDATA
++					again = true
++					break
++				}
++			}
++
++		}
++		if !again {
++			break
++		}
++	}
+ }
+ 
+ // Loader section
+diff --git a/src/runtime/alg.go b/src/runtime/alg.go
+index 8e931fd..887dbeb 100644
+--- a/src/runtime/alg.go
++++ b/src/runtime/alg.go
+@@ -301,6 +301,10 @@
+ }
+ 
+ func initAlgAES() {
++	if GOOS == "aix" {
++		// runtime.algarray is immutable on AIX: see cmd/link/internal/ld/xcoff.go
++		return
++	}
+ 	useAeshash = true
+ 	algarray[alg_MEM32].hash = aeshash32
+ 	algarray[alg_MEM64].hash = aeshash64

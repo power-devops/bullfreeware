@@ -1,0 +1,116 @@
+Index: gcc-4.4.5/libjava/Makefile.am
+===================================================================
+--- gcc-4.4.5.orig/libjava/Makefile.am	2009-12-09 19:46:11.000000000 +0100
++++ gcc-4.4.5/libjava/Makefile.am	2011-03-25 13:46:45.000000000 +0100
+@@ -276,7 +276,7 @@
+ # Include THREADLIBS here to ensure that the correct version of
+ # certain linuxthread functions get linked:
+ ## The mysterious backslash in the grep pattern is consumed by make.
+-libgcj_la_LDFLAGS = -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(extra_ldflags) $(THREADLIBS) \
++libgcj_la_LDFLAGS = -Wl,-bbigtoc -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(extra_ldflags) $(THREADLIBS) \
+ 	$(LIBLTDL) $(SYS_ZLIBS) \
+ 	-version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+ 	$(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+@@ -376,10 +376,10 @@
+ 	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LIBADD) $(LIBS) || exit; \
+ 	rm .libs/libgcj_bc.so; \
+ 	mv .libs/libgcj_bc.so.1.0.0 .libs/libgcj_bc.so; \
+-	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+-	-o .libs/libgcj_bc.so.1.0.0 -lgcj || exit; \
+-	rm .libs/libgcj_bc.so.1; \
+-	$(LN_S) libgcj_bc.so.1.0.0 .libs/libgcj_bc.so.1
++	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,.libs/libgcj_bc.so.1 \
++	-o .libs/libgcj_bc.so.1.0.0 -lgcj || exit;
++#	rm .libs/libgcj_bc.so.1; \
++#	$(LN_S) libgcj_bc.so.1.0.0 .libs/libgcj_bc.so.1
+ 
+ ## Note that property_files is defined in sources.am.
+ propertyo_files = $(patsubst classpath/resource/%,%,$(addsuffix .lo,$(property_files)))
+@@ -506,11 +506,11 @@
+ 	@echo Installing dummy lib libgcj_bc.so.1.0.0; \
+ 	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so; \
+ 	mv $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so; \
+-	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+-	-o $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 -lgcj || exit; \
+-	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
+-	$(LN_S) libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
+-	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.la;
++	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,.libs/libgcj_bc.so.1 \
++	-o $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 -lgcj || exit;
++#	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
++#	$(LN_S) libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
++#	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.la;
+ endif
+ if BUILD_ECJ1
+ ## Undo any prepending of the target prefix and transform
+@@ -841,7 +841,7 @@
+ ## searched before the build-tree ones, and we'd get errors because of
+ ## different libraries with the same SONAME from picky linkers such as
+ ## Solaris'.  FIXME: should be _libs on some systems.
+-gcj_dbtool_LDADD = gnu/gcj/tools/gcj_dbtool.lo -L$(here)/.libs libgcj.la
++gcj_dbtool_LDADD = gnu/gcj/tools/gcj_dbtool.lo -lgcj-tools -lgcj_bc -L$(here)/.libs libgcj.la
+ ## Depend on the spec file to make sure it is up to date before
+ ## linking this program.
+ gcj_dbtool_DEPENDENCIES = gnu/gcj/tools/gcj_dbtool.lo libgcj.la libgcj.spec
+Index: gcc-4.4.5/libjava/Makefile.in
+===================================================================
+--- gcc-4.4.5.orig/libjava/Makefile.in	2010-10-01 10:26:18.000000000 +0200
++++ gcc-4.4.5/libjava/Makefile.in	2011-03-25 14:00:15.000000000 +0100
+@@ -918,7 +918,7 @@
+ 
+ # Include THREADLIBS here to ensure that the correct version of
+ # certain linuxthread functions get linked:
+-libgcj_la_LDFLAGS = -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(extra_ldflags) $(THREADLIBS) \
++libgcj_la_LDFLAGS = -Wl,-bbigtoc -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(extra_ldflags) $(THREADLIBS) \
+ 	$(LIBLTDL) $(SYS_ZLIBS) \
+ 	-version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+ 	$(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+@@ -8252,7 +8252,7 @@
+ 	-rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS) $(extra_ldflags)
+ 
+ gcj_dbtool_LINK = $(GCJLINK)
+-gcj_dbtool_LDADD = gnu/gcj/tools/gcj_dbtool.lo -L$(here)/.libs libgcj.la
++gcj_dbtool_LDADD = gnu/gcj/tools/gcj_dbtool.lo -lgcj-tools -lgcj_bc -L$(here)/.libs libgcj.la
+ gcj_dbtool_DEPENDENCIES = gnu/gcj/tools/gcj_dbtool.lo libgcj.la libgcj.spec
+ gc_analyze_SOURCES = 
+ gc_analyze_LDFLAGS = --main=gnu.gcj.tools.gc_analyze.MemoryAnalyze \
+@@ -10293,10 +10293,10 @@
+ 	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LIBADD) $(LIBS) || exit; \
+ 	rm .libs/libgcj_bc.so; \
+ 	mv .libs/libgcj_bc.so.1.0.0 .libs/libgcj_bc.so; \
+-	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+-	-o .libs/libgcj_bc.so.1.0.0 -lgcj || exit; \
+-	rm .libs/libgcj_bc.so.1; \
+-	$(LN_S) libgcj_bc.so.1.0.0 .libs/libgcj_bc.so.1
++	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,.libs/libgcj_bc.so.1 \
++	-o .libs/libgcj_bc.so.1.0.0 -lgcj || exit;
++#	rm .libs/libgcj_bc.so.1; \
++#	$(LN_S) libgcj_bc.so.1.0.0 .libs/libgcj_bc.so.1
+ 
+ $(propertyo_files): %.lo: classpath/resource/%
+ 	$(mkinstalldirs) `dirname $@`; \
+@@ -12139,8 +12139,8 @@
+ @USE_LIBGCJ_BC_TRUE@	@echo Installing dummy lib libgcj_bc.so.1.0.0; \
+ @USE_LIBGCJ_BC_TRUE@	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so; \
+ @USE_LIBGCJ_BC_TRUE@	mv $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so; \
+-@USE_LIBGCJ_BC_TRUE@	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+-@USE_LIBGCJ_BC_TRUE@	-o $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 -lgcj || exit; \
++@USE_LIBGCJ_BC_TRUE@	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,.libs/libgcj_bc.so.1 \
++@USE_LIBGCJ_BC_TRUE@	-o $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1.0.0 -lgcj || exit;
+ @USE_LIBGCJ_BC_TRUE@	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
+ @USE_LIBGCJ_BC_TRUE@	$(LN_S) libgcj_bc.so.1.0.0 $(DESTDIR)$(toolexeclibdir)/libgcj_bc.so.1; \
+ @USE_LIBGCJ_BC_TRUE@	rm $(DESTDIR)$(toolexeclibdir)/libgcj_bc.la;
+Index: gcc-4.4.5/libjava/configure.host
+===================================================================
+--- gcc-4.4.5.orig/libjava/configure.host	2010-01-12 18:14:15.000000000 +0100
++++ gcc-4.4.5/libjava/configure.host	2011-03-25 13:59:24.000000000 +0100
+@@ -369,6 +369,9 @@
+   *linux*|*-kfreebsd*-gnu|*-gnu*)
+     use_libgcj_bc=yes
+   ;;
++   *aix*)
++    use_libgcj_bc=yes
++  ;;
+   *)
+     use_libgcj_bc=no
+   ;;

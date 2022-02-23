@@ -1,0 +1,21 @@
+--- ./Examples/test-suite/director_thread.i.ORIGIN	2021-01-08 17:49:34 +0100
++++ ./Examples/test-suite/director_thread.i	2021-01-08 17:50:05 +0100
+@@ -42,15 +42,15 @@
+   static pthread_t thread;
+ #endif
+ 
+-  static int thread_terminate = 0;
++  static int swig_thread_terminate = 0;
+   static SwigExamples::CriticalSection critical_section;
+   int get_thread_terminate() {
+     SwigExamples::Lock lock(critical_section);
+-    return thread_terminate;
++    return swig_thread_terminate;
+   }
+   void set_thread_terminate(int value) {
+     SwigExamples::Lock lock(critical_section);
+-    thread_terminate = value;
++    swig_thread_terminate = value;
+   }
+ }
+ %}

@@ -1,0 +1,419 @@
+From f589b713135689a57945d997c91b8ffb8ab946d8 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 01 Oct 2018 09:47:38 +0200
+Subject: [PATCH] cmd: fix symbols addressing for aix/ppc64
+
+This commit changes the code generated for addressing symbols on AIX
+operating system.
+
+On linux/ppc64, symbols addresses are 32 bits but on aix/ppc64, they
+are up to 64 bits. Therefore, this requires two more instructions and a
+new relocation type to generate the larger address.
+This addressing is used only for symbols within text segment.
+
+For symbols in data segment, any access must be made with an offset on
+R2 register. However, for some symbols, it is not known until link time
+if they are in data segment or text segment. Therefore, some addressing
+instructions must be changed at link time.
+
+During this process, as the offset for data symbols are only up to
+32 bits, the two newly added instructions, for 64 bits, are useless.
+This will be fixed later.
+
+LBRAPIC value was missing in anames9.go as an operand type.
+
+Update: #25893
+
+Change-Id: Iab35f4b01afaec5bee5daaa32f0b2273f9a00fdf
+---
+
+diff --git a/src/cmd/internal/obj/ppc64/a.out.go b/src/cmd/internal/obj/ppc64/a.out.go
+index 3c37457..de5b0ba 100644
+--- a/src/cmd/internal/obj/ppc64/a.out.go
++++ b/src/cmd/internal/obj/ppc64/a.out.go
+@@ -390,6 +390,7 @@
+ 	C_ANY
+ 	C_GOK
+ 	C_ADDR
++	C_DADDR
+ 	C_GOTADDR
+ 	C_TLS_LE
+ 	C_TLS_IE
+diff --git a/src/cmd/internal/obj/ppc64/anames9.go b/src/cmd/internal/obj/ppc64/anames9.go
+index 6ec7b7b..5fbed1e 100644
+--- a/src/cmd/internal/obj/ppc64/anames9.go
++++ b/src/cmd/internal/obj/ppc64/anames9.go
+@@ -26,6 +26,7 @@
+ 	"DACON",
+ 	"SBRA",
+ 	"LBRA",
++	"LBRAPIC",
+ 	"SAUTO",
+ 	"LAUTO",
+ 	"SEXT",
+@@ -41,6 +42,7 @@
+ 	"ANY",
+ 	"GOK",
+ 	"ADDR",
++	"DADDR",
+ 	"GOTADDR",
+ 	"TLS_LE",
+ 	"TLS_IE",
+diff --git a/src/cmd/internal/obj/ppc64/asm9.go b/src/cmd/internal/obj/ppc64/asm9.go
+index 66a77b3..6db5e8a 100644
+--- a/src/cmd/internal/obj/ppc64/asm9.go
++++ b/src/cmd/internal/obj/ppc64/asm9.go
+@@ -261,6 +261,12 @@
+ 	{AMOVBZ, C_REG, C_NONE, C_NONE, C_ADDR, 74, 8, 0},
+ 	{AMOVB, C_REG, C_NONE, C_NONE, C_ADDR, 74, 8, 0},
+ 
++	{AMOVD, C_REG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
++	{AMOVW, C_REG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
++	{AMOVWZ, C_REG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
++	{AMOVBZ, C_REG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
++	{AMOVB, C_REG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
++
+ 	/* load, long offset */
+ 	{AMOVD, C_LEXT, C_NONE, C_NONE, C_REG, 36, 8, REGSB},
+ 	{AMOVW, C_LEXT, C_NONE, C_NONE, C_REG, 36, 8, REGSB},
+@@ -283,6 +289,12 @@
+ 	{AMOVBZ, C_ADDR, C_NONE, C_NONE, C_REG, 75, 8, 0},
+ 	{AMOVB, C_ADDR, C_NONE, C_NONE, C_REG, 76, 12, 0},
+ 
++	{AMOVD, C_DADDR, C_NONE, C_NONE, C_REG, 97, 16, 0},
++	{AMOVW, C_DADDR, C_NONE, C_NONE, C_REG, 97, 16, 0},
++	{AMOVWZ, C_DADDR, C_NONE, C_NONE, C_REG, 97, 16, 0},
++	{AMOVBZ, C_DADDR, C_NONE, C_NONE, C_REG, 97, 16, 0},
++	{AMOVB, C_DADDR, C_NONE, C_NONE, C_REG, 98, 20, 0},
++
+ 	{AMOVD, C_TLS_LE, C_NONE, C_NONE, C_REG, 79, 4, 0},
+ 	{AMOVD, C_TLS_IE, C_NONE, C_NONE, C_REG, 80, 8, 0},
+ 
+@@ -311,10 +323,13 @@
+ 	/* load unsigned/long constants (TO DO: check) */
+ 	{AMOVD, C_UCON, C_NONE, C_NONE, C_REG, 3, 4, REGZERO},
+ 	{AMOVD, C_LCON, C_NONE, C_NONE, C_REG, 19, 8, 0},
++	{AMOVD, C_DCON, C_NONE, C_NONE, C_REG, 95, 16, 0},
+ 	{AMOVW, C_UCON, C_NONE, C_NONE, C_REG, 3, 4, REGZERO},
+ 	{AMOVW, C_LCON, C_NONE, C_NONE, C_REG, 19, 8, 0},
++	{AMOVW, C_DCON, C_NONE, C_NONE, C_REG, 95, 16, 0},
+ 	{AMOVWZ, C_UCON, C_NONE, C_NONE, C_REG, 3, 4, REGZERO},
+ 	{AMOVWZ, C_LCON, C_NONE, C_NONE, C_REG, 19, 8, 0},
++	{AMOVWZ, C_DCON, C_NONE, C_NONE, C_REG, 95, 16, 0},
+ 	{AMOVHBR, C_ZOREG, C_REG, C_NONE, C_REG, 45, 4, 0},
+ 	{AMOVHBR, C_ZOREG, C_NONE, C_NONE, C_REG, 45, 4, 0},
+ 	{AMOVHBR, C_REG, C_REG, C_NONE, C_ZOREG, 44, 4, 0},
+@@ -346,6 +361,7 @@
+ 	{AFMOVD, C_ZCON, C_NONE, C_NONE, C_FREG, 24, 4, 0},
+ 	{AFMOVD, C_ADDCON, C_NONE, C_NONE, C_FREG, 24, 8, 0},
+ 	{AFMOVD, C_ADDR, C_NONE, C_NONE, C_FREG, 75, 8, 0},
++	{AFMOVD, C_DADDR, C_NONE, C_NONE, C_FREG, 97, 16, 0},
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_SEXT, 7, 4, REGSB},
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_SAUTO, 7, 4, REGSP},
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_SOREG, 7, 4, REGZERO},
+@@ -353,6 +369,7 @@
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_LAUTO, 35, 8, REGSP},
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_LOREG, 35, 8, REGZERO},
+ 	{AFMOVD, C_FREG, C_NONE, C_NONE, C_ADDR, 74, 8, 0},
++	{AFMOVD, C_FREG, C_NONE, C_NONE, C_DADDR, 96, 16, 0},
+ 	{AFMOVSX, C_ZOREG, C_REG, C_NONE, C_FREG, 45, 4, 0},
+ 	{AFMOVSX, C_ZOREG, C_NONE, C_NONE, C_FREG, 45, 4, 0},
+ 	{AFMOVSX, C_FREG, C_REG, C_NONE, C_ZOREG, 44, 4, 0},
+@@ -599,6 +616,7 @@
+ 	{obj.AUNDEF, C_NONE, C_NONE, C_NONE, C_NONE, 78, 4, 0},
+ 	{obj.APCDATA, C_LCON, C_NONE, C_NONE, C_LCON, 0, 0, 0},
+ 	{obj.AFUNCDATA, C_SCON, C_NONE, C_NONE, C_ADDR, 0, 0, 0},
++	{obj.AFUNCDATA, C_SCON, C_NONE, C_NONE, C_DADDR, 0, 0, 0},
+ 	{obj.ANOP, C_NONE, C_NONE, C_NONE, C_NONE, 0, 0, 0},
+ 	{obj.ADUFFZERO, C_NONE, C_NONE, C_NONE, C_LBRA, 11, 4, 0}, // same as ABR/ABL
+ 	{obj.ADUFFCOPY, C_NONE, C_NONE, C_NONE, C_LBRA, 11, 4, 0}, // same as ABR/ABL
+@@ -795,6 +813,10 @@
+ 						return C_TLS_LE
+ 					}
+ 				}
++				if c.ctxt.Headtype == objabi.Haix {
++					// aix/ppc64 addresses are on 64 bits
++					return C_DADDR
++				}
+ 				return C_ADDR
+ 			}
+ 			return C_LEXT
+@@ -868,7 +890,10 @@
+ 
+ 			c.instoffset = a.Offset
+ 
+-			/* not sure why this barfs */
++			if c.ctxt.Headtype == objabi.Haix {
++				// aix/ppc64 symbols are on 64 bits
++				return C_DCON
++			}
+ 			return C_LCON
+ 
+ 		case obj.NAME_AUTO:
+@@ -975,7 +1000,7 @@
+ 		}
+ 	}
+ 
+-	//print("oplook %v %d %d %d %d\n", p, a1, a2, a3, a4);
++	// c.ctxt.Logf("oplook %v %d %d %d %d\n", p, a1, a2, a3, a4)
+ 	ops := oprange[p.As&obj.AMask]
+ 	c1 := &xcmp[a1]
+ 	c3 := &xcmp[a3]
+@@ -2161,7 +2186,7 @@
+ 
+ // Encode instructions and create relocation for accessing s+d according to the
+ // instruction op with source or destination (as appropriate) register reg.
+-func (c *ctxt9) symbolAccess(s *obj.LSym, d int64, reg int16, op uint32) (o1, o2 uint32) {
++func (c *ctxt9) symbolAccessLinux(s *obj.LSym, d int64, reg int16, op uint32) (o1, o2 uint32) {
+ 	var base uint32
+ 	form := c.opform(op)
+ 	if c.ctxt.Flag_shared {
+@@ -2195,6 +2220,39 @@
+ 	return
+ }
+ 
++// Encode instructions and create relocation for accessing s+d according to the
++// instruction op with source or destination (as appropriate) register reg
++// This version is only to access symbols on AIX, which could be up to 64 bits addresses
++// It needs two more instructions to get higher bits and put them in REGTMP
++// TODO(aix): Fix symbol access in case of a data symbol. Currently, this is fixed in link
++func (c *ctxt9) symbolAccessAIX(s *obj.LSym, d int64, reg int16, op uint32) (o1, o2, o3, o4 uint32) {
++	var base uint32
++	form := c.opform(op)
++	base = REG_R0
++	o1 = AOP_IRR(OP_ADDI, REGTMP, base, 0)
++	rel := obj.Addrel(c.cursym)
++	rel.Off = int32(c.pc + 2)
++	rel.Siz = 2
++	rel.Sym = s
++	rel.Add = d
++	rel.Type = objabi.R_ADDRPOWER_64REL
++	o2 = AOP_RLDIC(OP_RLDICL, REGTMP, REGTMP, 32, 0) // shift
++	o3 = AOP_IRR(OP_ORIS, REGTMP, REGTMP, 0)
++	o4 = AOP_IRR(op, uint32(reg), REGTMP, 0)
++	rel = obj.Addrel(c.cursym)
++	rel.Off = int32(c.pc + 8)
++	rel.Siz = 8
++	rel.Sym = s
++	rel.Add = d
++	switch form {
++	case D_FORM:
++		rel.Type = objabi.R_ADDRPOWER
++	case DS_FORM:
++		rel.Type = objabi.R_ADDRPOWER_DS
++	}
++	return
++}
++
+ /*
+  * 32-bit masks
+  */
+@@ -2707,12 +2765,11 @@
+ 
+ 	case 19: /* mov $lcon,r ==> cau+or */
+ 		d := c.vregoff(&p.From)
+-
+ 		if p.From.Sym == nil {
+ 			o1 = loadu32(int(p.To.Reg), d)
+ 			o2 = LOP_IRR(OP_ORI, uint32(p.To.Reg), uint32(p.To.Reg), uint32(int32(d)))
+ 		} else {
+-			o1, o2 = c.symbolAccess(p.From.Sym, d, p.To.Reg, OP_ADDI)
++			o1, o2 = c.symbolAccessLinux(p.From.Sym, d, p.To.Reg, OP_ADDI)
+ 		}
+ 
+ 	case 20: /* add $ucon,,r | addis $addcon,r,r */
+@@ -3359,7 +3416,8 @@
+ 		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
+ 			log.Fatalf("invalid offset for DS form load/store %v", p)
+ 		}
+-		o1, o2 = c.symbolAccess(p.To.Sym, v, p.From.Reg, inst)
++
++		o1, o2 = c.symbolAccessLinux(p.To.Sym, v, p.From.Reg, inst)
+ 
+ 	//if(dlm) reloc(&p->to, p->pc, 1);
+ 
+@@ -3370,7 +3428,7 @@
+ 		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
+ 			log.Fatalf("invalid offset for DS form load/store %v", p)
+ 		}
+-		o1, o2 = c.symbolAccess(p.From.Sym, v, p.To.Reg, inst)
++		o1, o2 = c.symbolAccessLinux(p.From.Sym, v, p.To.Reg, inst)
+ 
+ 	//if(dlm) reloc(&p->from, p->pc, 1);
+ 
+@@ -3381,7 +3439,7 @@
+ 		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
+ 			log.Fatalf("invalid offset for DS form load/store %v", p)
+ 		}
+-		o1, o2 = c.symbolAccess(p.From.Sym, v, p.To.Reg, inst)
++		o1, o2 = c.symbolAccessLinux(p.From.Sym, v, p.To.Reg, inst)
+ 		o3 = LOP_RRR(OP_EXTSB, uint32(p.To.Reg), uint32(p.To.Reg), 0)
+ 
+ 		//if(dlm) reloc(&p->from, p->pc, 1);
+@@ -3589,6 +3647,44 @@
+ 		/* operand order: RA, RB, CY, RT */
+ 		cy := int(c.regoff(p.GetFrom3()))
+ 		o1 = AOP_Z23I(c.oprrr(p.As), uint32(p.To.Reg), uint32(p.From.Reg), uint32(p.Reg), uint32(cy))
++
++	case 95: /* mov $dcon,r ==> cal+rldicl+oris+op */
++		d := c.vregoff(&p.From)
++		if p.From.Sym == nil {
++			c.ctxt.Diag("mov $dcon, r is not yet available when p.From.Sym == nil")
++		} else {
++			o1, o2, o3, o4 = c.symbolAccessAIX(p.From.Sym, d, p.To.Reg, OP_ADDI)
++		}
++
++	/* AIX relocation operations */
++	case 96:
++		v := c.vregoff(&p.To)
++		// Offsets in DS form stores must be a multiple of 4
++		inst := c.opstore(p.As)
++		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
++			log.Fatalf("invalid offset for DS form load/store %v", p)
++		}
++		o1, o2, o3, o4 = c.symbolAccessAIX(p.To.Sym, v, p.From.Reg, inst)
++
++	case 97:
++		v := c.vregoff(&p.From)
++		// Offsets in DS form loads must be a multiple of 4
++		inst := c.opload(p.As)
++		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
++			log.Fatalf("invalid offset for DS form load/store %v", p)
++		}
++		o1, o2, o3, o4 = c.symbolAccessAIX(p.From.Sym, v, p.To.Reg, inst)
++
++	case 98:
++		v := c.vregoff(&p.From)
++		// Offsets in DS form loads must be a multiple of 4
++		inst := c.opload(p.As)
++		if c.opform(inst) == DS_FORM && v&0x3 != 0 {
++			log.Fatalf("invalid offset for DS form load/store %v", p)
++		}
++		o1, o2, o3, o4 = c.symbolAccessAIX(p.From.Sym, v, p.To.Reg, inst)
++		o5 = LOP_RRR(OP_EXTSB, uint32(p.To.Reg), uint32(p.To.Reg), 0)
++
+ 	}
+ 
+ 	out[0] = o1
+diff --git a/src/cmd/internal/objabi/reloctype.go b/src/cmd/internal/objabi/reloctype.go
+index a3e2868..ee81a1f 100644
+--- a/src/cmd/internal/objabi/reloctype.go
++++ b/src/cmd/internal/objabi/reloctype.go
+@@ -196,6 +196,11 @@
+ 
+ 	// R_WASMIMPORT resolves to the index of the WebAssembly function import.
+ 	R_WASMIMPORT
++
++	// R_ADDRPOWER_64REL (only used on aix/ppc64) allows to relocate addresses >= 2G on powerpc.
++	// This relocation is linked with R_ADDRPOWER* and is applied to the
++	// bits 47-32 of a 64bits address.
++	R_ADDRPOWER_64REL
+ )
+ 
+ // IsDirectJump returns whether r is a relocation for a direct jump.
+diff --git a/src/cmd/internal/objabi/reloctype_string.go b/src/cmd/internal/objabi/reloctype_string.go
+index 2cd3a94..98d84b4 100644
+--- a/src/cmd/internal/objabi/reloctype_string.go
++++ b/src/cmd/internal/objabi/reloctype_string.go
+@@ -4,9 +4,9 @@
+ 
+ import "strconv"
+ 
+-const _RelocType_name = "R_ADDRR_ADDRPOWERR_ADDRARM64R_ADDRMIPSR_ADDROFFR_WEAKADDROFFR_SIZER_CALLR_CALLARMR_CALLARM64R_CALLINDR_CALLPOWERR_CALLMIPSR_CONSTR_PCRELR_TLS_LER_TLS_IER_GOTOFFR_PLT0R_PLT1R_PLT2R_USEFIELDR_USETYPER_METHODOFFR_POWER_TOCR_GOTPCRELR_JMPMIPSR_DWARFSECREFR_DWARFFILEREFR_ARM64_TLS_LER_ARM64_TLS_IER_ARM64_GOTPCRELR_POWER_TLS_LER_POWER_TLS_IER_POWER_TLSR_ADDRPOWER_DSR_ADDRPOWER_GOTR_ADDRPOWER_PCRELR_ADDRPOWER_TOCRELR_ADDRPOWER_TOCREL_DSR_PCRELDBLR_ADDRMIPSUR_ADDRMIPSTLSR_ADDRCUOFFR_WASMIMPORT"
++const _RelocType_name = "R_ADDRR_ADDRPOWERR_ADDRARM64R_ADDRMIPSR_ADDROFFR_WEAKADDROFFR_SIZER_CALLR_CALLARMR_CALLARM64R_CALLINDR_CALLPOWERR_CALLMIPSR_CONSTR_PCRELR_TLS_LER_TLS_IER_GOTOFFR_PLT0R_PLT1R_PLT2R_USEFIELDR_USETYPER_METHODOFFR_POWER_TOCR_GOTPCRELR_JMPMIPSR_DWARFSECREFR_DWARFFILEREFR_ARM64_TLS_LER_ARM64_TLS_IER_ARM64_GOTPCRELR_POWER_TLS_LER_POWER_TLS_IER_POWER_TLSR_ADDRPOWER_DSR_ADDRPOWER_GOTR_ADDRPOWER_PCRELR_ADDRPOWER_TOCRELR_ADDRPOWER_TOCREL_DSR_PCRELDBLR_ADDRMIPSUR_ADDRMIPSTLSR_ADDRCUOFFR_WASMIMPORTR_ADDRPOWER_64REL"
+ 
+-var _RelocType_index = [...]uint16{0, 6, 17, 28, 38, 47, 60, 66, 72, 81, 92, 101, 112, 122, 129, 136, 144, 152, 160, 166, 172, 178, 188, 197, 208, 219, 229, 238, 251, 265, 279, 293, 309, 323, 337, 348, 362, 377, 394, 412, 433, 443, 454, 467, 478, 490}
++var _RelocType_index = [...]uint16{0, 6, 17, 28, 38, 47, 60, 66, 72, 81, 92, 101, 112, 122, 129, 136, 144, 152, 160, 166, 172, 178, 188, 197, 208, 219, 229, 238, 251, 265, 279, 293, 309, 323, 337, 348, 362, 377, 394, 412, 433, 443, 454, 467, 478, 490, 507}
+ 
+ func (i RelocType) String() string {
+ 	i -= 1
+diff --git a/src/cmd/link/internal/ppc64/asm.go b/src/cmd/link/internal/ppc64/asm.go
+index c4a49c6..d8b3a8c 100644
+--- a/src/cmd/link/internal/ppc64/asm.go
++++ b/src/cmd/link/internal/ppc64/asm.go
+@@ -474,6 +474,55 @@
+ 	return toc.Value
+ }
+ 
++/* archrelocdata generates special relocation for AIX operatin system.
++ * When addressing symbols on aix/ppc64, the code needed to generate addresses
++ * depends on whether the symbol is data or text. When the addressing code
++ * is generated, it is not known if the symbol is data or text, so is
++ * initially generated for an address in the text segment and then must
++ * be modified if it is actually in data.
++ * This function is similar to archrelocaddr but called when the symbol
++ * is in data and the code needs to be modified.
++ * TODO (aix): This function can be removed when the compilation has been fixed.
++ */
++func archrelocdata(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, val *int64) bool {
++	var o1, o2 uint32
++
++	// Change ORIS Rx Rx Vaddr (o1) to ADDIS Rx R2 tocOffset
++	o1 = uint32(*val>>32)&0x03E00000 | 0xF<<26 | 2<<16
++	o2 = uint32(*val)
++
++	t := ld.Symaddr(r.Sym) + r.Add - ctxt.Syms.Lookup("TOC", 0).Value // sym addr
++	if t != int64(int32(t)) {
++		ld.Errorf(s, "TOC relocation for %s is too big to relocate %s: 0x%x", s.Name, r.Sym, t)
++	}
++
++	if t&0x8000 != 0 {
++		t += 0x10000
++	}
++
++	o1 |= uint32((t >> 16) & 0xFFFF)
++
++	switch r.Type {
++	case objabi.R_ADDRPOWER:
++		o2 |= uint32(t) & 0xFFFF
++	case objabi.R_ADDRPOWER_DS:
++		if t&3 != 0 {
++			ld.Errorf(s, "bad DS reloc for %s: %d", s.Name, ld.Symaddr(r.Sym))
++		}
++		o2 |= uint32(t) & 0xFFFC
++	default:
++		return false
++	}
++
++	if ctxt.Arch.ByteOrder == binary.BigEndian {
++		*val = int64(o1)<<32 | int64(o2)
++	} else {
++		*val = int64(o2)<<32 | int64(o1)
++	}
++	return true
++
++}
++
+ func archrelocaddr(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, val *int64) bool {
+ 	var o1, o2 uint32
+ 	if ctxt.Arch.ByteOrder == binary.BigEndian {
+@@ -493,7 +542,10 @@
+ 
+ 	t := ld.Symaddr(r.Sym) + r.Add
+ 	if t < 0 || t >= 1<<31 {
+-		ld.Errorf(s, "relocation for %s is too big (>=2G): %d", s.Name, ld.Symaddr(r.Sym))
++		if ctxt.HeadType != objabi.Haix {
++			ld.Errorf(s, "relocation for %s is too big (>=2G): 0x%x", s.Name, ld.Symaddr(r.Sym))
++		}
++		// TODO(aix): Add else and check that this relocation was preceded by a R_ADDRPOWER_64REL
+ 	}
+ 	if t&0x8000 != 0 {
+ 		t += 0x10000
+@@ -672,7 +724,16 @@
+ 		*val = ld.Symaddr(r.Sym) + r.Add - ld.Symaddr(ctxt.Syms.Lookup(".got", 0))
+ 		return true
+ 	case objabi.R_ADDRPOWER, objabi.R_ADDRPOWER_DS:
+-		return archrelocaddr(ctxt, r, s, val)
++		// On AIX, instructions in the case of R_ADDRPOWER with a symbol in .data must be changed
++		if ctxt.HeadType != objabi.Haix || r.Sym.Type == sym.STEXT || r.Sym.Type == sym.SRODATA {
++			return archrelocaddr(ctxt, r, s, val)
++		} else {
++			return archrelocdata(ctxt, r, s, val)
++		}
++	case objabi.R_ADDRPOWER_64REL:
++		*val = (ld.Symaddr(r.Sym) + r.Add) >> 32 & 0xFFFF
++		return true
++
+ 	case objabi.R_CALLPOWER:
+ 		// Bits 6 through 29 = (S + A - P) >> 2
+ 

@@ -1,0 +1,13 @@
+--- a/src/softmagic.c	2020-11-26 11:06:32 +0100
++++ b/src/softmagic.c	2020-11-26 11:07:19 +0100
+@@ -487,8 +487,8 @@
+ 	return rv;
+ }
+ 
+-#if !defined(HAVE_STRNDUP) || defined(__aiws__)
+-# ifdef __aiws__
++#if !defined(HAVE_STRNDUP) || defined(__aiws__) || defined(_AIX)
++# if defined(__aiws__) || defined(_AIX)
+ #  define strndup aix_strndup	/* aix is broken */
+ # endif
+ char *strndup(const char *, size_t);

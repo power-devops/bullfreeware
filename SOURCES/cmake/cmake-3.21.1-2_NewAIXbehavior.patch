@@ -1,0 +1,232 @@
+--- ./Modules/Platform/AIX-GNU.cmake.orig
++++ ./Modules/Platform/AIX-GNU.cmake
+@@ -12,8 +12,14 @@ macro(__aix_compiler_gnu lang)
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+   string(APPEND CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS " -Wl,-bnoipath")
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall") # CMP0065 old behavior
++  # WE DO NO WANT BEXPALL
++  # set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall") # CMP0065 old behavior
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++  
+   set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
++  # Needed to have SOVERSION...
++  set(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-o ")
+ 
+   set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
+   if(CMAKE_${lang}_COMPILER_VERSION VERSION_LESS 7 OR CMAKE_SYSTEM_VERSION VERSION_LESS 7.1)
+@@ -28,10 +28,17 @@
+
+   # Construct the export list ourselves to pass only the object files so
+   # that we export only the symbols actually provided by the sources.
++  # By default, module are .so and shared libraries .a in AIX.
+   set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
+     "\"${CMAKE_ROOT}/Modules/Platform/AIX/ExportImportList\" -o <OBJECT_DIR>/exports.exp <AIX_EXPORTS> <OBJECTS>"
+-    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/exports.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
+-    )
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/exports.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_AR> -X32_64 rc <TARGET> <TARGET_SONAME>"
++  )
++
++  set(CMAKE_${lang}_CREATE_SHARED_MODULE
++    "\"${CMAKE_ROOT}/Modules/Platform/AIX/ExportImportList\" -o <OBJECT_DIR>/exports.exp <AIX_EXPORTS> <OBJECTS>"
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_MODULE_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/exports.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
++  )
+
+   set(CMAKE_${lang}_LINK_EXECUTABLE_WITH_EXPORTS
+     "\"${CMAKE_ROOT}/Modules/Platform/AIX/ExportImportList\" -o <TARGET_IMPLIB> -l . <AIX_EXPORTS> <OBJECTS>"
+--- ./Modules/Platform/AIX-XL.cmake.orig        2020-07-15 14:44:45 +0200
++++ ./Modules/Platform/AIX-XL.cmake     2020-07-15 14:47:27 +0200
+@@ -12,9 +12,14 @@
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+   string(APPEND CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS " -Wl,-bnoipath")
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall") # CMP0065 old behavior
+-  set(CMAKE_SHARED_LIBRARY_${lang}_FLAGS " ")
+-  set(CMAKE_SHARED_MODULE_${lang}_FLAGS  " ")
++  # WE DO NO WANT BEXPALL
++  # set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall") # CMP0065 old behavior
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++
++  set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
++  # Needed to have SOVERSION...
++  set(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-o ")
+ 
+   set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
+ 
+@@ -33,9 +33,16 @@
+
+   # Construct the export list ourselves to pass only the object files so
+   # that we export only the symbols actually provided by the sources.
++  # By default, module are .so and shared libraries .a in AIX.
+   set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
+     "\"${CMAKE_ROOT}/Modules/Platform/AIX/ExportImportList\" -o <OBJECT_DIR>/exports.exp <AIX_EXPORTS>${_OBJECTS}"
+-    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/exports.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/objects.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_AR> -X32_64 rc <TARGET> <TARGET_SONAME>"
++    )
++
++  set(CMAKE_${lang}_CREATE_SHARED_MODULE
++    "\"${CMAKE_ROOT}/Modules/Platform/AIX/ExportImportList\" -o <OBJECT_DIR>/objects.exp <AIX_EXPORTS>${_OBJECTS}"
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_MODULE_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/objects.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
+     )
+
+   set(CMAKE_${lang}_LINK_EXECUTABLE_WITH_EXPORTS
+--- ./Modules/Platform/AIX.cmake.orig
++++ ./Modules/Platform/AIX.cmake
+@@ -1,9 +1,16 @@
+-set(CMAKE_SHARED_LIBRARY_PREFIX "lib")          # lib
+-set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")          # .so
++set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
++set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
++set(CMAKE_SHARED_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_MODULE_PREFIX "lib")
++set(CMAKE_SHARED_MODULE_SUFFIX ".so")
+ set(CMAKE_AIX_IMPORT_FILE_PREFIX "")
+ set(CMAKE_AIX_IMPORT_FILE_SUFFIX ".imp")
+ set(CMAKE_DL_LIBS "-lld")
+ 
++set(CMAKE_MODULE_EXISTS 1)
++set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
++
+ # RPATH support on AIX is called libpath.  By default the runtime
+ # libpath is paths specified by -L followed by /usr/lib and /lib.  In
+ # order to prevent the -L paths from being used we must force use of
+@@ -17,17 +26,4 @@ endif()
+ # Files named "libfoo.a" may actually be shared libraries.
+ set_property(GLOBAL PROPERTY TARGET_ARCHIVES_MAY_BE_SHARED_LIBS 1)
+ 
+-# since .a can be a static or shared library on AIX, we can not do this.
+-# at some point if we wanted it, we would have to figure out if a .a is
+-# static or shared, then we could add this back:
+-
+-# Initialize C link type selection flags.  These flags are used when
+-# building a shared library, shared module, or executable that links
+-# to other libraries to select whether to use the static or shared
+-# versions of the libraries.
+-#foreach(type SHARED_LIBRARY SHARED_MODULE EXE)
+-#  set(CMAKE_${type}_LINK_STATIC_C_FLAGS "-bstatic")
+-#  set(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-bdynamic")
+-#endforeach()
+-
+ include(Platform/UnixPaths)
+--- ./Modules/Platform/AIX-XLClang.cmake.old	2019-10-07 16:06:22.622739712 +0200
++++ ./Modules/Platform/AIX-XLClang.cmake	2019-10-07 16:06:03.028740612 +0200
+@@ -8,8 +8,8 @@
+ endif()
+ set(__AIX_COMPILER_XLCLANG 1)
+ 
+-include(Platform/AIX-XL)
++include(Platform/AIX-GNU)
+ 
+ macro(__aix_compiler_xlclang lang)
+-  __aix_compiler_xl(${lang})
++  __aix_compiler_gnu(${lang})
+ endmacro()
+--- ./Source/cmGeneratorTarget.cxx.orig
++++ ./Source/cmGeneratorTarget.cxx
+@@ -3995,7 +3995,7 @@ cmGeneratorTarget::Names cmGeneratorTarget::GetLibraryNames(
+                             prefix, targetNames.Base, suffix);
+ 
+   // The library name.
+-  targetNames.Output = prefix + targetNames.Base + suffix;
++  targetNames.Output = prefix + targetNames.Base;
+ 
+   if (this->IsFrameworkOnApple()) {
+     targetNames.Real = prefix;
+@@ -4009,12 +4009,12 @@ cmGeneratorTarget::Names cmGeneratorTarget::GetLibraryNames(
+   } else {
+     // The library's soname.
+     this->ComputeVersionedName(targetNames.SharedObject, prefix,
+-                               targetNames.Base, suffix, targetNames.Output,
++                               targetNames.Base, suffix, targetNames.Output + ".so",
+                                cmToCStr(soversion));
+-
+     // The library's real name on disk.
+     this->ComputeVersionedName(targetNames.Real, prefix, targetNames.Base,
+-                               suffix, targetNames.Output, cmToCStr(version));
++                               suffix, targetNames.Output + suffix, "");
++    targetNames.Real.pop_back();
+   }
+ 
+   // The import library name.
+--- ./Source/cmInstallTargetGenerator.cxx.orig  2021-06-14 17:05:49 +0200
++++ ./Source/cmInstallTargetGenerator.cxx       2021-06-15 12:45:26 +0200
+@@ -313,9 +313,15 @@
+     } else {
+       bool haveNamelink = false;
+
++#ifndef _AIX
+       // Library link name.
+       std::string fromName = fromDirConfig + targetNames.Output;
+       std::string toName = targetNames.Output;
++#else
++      // Name is RealName
++      std::string fromName = fromDirConfig + targetNames.Real;
++      std::string toName = targetNames.Real;
++#endif
+
+       // Library interface name.
+       std::string fromSOName;
+@@ -351,6 +357,10 @@
+           }
+
+           // Install the soname link if it has its own name.
++#ifdef _AIX
++         // We do not want both SOName and RealName
++         else
++#endif
+           if (!fromSOName.empty()) {
+             files.From.emplace_back(fromSOName);
+             files.To.emplace_back(toSOName);
+--- ./Source/cmMakefileLibraryTargetGenerator.cxx.~1~   2021-06-14 17:05:49 +0200
++++ ./Source/cmMakefileLibraryTargetGenerator.cxx       2021-06-15 12:42:02 +0200
+@@ -766,12 +766,12 @@
+     vars.LinkLibraries = linkLibs.c_str();
+     vars.ObjectsQuoted = buildObjs.c_str();
+     std::string targetOutSOName;
+-    if (this->GeneratorTarget->HasSOName(this->GetConfigName())) {
++//    if (this->GeneratorTarget->HasSOName(this->GetConfigName())) {
+       vars.SONameFlag = this->Makefile->GetSONameFlag(linkLanguage);
+       targetOutSOName = this->LocalGenerator->ConvertToOutputFormat(
+         this->TargetNames.SharedObject.c_str(), cmOutputConverter::SHELL);
+       vars.TargetSOName = targetOutSOName.c_str();
+-    }
++//    }
+     vars.LinkFlags = linkFlags.c_str();
+
+     vars.Manifests = manifests.c_str();
+@@ -915,6 +915,7 @@
+   cm::append(commands, commands1);
+   commands1.clear();
+
++#ifndef _AIX
+   // Add a rule to create necessary symlinks for the library.
+   // Frameworks are handled by cmOSXBundleGenerator.
+   if (targetOutPath != targetOutPathReal &&
+@@ -929,6 +930,7 @@
+     cm::append(commands, commands1);
+     commands1.clear();
+   }
++#endif
+
+   // Add the post-build rules when building but not when relinking.
+   if (!relink) {
+--- ./Source/cmSystemTools.cxx.orig	2021-09-24 10:44:01.570455793 +0000
++++ ./Source/cmSystemTools.cxx	2021-09-24 11:23:25.554718502 +0000
+@@ -2773,6 +2773,12 @@
+     *changed = false;
+   }
+ 
++  // Ignore archive
++  if (file.length() >= 2 && file.back() == 'a' && file[file.length()-2] == '.') {
++    *changed = true;
++    return true;
++  }
++
+   bool chg = false;
+   cmXCOFF xcoff(file.c_str(), cmXCOFF::Mode::ReadWrite);
+   if (cm::optional<cm::string_view> maybeLibPath = xcoff.GetLibPath()) {

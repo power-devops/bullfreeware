@@ -1,0 +1,25 @@
+*** libmetrics/aix/metrics.c.ORIG	Thu Oct 13 22:03:22 2011
+--- libmetrics/aix/metrics.c	Thu Oct 13 22:05:24 2011
+***************
+*** 30,36 ****
+   *  - Rewrote the "machine_type_func()" function
+   */
+  
+- #include "interface.h"
+  #include <stdlib.h>
+  #include <utmp.h>
+  #include <stdio.h>
+--- 30,35 ----
+***************
+*** 49,54 ****
+--- 48,57 ----
+  
+  #include "libmetrics.h"
+  
++ /* order of includes must be changed or definition of 'malloc' as 'rpl_malloc' */
++ /* will interfere */
++ #include "interface.h"
++ 
+  
+  struct Class *My_CLASS;
+  

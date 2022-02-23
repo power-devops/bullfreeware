@@ -1,0 +1,30 @@
+--- ./libgo/testsuite/gotest	(revision 257186)
++++ ./libgo/testsuite/gotest	(working copy)
+@@ -17,6 +17,7 @@ export LANG LC_ALL LC_CTYPE
+ 
+ GC=${GC:-gccgo}
+ GL=${GL:-${GC-gccgo}}
++GL="${GL} -Wl,-bernotok -static-libgo -Wl,-bbigtoc"
+ GOLIBS=${GOLIBS:-}
+ export GC GL GOLIBS
+ 
+@@ -515,7 +515,7 @@
+ 	    text="[TD]"
+ 	fi
+ 
+-	symtogo='sed -e s/_test\([^A-Za-z0-9]\)/XXXtest\1/ -e s/.*_\([^_]*\.\)/\1/ -e s/XXXtest/_test/'
++	symtogo='sed -e s/_test\([^A-Za-z0-9]\)/XXXtest\1/ -e s/.*_\([^_]*\.\)/\1/ -e s/XXXtest/_test/ -e s/^\.//'
+ 
+ 	# test functions are named TestFoo
+ 	# the grep -v eliminates methods and other special names
+@@ -610,6 +611,8 @@ xno)
+ 	${GL} *.o ${GOLIBS}
+ 
+ 	set +e
++	cp a.out a.out.ORIGIN
++	(strip -X32_64 -t a.out || true)
+ 	if test "$bench" = ""; then
+ 		if test "$trace" = "true"; then
+ 		    echo ./a.out -test.short -test.timeout=${timeout}s "$@"
+--- ./libgo/testsuite/gotest.ORIGIN	2018-10-18 15:13:01 +0200
++++ ./libgo/testsuite/gotest	2018-10-18 15:13:42 +0200

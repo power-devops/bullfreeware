@@ -1,0 +1,32 @@
+From 18b84cbd42f4b86cb551b0ccd70154a8bbe30a8a Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 26 Oct 2018 10:07:36 +0200
+Subject: [PATCH] runtime: remove instruction linked with AIX new stack layout
+
+This instruction was linked with a new stack layout which might be
+needed for AIX. This change might not be taken finally. So, this
+instruction must be removed.
+
+See https://go-review.googlesource.com/c/go/+/138733
+
+Change-Id: Ic4a2566e2882696b437eb817d980b7c4bfc03b18
+Reviewed-on: https://go-review.googlesource.com/c/144957
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/asm_ppc64x.s b/src/runtime/asm_ppc64x.s
+index 8707681..21ed2bf 100644
+--- a/src/runtime/asm_ppc64x.s
++++ b/src/runtime/asm_ppc64x.s
+@@ -519,9 +519,6 @@
+ // the BL deferreturn and jmpdefer rewinds to that.
+ TEXT runtime·jmpdefer(SB), NOSPLIT|NOFRAME, $0-16
+ 	MOVD	0(R1), R31
+-#ifdef GOOS_aix
+-	MOVD	16(R31), R31	// caller LR is on the previous stack frame on AIX
+-#endif
+ 	SUB     $8, R31
+ 	MOVD	R31, LR
+ 

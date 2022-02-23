@@ -1,0 +1,441 @@
+Name: rpm
+Version: 4.9.1.3
+Release: 2
+Group: System Environment/Base
+License: GPL
+Summary: The RPM package management system
+Requires: db <= 4.8.24
+Requires: popt <= 1.16
+Requires: libiconv <= 1.13.1
+Requires: gettext <= 0.17
+Requires: file-libs <= 5.12
+Requires: nss <= 3.13.2
+Requires: nspr <= 4.9
+Requires: bash <= 4.2
+Requires: info <= 4.13
+Requires: readline <= 6.2
+Requires: lua <= 5.1.5
+Requires: rpm-README-AIX <= 4.9.1.3
+Requires: /bin/sh  
+Requires: /bin/bash  
+Requires: /bin/sh  
+Requires: /usr/bin/ksh  
+Requires: /usr/bin/perl  
+Requires: libbz2.a(libbz2.so.1)  
+Requires: libc.a(shr.o)  
+Requires: libdb.so  
+Requires: libintl.a(libintl.so.8)  
+Requires: liblua.a(liblua-5.1.so)  
+Requires: libmagic.a(libmagic.so.1)  
+Requires: libnss3.so  
+Requires: libpopt.so  
+Requires: libpthread.a(shr_xpg5.o)  
+Requires: libpthreads.a(shr_xpg5.o)  
+Requires: librpm.so  
+Requires: librpmbuild.so  
+Requires: librpmio.so  
+Requires: librtl.a(shr.o)  
+Requires: libz.a(libz.so.1)  
+Provides: librpm.so  
+Provides: librpm.so.2  
+Provides: librpm.so.2.0.3  
+Provides: librpmbuild.so  
+Provides: librpmbuild.so.2  
+Provides: librpmbuild.so.2.0.1  
+Provides: librpmio.so  
+Provides: librpmio.so.2  
+Provides: librpmio.so.2.0.1  
+
+%description
+The RPM Package Manager (RPM) is a powerful command-line driven package
+management system capable of installing, uninstalling, verifying, querying, and
+updating software packages.  Each software package consists of an archive of
+files along with information about the package like its version, a description,
+etc.
+
+%prep
+%build
+%install
+%clean
+%pre
+echo "\n#####################################################
+	Creating virtual packages already installed in your system
+	It will be take few minutes ...\n"
+# Saving information on existing packages and what they provide before installing new rpm manager
+export LIBPATH=/opt/freeware/lib:/usr/lib:${LIBPATH}
+export TMPDIR=/tmp/tmprpm
+export RPMDIR=${TMPDIR}/rpmdir
+[ -e ${RPMDIR} ] || mkdir -p ${RPMDIR}
+[ -e ${RPMDIR}/RPMS ] && rm -rf  ${RPMDIR}/RPMS/* || mkdir -p ${RPMDIR}/RPMS
+[ -e ${RPMDIR}/SRPMS ] && rm -rf  ${RPMDIR}/SRPMS/* || mkdir -p ${RPMDIR}/SRPMS
+export VIRTUALSDIR=${TMPDIR}/virtuals
+[ -e ${VIRTUALSDIR} ] && rm -rf ${VIRTUALSDIR}/* || mkdir -p ${VIRTUALSDIR}
+export OLDRPMROOTDIR=/opt/freeware/lib/saveoldrpm/oldrpm
+[ -e ${OLDRPMROOTDIR} ] && rm -rf ${OLDRPMROOTDIR}/* || mkdir -p ${OLDRPMROOTDIR}
+# Before intalling the new rpm package, we save the old rpm files
+mkdir -p ${OLDRPMROOTDIR}/bin
+mkdir -p ${OLDRPMROOTDIR}/lib
+mkdir -p ${OLDRPMROOTDIR}/lib/rpm
+mkdir ${OLDRPMROOTDIR}/rpmdb
+cp -p /opt/freeware/packages/* ${OLDRPMROOTDIR}/rpmdb
+cp -pf /opt/freeware/bin/rpm*  ${OLDRPMROOTDIR}/bin
+cp -pf /opt/freeware/bin/gendiff  ${OLDRPMROOTDIR}/bin
+#To preserve symbolic links to the libraries, we use find and cpio commands 
+cd /opt/freeware/lib
+find . -name "librpm*" -print | grep -v saveoldrpm | cpio -pdmu ${OLDRPMROOTDIR}/lib
+cp -prf /opt/freeware/lib/rpm/*  ${OLDRPMROOTDIR}/lib/rpm
+
+# We will need to transfer information from the old rpm database to the new one
+# To do that we create virtual packages containing information from the old existing rpm packages 
+# and we will install them in the new database. 
+# So only the information will be transfered; binaries and files will not be modified.
+for pac in `/usr/bin/rpm -qa --dbpath ${OLDRPMROOTDIR}/rpmdb`
+do
+
+   # Saving rpm info from old rpmdb
+   /usr/bin/rpm -q ${pac} --info --dbpath ${OLDRPMROOTDIR}/rpmdb | \
+	grep -v "^Install " | \
+	sed "/Description/,\$d" | \
+	sed "s/Relocations:.*$//;s/Vendor:.*$//;s/Build Date:.*$//;s/Source RPM:.*$//;s/^Size.*License.*:/License:/" \
+		> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+   # Saving rpm requires from old rpmdb
+   /usr/bin/rpm -q ${pac} --requires --dbpath ${OLDRPMROOTDIR}/rpmdb | \
+	sed "s/^/Requires: /" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Saving rpm provides from old rpmdb
+   /usr/bin/rpm -q ${pac} --provides --dbpath ${OLDRPMROOTDIR}/rpmdb | \
+	grep -v "(contains no files)" | \
+	sed "s/^/Provides: /" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Saving rpm description from old rpmdb 
+   echo "%description" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+   /usr/bin/rpm -q ${pac} --info --dbpath ${OLDRPMROOTDIR}/rpmdb |  \
+	sed "1,/Description/d" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Addig some fake commands block into the spec file
+   echo '
+#%prep
+#%build
+#%install
+#%clean' | sed "s/#//" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Saving scripts block command from old rpmdb
+   rpm -q --scripts --dbpath ${OLDRPMROOTDIR}/rpmdb ${pac} | \
+   sed "s;^\(.*\)install script (through /bin/sh):;%\1;" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Creating %files block command into the spec file
+   # We do not want to mix our new packages with the client packages
+   # so we change _rpmdir and _srcrpmdir location into %file block command
+   echo 'files
+define _rpmdir /tmp/tmprpm/rpmdir/RPMS
+define _srcrpmdir /tmp/tmprpm/rpmdir/SRPMS' | sed "s/^/%/" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+
+   # Adding the list of files of the package
+   rpm -ql --dbpath ${OLDRPMROOTDIR}/rpmdb ${pac} | grep -v "(contains no files)" | while read item
+   do
+       if [ -d ${item} ]
+       then
+           echo ${item} | grep -q "/doc/" ; status=$?
+           [ $status -eq 0 ] \
+              && echo ${item} | sed "s!^\(.*/doc/.*$\)!%docdir \1!" \
+                   >> ${VIRTUALSDIR}/mkvirtpkg.${pac} \
+              || echo ${item} | sed "s!^\(.*$\)!%dir \1!" >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+       else
+           echo ${item} | grep -q "/doc/" ; status=$?
+           [ $status -eq 0 ] \
+              && echo ${item} | sed "s!^\(.*/doc/.*$\)!%doc \1!" >> ${VIRTUALSDIR}/mkvirtpkg.${pac} \
+              || echo ${item} >> ${VIRTUALSDIR}/mkvirtpkg.${pac}
+       fi
+   done
+done
+
+if [ -s ${VIRTUALSDIR} ]
+then
+   cd  ${VIRTUALSDIR}
+   for f in `ls mkvirtpkg*`
+   do
+      /usr/bin/rpm -ba ${f} > ${TMPDIR}/${f}.$$.out 2>&1
+   done
+else
+	echo "Error: directory ${VIRTUALSDIR} not found"
+	exit 1
+fi
+
+if [ "`grep _rpmlock_path /usr/lib/rpm/macros`" = "" ]
+then
+    echo "%_rpmlock_path  /opt/freeware/packages/.rpm.lock" >> /usr/lib/rpm/macros
+fi
+
+%post
+export TMPDIR=/tmp/tmprpm
+
+echo '
+export TMPDIR=/tmp/tmprpm
+export LIBPATH=/opt/freeware/lib:${LIBPATH}
+export RPMDIR=${TMPDIR}/rpmdir
+
+# We do not want to mix our new packages with the users packages
+# so we change _rpmdir and _srcrpmdir location into %file block command
+export _rpmdir=${RPMDIR}/RPMS
+export _srcrpmdir=${RPMDIR}/SRPMS
+export VIRTUALSDIR=${TMPDIR}/virtuals
+sleep 1
+cp /tmp/mkvirtpkg.rpm-4.9.1.3 ${VIRTUALSDIR}
+/usr/bin/rpm -ba /tmp/mkvirtpkg.rpm-4.9.1.3 >${TMPDIR}/mkvirtpkg.rpm-4.9.1.3.$$.out 2>&1
+slibclean
+
+# The new rpm files have been copied into /tmp/bin and /tmp/lib directories.
+# cleaning obsoletes files and copying new rpm files
+rm -f /opt/freeware/lib/librpm*
+rm -f /usr/lib/librpm*
+ListLibRpmOldFiles="brp-redhat
+convertrpmrc.sh
+cpanflute
+find-prov.pl
+find-provides.perl
+find-req.pl
+find-requires.perl
+get_magic.pl
+getpo.sh
+http.req
+magic.prov
+magic.req
+rpmdiff
+rpmdiff.cgi
+rpmgettext
+rpmpopt
+rpmputtext
+u_pkg.sh
+vpkg-provides.sh
+vpkg-provides2.sh
+"
+for file in ${ListLibRpmOldFiles}
+do
+   rm -f /opt/freeware/lib/rpm/${file}
+done
+cp -pf /tmp/bin/*  /opt/freeware/bin
+#To preserve symbolic links to the libraries, we use find and cpio commands utilities
+cd /tmp/lib
+find . -name "librpm*" -print | cpio -dpmu /opt/freeware/lib
+cd /tmp/lib/rpm
+cp * /opt/freeware/lib/rpm
+mkdir -p /opt/freeware/lib/rpm/fileattrs
+cd /tmp/lib/rpm/fileattrs
+cp * /opt/freeware/lib/rpm/fileattrs
+cd /usr/lib
+ln -s ../../opt/freeware/lib/librpm* .
+/bin/rpm --initdb
+[ -e /var/lib ] || mkdir -p /var/lib 2>/dev/null
+chmod 755 /var/lib
+ln -sf /opt/freeware/packages /var/lib/rpm
+rpmdir=`/usr/bin/rpm --eval "/opt/freeware/src/packages/RPMS"`
+# Re-creating the information of the previous package in the new rpm data base without copying files
+if [ -s ${VIRTUALSDIR} ]
+then
+   cd  ${VIRTUALSDIR}
+   arch=`LANG=C /usr/bin/rpm --showrc | /usr/bin/grep "^build arch"  | /usr/bin/awk "{print \\\$NF}"`
+   os=`LANG=C /usr/bin/rpm --showrc | /usr/bin/grep "^build os"  | /usr/bin/awk "{print \\\$NF}"`
+   for f in `ls mkvirtpkg*`
+   do
+       name=`/usr/bin/grep "^Name" ${f} | /usr/bin/awk "{print \\\$NF}"`
+       version=`/usr/bin/grep "^Version" ${f} | /usr/bin/awk "{print \\\$NF}"`
+       release=`/usr/bin/grep "^Release" ${f} | /usr/bin/awk "{print \\\$NF}"`
+       /usr/bin/rpm -U --justdb --ignoresize --nodeps ${RPMDIR}/RPMS/$arch/$name-$version-$release.$os.$arch.rpm
+       if [ $? -ne 0 ]
+       then
+            /usr/bin/cat ${TMPDIR}/${f}.$$.out
+       fi
+   done
+fi
+' > ${TMPDIR}/rpm_install.sh
+echo "\n#####################################################
+	Rebuilding RPM Data Base ...
+	Please wait for rpm_install background job termination
+	It will be take few minutes\n"
+chmod +x ${TMPDIR}/rpm_install.sh
+nohup ${TMPDIR}/rpm_install.sh  2>&1 > /tmp/nohup.log &
+
+%files
+# commented files are put under /tmp in order to avoid conflict
+# when installing new rpm manager with previous version
+%define _rpmdir /tmp/tmprpm/rpmdir/RPMS
+%define _srcrpmdir /tmp/tmprpm/rpmdir/SRPMS
+%docdir /opt/freeware/doc/rpm-4.9.1.3
+%doc /opt/freeware/doc/rpm-4.9.1.3/CHANGES
+%doc /opt/freeware/doc/rpm-4.9.1.3/COPYING
+%doc /opt/freeware/doc/rpm-4.9.1.3/GROUPS
+%doc /opt/freeware/doc/rpm-4.9.1.3/builddependencies
+%doc /opt/freeware/doc/rpm-4.9.1.3/buildroot
+%doc /opt/freeware/doc/rpm-4.9.1.3/conditionalbuilds
+%doc /opt/freeware/doc/rpm-4.9.1.3/dependencies
+%doc /opt/freeware/doc/rpm-4.9.1.3/format
+%doc /opt/freeware/doc/rpm-4.9.1.3/hregions
+%doc /opt/freeware/doc/rpm-4.9.1.3/macros
+%doc /opt/freeware/doc/rpm-4.9.1.3/multiplebuilds
+%doc /opt/freeware/doc/rpm-4.9.1.3/queryformat
+%doc /opt/freeware/doc/rpm-4.9.1.3/relocatable
+%doc /opt/freeware/doc/rpm-4.9.1.3/signatures
+%doc /opt/freeware/doc/rpm-4.9.1.3/spec
+%doc /opt/freeware/doc/rpm-4.9.1.3/triggers
+%doc /opt/freeware/doc/rpm-4.9.1.3/tsort
+/opt/freeware/etc/rpm/macros
+/tmp/lib/rpm/brp-compress
+/tmp/lib/rpm/brp-java-gcjcompile
+/tmp/lib/rpm/brp-python-bytecompile
+/tmp/lib/rpm/brp-python-hardlink
+/tmp/lib/rpm/brp-strip
+/tmp/lib/rpm/brp-strip-comment-note
+/tmp/lib/rpm/brp-strip-shared
+/tmp/lib/rpm/brp-strip-static-archive
+/tmp/lib/rpm/check-buildroot
+/tmp/lib/rpm/check-files
+/tmp/lib/rpm/check-prereqs
+/tmp/lib/rpm/check-rpaths
+/tmp/lib/rpm/check-rpaths-worker
+/tmp/lib/rpm/config.guess
+/tmp/lib/rpm/config.sub
+/tmp/lib/rpm/desktop-file.prov
+%dir /tmp/lib/rpm/fileattrs
+/tmp/lib/rpm/fileattrs/desktop.attr
+/tmp/lib/rpm/fileattrs/elf.attr
+/tmp/lib/rpm/fileattrs/font.attr
+/tmp/lib/rpm/fileattrs/libtool.attr
+/tmp/lib/rpm/fileattrs/mono.attr
+/tmp/lib/rpm/fileattrs/ocaml.attr
+/tmp/lib/rpm/fileattrs/perl.attr
+/tmp/lib/rpm/fileattrs/perllib.attr
+/tmp/lib/rpm/fileattrs/pkgconfig.attr
+/tmp/lib/rpm/fileattrs/python.attr
+/tmp/lib/rpm/fileattrs/script.attr
+/tmp/lib/rpm/find-lang.sh
+/tmp/lib/rpm/find-provides
+/tmp/lib/rpm/find-requires
+/tmp/lib/rpm/fontconfig.prov
+/tmp/lib/rpm/javadeps
+/tmp/lib/rpm/libtooldeps.sh
+/tmp/lib/rpm/macros
+/tmp/lib/rpm/macros.perl
+/tmp/lib/rpm/macros.php
+/tmp/lib/rpm/macros.python
+/tmp/lib/rpm/mkinstalldirs
+/tmp/lib/rpm/mono-find-provides
+/tmp/lib/rpm/mono-find-requires
+/tmp/lib/rpm/ocaml-find-provides.sh
+/tmp/lib/rpm/ocaml-find-requires.sh
+/tmp/lib/rpm/osgideps.pl
+/tmp/lib/rpm/perl.prov
+/tmp/lib/rpm/perl.req
+/tmp/lib/rpm/perldeps.pl
+/tmp/lib/rpm/pkgconfigdeps.sh
+/tmp/lib/rpm/pythondeps.sh
+/tmp/lib/rpm/rpm.daily
+/tmp/lib/rpm/rpm.log
+/tmp/lib/rpm/rpm2cpio.sh
+/tmp/lib/rpm/rpmdeps
+/tmp/lib/rpm/rpmpopt-4.9.1.3
+/tmp/lib/rpm/rpmrc
+/tmp/lib/rpm/script.req
+/tmp/lib/rpm/tcl.req
+/tmp/lib/rpm/tgpg
+/opt/freeware/man/fr/man8/rpm.8
+/opt/freeware/man/ja/man8/rpm.8
+/opt/freeware/man/ja/man8/rpm2cpio.8
+/opt/freeware/man/ja/man8/rpmbuild.8
+/opt/freeware/man/ja/man8/rpmgraph.8
+/opt/freeware/man/ko/man8/rpm.8
+/opt/freeware/man/ko/man8/rpm2cpio.8
+/opt/freeware/man/man1/gendiff.1
+/opt/freeware/man/man8/rpm.8
+/opt/freeware/man/man8/rpm2cpio.8
+/opt/freeware/man/man8/rpmbuild.8
+/opt/freeware/man/man8/rpmdb.8
+/opt/freeware/man/man8/rpmkeys.8
+/opt/freeware/man/man8/rpmsign.8
+/opt/freeware/man/man8/rpmspec.8
+/opt/freeware/man/pl/man1/gendiff.1
+/opt/freeware/man/pl/man8/rpm.8
+/opt/freeware/man/pl/man8/rpm2cpio.8
+/opt/freeware/man/pl/man8/rpmbuild.8
+/opt/freeware/man/pl/man8/rpmdeps.8
+/opt/freeware/man/pl/man8/rpmgraph.8
+/opt/freeware/man/ru/man8/rpm.8
+/opt/freeware/man/ru/man8/rpm2cpio.8
+/opt/freeware/man/sk/man8/rpm.8
+/opt/freeware/share/locale/ca/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/cs/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/da/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/de/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/es/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/fi/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/fr/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/is/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/it/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/ja/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/ko/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/ms/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/nb/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/nl/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/pl/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/pt/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/pt_BR/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/ru/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/sk/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/sl/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/sr/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/sr@latin/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/sv/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/tr/LC_MESSAGES/rpm.mo
+/opt/freeware/share/locale/zh_TW/LC_MESSAGES/rpm.mo
+%dir /opt/freeware/src/packages
+%dir /opt/freeware/src/packages/BUILD
+%dir /opt/freeware/src/packages/RPMS
+%dir /opt/freeware/src/packages/RPMS/noarch
+%dir /opt/freeware/src/packages/RPMS/powerpc
+%dir /opt/freeware/src/packages/RPMS/ppc
+%dir /opt/freeware/src/packages/SOURCES
+%dir /opt/freeware/src/packages/SPECS
+%dir /opt/freeware/src/packages/SRPMS
+/tmp/bin/gendiff
+/tmp/bin/rpm
+/tmp/bin/rpm2cpio
+/tmp/bin/rpmbuild
+/tmp/bin/rpmdb
+/tmp/bin/rpmkeys
+/tmp/bin/rpmquery
+/tmp/bin/rpmverify
+/tmp/lib/librpm.so
+/tmp/lib/librpm.so.2
+/tmp/lib/librpm.so.2.0.3
+/tmp/lib/librpmbuild.so
+/tmp/lib/librpmbuild.so.2
+/tmp/lib/librpmbuild.so.2.0.1
+/tmp/lib/librpmio.so
+/tmp/lib/librpmio.so.2
+/tmp/lib/librpmio.so.2.0.1
+/tmp/lib/librpmsign.so
+/tmp/lib/librpmsign.so.0
+/tmp/lib/librpmsign.so.0.0.1
+/usr/bin/gendiff
+/usr/bin/rpm
+/usr/bin/rpm2cpio
+/usr/bin/rpmbuild
+/usr/bin/rpmdb
+/usr/bin/rpmkeys
+/usr/bin/rpmquery
+/usr/bin/rpmsign
+/usr/bin/rpmspec
+/usr/bin/rpmverify
+/usr/lib/librpm.so
+/usr/lib/librpm.so.2
+/usr/lib/librpm.so.2.0.3
+/usr/lib/librpmbuild.so
+/usr/lib/librpmbuild.so.2
+/usr/lib/librpmbuild.so.2.0.1
+/usr/lib/librpmio.so
+/usr/lib/librpmio.so.2
+/usr/lib/librpmio.so.2.0.1
+/usr/lib/librpmsign.so
+/usr/lib/librpmsign.so.0
+/usr/lib/librpmsign.so.0.0.1
+%dir /usr/lib/rpm
+%dir /usr/src

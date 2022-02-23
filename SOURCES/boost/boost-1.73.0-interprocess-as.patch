@@ -1,0 +1,48 @@
+--- ./boost/interprocess/detail/atomic.hpp.ORIGIN	2020-05-15 16:34:09 -0500
++++ ./boost/interprocess/detail/atomic.hpp	2020-05-15 16:44:03 -0500
+@@ -218,11 +218,18 @@
+ {
+    boost::uint32_t prev, temp;
+ 
+-   asm volatile ("1:\n\t"
++   asm volatile (
++#ifndef _AIX
++                 "1:\n\t"
++#endif
+                  "lwarx  %0,0,%2\n\t"
+                  "add    %1,%0,%3\n\t"
+                  "stwcx. %1,0,%2\n\t"
++#ifndef _AIX
+                  "bne-   1b"
++#else
++                 "bne-   $-12"
++#endif
+                  : "=&r" (prev), "=&r" (temp)
+                  : "b" (mem), "r" (val)
+                  : "cc", "memory");
+@@ -240,13 +247,24 @@
+ {
+    boost::uint32_t prev;
+ 
+-   asm volatile ("1:\n\t"
++   asm volatile (
++#ifndef _AIX
++                 "1:\n\t"
++#endif
+                  "lwarx  %0,0,%1\n\t"
+                  "cmpw   %0,%3\n\t"
++#ifndef _AIX
+                  "bne-   2f\n\t"
++#else
++                 "bne-   $+12\n\t"
++#endif
+                  "stwcx. %2,0,%1\n\t"
++#ifndef _AIX
+                  "bne-   1b\n\t"
+                  "2:"
++#else
++                 "bne-   $-16\n\t"
++#endif
+                  : "=&r"(prev)
+                  : "b" (mem), "r" (with), "r" (cmp)
+                  : "cc", "memory");

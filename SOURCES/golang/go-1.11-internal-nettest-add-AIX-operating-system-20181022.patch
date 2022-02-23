@@ -1,0 +1,47 @@
+diff -Nru golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_nobsd.go go-build/src/vendor/golang_org/x/net/internal/nettest/helper_nobsd.go
+--- golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_nobsd.go	2018-06-06 15:12:54.081408690 +0200
++++ go-build/src/vendor/golang_org/x/net/internal/nettest/helper_nobsd.go	2018-06-06 16:01:18.000000000 +0200
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux solaris
++// +build aix linux solaris
+ 
+ package nettest
+ 
+diff -Nru golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_posix.go go-build/src/vendor/golang_org/x/net/internal/nettest/helper_posix.go
+--- golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_posix.go	2018-06-06 15:12:54.081408690 +0200
++++ go-build/src/vendor/golang_org/x/net/internal/nettest/helper_posix.go	2018-06-06 16:01:18.000000000 +0200
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
+ 
+ package nettest
+ 
+diff -Nru golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_unix.go go-build/src/vendor/golang_org/x/net/internal/nettest/helper_unix.go
+--- golangOffi/src/vendor/golang_org/x/net/internal/nettest/helper_unix.go	2018-06-06 15:12:54.081408690 +0200
++++ go-build/src/vendor/golang_org/x/net/internal/nettest/helper_unix.go	2018-06-06 16:01:18.000000000 +0200
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package nettest
+ 
+--- a/src/vendor/golang_org/x/net/internal/nettest/stack.go
++++ b/src/vendor/golang_org/x/net/internal/nettest/stack.go
+@@ -72,7 +72,7 @@ func TestableNetwork(network string) bool {
+ 		}
+ 	case "unixpacket":
+ 		switch runtime.GOOS {
+-		case "android", "darwin", "freebsd", "js", "nacl", "plan9", "windows":
++		case "aix", "android", "darwin", "freebsd", "js", "nacl", "plan9", "windows":
+ 			return false
+ 		case "netbsd":
+ 			// It passes on amd64 at least. 386 fails (Issue 22927). arm is unknown.

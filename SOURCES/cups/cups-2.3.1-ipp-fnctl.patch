@@ -1,0 +1,23 @@
+--- ./tools/ippeveprinter.c.orig	2020-03-18 17:05:08 +0100
++++ ./tools/ippeveprinter.c	2020-03-18 17:05:59 +0100
+@@ -27,7 +27,7 @@
+ #include <limits.h>
+ #include <sys/stat.h>
+ 
+-#ifdef _WIN32
++#if defined(_WIN32)
+ #  include <fcntl.h>
+ #  include <io.h>
+ #  include <process.h>
+@@ -35,6 +35,11 @@
+ #  include <winsock2.h>
+ typedef ULONG nfds_t;
+ #  define poll WSAPoll
++#elif defined(_AIX)
++extern char **environ;
++#  include <fcntl.h>
++#  include <sys/wait.h>
++#  include <poll.h>
+ #else
+ extern char **environ;
+ 

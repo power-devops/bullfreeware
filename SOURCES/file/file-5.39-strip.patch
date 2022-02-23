@@ -1,0 +1,11 @@
+--- a/magic/Magdir/ibm6000	2020-11-13 09:43:02 +0100
++++ b/magic/Magdir/ibm6000	2020-11-13 09:43:17 +0100
+@@ -21,7 +21,7 @@
+ 0	belong		0x09006fea	AIX backup/restore format file
+ 
+ 0	beshort		0x01f7		64-bit XCOFF executable or object module
+->20	belong		0		not stripped
++>20	belong		>0		not stripped
+ # GRR: this test is still too general as it catches also many FATs of DOS filesystems
+ 4	belong		&0x0feeddb0
+ # real core dump could not be 32-bit and 64-bit together

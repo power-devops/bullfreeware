@@ -1,0 +1,285 @@
+Index: gcc-4.2.0-aix/libjava/configure
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/configure	2008-03-19 17:37:18.1575060968 +0100
++++ gcc-4.2.0-aix/libjava/configure	2008-03-19 17:43:40.229954632 +0100
+@@ -4375,7 +4375,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -9110,7 +9110,7 @@
+  no | none | single)
+     THREADS=none
+     ;;
+- posix | posix95 | pthreads)
++ aix | posix | posix95 | pthreads)
+     THREADS=posix
+     case "$host" in
+      *-*-linux*)
+@@ -16506,6 +16506,9 @@
+  powerpc*-*-darwin*)
+     SIGNAL_HANDLER=include/darwin-signal.h
+     ;;
++ powerpc*-*-aix*)
++    SIGNAL_HANDLER=include/aix-signal.h
++    ;;
+  *)
+     SIGNAL_HANDLER=include/default-signal.h
+     ;;
+Index: gcc-4.2.0-aix/libjava/configure.ac
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/configure.ac	2008-03-19 17:37:18.-1374338992 +0100
++++ gcc-4.2.0-aix/libjava/configure.ac	2008-03-19 17:43:40.-1455969328 +0100
+@@ -744,7 +744,7 @@
+  no | none | single)
+     THREADS=none
+     ;;
+- posix | posix95 | pthreads)
++ aix | posix | posix95 | pthreads)
+     THREADS=posix
+     case "$host" in
+      *-*-linux*)
+@@ -1422,6 +1422,9 @@
+  powerpc*-*-darwin*)
+     SIGNAL_HANDLER=include/darwin-signal.h
+     ;;
++ powerpc*-*-aix*)
++    SIGNAL_HANDLER=include/aix-signal.h
++    ;;
+  *)
+     SIGNAL_HANDLER=include/default-signal.h
+     ;;
+Index: gcc-4.2.0-aix/configure
+===================================================================
+--- gcc-4.2.0-aix.orig/configure	2008-03-19 17:37:34.942484424 +0100
++++ gcc-4.2.0-aix/configure	2008-03-19 17:43:40.1511332896 +0100
+@@ -1526,7 +1526,7 @@
+     ;;
+   powerpc-*-aix*)
+     # copied from rs6000-*-* entry
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   powerpc*-*-winnt* | powerpc*-*-pe* | ppc*-*-pe)
+     target_configdirs="$target_configdirs target-winsup"
+@@ -1550,7 +1550,7 @@
+     noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
+     ;;
+   rs6000-*-aix*)
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   rs6000-*-*)
+     noconfigdirs="$noconfigdirs gprof ${libgcj}"
+Index: gcc-4.2.0-aix/configure.in
+===================================================================
+--- gcc-4.2.0-aix.orig/configure.in	2008-03-19 17:37:34.-597149128 +0100
++++ gcc-4.2.0-aix/configure.in	2008-03-19 17:43:40.1446355824 +0100
+@@ -686,7 +686,7 @@
+     ;;
+   powerpc-*-aix*)
+     # copied from rs6000-*-* entry
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   powerpc*-*-winnt* | powerpc*-*-pe* | ppc*-*-pe)
+     target_configdirs="$target_configdirs target-winsup"
+@@ -710,7 +710,7 @@
+     noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
+     ;;
+   rs6000-*-aix*)
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   rs6000-*-*)
+     noconfigdirs="$noconfigdirs gprof ${libgcj}"
+Index: gcc-4.2.0-aix/libjava/shlibpath.m4
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/shlibpath.m4	2008-03-19 17:37:18.-29343656 +0100
++++ gcc-4.2.0-aix/libjava/shlibpath.m4	2008-03-19 17:43:40.1381749752 +0100
+@@ -71,7 +71,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+Index: gcc-4.2.0-aix/libjava/include/aix-signal.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.2.0-aix/libjava/include/aix-signal.h	2008-03-19 17:43:40.-1568805208 +0100
+@@ -0,0 +1,49 @@
++/* aix-signal.h - Catch runtime signals and turn them into exceptions,
++   on an AIX system.  */
++
++/* Copyright (C) 2004  Free Software Foundation
++
++   This file is part of libgcj.
++
++This software is copyrighted work licensed under the terms of the
++Libgcj License.  Please consult the file "LIBGCJ_LICENSE" for
++details.  */
++
++/* This file is really more of a specification.  The rest of the system
++   should be arranged so that this Just Works.  */
++
++#ifndef JAVA_SIGNAL_H
++# define JAVA_SIGNAL_H 1
++
++#include <signal.h>
++
++# define HANDLE_SEGV 1
++# define HANDLE_FPE 1
++
++# define SIGNAL_HANDLER(_name)					\
++static void _name (int _dummy __attribute__ ((__unused__)),	\
++		   siginfo_t *_info __attribute__ ((__unused__)), \
++		   void *arg __attribute__ ((__unused__)))
++
++# define MAKE_THROW_FRAME(_exception)
++
++# define INIT_SEGV				\
++  do {						\
++      struct sigaction sa;			\
++      sa.sa_sigaction = catch_segv;		\
++      sigemptyset (&sa.sa_mask);		\
++      sa.sa_flags = SA_NODEFER | SA_SIGINFO;	\
++      sigaction (SIGSEGV, &sa, NULL);		\
++      sigaction (SIGBUS, &sa, NULL);		\
++    } while (0)
++
++# define INIT_FPE				\
++  do {						\
++      struct sigaction sa;			\
++      sa.sa_sigaction = catch_fpe;		\
++      sigemptyset (&sa.sa_mask);		\
++      sa.sa_flags = SA_NODEFER | SA_SIGINFO;	\
++      sigaction (SIGFPE, &sa, NULL);		\
++    } while (0)
++
++#endif /* JAVA_SIGNAL_H */
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix53.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/aix53.h	2008-03-19 17:37:27.1266537784 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix53.h	2008-03-19 17:43:40.1186821536 +0100
+@@ -192,3 +192,9 @@
+ 
+ /* This target uses the aix64.opt file.  */
+ #define TARGET_USES_AIX64_OPT 1
++
++/* this target has SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
++ * but doesn't have crtbegin/end
++ */
++
++#define TARGET_USE_JCR_SECTION 0
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix61.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/aix61.h	2008-03-19 17:37:27.-208265696 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix61.h	2008-03-19 17:43:40.1122423464 +0100
+@@ -195,3 +195,10 @@
+ #define TARGET_USES_AIX64_OPT 1
+ 
+ #define RS6000_DEFAULT_LONG_DOUBLE_SIZE 128
++
++/* this target has SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
++ * but doesn't have crtbegin/end
++ */
++
++#define TARGET_USE_JCR_SECTION 0
++
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix51.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/aix51.h	2008-03-19 17:37:19.-1553634032 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix51.h	2008-03-19 17:43:40.1057005392 +0100
+@@ -180,3 +180,9 @@
+ 
+ /* This target uses the aix64.opt file.  */
+ #define TARGET_USES_AIX64_OPT 1
++
++/* this target has SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
++ * but doesn't have crtbegin/end
++ */
++
++#define TARGET_USE_JCR_SECTION 0
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix52.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/aix52.h	2008-03-19 17:37:19.-338134840 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix52.h	2008-03-19 17:43:40.992408320 +0100
+@@ -189,3 +189,9 @@
+ 
+ /* This target uses the aix64.opt file.  */
+ #define TARGET_USES_AIX64_OPT 1
++
++/* this target has SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
++ * but doesn't have crtbegin/end
++ */
++
++#define TARGET_USE_JCR_SECTION 0
+Index: gcc-4.2.0-aix/libjava/libgcj.spec.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/libgcj.spec.in	2008-03-19 17:37:18.-223563872 +0100
++++ gcc-4.2.0-aix/libjava/libgcj.spec.in	2008-03-19 17:43:40.1508583840 +0100
+@@ -7,6 +7,6 @@
+ *startfile: @THREADSTARTFILESPEC@ %(startfileorig)
+ 
+ %rename lib liborig
+-*lib: @LD_START_STATIC_SPEC@ @LIBGCJ_SPEC@ @LD_FINISH_STATIC_SPEC@ -lm @LIBICONV@ @GCSPEC@ @THREADSPEC@ @ZLIBSPEC@ @SYSTEMSPEC@ %(libgcc) %(liborig)
++*lib: @LD_START_STATIC_SPEC@ @LIBGCJ_SPEC@ @LD_FINISH_STATIC_SPEC@ -lm @LIBICONV@ @GCSPEC@ @THREADSPEC@ @ZLIBSPEC@ @SYSTEMSPEC@ %(libgcc) %(liborig) -bbigtoc
+ 
+ *jc1: @HASH_SYNC_SPEC@ @DIVIDESPEC@ @CHECKREFSPEC@ @JC1GCSPEC@ @EXCEPTIONSPEC@ @BACKTRACESPEC@ @IEEESPEC@ -fkeep-inline-functions
+Index: gcc-4.2.0-aix/libjava/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.am	2008-03-19 17:37:33.-353075016 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.am	2008-03-19 17:43:40.-546536232 +0100
+@@ -216,8 +216,8 @@
+ # certain linuxthread functions get linked:
+ ## The mysterious backslash in the grep pattern is consumed by make.
+ libgcj_la_LDFLAGS = -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(THREADLIBS) \
+-	$(LIBLTDL) $(SYS_ZLIBS) \
+-	-version-info `grep -v '^\#' $(srcdir)/libtool-version`
++	$(LIBLTDL) $(SYS_ZLIBS) $(LIBICONV) \
++	-version-info `grep -v '^\#' $(srcdir)/libtool-version` -Wl,-bbigtoc
+ libgcj_la_LIBADD = \
+ 	classpath/native/fdlibm/libfdlibm.la \
+ 	$(all_packages_source_files:.list=.lo) \
+@@ -1047,7 +1047,8 @@
+ 	"NM=$(NM)" \
+ 	"PICFLAG=$(PICFLAG)" \
+ 	"RANLIB=$(RANLIB)" \
+-	"DESTDIR=$(DESTDIR)"
++	"DESTDIR=$(DESTDIR)" \
++        "$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
+ 
+ # Subdir rules rely on $(FLAGS_TO_PASS)
+ FLAGS_TO_PASS = $(AM_MAKEFLAGS)
+Index: gcc-4.2.0-aix/libjava/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.in	2008-03-19 17:40:09.1206715712 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.in	2008-03-19 17:44:05.-531321056 +0100
+@@ -794,8 +794,8 @@
+ # Include THREADLIBS here to ensure that the correct version of
+ # certain linuxthread functions get linked:
+ libgcj_la_LDFLAGS = -rpath $(toolexeclibdir) $(THREADLDFLAGS) $(THREADLIBS) \
+-	$(LIBLTDL) $(SYS_ZLIBS) \
+-	-version-info `grep -v '^\#' $(srcdir)/libtool-version`
++	$(LIBLTDL) $(SYS_ZLIBS) $(LIBICONV) \
++	-version-info `grep -v '^\#' $(srcdir)/libtool-version` -Wl,-bbigtoc
+ 
+ libgcj_la_LIBADD = \
+ 	classpath/native/fdlibm/libfdlibm.la \
+@@ -7499,7 +7499,8 @@
+ 	"NM=$(NM)" \
+ 	"PICFLAG=$(PICFLAG)" \
+ 	"RANLIB=$(RANLIB)" \
+-	"DESTDIR=$(DESTDIR)"
++	"DESTDIR=$(DESTDIR)" \
++        "$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
+ 
+ 
+ # Subdir rules rely on $(FLAGS_TO_PASS)

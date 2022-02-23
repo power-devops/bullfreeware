@@ -1,0 +1,38 @@
+*** configure.ORIG	Thu Mar 27 14:58:35 2008
+--- configure	Thu Mar 27 14:59:18 2008
+***************
+*** 9169,9175 ****
+  
+  
+  cat >>confdefs.h <<\_ACEOF
+! #define malloc rpl_malloc
+  _ACEOF
+  
+  fi
+--- 9169,9175 ----
+  
+  
+  cat >>confdefs.h <<\_ACEOF
+! /* #define malloc rpl_malloc */
+  _ACEOF
+  
+  fi
+*** configure.ORIG	Thu Mar 27 15:28:32 2008
+--- configure	Thu Mar 27 15:29:13 2008
+***************
+*** 9399,9405 ****
+  
+  
+  cat >>confdefs.h <<\_ACEOF
+! #define realloc rpl_realloc
+  _ACEOF
+  
+  fi
+--- 9399,9405 ----
+  
+  
+  cat >>confdefs.h <<\_ACEOF
+! /* #define realloc rpl_realloc */
+  _ACEOF
+  
+  fi

@@ -1,0 +1,122 @@
+Index: gcc-4.2.0-aix/libjava/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.am	2008-03-19 17:54:44.229944632 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.am	2008-03-22 14:03:11.297403704 +0100
+@@ -233,6 +233,7 @@
+ libgcj_tools_la_GCJFLAGS = $(AM_GCJFLAGS) -findirect-dispatch -fno-indirect-classes
+ libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
+  -version-info `grep -v '^\#' $(srcdir)/libtool-version`
++libgcj_tools_la_LIBADD = -L$(here)/.libs libgcj.la
+ libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
+ libgcj_tools_la_LINK = $(LIBLINK)
+ 
+@@ -241,7 +242,8 @@
+ libjvm_la_DEPENDENCIES = libgcj.la libgcj.spec
+ ## See jv_convert_LDADD.
+ libjvm_la_LIBADD = -L$(here)/.libs libgcj.la
+-libjvm_la_LDFLAGS = -avoid-version $(LIBGCJ_LD_SYMBOLIC)
++libjvm_la_LDFLAGS = -rpath $(toolexeclibdir) \
++		    -avoid-version $(LIBGCJ_LD_SYMBOLIC)
+ 
+ ## The .db file.  This rule is only used for native builds, so it is
+ ## safe to invoke gcj-dbtool.
+@@ -288,7 +290,7 @@
+ ## when testing.
+ libgcj_bc.la: $(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_DEPENDENCIES)
+ 	$(libgcj_bc_la_LINK) $(am_libgcj_bc_la_rpath) $(libgcj_bc_la_LDFLAGS) \
+-	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LIBADD) $(LIBS) || exit; \
++	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LDADD) $(LIBS) || exit; \
+ 	rm .libs/libgcj_bc.so; \
+ 	mv .libs/libgcj_bc.so.1.0.0 .libs/libgcj_bc.so; \
+ 	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+Index: gcc-4.2.0-aix/libjava/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.in	2008-03-19 17:54:44.1580870968 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.in	2008-03-22 14:03:32.-1047018632 +0100
+@@ -140,7 +140,6 @@
+ am_lib_gnu_awt_xlib_la_OBJECTS = $(am__objects_1)
+ lib_gnu_awt_xlib_la_OBJECTS = $(am_lib_gnu_awt_xlib_la_OBJECTS)
+ @XLIB_AWT_TRUE@am_lib_gnu_awt_xlib_la_rpath = -rpath $(toolexeclibdir)
+-libgcj_tools_la_LIBADD =
+ am_libgcj_tools_la_OBJECTS = classpath/tools/libgcj_tools_la-tools.lo
+ libgcj_tools_la_OBJECTS = $(am_libgcj_tools_la_OBJECTS)
+ am__DEPENDENCIES_1 = gnu/awt.lo gnu/awt/j2d.lo gnu/classpath.lo \
+@@ -814,12 +813,15 @@
+ libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
+  -version-info `grep -v '^\#' $(srcdir)/libtool-version`
+ 
++libgcj_tools_la_LIBADD = -L$(here)/.libs libgcj.la
+ libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
+ libgcj_tools_la_LINK = $(LIBLINK)
+ libjvm_la_SOURCES = jni-libjvm.cc
+ libjvm_la_DEPENDENCIES = libgcj.la libgcj.spec
+ libjvm_la_LIBADD = -L$(here)/.libs libgcj.la
+-libjvm_la_LDFLAGS = -avoid-version $(LIBGCJ_LD_SYMBOLIC)
++libjvm_la_LDFLAGS = -rpath $(toolexeclibdir) \
++		    -avoid-version $(LIBGCJ_LD_SYMBOLIC)
++
+ lib_gnu_awt_xlib_la_SOURCES = $(xlib_nat_source_files)
+ lib_gnu_awt_xlib_la_LIBADD = gnu/awt/xlib.lo gnu/gcj/xlib.lo
+ lib_gnu_awt_xlib_la_DEPENDENCIES = libgcj-$(gcc_version).jar \
+@@ -9181,7 +9183,7 @@
+ 
+ libgcj_bc.la: $(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_DEPENDENCIES)
+ 	$(libgcj_bc_la_LINK) $(am_libgcj_bc_la_rpath) $(libgcj_bc_la_LDFLAGS) \
+-	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LIBADD) $(LIBS) || exit; \
++	$(libgcj_bc_la_OBJECTS) $(libgcj_bc_la_LDADD) $(LIBS) || exit; \
+ 	rm .libs/libgcj_bc.so; \
+ 	mv .libs/libgcj_bc.so.1.0.0 .libs/libgcj_bc.so; \
+ 	$(libgcj_bc_dummy_LINK) -xc /dev/null -Wl,-soname,libgcj_bc.so.1 \
+Index: gcc-4.2.0-aix/ltmain.sh
+===================================================================
+--- gcc-4.2.0-aix.orig/ltmain.sh	2008-03-14 17:29:07.000000000 +0100
++++ gcc-4.2.0-aix/ltmain.sh	2008-03-20 15:30:37.-984563560 +0100
+@@ -4793,7 +4793,7 @@
+ 	test "X$dir" = "X$file/" && dir=
+ 	dir="$dir$objdir"
+ 
+-	if test -n "$relink_command"; then
++	if false ; then # test -n "$relink_command"; then
+ 	  # Determine the prefix the user has applied to our future dir.
+ 	  inst_prefix_dir=`$echo "$destdir" | sed "s%$libdir\$%%"`
+ 
+@@ -4832,7 +4832,7 @@
+ 	  shift
+ 
+ 	  srcname="$realname"
+-	  test -n "$relink_command" && srcname="$realname"T
++	  #test -n "$relink_command" && srcname="$realname"T
+ 
+ 	  # Install the shared library and build the symlinks.
+ 	  $show "$install_prog $dir/$srcname $destdir/$realname"
+Index: gcc-4.2.0-aix/libjava/configure
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/configure	2008-03-19 17:54:44.000000000 +0100
++++ gcc-4.2.0-aix/libjava/configure	2008-03-22 10:02:05.-29065656 +0100
+@@ -1662,6 +1662,26 @@
+ 
+ fi;
+ 
++# Default to --enable-libjava-multilib
++# Check whether --enable-libjava-multilib or --disable-libjava-multilib was given.
++if test "${enable_libjava_multilib+set}" = set; then
++  enableval="$enable_libjava_multilib"
++  case "${enableval}" in
++  yes) multilib=yes ;;
++  no)  multilib=no ;;
++  *)   { { echo "$as_me:$LINENO: error: bad value ${enableval} for libjava-multilib option" >&5
++echo "$as_me: error: bad value ${enableval} for libjava-multilib option" >&2;}
++   { (exit 1); exit 1; }; } ;;
++ esac
++else
++ multilib=yes
++fi;
++if test "$multilib" = no; then
++# Reset also --enable-multilib state, as that is what is looked at
++# by config-ml.in
++ ac_configure_args="$ac_configure_args --disable-multilib"
++fi
++
+ # It may not be safe to run linking tests in AC_PROG_CC/AC_PROG_CXX.
+ 
+ 

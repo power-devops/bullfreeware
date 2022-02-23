@@ -1,0 +1,253 @@
+--- ./Modules/Platform/AIX-GNU.cmake.orig	2019-09-10 14:30:42.000000000 +0200
++++ ./Modules/Platform/AIX-GNU.cmake	2019-09-10 14:40:19.149837366 +0200
+@@ -8,23 +8,30 @@
+ endif()
+ set(__AIX_COMPILER_GNU 1)
+ 
+-#
+-# By default, runtime linking is enabled. All shared objects specified on the command line
+-# will be listed, even if there are no symbols referenced, in the output file.
+-string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_MODULE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-
+-
+ macro(__aix_compiler_gnu lang)
+-  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
++  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-bnoipath -Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+-  string(APPEND CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS " -Wl,-G,-bnoipath")
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall")
++
+   set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
+ 
+-  set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++
+   if(CMAKE_${lang}_COMPILER_VERSION VERSION_LESS 7 OR CMAKE_SYSTEM_VERSION VERSION_LESS 7.1)
+     unset(CMAKE_${lang}_COMPILE_OPTIONS_VISIBILITY)
+   endif()
++
++  # Needed to have SOVERSION...
++  set(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-o")
++
++  # By default, module are .so and shared libraries .a in AIX.
++  set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG> <OBJECT_DIR>/<TARGET_SONAME> <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_AR> -c -q <TARGET> <OBJECT_DIR>/<TARGET_SONAME>"
++  )
++
++  set(CMAKE_${lang}_CREATE_SHARED_MODULE
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_MODULE_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
++    "strip -e -X32_64 <TARGET>"
++  )
+ endmacro()
+--- ./Modules/Platform/AIX.cmake.orig	2019-09-10 14:31:02.000000000 +0200
++++ ./Modules/Platform/AIX.cmake	2019-09-10 14:34:12.895863629 +0200
+@@ -1,7 +1,16 @@
+-set(CMAKE_SHARED_LIBRARY_PREFIX "lib")          # lib
+-set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")          # .so
++set(AIX 1)
++
++set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
++set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
++set(CMAKE_SHARED_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_MODULE_PREFIX "lib")
++set(CMAKE_SHARED_MODULE_SUFFIX ".so")
+ set(CMAKE_DL_LIBS "-lld")
+ 
++set(CMAKE_MODULE_EXISTS 1)
++set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
++
+ # RPATH support on AIX is called libpath.  By default the runtime
+ # libpath is paths specified by -L followed by /usr/lib and /lib.  In
+ # order to prevent the -L paths from being used we must force use of
+@@ -15,17 +24,27 @@
+ # Files named "libfoo.a" may actually be shared libraries.
+ set_property(GLOBAL PROPERTY TARGET_ARCHIVES_MAY_BE_SHARED_LIBS 1)
+ 
+-# since .a can be a static or shared library on AIX, we can not do this.
+-# at some point if we wanted it, we would have to figure out if a .a is
+-# static or shared, then we could add this back:
+-
+-# Initialize C link type selection flags.  These flags are used when
+-# building a shared library, shared module, or executable that links
+-# to other libraries to select whether to use the static or shared
+-# versions of the libraries.
+-#foreach(type SHARED_LIBRARY SHARED_MODULE EXE)
+-#  set(CMAKE_${type}_LINK_STATIC_C_FLAGS "-bstatic")
+-#  set(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-bdynamic")
+-#endforeach()
++# AIX can need to export symbols (typically for module).
++# export_file is target name.
++# export_obj are .o whose symbols are exported.
++# export_path is where export file will be saved.
++# ext is code export file, see man ld.
++macro(ExportAIX export_file export_obj export_path ext)
++  add_custom_command(TARGET ${export_file}
++    PRE_LINK
++    COMMAND echo "#! ${ext}" > ${export_path}
++    COMMAND nm -BCg $<TARGET_OBJECTS:${export_obj}> | grep " [TDB] " | sed -e "s/.* //" | grep -v "\\\$" | sed -e "s/\^[.]//" | sort | uniq >> ${export_path}
++    VERBATIM
++  )
++  target_link_options(${export_file}
++    PRIVATE "-Wl,-bE:${export_path}")
++  add_dependencies(${export_file} ${export_obj})
++  set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${export_path})
++endmacro(ExportAIX)
++
++macro(ImportAIX import_file export_path)
++  target_link_options(${import_file}
++    PRIVATE "-Wl,-bI:${export_path}")
++endmacro(ImportAIX)
+ 
+ include(Platform/UnixPaths)
+--- ./Modules/Platform/AIX-XL.cmake.orig	2019-09-04 15:50:07.000000000 +0200
++++ ./Modules/Platform/AIX-XL.cmake	2019-09-12 17:35:39.619619476 +0200
+@@ -8,43 +8,27 @@
+ endif()
+ set(__AIX_COMPILER_XL 1)
+ 
+-#
+-# By default, runtime linking is enabled. All shared objects specified on the command line
+-# will be listed, even if there are no symbols referenced, in the output file.
+-string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_MODULE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-
+-
+ macro(__aix_compiler_xl lang)
+-  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
++  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-bnoipath -Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+-  set(CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS "-G -Wl,-bnoipath")  # -shared
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall")
+-  set(CMAKE_SHARED_LIBRARY_${lang}_FLAGS " ")
+-  set(CMAKE_SHARED_MODULE_${lang}_FLAGS  " ")
+-
+-  set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
+-
+-  # Find the CreateExportList program that comes with this toolchain.
+-  find_program(CMAKE_XL_CreateExportList
+-    NAMES CreateExportList
+-    DOC "IBM XL CreateExportList tool"
+-    )
+-
+-  # CMAKE_XL_CreateExportList is part of the AIX XL compilers but not the linux ones.
+-  # If we found the tool, we'll use it to create exports, otherwise stick with the regular
+-  # create shared library compile line.
+-  if (CMAKE_XL_CreateExportList)
+-    # The compiler front-end passes all object files, archive files, and shared
+-    # library files named on the command line to CreateExportList to create a
+-    # list of all symbols to be exported from the shared library.  This causes
+-    # all archive members to be copied into the shared library whether they are
+-    # needed or not.  Instead we run the tool ourselves to pass only the object
+-    # files so that we export only the symbols actually provided by the sources.
+-    set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
+-      "${CMAKE_XL_CreateExportList} <OBJECT_DIR>/objects.exp <OBJECTS>"
+-      "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> -Wl,-bE:<OBJECT_DIR>/objects.exp <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
+-      )
+-  endif()
++  set(CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS "-qmkshrobj")
++  
++  set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
++
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++
++  # Needed to have SOVERSION...
++  set(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-o")
++
++  # By default, module are .so and shared libraries .a in AIX.
++  set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG> <TARGET_SONAME> <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_AR> -c -q <TARGET> <TARGET_SONAME>"
++  )
++
++  set(CMAKE_${lang}_CREATE_SHARED_MODULE
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_MODULE_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
++    "strip -e -X32_64 <TARGET>"
++  )
+ endmacro()
+--- ./Source/cmGeneratorTarget.cxx.orig	2019-09-10 14:41:27.905832435 +0200
++++ ./Source/cmGeneratorTarget.cxx	2019-09-10 14:40:54.055834863 +0200
+@@ -3784,7 +3785,7 @@
+                             prefix, targetNames.Base, suffix);
+ 
+   // The library name.
+-  targetNames.Output = prefix + targetNames.Base + suffix;
++  targetNames.Output = prefix + targetNames.Base;
+ 
+   if (this->IsFrameworkOnApple()) {
+     targetNames.Real = prefix;
+@@ -3798,12 +3799,12 @@
+   } else {
+     // The library's soname.
+     this->ComputeVersionedName(targetNames.SharedObject, prefix,
+-                               targetNames.Base, suffix, targetNames.Output,
++                               targetNames.Base, suffix, targetNames.Output + ".so",
+                                soversion);
+-
+     // The library's real name on disk.
+     this->ComputeVersionedName(targetNames.Real, prefix, targetNames.Base,
+-                               suffix, targetNames.Output, version);
++                               suffix, targetNames.Output + suffix, "");
++    targetNames.Real.pop_back();
+   }
+ 
+   // The import library name.
+--- ./Source/cmMakefileLibraryTargetGenerator.cxx.orig	2019-09-10 16:22:56.477997607 +0200
++++ ./Source/cmMakefileLibraryTargetGenerator.cxx	2019-09-10 16:22:49.423998113 +0200
+@@ -780,10 +780,10 @@
+     vars.Target = target.c_str();
+     vars.LinkLibraries = linkLibs.c_str();
+     vars.ObjectsQuoted = buildObjs.c_str();
+-    if (this->GeneratorTarget->HasSOName(this->ConfigName)) {
++    //if (this->GeneratorTarget->HasSOName(this->ConfigName)) {
+       vars.SONameFlag = this->Makefile->GetSONameFlag(linkLanguage);
+       vars.TargetSOName = this->TargetNames.SharedObject.c_str();
+-    }
++    //}
+     vars.LinkFlags = linkFlags.c_str();
+ 
+     vars.Manifests = manifests.c_str();
+--- ./Source/cmMakefileLibraryTargetGenerator.cxx.orig	2019-09-11 16:06:57.445130684 +0200
++++ ./Source/cmMakefileLibraryTargetGenerator.cxx	2019-09-11 16:07:27.701128514 +0200
+@@ -916,6 +916,7 @@
+   cmAppend(commands, commands1);
+   commands1.clear();
+ 
++#ifndef _AIX
+   // Add a rule to create necessary symlinks for the library.
+   // Frameworks are handled by cmOSXBundleGenerator.
+   if (targetOutPath != targetOutPathReal &&
+@@ -933,6 +934,7 @@
+     cmAppend(commands, commands1);
+     commands1.clear();
+   }
++#endif
+ 
+   // Add the post-build rules when building but not when relinking.
+   if (!relink) {
+--- ./Source/cmInstallTargetGenerator.cxx.orig	2019-09-04 15:50:07.000000000 +0200
++++ ./Source/cmInstallTargetGenerator.cxx	2019-09-12 12:26:37.968146248 +0200
+@@ -265,6 +265,7 @@
+         toRealName = toDir + targetNames.Real;
+       }
+ 
++#ifndef _AIX
+       // Add the names based on the current namelink mode.
+       if (haveNamelink) {
+         // With a namelink we need to check the mode.
+@@ -299,6 +300,10 @@
+           filesTo.push_back(toName);
+         }
+       }
++#else
++      filesFrom.push_back(fromRealName);
++      filesTo.push_back(toRealName);
++#endif
+     }
+   }

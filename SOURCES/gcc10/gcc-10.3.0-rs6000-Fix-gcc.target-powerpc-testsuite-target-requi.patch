@@ -1,0 +1,469 @@
+From 67ef8cfc1c1d440eafa89a26710bced934a485dc Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Sat, 27 Jun 2020 20:44:24 -0400
+Subject: [PATCH] rs6000: Fix gcc.target/powerpc testsuite target requirements.
+
+gcc/testsuite/ChangeLog
+
+2020-06-30  David Edelsohn  <dje.gcc@gmail.com>
+
+	* gcc.target/powerpc/builtins-1-p9-runnable.c: Fix target requirements.
+	* gcc.target/powerpc/builtins-1.c: Same.
+	* gcc.target/powerpc/builtins-2-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-2.c: Same.
+	* gcc.target/powerpc/builtins-3-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-3-p9.c: Same.
+	* gcc.target/powerpc/builtins-3-runnable-p8.c: Same.
+	* gcc.target/powerpc/builtins-3.c: Same.
+	* gcc.target/powerpc/builtins-4-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-4.c: Same.
+	* gcc.target/powerpc/builtins-5-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-5.c: Same.
+	* gcc.target/powerpc/builtins-6-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-6-runnable.c: Same.
+	* gcc.target/powerpc/builtins-7-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-7-runnable.c: Same.
+	* gcc.target/powerpc/builtins-8-p9-runnable.c: Same.
+	* gcc.target/powerpc/builtins-8-runnable.c: Same.
+	* gcc.target/powerpc/cpu-builtin-1.c: Same.
+	* gcc.target/powerpc/float128-fma1.c: Same.
+	* gcc.target/powerpc/float128-hw.c: Same.
+	* gcc.target/powerpc/float128-hw10.c: Same.
+	* gcc.target/powerpc/float128-hw11.c: Same.
+	* gcc.target/powerpc/float128-hw2.c: Same.
+	* gcc.target/powerpc/float128-hw3.c: Same.
+	* gcc.target/powerpc/float128-hw4.c: Same.
+	* gcc.target/powerpc/float128-hw5.c: Same.
+	* gcc.target/powerpc/float128-hw6.c: Same.
+	* gcc.target/powerpc/float128-hw7.c: Same.
+	* gcc.target/powerpc/float128-hw8.c: Same.
+	* gcc.target/powerpc/float128-hw9.c: Same.
+	* gcc.target/powerpc/float128-minmax.c: Same.
+	* gcc.target/powerpc/float128-odd.c: Same.
+	* gcc.target/powerpc/float128-sqrt1.c: Same.
+---
+ gcc/testsuite/gcc.target/powerpc/builtins-1-p9-runnable.c | 2 +-
+ gcc/testsuite/gcc.target/powerpc/builtins-1.c             | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-2-p9-runnable.c | 4 ++--
+ gcc/testsuite/gcc.target/powerpc/builtins-2.c             | 4 ++--
+ gcc/testsuite/gcc.target/powerpc/builtins-3-p9-runnable.c | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-3-p9.c          | 2 +-
+ gcc/testsuite/gcc.target/powerpc/builtins-3-runnable-p8.c | 2 +-
+ gcc/testsuite/gcc.target/powerpc/builtins-3.c             | 2 +-
+ gcc/testsuite/gcc.target/powerpc/builtins-4-p9-runnable.c | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-4.c             | 2 +-
+ gcc/testsuite/gcc.target/powerpc/builtins-5-p9-runnable.c | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-5.c             | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-6-p9-runnable.c | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-6-runnable.c    | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-7-p9-runnable.c | 4 ++--
+ gcc/testsuite/gcc.target/powerpc/builtins-7-runnable.c    | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-8-p9-runnable.c | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/builtins-8-runnable.c    | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/cpu-builtin-1.c          | 2 +-
+ gcc/testsuite/gcc.target/powerpc/float128-fma1.c          | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw.c            | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw10.c          | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw11.c          | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw2.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw3.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw4.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw5.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw6.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw7.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw8.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-hw9.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-minmax.c        | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-odd.c           | 3 ++-
+ gcc/testsuite/gcc.target/powerpc/float128-sqrt1.c         | 3 ++-
+ 34 files changed, 62 insertions(+), 37 deletions(-)
+
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-1-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-1-p9-runnable.c
+index 0e6eeff4b7e..711e3d0eeaa 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-1-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-1-p9-runnable.c
+@@ -1,4 +1,4 @@
+-/* { dg-do run { target { powerpc*-*-linux* && p9vector_hw } } } */
++/* { dg-do run } */
+ /* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-O2 -mdejagnu-cpu=power9" } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-1.c b/gcc/testsuite/gcc.target/powerpc/builtins-1.c
+index 73f8fb54cff..83aed5a5141 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-1.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-1.c
+@@ -1,4 +1,5 @@
+-/* { dg-do compile { target { powerpc*-*-* } } } */
++/* { dg-do compile } */
++/* { dg-require-effective-target powerpc_p8vector_ok } */
+ /* { dg-options "-mdejagnu-cpu=power8 -O0 -mno-fold-gimple -dp" } */
+ /* { dg-prune-output "gimple folding of rs6000 builtins has been disabled." } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-2-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-2-p9-runnable.c
+index a971d158108..5d36ecc938f 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-2-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-2-p9-runnable.c
+@@ -1,5 +1,5 @@
+-/* { dg-do run { target { powerpc64*-*-* && { lp64 && p9vector_hw } } } } */
+-/* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-do run { target lp64 } } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #include <altivec.h> // vector
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-2.c b/gcc/testsuite/gcc.target/powerpc/builtins-2.c
+index 0fa60b277f6..2aa23a37799 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-2.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-2.c
+@@ -1,5 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* } } } */
+-/* { dg-require-effective-target vsx_hw } */
++/* { dg-do run } */
++/* { dg-require-effective-target p8vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power8 " } */
+ 
+ #include <altivec.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-3-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-3-p9-runnable.c
+index 7926f80f98b..44c0397c49a 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-3-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-3-p9-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc64*-*-* && { lp64 && p9vector_hw } } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #ifdef DEBUG
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-3-p9.c b/gcc/testsuite/gcc.target/powerpc/builtins-3-p9.c
+index 5b4cdd81e35..5818361169f 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-3-p9.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-3-p9.c
+@@ -1,4 +1,4 @@
+-/* { dg-do compile  { target { le } } } */
++/* { dg-do compile { target { le } } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O1" } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-3-runnable-p8.c b/gcc/testsuite/gcc.target/powerpc/builtins-3-runnable-p8.c
+index 1ad6f82480b..32e8aa3ecae 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-3-runnable-p8.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-3-runnable-p8.c
+@@ -1,4 +1,4 @@
+-/* { dg-do run { target { powerpc*-*-linux* && { p8vector_hw } } } } */
++/* { dg-do run } */
+ /* { dg-require-effective-target p8vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power8" } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-3.c b/gcc/testsuite/gcc.target/powerpc/builtins-3.c
+index fc4fd6003de..e048e8b2355 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-3.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-3.c
+@@ -1,4 +1,4 @@
+-/* { dg-do compile { target powerpc*-*-* } } */
++/* { dg-do compile } */
+ /* { dg-require-effective-target powerpc_altivec_ok } */
+ /* { dg-options "-maltivec" } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-4-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-4-p9-runnable.c
+index ab8e030e6cf..3d744772278 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-4-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-4-p9-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* && { p9vector_hw } } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2 " } */
+ 
+ #include <altivec.h> // vector
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-4.c b/gcc/testsuite/gcc.target/powerpc/builtins-4.c
+index 66bfaf1210f..4e3b543f242 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-4.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-4.c
+@@ -1,4 +1,4 @@
+-/* { dg-do compile { target powerpc*-*-* } } */
++/* { dg-do compile } */
+ /* { dg-require-effective-target powerpc_vsx_ok } */
+ /* { dg-options "-mvsx" } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-5-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-5-p9-runnable.c
+index ba2736fe98d..0fe62064cbe 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-5-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-5-p9-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* &&  p9vector_hw } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-5.c b/gcc/testsuite/gcc.target/powerpc/builtins-5.c
+index c5f5c31b45f..9c25329fb1e 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-5.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-5.c
+@@ -1,4 +1,5 @@
+-/* { dg-do compile { target { powerpc*-*-* } } } */
++/* { dg-do compile } */
++/* { dg-require-effective-target powerpc_p8vector_ok } */
+ /* { dg-options "-mdejagnu-cpu=power8 -O0 -mno-fold-gimple -dp" } */
+ /* { dg-prune-output "gimple folding of rs6000 builtins has been disabled." } */
+ 
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-6-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-6-p9-runnable.c
+index 7c6275fecda..b5bd778c9fa 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-6-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-6-p9-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* &&  p9vector_hw } } } */
++/* { dg-do run { target lp64 } } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-6-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-6-runnable.c
+index 10f5ba086b6..6f89dac49b5 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-6-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-6-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* && { lp64 && p8vector_hw } } } } */
++/* { dg-do run { target lp64 } } */
++/* { dg-require-effective-target p8vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power8 -O3" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-7-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-7-p9-runnable.c
+index 2f1ce7666cb..1333d01abaa 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-7-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-7-p9-runnable.c
+@@ -1,5 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* && p9vector_hw } } } */
+-/* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-do run } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #include <altivec.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-7-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-7-runnable.c
+index 9c58111d4b3..52371e18832 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-7-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-7-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* && p8vector_hw } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p8vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power8 -O2" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-8-p9-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-8-p9-runnable.c
+index 19457eebfc4..f4809e6afff 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-8-p9-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-8-p9-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* &&  p9vector_hw } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p9vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power9 -O2" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/builtins-8-runnable.c b/gcc/testsuite/gcc.target/powerpc/builtins-8-runnable.c
+index ad835c7b4c8..38a1390d18e 100644
+--- a/gcc/testsuite/gcc.target/powerpc/builtins-8-runnable.c
++++ b/gcc/testsuite/gcc.target/powerpc/builtins-8-runnable.c
+@@ -1,4 +1,5 @@
+-/* { dg-do run { target { powerpc*-*-* && { p8vector_hw } } } } */
++/* { dg-do run } */
++/* { dg-require-effective-target p8vector_hw } */
+ /* { dg-options "-mdejagnu-cpu=power8 -O2" } */
+ 
+ #include <stdint.h>
+diff --git a/gcc/testsuite/gcc.target/powerpc/cpu-builtin-1.c b/gcc/testsuite/gcc.target/powerpc/cpu-builtin-1.c
+index 2bcf6f679da..280c9971c80 100644
+--- a/gcc/testsuite/gcc.target/powerpc/cpu-builtin-1.c
++++ b/gcc/testsuite/gcc.target/powerpc/cpu-builtin-1.c
+@@ -1,4 +1,4 @@
+-/* { dg-do compile { target { powerpc*-*-* } } } */
++/* { dg-do compile } */
+ /* { dg-skip-if "" { powerpc*-*-darwin* } } */
+ 
+ void
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-fma1.c b/gcc/testsuite/gcc.target/powerpc/float128-fma1.c
+index 9bc538ed859..5c90e7eac48 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-fma1.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-fma1.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ __float128
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw.c b/gcc/testsuite/gcc.target/powerpc/float128-hw.c
+index 929c6ddabe0..8c9beafa90a 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ #ifndef TYPE
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw10.c b/gcc/testsuite/gcc.target/powerpc/float128-hw10.c
+index eb4bed60c47..539337c7879 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw10.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw10.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ extern _Float128 floorf128 (_Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw11.c b/gcc/testsuite/gcc.target/powerpc/float128-hw11.c
+index 7bd9b81427a..dc78cf2f616 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw11.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw11.c
+@@ -1,5 +1,6 @@
+-/* { dg-do run { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do run { target lp64 } } */
+ /* { dg-require-effective-target p9vector_hw } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ #define __STDC_WANT_IEC_60559_TYPES_EXT__ 1
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw2.c b/gcc/testsuite/gcc.target/powerpc/float128-hw2.c
+index 118bed62537..1e3408b3757 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw2.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw2.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -ffast-math -std=gnu11" } */
+ 
+ /* Test to make sure the compiler handles the standard _Float128 functions that
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw3.c b/gcc/testsuite/gcc.target/powerpc/float128-hw3.c
+index e63099dde08..b3bbeb25678 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw3.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw3.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -ffast-math -std=c11" } */
+ 
+ /* Test to make sure the compiler calls the external function instead of doing
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw4.c b/gcc/testsuite/gcc.target/powerpc/float128-hw4.c
+index be5d0d6eef4..fc149169bc6 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw4.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw4.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -mabi=ieeelongdouble -Wno-psabi" } */
+ 
+ /* Insure that the ISA 3.0 IEEE 128-bit floating point built-in functions can
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw5.c b/gcc/testsuite/gcc.target/powerpc/float128-hw5.c
+index 8621bd869da..b0edafbd3f4 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw5.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw5.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -ffast-math" } */
+ 
+ extern _Float128 copysignf128 (_Float128, _Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw6.c b/gcc/testsuite/gcc.target/powerpc/float128-hw6.c
+index 89bb93ce690..a96edc8b1b6 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw6.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw6.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ extern _Float128 fabsf128 (_Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw7.c b/gcc/testsuite/gcc.target/powerpc/float128-hw7.c
+index ca417165a47..ffed847095c 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw7.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw7.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ extern _Float128 fabsf128 (_Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw8.c b/gcc/testsuite/gcc.target/powerpc/float128-hw8.c
+index 62f4eae93d1..23f9ec23577 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw8.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw8.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ extern _Float128 fminf128 (_Float128, _Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-hw9.c b/gcc/testsuite/gcc.target/powerpc/float128-hw9.c
+index ca46e151aa9..e37fd1b6397 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-hw9.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-hw9.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -ffast-math" } */
+ 
+ extern _Float128 sqrtf128 (_Float128);
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-minmax.c b/gcc/testsuite/gcc.target/powerpc/float128-minmax.c
+index f8b025d66fe..fe397518f2f 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-minmax.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-minmax.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2 -ffast-math" } */
+ 
+ #ifndef TYPE
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-odd.c b/gcc/testsuite/gcc.target/powerpc/float128-odd.c
+index 68c151059bc..8c8a34c74ca 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-odd.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-odd.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ /* Test the generation of the round to odd instructions.  */
+diff --git a/gcc/testsuite/gcc.target/powerpc/float128-sqrt1.c b/gcc/testsuite/gcc.target/powerpc/float128-sqrt1.c
+index 792aa05e030..7020664e4fd 100644
+--- a/gcc/testsuite/gcc.target/powerpc/float128-sqrt1.c
++++ b/gcc/testsuite/gcc.target/powerpc/float128-sqrt1.c
+@@ -1,5 +1,6 @@
+-/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-do compile { target lp64 } } */
+ /* { dg-require-effective-target powerpc_p9vector_ok } */
++/* { dg-require-effective-target float128 } */
+ /* { dg-options "-mpower9-vector -O2" } */
+ 
+ __float128
+-- 
+2.31.1
+

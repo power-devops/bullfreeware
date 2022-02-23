@@ -1,0 +1,62 @@
+--- ./nss/cmd/httpserv/httpserv.c.539183	2016-05-21 18:31:39.879585420 -0700
++++ ./nss/cmd/httpserv/httpserv.c	2016-05-21 18:37:22.374464057 -0700
+@@ -953,23 +953,23 @@
+ getBoundListenSocket(unsigned short port)
+ {
+     PRFileDesc *listen_sock;
+     int listenQueueDepth = 5 + (2 * maxThreads);
+     PRStatus prStatus;
+     PRNetAddr addr;
+     PRSocketOptionData opt;
+ 
+-    addr.inet.family = PR_AF_INET;
+-    addr.inet.ip = PR_INADDR_ANY;
+-    addr.inet.port = PR_htons(port);
++    if (PR_SetNetAddr(PR_IpAddrAny, PR_AF_INET6, port, &addr) != PR_SUCCESS) {
++        errExit("PR_SetNetAddr");
++    }
+ 
+-    listen_sock = PR_NewTCPSocket();
++    listen_sock = PR_OpenTCPSocket(PR_AF_INET6);
+     if (listen_sock == NULL) {
+-        errExit("PR_NewTCPSocket");
++        errExit("PR_OpenTCPSockett");
+     }
+ 
+     opt.option = PR_SockOpt_Nonblocking;
+     opt.value.non_blocking = PR_FALSE;
+     prStatus = PR_SetSocketOption(listen_sock, &opt);
+     if (prStatus < 0) {
+         PR_Close(listen_sock);
+         errExit("PR_SetSocketOption(PR_SockOpt_Nonblocking)");
+--- ./nss/cmd/selfserv/selfserv.c.539183	2016-05-21 18:31:39.882585367 -0700
++++ ./nss/cmd/selfserv/selfserv.c	2016-05-21 18:41:43.092801174 -0700
+@@ -1711,23 +1711,23 @@
+ getBoundListenSocket(unsigned short port)
+ {
+     PRFileDesc *listen_sock;
+     int listenQueueDepth = 5 + (2 * maxThreads);
+     PRStatus prStatus;
+     PRNetAddr addr;
+     PRSocketOptionData opt;
+ 
+-    addr.inet.family = PR_AF_INET;
+-    addr.inet.ip = PR_INADDR_ANY;
+-    addr.inet.port = PR_htons(port);
++    if (PR_SetNetAddr(PR_IpAddrAny, PR_AF_INET6, port, &addr) != PR_SUCCESS) {
++        errExit("PR_SetNetAddr");
++    }
+ 
+-    listen_sock = PR_NewTCPSocket();
++    listen_sock = PR_OpenTCPSocket(PR_AF_INET6);
+     if (listen_sock == NULL) {
+-        errExit("PR_NewTCPSocket");
++        errExit("PR_OpenTCPSocket error");
+     }
+ 
+     opt.option = PR_SockOpt_Nonblocking;
+     opt.value.non_blocking = PR_FALSE;
+     prStatus = PR_SetSocketOption(listen_sock, &opt);
+     if (prStatus < 0) {
+         PR_Close(listen_sock);
+         errExit("PR_SetSocketOption(PR_SockOpt_Nonblocking)");

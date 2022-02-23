@@ -1,0 +1,38 @@
+*** ./Makefile.in.ORIG	Thu Feb  4 09:54:21 2010
+--- ./Makefile.in	Thu Feb  4 10:00:33 2010
+***************
+*** 110,116 ****
+  PROGRAMS = $(bin_PROGRAMS)
+  am_cjpeg_OBJECTS = cjpeg$U.$(OBJEXT) rdppm$U.$(OBJEXT) \
+  	rdgif$U.$(OBJEXT) rdtarga$U.$(OBJEXT) rdrle$U.$(OBJEXT) \
+! 	rdbmp$U.$(OBJEXT) rdswitch$U.$(OBJEXT) cdjpeg$U.$(OBJEXT)
+  cjpeg_OBJECTS = $(am_cjpeg_OBJECTS)
+  cjpeg_DEPENDENCIES = libjpeg.la
+  am_djpeg_OBJECTS = djpeg$U.$(OBJEXT) wrppm$U.$(OBJEXT) \
+--- 110,117 ----
+  PROGRAMS = $(bin_PROGRAMS)
+  am_cjpeg_OBJECTS = cjpeg$U.$(OBJEXT) rdppm$U.$(OBJEXT) \
+  	rdgif$U.$(OBJEXT) rdtarga$U.$(OBJEXT) rdrle$U.$(OBJEXT) \
+! 	rdbmp$U.$(OBJEXT) rdswitch$U.$(OBJEXT) cdjpeg$U.$(OBJEXT) \
+! 	jcparam$U.$(OBJEXT)
+  cjpeg_OBJECTS = $(am_cjpeg_OBJECTS)
+  cjpeg_DEPENDENCIES = libjpeg.la
+  am_djpeg_OBJECTS = djpeg$U.$(OBJEXT) wrppm$U.$(OBJEXT) \
+***************
+*** 119,125 ****
+  djpeg_OBJECTS = $(am_djpeg_OBJECTS)
+  djpeg_DEPENDENCIES = libjpeg.la
+  am_jpegtran_OBJECTS = jpegtran$U.$(OBJEXT) rdswitch$U.$(OBJEXT) \
+! 	cdjpeg$U.$(OBJEXT) transupp$U.$(OBJEXT)
+  jpegtran_OBJECTS = $(am_jpegtran_OBJECTS)
+  jpegtran_DEPENDENCIES = libjpeg.la
+  am_rdjpgcom_OBJECTS = rdjpgcom$U.$(OBJEXT)
+--- 120,127 ----
+  djpeg_OBJECTS = $(am_djpeg_OBJECTS)
+  djpeg_DEPENDENCIES = libjpeg.la
+  am_jpegtran_OBJECTS = jpegtran$U.$(OBJEXT) rdswitch$U.$(OBJEXT) \
+! 	cdjpeg$U.$(OBJEXT) transupp$U.$(OBJEXT) \
+! 	jcparam$U.$(OBJEXT) jdinput$U.$(OBJEXT) jutils$U.$(OBJEXT)
+  jpegtran_OBJECTS = $(am_jpegtran_OBJECTS)
+  jpegtran_DEPENDENCIES = libjpeg.la
+  am_rdjpgcom_OBJECTS = rdjpgcom$U.$(OBJEXT)

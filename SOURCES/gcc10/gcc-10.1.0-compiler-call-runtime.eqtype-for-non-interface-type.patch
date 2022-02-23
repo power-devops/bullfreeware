@@ -1,0 +1,121 @@
+From d3a643fdea2913f38486fa0aaea45b5a81af678c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 16 Sep 2020 10:25:04 +0200
+Subject: [PATCH] compiler: call runtime.eqtype for non-interface type switch
+ on aix
+
+All type switch clauses must call runtime.eqtype if the linker isn't
+able to merge type descriptors pointers. Previously, only interface-type
+clauses were doing it.
+
+Fixes #39276
+---
+ gcc/go/gofrontend/statements.cc | 27 ++++++++++++++++++---------
+ gcc/go/gofrontend/statements.h  |  4 ++--
+ 2 files changed, 20 insertions(+), 11 deletions(-)
+
+diff --git a/gcc/go/gofrontend/statements.cc b/gcc/go/gofrontend/statements.cc
+index a059ee4d0d9..c7b8a118cdf 100644
+--- a/gcc/go/gofrontend/statements.cc
++++ b/gcc/go/gofrontend/statements.cc
+@@ -4627,7 +4627,8 @@ Type_case_clauses::Type_case_clause::traverse(Traverse* traverse)
+ // statements.
+ 
+ void
+-Type_case_clauses::Type_case_clause::lower(Type* switch_val_type,
++Type_case_clauses::Type_case_clause::lower(Gogo* gogo,
++					   Type* switch_val_type,
+ 					   Block* b,
+ 					   Temporary_statement* descriptor_temp,
+ 					   Unnamed_label* break_label,
+@@ -4666,9 +4667,16 @@ Type_case_clauses::Type_case_clause::lower(Type* switch_val_type,
+ 				       Expression::make_nil(loc),
+ 				       loc);
+       else if (type->interface_type() == NULL)
+-        cond = Expression::make_binary(OPERATOR_EQEQ, ref,
+-                                       Expression::make_type_descriptor(type, loc),
+-                                       loc);
++	{
++	  if (!gogo->need_eqtype())
++		cond = Expression::make_binary(OPERATOR_EQEQ, ref,
++				           Expression::make_type_descriptor(type, loc),
++				           loc);
++	  else
++		cond = Runtime::make_call(Runtime::EQTYPE, loc, 2,
++				        Expression::make_type_descriptor(type, loc),
++				        ref);
++	}
+       else
+ 	cond = Runtime::make_call(Runtime::IFACET2IP, loc, 2,
+ 				  Expression::make_type_descriptor(type, loc),
+@@ -4826,7 +4834,8 @@ Type_case_clauses::check_duplicates() const
+ // BREAK_LABEL is the label at the end of the type switch.
+ 
+ void
+-Type_case_clauses::lower(Type* switch_val_type, Block* b,
++Type_case_clauses::lower(Gogo* gogo, Type* switch_val_type,
++			 Block* b,
+ 			 Temporary_statement* descriptor_temp,
+ 			 Unnamed_label* break_label) const
+ {
+@@ -4838,7 +4847,7 @@ Type_case_clauses::lower(Type* switch_val_type, Block* b,
+        ++p)
+     {
+       if (!p->is_default())
+-	p->lower(switch_val_type, b, descriptor_temp, break_label,
++	p->lower(gogo, switch_val_type, b, descriptor_temp, break_label,
+ 		 &stmts_label);
+       else
+ 	{
+@@ -4850,7 +4859,7 @@ Type_case_clauses::lower(Type* switch_val_type, Block* b,
+   go_assert(stmts_label == NULL);
+ 
+   if (default_case != NULL)
+-    default_case->lower(switch_val_type, b, descriptor_temp, break_label,
++    default_case->lower(gogo, switch_val_type, b, descriptor_temp, break_label,
+ 			NULL);
+ }
+ 
+@@ -4905,7 +4914,7 @@ Type_switch_statement::do_traverse(Traverse* traverse)
+ // equality testing.
+ 
+ Statement*
+-Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
++Type_switch_statement::do_lower(Gogo* gogo, Named_object*, Block* enclosing,
+ 				Statement_inserter*)
+ {
+   const Location loc = this->location();
+@@ -4943,7 +4952,7 @@ Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+   b->add_statement(s);
+ 
+   if (this->clauses_ != NULL)
+-    this->clauses_->lower(val_type, b, descriptor_temp, this->break_label());
++    this->clauses_->lower(gogo, val_type, b, descriptor_temp, this->break_label());
+ 
+   s = Statement::make_unnamed_label_statement(this->break_label_);
+   b->add_statement(s);
+diff --git a/gcc/go/gofrontend/statements.h b/gcc/go/gofrontend/statements.h
+index f1c6be9c98a..47092b4912a 100644
+--- a/gcc/go/gofrontend/statements.h
++++ b/gcc/go/gofrontend/statements.h
+@@ -2089,7 +2089,7 @@ class Type_case_clauses
+ 
+   // Lower to if and goto statements.
+   void
+-  lower(Type*, Block*, Temporary_statement* descriptor_temp,
++  lower(Gogo*, Type*, Block*, Temporary_statement* descriptor_temp,
+ 	Unnamed_label* break_label) const;
+ 
+   // Return true if these clauses may fall through to the statements
+@@ -2138,7 +2138,7 @@ class Type_case_clauses
+ 
+     // Lower to if and goto statements.
+     void
+-    lower(Type*, Block*, Temporary_statement* descriptor_temp,
++    lower(Gogo*, Type*, Block*, Temporary_statement* descriptor_temp,
+ 	  Unnamed_label* break_label, Unnamed_label** stmts_label) const;
+ 
+     // Return true if this clause may fall through to execute the
+-- 
+2.25.0
+

@@ -1,0 +1,10 @@
+--- ./main.c.ORIGIN	2017-10-24 10:10:44 -0500
++++ ./main.c	2017-10-24 10:14:12 -0500
+@@ -276,6 +276,7 @@
+     if( childpid==0 ) {
+ 	// Child
+ 
++	usleep(1000);
+ 	// Detach us from the current TTY
+ 	setsid();
+         // This line makes the ptty our controlling tty. We do not otherwise need it open

@@ -1,0 +1,102 @@
+--- src/basemath/base5.c
++++ src/basemath/base5.c
+@@ -374,7 +374,7 @@ rnfprincipaltohnf(GEN rnf,GEN x)
+ 
+ /* pseudo-basis for the 0 ideal */
+ static GEN
+-rnfideal0() { retmkvec2(cgetg(1,t_MAT),cgetg(1,t_VEC)); }
++rnfideal0(void) { retmkvec2(cgetg(1,t_MAT),cgetg(1,t_VEC)); }
+ 
+ GEN
+ rnfidealhnf(GEN rnf, GEN x)
+--- src/graph/rect.h
++++ src/graph/rect.h
+@@ -281,7 +281,7 @@ void  rectclip(long rect);
+ void gen_rectdraw0(struct plot_eng *eng, long *w, long *x, long *y, long lw, double xs, double ys);
+ 
+ /* architecture-dependent plot file (plotX.c ...) */
+-void  PARI_get_plot();
++void  PARI_get_plot(void);
+ void  rectdraw0(long *w, long *x, long *y, long lw);
+ 
+ ENDEXTERN
+--- src/language/eval.c
++++ src/language/eval.c
+@@ -1143,11 +1143,11 @@ closure_eval(GEN C)
+         break;
+       }
+ 
+-#define EVAL_f(f) \
++#define EVAL_f0(f) f()
++#define EVAL_f1(f) sp--; f(st[sp])
++#define EVAL_fn(f) \
+   switch (ep->arity) \
+   { \
+-    case 0: f(); break; \
+-    case 1: sp--; f(st[sp]); break; \
+     case 2: sp-=2; f(st[sp],st[sp+1]); break; \
+     case 3: sp-=3; f(st[sp],st[sp+1],st[sp+2]); break; \
+     case 4: sp-=4; f(st[sp],st[sp+1],st[sp+2],st[sp+3]); break; \
+@@ -1178,7 +1178,12 @@ closure_eval(GEN C)
+         GEN res;
+         /* Macro Madness : evaluate function ep->value on arguments
+          * st[sp-ep->arity .. sp]. Set res = result. */
+-        EVAL_f(res = ((GEN (*)(ANYARG))ep->value));
++        switch (ep->arity)
++        {
++          case 0:  EVAL_f0(res = ((GEN (*)(void))ep->value)); break;
++          case 1:  EVAL_f1(res = ((GEN (*)(long))ep->value)); break;
++          default: EVAL_fn(res = ((GEN (*)(long, ...))ep->value));
++        }
+         if (br_status) goto endeval;
+         gel(st,sp++)=res;
+         break;
+@@ -1197,7 +1202,12 @@ closure_eval(GEN C)
+       {
+         entree *ep = (entree *)operand;
+         long res;
+-        EVAL_f(res = ((long (*)(ANYARG))ep->value));
++        switch (ep->arity)
++        {
++          case 0:  EVAL_f0(res = ((long (*)(void))ep->value)); break;
++          case 1:  EVAL_f1(res = ((long (*)(long))ep->value)); break;
++          default: EVAL_fn(res = ((long (*)(long, ...))ep->value));
++        }
+         if (br_status) goto endeval;
+         st[sp++] = res;
+         break;
+@@ -1206,7 +1216,12 @@ closure_eval(GEN C)
+       {
+         entree *ep = (entree *)operand;
+         long res;
+-        EVAL_f(res = ((int (*)(ANYARG))ep->value));
++        switch (ep->arity)
++        {
++          case 0:  EVAL_f0(res = ((int (*)(void))ep->value)); break;
++          case 1:  EVAL_f1(res = ((int (*)(long))ep->value)); break;
++          default: EVAL_fn(res = ((int (*)(long, ...))ep->value));
++        }
+         if (br_status) goto endeval;
+         st[sp++] = res;
+         break;
+@@ -1214,11 +1229,18 @@ closure_eval(GEN C)
+     case OCcallvoid:
+       {
+         entree *ep = (entree *)operand;
+-        EVAL_f(((void (*)(ANYARG))ep->value));
++        switch (ep->arity)
++        {
++          case 0:  EVAL_f0(((void (*)(void))ep->value)); break;
++          case 1:  EVAL_f1(((void (*)(long))ep->value)); break;
++          default: EVAL_fn(((void (*)(long, ...))ep->value));
++        }
+         if (br_status) goto endeval;
+         break;
+       }
+-#undef EVAL_f
++#undef EVAL_f0
++#undef EVAL_f1
++#undef EVAL_fn
+ 
+     case OCcalluser:
+       {

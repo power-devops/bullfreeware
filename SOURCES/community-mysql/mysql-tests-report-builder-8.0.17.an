@@ -1,0 +1,135 @@
+#!/opt/freeware/bin/bash
+
+if [ "$1" == "" ] || [ "$2" == "" ]
+then
+	echo "Args: Path File"
+	exit
+else
+	FPATH=$1
+	FNAME=$2
+	MFILE=$1/$2
+fi
+
+for m in RELEASE DEBUG
+do
+#	BEG check RELEASE : ...
+#	END check RELEASE : ...
+	cat $MFILE | awk -v mode=$m '{ \
+			if($1$2$3=="BEGcheck" mode)P=1; \
+			if($1$2$3=="ENDcheck" mode)P=0; \
+			if(P==1)print($0) \
+	}' > /tmp/mysql.report.$m.$$
+	ls -l /tmp/mysql.report.$m.$$
+done
+
+for m in RELEASE DEBUG
+do
+
+FILE=/tmp/mysql.report.$m.$$
+
+echo
+echo "============= $m mode ================================================"
+echo
+
+grep "^\[" $FILE | grep " skipped " > /tmp/TS.$$
+cp /tmp/TS.$$ /tmp/TS1.$$ 
+
+declare -A TNT
+
+echo " RESULTS:"
+NTT=0
+for i in skipped disabled pass fail
+do
+	NT=`grep "^\[" $FILE | grep " $i " | wc -l`
+	TNT[$i]=$NT
+	echo $i " @ " $NT | awk -F@ '{printf("        %10s : %4d\n", $1, $2)}'
+	NTT=`echo $NTT $NT | awk '{print($1+$2)}'`
+done
+	echo "       ------------------"
+	echo "TOTAL"    $NTT            | awk '{printf("        %-10s : %4d\n", $1, $2)}'
+	echo "       ---------------------"
+#	echo "Pass/Run" ${TNT[pass]} ${TNT[fail]}
+	echo "Pass/Run" ${TNT[pass]} ${TNT[fail]} | awk '{if($2+$3!=0){printf("        %-10s : %5.2f%\n", $1, $2/($2+$3)*100)}}'
+	LR=`grep "^\[" $FILE | tail -n1 | awk -F"\]" '{print $1}' | awk -F"\[" '{print $2}'`
+	echo "       ---------------------"
+	echo "        Last run   : " $LR
+
+echo " "
+echo " SKIPPED:"
+for i in \
+	"Test needs debug binaries." \
+	"Test requires 'have_debug_sync'" \
+	"mysqlbinlog needs to be debug compiled" \
+	"Test needs 'big-test' or 'only-big-test' option." \
+	"Doesn't support --binlog-format = " \
+	"Test requires binlog_format = STATEMENT" \
+	"Test requires binlog_format = MIXED" \
+	"Test requires binlog_format = ROW" \
+	"Test makes sense only to run with MTS" \
+	"ndbcluster disabled" \
+	"Test needs 'non-parallel-test' option" \
+	"Need windows" \
+	"Needs Linux" \
+	"federated plugin not available" \
+	"openssl is not build with fips modue" \
+	"The test needs slave_parallel_type=logical_clock" \
+	"Test does not work with var being softlink" \
+	"Not as root" \
+	"mecab requires the environment variable $MECAB" \
+	"Need YaSSL/wolfSSL support" \
+	"Test requires 'case_insensitive_file_system'" \
+	"No lo0 interface or fe80::1" \
+	"Need POSIX locale de_DE.iso88591" \
+	"Need a 32 binary" \
+	"Need ps-protocol" \
+	"Needs FreeBSD" \
+	"Needs OSX or MacOS" \
+	"Requires TLSv1.3" \
+	"Test requires thread priority to be supported." \
+	"Test cannot run with binlog_format ROW" \
+	"Test requires 'have_moscow_leap_timezone'" \
+	"Test requires 'have_nodebug'" \
+	"Test requires 'lower_case_table_names = " \
+	"# CAST() in partitioning function is currently not supported" \
+	" Doesn't support TLSv1.3" \
+	"Test requires openssl version to be 1.0.2+" \
+	"Core pattern is not 'core', uses pid is disabled or " \
+	"Run with env \$IRLA_SMALL_DIR set to dir with max 100MB space" \
+	"Test requires 'have_lock_order'" \
+	"Required NUMA support"	\
+	"Need Group Replication plugin" \
+	"Need GROUP_REPLICATION plugin" \
+	"Needs Group Replication plugin" \
+        "Tests using mysqld_safe skipped." \
+        "Test requires Group Replication with GTID assignment block size = 1" \
+        "Test requires that mysqld has cap_sys_admin" \
+        "Please install the perl Expect module" \
+        "null audit plugin requires that --plugin-dir "
+
+do
+	NS=`grep "$i" /tmp/TS.$$ | wc -l`
+	echo $i " @ " $NS | awk -F@ '{printf("        %-70s : %4d\n", $1, $2)}'
+	grep -v "$i" /tmp/TS1.$$ > /tmp/TS2.$$
+	cp /tmp/TS2.$$ /tmp/TS1.$$ 
+done
+
+	NFST=`cat /tmp/TS2.$$`
+	if [ "$NFST" != "" ]
+	then
+		echo
+		echo " Not Filtered skipped tests:"
+		echo $NFST
+	fi
+
+echo " "
+echo " FAILED:"
+	grep "^\[" $FILE | grep " fail " | awk '{if($1=="[")F=3;else F=2; printf("        %-62s\n", $F)}' | sort
+
+echo " "
+grep "^\[" $FILE | grep " pass " | awk '{S+=$NF} END{M=int(S/10^6);T=int((S-M*10^6)/10^3);U=S-M*10^6-T*10^3;printf(" Total time spent in passed tests: %3d.%03d.%03d   %ds %5f2h\n", M, T, U, S, S/1000./3600)}'
+echo " "
+
+rm /tmp/TS.$$ /tmp/TS1.$$ /tmp/TS2.$$
+done
+
+echo

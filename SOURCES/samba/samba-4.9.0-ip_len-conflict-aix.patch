@@ -1,0 +1,34 @@
+--- ./source3/smbd/sesssetup.c.orig	2018-07-12 10:23:36 +0200
++++ ./source3/smbd/sesssetup.c	2019-01-17 11:21:13 +0100
+@@ -482,7 +482,7 @@
+ 
+ struct shutdown_state {
+ 	const char *ip;
+-	size_t ip_len;
++	size_t ip_len1;
+ 	struct messaging_context *msg_ctx;
+ };
+ 
+@@ -517,10 +517,10 @@
+ 	}
+ 	addr_len = port_colon - addr;
+ 
+-	if ((addr_len != state->ip_len) ||
+-	    (strncmp(addr, state->ip, state->ip_len) != 0)) {
++	if ((addr_len != state->ip_len1) ||
++	    (strncmp(addr, state->ip, state->ip_len1) != 0)) {
+ 		DEBUG(10, ("%s (%zu) does not match %s (%zu)\n",
+-			   state->ip, state->ip_len, addr, addr_len));
++			   state->ip, state->ip_len1, addr, addr_len));
+ 		return 0;
+ 	}
+ 
+@@ -554,7 +554,7 @@
+ 		if (port_colon == NULL) {
+ 			return;
+ 		}
+-		state.ip_len = port_colon - addr;
++		state.ip_len1 = port_colon - addr;
+ 		state.msg_ctx = sconn->msg_ctx;
+ 		smbXsrv_session_global_traverse(shutdown_other_smbds, &state);
+ 		TALLOC_FREE(addr);

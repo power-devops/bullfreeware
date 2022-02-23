@@ -1,0 +1,41 @@
+--- ./engines/filestat.c.orig	2020-07-16 10:28:45 +0200
++++ ./engines/filestat.c	2020-07-16 10:29:35 +0200
+@@ -97,7 +97,7 @@
+ #ifndef WIN32
+ 		abspath = realpath(f->file_name, NULL);
+ 		if (abspath) {
+-			ret = statx(-1, abspath, 0, STATX_ALL, &statxbuf);
++			ret = statx_fio(-1, abspath, 0, STATX_ALL, &statxbuf);
+ 			free(abspath);
+ 		} else
+ 			ret = -1;
+--- ./oslib/statx.h.orig	2020-07-16 10:26:52 +0200
++++ ./oslib/statx.h	2020-07-16 10:30:12 +0200
+@@ -9,6 +9,6 @@
+ {
+ };
+ #endif
+-int statx(int dfd, const char *pathname, int flags, unsigned int mask,
++int statx_fio(int dfd, const char *pathname, int flags, unsigned int mask,
+ 	  struct statx *buffer);
+ #endif
+--- ./oslib/statx.c.orig	2020-07-16 10:28:55 +0200
++++ ./oslib/statx.c	2020-07-16 10:30:47 +0200
+@@ -5,7 +5,7 @@
+ #include <unistd.h>
+ #include <sys/syscall.h>
+ 
+-int statx(int dfd, const char *pathname, int flags, unsigned int mask,
++int statx_fio(int dfd, const char *pathname, int flags, unsigned int mask,
+ 	  struct statx *buffer)
+ {
+ 	return syscall(__NR_statx, dfd, pathname, flags, mask, buffer);
+@@ -13,7 +13,7 @@
+ #else
+ #include <errno.h>
+ 
+-int statx(int dfd, const char *pathname, int flags, unsigned int mask,
++int statx_fio(int dfd, const char *pathname, int flags, unsigned int mask,
+ 	  struct statx *buffer)
+ {
+ 	errno = EINVAL;

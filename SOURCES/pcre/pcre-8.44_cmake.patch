@@ -1,0 +1,70 @@
+--- ./CMakeLists.txt.cmake	2017-01-23 17:33:46 +0100
++++ ./CMakeLists.txt	2020-09-08 12:08:28 +0200
+@@ -190,6 +190,12 @@
+          OFF)
+ ENDIF(MINGW)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  OPTION(NON_STANDARD_LIB_SUFFIX
++         "ON=Shared libraries built will be named libpcre-0.so, etc., instead of libpcre.so, etc."
++         OFF)
++ENDIF()
++
+ IF(MSVC)
+   OPTION(PCRE_STATIC_RUNTIME
+ 	"ON=Compile against the static runtime (/MT)."
+@@ -627,6 +633,15 @@
+ SET(targets ${targets} pcreposix)
+ TARGET_LINK_LIBRARIES(pcreposix pcre)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre
++                        PROPERTIES SOVERSION 1
++    )
++    SET_TARGET_PROPERTIES(pcreposix
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre pcreposix
+@@ -647,6 +662,12 @@
+ ADD_LIBRARY(pcre16 ${PCRE_HEADERS} ${PCRE16_SOURCES} ${PROJECT_BINARY_DIR}/config.h)
+ SET(targets ${targets} pcre16)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre16
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre16
+@@ -667,6 +688,12 @@
+ ADD_LIBRARY(pcre32 ${PCRE_HEADERS} ${PCRE32_SOURCES} ${PROJECT_BINARY_DIR}/config.h)
+ SET(targets ${targets} pcre32)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre32
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre32
+@@ -689,6 +716,12 @@
+ SET(targets ${targets} pcrecpp)
+ TARGET_LINK_LIBRARIES(pcrecpp pcre)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcrecpp
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+   IF(MINGW AND NOT PCRE_STATIC)
+     IF(NON_STANDARD_LIB_PREFIX)
+       SET_TARGET_PROPERTIES(pcrecpp

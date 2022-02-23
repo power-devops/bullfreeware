@@ -1,0 +1,119 @@
+From f2402ea18c8587dab261cd724ef62fd7f6bcc8ec Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Thu, 4 Jan 2018 14:35:12 -0500
+Subject: [PATCH] Add k5_buf_add_vfmt to k5buf interface
+
+(cherry picked from commit f05766469efc2a055085c0bcf9d40c4cdf47fe36)
+---
+ src/include/k5-buf.h                          |  8 ++++++
+ src/util/support/k5buf.c                      | 26 +++++++++++--------
+ src/util/support/libkrb5support-fixed.exports |  1 +
+ 3 files changed, 24 insertions(+), 11 deletions(-)
+
+diff --git a/src/include/k5-buf.h b/src/include/k5-buf.h
+index f3207bd09..1223916a6 100644
+--- a/src/include/k5-buf.h
++++ b/src/include/k5-buf.h
+@@ -76,6 +76,14 @@ void k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+ #endif
+     ;
+ 
++/* Add sprintf-style formatted data to BUF, with a va_list.  The value of ap is
++ * undefined after the call. */
++void k5_buf_add_vfmt(struct k5buf *buf, const char *fmt, va_list ap)
++#if !defined(__cplusplus) && (__GNUC__ > 2)
++    __attribute__((__format__(__printf__, 2, 0)))
++#endif
++    ;
++
+ /* Extend the length of buf by len and return a pointer to the reserved space,
+  * to be filled in by the caller.  Return NULL on error. */
+ void *k5_buf_get_space(struct k5buf *buf, size_t len);
+diff --git a/src/util/support/k5buf.c b/src/util/support/k5buf.c
+index f619f6a48..35978f238 100644
+--- a/src/util/support/k5buf.c
++++ b/src/util/support/k5buf.c
+@@ -141,9 +141,9 @@ k5_buf_add_len(struct k5buf *buf, const void *data, size_t len)
+ }
+ 
+ void
+-k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
++k5_buf_add_vfmt(struct k5buf *buf, const char *fmt, va_list ap)
+ {
+-    va_list ap;
++    va_list apcopy;
+     int r;
+     size_t remaining;
+     char *tmp;
+@@ -154,9 +154,7 @@ k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+ 
+     if (buf->buftype == K5BUF_FIXED) {
+         /* Format the data directly into the fixed buffer. */
+-        va_start(ap, fmt);
+         r = vsnprintf(endptr(buf), remaining, fmt, ap);
+-        va_end(ap);
+         if (SNPRINTF_OVERFLOW(r, remaining))
+             set_error(buf);
+         else
+@@ -166,9 +164,9 @@ k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+ 
+     /* Optimistically format the data directly into the dynamic buffer. */
+     assert(buf->buftype == K5BUF_DYNAMIC);
+-    va_start(ap, fmt);
+-    r = vsnprintf(endptr(buf), remaining, fmt, ap);
+-    va_end(ap);
++    va_copy(apcopy, ap);
++    r = vsnprintf(endptr(buf), remaining, fmt, apcopy);
++    va_end(apcopy);
+     if (!SNPRINTF_OVERFLOW(r, remaining)) {
+         buf->len += (unsigned int) r;
+         return;
+@@ -179,9 +177,7 @@ k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+         if (!ensure_space(buf, r))
+             return;
+         remaining = buf->space - buf->len;
+-        va_start(ap, fmt);
+         r = vsnprintf(endptr(buf), remaining, fmt, ap);
+-        va_end(ap);
+         if (SNPRINTF_OVERFLOW(r, remaining))  /* Shouldn't ever happen. */
+             k5_buf_free(buf);
+         else
+@@ -191,9 +187,7 @@ k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+ 
+     /* It's a pre-C99 snprintf implementation, or something else went wrong.
+      * Fall back to asprintf. */
+-    va_start(ap, fmt);
+     r = vasprintf(&tmp, fmt, ap);
+-    va_end(ap);
+     if (r < 0) {
+         k5_buf_free(buf);
+         return;
+@@ -206,6 +200,16 @@ k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
+     free(tmp);
+ }
+ 
++void
++k5_buf_add_fmt(struct k5buf *buf, const char *fmt, ...)
++{
++    va_list ap;
++
++    va_start(ap, fmt);
++    k5_buf_add_vfmt(buf, fmt, ap);
++    va_end(ap);
++}
++
+ void *
+ k5_buf_get_space(struct k5buf *buf, size_t len)
+ {
+diff --git a/src/util/support/libkrb5support-fixed.exports b/src/util/support/libkrb5support-fixed.exports
+index 30c946e7e..cb9bf0826 100644
+--- a/src/util/support/libkrb5support-fixed.exports
++++ b/src/util/support/libkrb5support-fixed.exports
+@@ -6,6 +6,7 @@ k5_buf_init_dynamic
+ k5_buf_add
+ k5_buf_add_len
+ k5_buf_add_fmt
++k5_buf_add_vfmt
+ k5_buf_get_space
+ k5_buf_truncate
+ k5_buf_status

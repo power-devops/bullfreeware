@@ -1,0 +1,37 @@
+Index: Python-2.7.6/Lib/test/regrtest.py
+===================================================================
+--- Python-2.7.6.orig/Lib/test/regrtest.py	2013-04-26 09:53:41.000000000 +0200
++++ Python-2.7.6/Lib/test/regrtest.py	2013-04-26 09:54:40.000000000 +0200
+@@ -1397,22 +1397,10 @@
+         """,
+     'aix5':
+         """
+-        test_bsddb
+-        test_bsddb185
+-        test_bsddb3
+-        test_bz2
+         test_dl
+         test_epoll
+-        test_gdbm
+-        test_gzip
+         test_kqueue
+         test_ossaudiodev
+-        test_tcl
+-        test_tk
+-        test_ttk_guionly
+-        test_ttk_textonly
+-        test_zipimport
+-        test_zlib
+         """,
+     'openbsd3':
+         """
+@@ -1459,6 +1447,9 @@
+ _expectations['freebsd7'] = _expectations['freebsd4']
+ _expectations['freebsd8'] = _expectations['freebsd4']
+ 
++_expectations['aix6'] = _expectations['aix5']
++_expectations['aix7'] = _expectations['aix5']
++
+ class _ExpectedSkips:
+     def __init__(self):
+         import os.path

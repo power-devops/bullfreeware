@@ -1,0 +1,14 @@
+--- ./run-command.c.ORIGIN	2019-03-13 18:05:58 +0100
++++ ./run-command.c	2019-03-13 18:39:06 +0100
+@@ -1276,7 +1276,11 @@
+ 
+ 	strbuf_reset(&path);
+ 	strbuf_git_path(&path, "hooks/%s", name);
++#if defined(_AIX)
++	if (accessx(path.buf, X_OK, ACC_OTHERS) < 0) {
++#else
+ 	if (access(path.buf, X_OK) < 0) {
++#endif
+ 		int err = errno;
+ 
+ #ifdef STRIP_EXTENSION

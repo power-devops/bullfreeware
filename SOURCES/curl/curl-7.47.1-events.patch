@@ -1,0 +1,21 @@
+Index: curl-7.43.0/include/curl/multi.h
+===================================================================
+--- curl-7.43.0.orig/include/curl/multi.h	2015-06-12 14:57:28.000000000 +0200
++++ curl-7.43.0/include/curl/multi.h	2015-07-01 10:49:06.000000000 +0200
+@@ -105,8 +105,15 @@
+ 
+ struct curl_waitfd {
+   curl_socket_t fd;
+-  short events;
++#ifdef __64bit__
++  short events;  /* requested events */
+   short revents; /* not supported yet */
++#else
++  short reqevents; /* file descriptor or file ptr  */
++  short rtnevents; /* returned events              */
++#define events  reqevents /* SVR3,4 pollfd member name    */
++#define revents rtnevents /* SVR3,4 pollfd member name    */
++#endif
+ };
+ 
+ /*

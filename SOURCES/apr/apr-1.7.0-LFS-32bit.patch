@@ -1,0 +1,137 @@
+--- ./test/testatomic.c	2018-09-17 20:20:29 +0200
++++ ./test/testatomic.c	2020-02-11 14:51:43 +0100
+@@ -229,7 +229,7 @@
+     str = apr_psprintf(p, "zero wrap failed: -1 + 1 = %d", y32);
+     ABTS_ASSERT(tc, str, y32 == 0);
+ }
+-
++/*
+ static void test_set64(abts_case *tc, void *data)
+ {
+     apr_uint64_t y64;
+@@ -345,7 +345,7 @@
+     str = apr_psprintf(p, "zero wrap failed: -1 + 1 = %lu", y64);
+     ABTS_ASSERT(tc, str, y64 == 0);
+ }
+-
++*/
+ 
+ #if APR_HAS_THREADS
+ 
+@@ -623,6 +623,7 @@
+     ABTS_ASSERT(tc, "Failed creating threads", rv == APR_SUCCESS);
+ }
+ 
++/*
+ void *APR_THREAD_FUNC thread_func_mutex64(apr_thread_t *thd, void *data)
+ {
+     int i;
+@@ -818,7 +819,7 @@
+     rv = apr_thread_mutex_create(&thread_lock64, APR_THREAD_MUTEX_DEFAULT, p);
+     APR_ASSERT_SUCCESS(tc, "Could not create lock", rv);
+ 
+-    /* get ready */
++    // get ready
+     for (i = 0; i < NUM_THREADS; i++) {
+         tbox[i].tc = tc;
+         tbox[i].mem = &count;
+@@ -834,7 +835,7 @@
+     tbox[1].func = busyloop_sub64;
+ 
+     tbox[2].preval = 2979;
+-    tbox[2].postval = 0; /* not used */
++    tbox[2].postval = 0; // not used
+     tbox[2].func = busyloop_inc64;
+ 
+     tbox[3].preval = 2980;
+@@ -842,7 +843,7 @@
+     tbox[3].func = busyloop_set64;
+ 
+     tbox[4].preval = 16384;
+-    tbox[4].postval = 0; /* not used */
++    tbox[4].postval = 0; // not used
+     tbox[4].func = busyloop_dec64;
+ 
+     tbox[5].preval = 16383;
+@@ -850,17 +851,17 @@
+     tbox[5].func = busyloop_cas64;
+ 
+     tbox[6].preval = 1048576;
+-    tbox[6].postval = 98; /* goto tbox[0] */
++    tbox[6].postval = 98; // goto tbox[0]
+     tbox[6].func = busyloop_xchg64;
+ 
+-    /* get set */
++    // get set
+     for (i = 0; i < NUM_THREADS; i++) {
+         rv = apr_thread_create(&thread[i], NULL, thread_func_busyloop64,
+                                &tbox[i], p);
+         ABTS_ASSERT(tc, "Failed creating thread", rv == APR_SUCCESS);
+     }
+ 
+-    /* go! */
++    // go!
+     apr_atomic_set64(tbox->mem, 98);
+ 
+     for (i = 0; i < NUM_THREADS; i++) {
+@@ -875,6 +876,7 @@
+     rv = apr_thread_mutex_destroy(thread_lock64);
+     ABTS_ASSERT(tc, "Failed creating threads", rv == APR_SUCCESS);
+ }
++*/
+ 
+ #endif /* !APR_HAS_THREADS */
+ 
+@@ -900,22 +902,22 @@
+     abts_run_test(suite, test_set_add_inc_sub, NULL);
+     abts_run_test(suite, test_wrap_zero, NULL);
+     abts_run_test(suite, test_inc_neg1, NULL);
+-    abts_run_test(suite, test_set64, NULL);
+-    abts_run_test(suite, test_read64, NULL);
+-    abts_run_test(suite, test_dec64, NULL);
+-    abts_run_test(suite, test_xchg64, NULL);
+-    abts_run_test(suite, test_add64, NULL);
+-    abts_run_test(suite, test_add64_neg, NULL);
+-    abts_run_test(suite, test_inc64, NULL);
+-    abts_run_test(suite, test_set_add_inc_sub64, NULL);
+-    abts_run_test(suite, test_wrap_zero64, NULL);
+-    abts_run_test(suite, test_inc_neg164, NULL);
++//    abts_run_test(suite, test_set64, NULL);
++//    abts_run_test(suite, test_read64, NULL);
++//    abts_run_test(suite, test_dec64, NULL);
++//    abts_run_test(suite, test_xchg64, NULL);
++//    abts_run_test(suite, test_add64, NULL);
++//    abts_run_test(suite, test_add64_neg, NULL);
++//    abts_run_test(suite, test_inc64, NULL);
++//    abts_run_test(suite, test_set_add_inc_sub64, NULL);
++//    abts_run_test(suite, test_wrap_zero64, NULL);
++//    abts_run_test(suite, test_inc_neg164, NULL);
+ 
+ #if APR_HAS_THREADS
+     abts_run_test(suite, test_atomics_threaded, NULL);
+-    abts_run_test(suite, test_atomics_threaded64, NULL);
++//    abts_run_test(suite, test_atomics_threaded64, NULL);
+     abts_run_test(suite, test_atomics_busyloop_threaded, NULL);
+-    abts_run_test(suite, test_atomics_busyloop_threaded64, NULL);
++//    abts_run_test(suite, test_atomics_busyloop_threaded64, NULL);
+ #endif
+ 
+     return suite;
+--- ./atomic/unix/builtins64.c.32bits	2018-09-17 20:20:29 +0200
++++ ./atomic/unix/builtins64.c	2020-02-11 15:01:26 +0100
+@@ -17,7 +17,7 @@
+ #include "apr_arch_atomic.h"
+ 
+ #ifdef USE_ATOMICS_BUILTINS
+-
++/*
+ APR_DECLARE(apr_uint64_t) apr_atomic_read64(volatile apr_uint64_t *mem)
+ {
+     return *mem;
+@@ -60,5 +60,5 @@
+ 
+     return __sync_lock_test_and_set(mem, val);
+ }
+-
++*/
+ #endif /* USE_ATOMICS_BUILTINS */

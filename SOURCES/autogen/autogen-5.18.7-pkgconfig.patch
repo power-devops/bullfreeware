@@ -1,0 +1,11 @@
+--- old/autoopts/mk-tpl-config.sh	2016-09-15 17:31:49 +0200
++++ new/autoopts/mk-tpl-config.sh	2016-09-15 17:32:36 +0200
+@@ -191,7 +191,7 @@
+ 
+ find_libguiledir() {
+     guile_scm_h=
+-    libguiledir=`exec 2>/dev/null ; guile-config info includedir`
++    libguiledir=`exec 2>/dev/null ; pkg-config info includedir`
+ 
+     if test -d "${libguiledir}"
+     then

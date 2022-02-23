@@ -1,0 +1,50 @@
+--- ./libgo/go/runtime/lfstack_64bit.go	2017-04-12 15:20:31 -0500
++++ ./libgo/go/runtime/lfstack_64bit.go	2017-04-12 15:24:36 -0500
+@@ -1,7 +1,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build amd64 arm64 mips64 mips64le ppc64 ppc64le s390x arm64be alpha mipsn64 sparc64
++// +build amd64 arm64 mips64 mips64le !aix,ppc64 ppc64le s390x arm64be alpha mipsn64 sparc64
+
+ package runtime
+ 
+--- ./libgo/go/runtime/aix_lfstack_64bit.go	2017-04-12 15:20:31 -0500
++++ ./libgo/go/runtime/aix_lfstack_64bit.go	2017-04-12 15:24:36 -0500
+@@ -0,0 +1,35 @@
++// Copyright 2014 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix,ppc64
++
++package runtime
++
++import "unsafe"
++
++const (
++	// addrBits is the number of bits needed to represent a virtual address.
++	//
++	// 64-bit processes use the range 0x0700000000000000-0x07FFFFFFFFFFFFFF
++        // for mmap on AIX.
++	//
++	// XXX we could substract 0x0700000000000000 from the address which
++        // XXX would leave us with 8 bits at the top and 3 bits at the bottom.
++        // XXX But this code is also used for addresses not allocated with mmap
++        // XXX starting with 0x0a00000000000000 which leaves us even less space!
++	addrBits = 60
++
++	// In addition to the 4 bits taken from the top, we can take 3 from the
++	// bottom, because node must be pointer-aligned, giving a total of 7 bits
++	// of count.
++	cntBits = 64 - addrBits + 3
++)
++
++func lfstackPack(node *lfnode, cnt uintptr) uint64 {
++	return uint64(uintptr(unsafe.Pointer(node)))<<(64-addrBits) | uint64(cnt&(1<<cntBits-1))
++}
++
++func lfstackUnpack(val uint64) *lfnode {
++	return (*lfnode)(unsafe.Pointer(uintptr(val >> cntBits << 3)))
++}
++

@@ -1,0 +1,16 @@
+diff -up sqlite-src-3070400/test/wal2.test.nodirsync sqlite-src-3070400/test/wal2.test
+--- sqlite-src-3070400/test/wal2.test.nodirsync	2010-12-09 13:49:43.000000000 +0200
++++ sqlite-src-3070400/test/wal2.test	2010-12-09 13:57:57.000000000 +0200
+@@ -1160,9 +1160,9 @@ if {$::tcl_platform(platform) == "unix"}
+ # Test that "PRAGMA checkpoint_fullsync" appears to be working.
+ #
+ foreach {tn sql reslist} {
+-  1 { }                                 {8 0 3 0 5 0}
+-  2 { PRAGMA checkpoint_fullfsync = 1 } {8 4 3 2 5 2}
+-  3 { PRAGMA checkpoint_fullfsync = 0 } {8 0 3 0 5 0}
++  1 { }                                 {7 0 3 0 5 0}
++  2 { PRAGMA checkpoint_fullfsync = 1 } {7 4 3 2 5 2}
++  3 { PRAGMA checkpoint_fullfsync = 0 } {7 0 3 0 5 0}
+ } {
+   faultsim_delete_and_reopen
+ 

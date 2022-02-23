@@ -1,0 +1,181 @@
+From e2170b295992cb7fdf115227a78028ac3780619f Mon Sep 17 00:00:00 2001
+From: Daiki Ueno <dueno@redhat.com>
+Date: Mon, 18 Feb 2019 14:53:49 +0100
+Subject: [PATCH] trust: Ignore unreadable content in anchors
+
+This amends eb503f3a1467f21a5ecc9ae84ae23b216afc102f.  Instead of
+failing C_FindObjectsInit, treat any errors internally and accumulates
+the successfully loaded certificates.
+
+Reported by Andrej Kvasnica in:
+https://bugzilla.redhat.com/show_bug.cgi?id=1675441
+---
+ trust/module.c      |  3 +-
+ trust/test-module.c | 77 +++++++++++++++++++++++++++++++++++++++++++++
+ trust/token.c       | 23 ++++++--------
+ 3 files changed, 88 insertions(+), 15 deletions(-)
+
+diff --git a/trust/module.c b/trust/module.c
+index 1722340..ec3333d 100644
+--- a/trust/module.c
++++ b/trust/module.c
+@@ -1198,8 +1198,7 @@ sys_C_FindObjectsInit (CK_SESSION_HANDLE handle,
+ 				indices[n++] = session->index;
+ 			if (want_token_objects) {
+ 				if (!session->loaded)
+-					if (p11_token_load (session->token) < 0)
+-						rv = CKR_FUNCTION_FAILED;
++					p11_token_load (session->token);
+ 				if (rv == CKR_OK) {
+ 					session->loaded = CK_TRUE;
+ 					indices[n++] = p11_token_index (session->token);
+diff --git a/trust/test-module.c b/trust/test-module.c
+index 1e8d812..4024d81 100644
+--- a/trust/test-module.c
++++ b/trust/test-module.c
+@@ -163,6 +163,80 @@ setup_writable (void *unused)
+ 	p11_parser_formats (test.parser, p11_parser_format_persist, NULL);
+ }
+ 
++/* This is similar to setup(), but it adds an unreadable content in
++ * the anchor directory. */
++static void
++setup_unreadable (void *unused)
++{
++	CK_C_INITIALIZE_ARGS args;
++	const char *paths;
++	char *p, *pp, *anchors;
++	FILE *f, *ff;
++	char buffer[4096];
++	char *arguments;
++	CK_ULONG count;
++	CK_RV rv;
++
++	memset (&test, 0, sizeof (test));
++
++	/* This is the entry point of the trust module, linked to this test */
++	rv = C_GetFunctionList (&test.module);
++	assert (rv == CKR_OK);
++
++	test.directory = p11_test_directory ("test-module");
++	anchors = p11_path_build (test.directory, "anchors", NULL);
++#ifdef OS_UNIX
++	if (mkdir (anchors, S_IRWXU) < 0)
++#else
++	if (mkdir (anchors) < 0)
++#endif
++		assert_fail ("mkdir()", anchors);
++
++	p = p11_path_build (anchors, "unreadable", NULL);
++	f = fopen (p, "w");
++	fwrite ("foo", 3, 1, f);
++	fclose (f);
++	chmod (p, 0);
++	free (p);
++
++	pp = p11_path_build (anchors, "thawte", NULL);
++	ff = fopen (pp, "w");
++	f = fopen (SRCDIR "/trust/fixtures/thawte.pem", "r");
++	while (!feof (f)) {
++		size_t size;
++		size = fread (buffer, 1, sizeof (buffer), f);
++		if (ferror (f))
++			assert_fail ("fread()",
++				     SRCDIR "/trust/fixtures/thawte.pem");
++		fwrite (buffer, 1, size, ff);
++		if (ferror (ff))
++			assert_fail ("write()", pp);
++	}
++	free (pp);
++	fclose (ff);
++	fclose (f);
++	free (anchors);
++
++	memset (&args, 0, sizeof (args));
++	paths = SRCDIR "/trust/input" P11_PATH_SEP \
++		SRCDIR "/trust/fixtures/self-signed-with-ku.der";
++	if (asprintf (&arguments, "paths='%s%c%s'",
++		      paths, P11_PATH_SEP_C, test.directory) < 0)
++		assert (false && "not reached");
++	args.pReserved = arguments;
++	args.flags = CKF_OS_LOCKING_OK;
++
++	rv = test.module->C_Initialize (&args);
++	assert (rv == CKR_OK);
++
++	free (arguments);
++
++	count = NUM_SLOTS;
++	rv = test.module->C_GetSlotList (CK_TRUE, test.slots, &count);
++	assert (rv == CKR_OK);
++	assert (count == NUM_SLOTS);
++}
++
+ static void
+ test_get_slot_list (void)
+ {
+@@ -1324,5 +1398,8 @@ main (int argc,
+ 	p11_fixture (NULL, NULL);
+ 	p11_test (test_token_write_protected, "/module/token-write-protected");
+ 
++	p11_fixture (setup_unreadable, teardown);
++	p11_test (test_find_certificates, "/module/unreadable");
++
+ 	return p11_test_run (argc, argv);
+ }
+diff --git a/trust/token.c b/trust/token.c
+index b91a1d0..8c75d06 100644
+--- a/trust/token.c
++++ b/trust/token.c
+@@ -266,8 +266,8 @@ loader_load_directory (p11_token *token,
+ 		return_val_if_fail (path != NULL, -1);
+ 
+ 		ret = loader_load_if_file (token, path);
+-		return_val_if_fail (ret >=0, -1);
+-		total += ret;
++		if (ret >= 0)
++			total += ret;
+ 
+ 		/* Make note that this file was seen */
+ 		p11_dict_remove (present, path);
+@@ -328,8 +328,8 @@ loader_load_path (p11_token *token,
+ 			p11_dict_iterate (present, &iter);
+ 			while (p11_dict_next (&iter, (void **)&filename, NULL)) {
+ 				ret = loader_load_if_file (token, filename);
+-				return_val_if_fail (ret >= 0, ret);
+-				total += ret;
++				if (ret >= 0)
++					total += ret;
+ 			}
+ 		}
+ 
+@@ -377,20 +377,17 @@ p11_token_load (p11_token *token)
+ 	int ret;
+ 
+ 	ret = loader_load_path (token, token->path, &is_dir);
+-	if (ret < 0)
+-		return -1;
+-	total += ret;
++	if (ret >= 0)
++		total += ret;
+ 
+ 	if (is_dir) {
+ 		ret = loader_load_path (token, token->anchors, &is_dir);
+-		if (ret < 0)
+-			return -1;
+-		total += ret;
++		if (ret >= 0)
++			total += ret;
+ 
+ 		ret = loader_load_path (token, token->blacklist, &is_dir);
+-		if (ret < 0)
+-			return -1;
+-		total += ret;
++		if (ret >= 0)
++			total += ret;
+ 	}
+ 
+ 	return total;
+-- 
+2.20.1
+

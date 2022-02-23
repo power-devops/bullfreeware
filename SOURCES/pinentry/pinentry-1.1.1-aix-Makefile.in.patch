@@ -1,0 +1,11 @@
+--- ./pinentry/Makefile.in.ORIGIN	2021-06-02 16:20:00 +0200
++++ ./pinentry/Makefile.in	2021-06-02 16:20:37 +0200
+@@ -134,7 +134,7 @@
+ 	libpinentry_curses_a-pinentry-curses.$(OBJEXT)
+ libpinentry_curses_a_OBJECTS = $(am_libpinentry_curses_a_OBJECTS)
+ libpinentry_a_AR = $(AR) $(ARFLAGS)
+-libpinentry_a_LIBADD =
++libpinentry_a_LIBADD = ../getopt_long.o
+ am__libpinentry_a_SOURCES_DIST = pinentry.h pinentry.c argparse.c \
+ 	argparse.h password-cache.h password-cache.c pinentry-emacs.h \
+ 	pinentry-emacs.c

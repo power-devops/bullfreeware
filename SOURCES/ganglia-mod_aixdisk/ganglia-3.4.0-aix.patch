@@ -1,0 +1,782 @@
+*** libmetrics/aix/metrics.c.ORIG	Wed Oct 12 22:46:33 2011
+--- libmetrics/aix/metrics.c	Thu Oct 13 21:42:35 2011
+***************
+*** 23,28 ****
+--- 23,33 ----
+   *
+   *  Fix proc_total, proc_run, swap_free and swap_total. Implement mem_cached (MKN, 16-Jan-2006)
+   *
++  *  Michael Perzl (michael@perzl.org), Thu, Oct 13 2011
++  *  - Rewrote the CPU statistics completely similar to the following example:
++  *    http://publib.boulder.ibm.com/infocenter/aix/v6r1/index.jsp?topic=%2Fcom.ibm.aix.prftools%2Fdoc%2Fprftools%2Fprftools07.htm
++  *    If you define "-DDONATE_ENABLED" you need to compile on AIX 5.3 TL 06 or higher
++  *  - Rewrote the "machine_type_func()" function
+   */
+  
+  #include "interface.h"
+***************
+*** 40,51 ****
+  #include <time.h>
+  
+  #include <libperfstat.h>
+  
+  #include "libmetrics.h"
+  
+  
+- 
+- 
+  struct Class *My_CLASS;
+  
+  struct product {
+--- 45,55 ----
+  #include <time.h>
+  
+  #include <libperfstat.h>
++ #include <sys/systemcfg.h>
+  
+  #include "libmetrics.h"
+  
+  
+  struct Class *My_CLASS;
+  
+  struct product {
+***************
+*** 88,100 ****
+  #define MEM_KB_PER_PAGE (4096/1024)
+  
+  
+! struct cpu_info {
+!   time_t timestamp;  
+!   u_longlong_t total_ticks;
+!   u_longlong_t user;        /*  raw total number of clock ticks spent in user mode */
+!   u_longlong_t sys;         /* raw total number of clock ticks spent in system mode */
+!   u_longlong_t idle;        /* raw total number of clock ticks spent idle */
+!   u_longlong_t wait;        /* raw total number of clock ticks spent waiting for I/O */
+  };
+  
+  struct net_stat{
+--- 92,174 ----
+  #define MEM_KB_PER_PAGE (4096/1024)
+  
+  
+! /* values for the implementation field for POWER_PC architectures */
+! 
+! #ifndef POWER_4
+! #define POWER_4         0x0800          /* 4 class CPU */
+! #endif
+! #ifndef POWER_5
+! #define POWER_5         0x2000          /* 5 class CPU */
+! #endif
+! #ifndef POWER_6
+! #define POWER_6         0x4000          /* 6 class CPU */
+! #endif
+! #ifndef POWER_7
+! #define POWER_7         0x8000          /* 7 class CPU */
+! #endif
+! 
+! 
+! /* values for the version field for POWER_PC architectures */
+! 
+! #ifndef PV_4
+! #define PV_4            0x0C0000        /* Power PC 4 */
+! #endif
+! #ifndef PV_RS64IV
+! #define PV_RS64IV       PV_4            /* Power PC 4 */
+! #endif
+! #ifndef PV_4_2
+! #define PV_4_2          0x0E0000        /* Power PC 4 */
+! #endif
+! #ifndef PV_4_3
+! #define PV_4_3          0x0E0001        /* Power PC 4 */
+! #endif
+! #ifndef PV_5
+! #define PV_5            0x0F0000        /* Power PC 5 */
+! #endif
+! #ifndef PV_5_2
+! #define PV_5_2          0x0F0001        /* Power PC 5 */
+! #endif
+! #ifndef PV_5_3
+! #define PV_5_3          0x0F0002        /* Power PC 5 */
+! #endif
+! #ifndef PV_6
+! #define PV_6            0x100000        /* Power PC 6 */
+! #endif
+! #ifndef PV_6_1
+! #define PV_6_1          0x100001        /* Power PC 6 DD1.x */
+! #endif
+! #ifndef PV_7
+! #define PV_7            0x200000        /* Power PC 7 */
+! #endif
+! #ifndef PV_7_1
+! #define PV_7_1          0x200001        /* Power PC 7+ */
+! #endif
+! 
+! 
+! /*
+!  * The following Compat definitions indicate that the processor is running in
+!  * a mode that is compatible with the processor family as indicated by the
+!  * implementation field of the _system_configuration structure.  When running
+!  * in a compatible mode, BookIV processor features of that processor family
+!  * can not be assumed to be present or functional.
+!  */
+! #ifndef PV_5_Compat
+! #define PV_5_Compat     0x0F8000        /* Power PC 5 */
+! #endif
+! #ifndef PV_6_Compat
+! #define PV_6_Compat     0x108000        /* Power PC 6 */
+! #endif
+! #ifndef PV_7_Compat
+! #define PV_7_Compat     0x208000        /* Power PC 7 */
+! #endif
+! 
+! 
+! struct cpu_info_t {
+!   double timestamp;  
+!   float  user;     /* percentage spent in user mode */
+!   float  sys;      /* percentage spent in system mode */
+!   float  idle;     /* percentage spent idle */
+!   float  wait;     /* percentage spent waiting for I/O */
+  };
+  
+  struct net_stat{
+***************
+*** 106,128 ****
+  
+  
+  
+- 
+- 
+- 
+  int ci_flag=0;
+  int ni_flag=0;
+  
+- perfstat_cpu_total_t cpu_total_buffer;
+  perfstat_netinterface_total_t ninfo[2],*last_ninfo, *cur_ninfo ;
+  
+  
+! struct cpu_info cpu_info[2], 
+!   *last_cpu_info,
+!   *cur_cpu_info;
+  
+  
+-   
+- 
+  int aixver, aixrel, aixlev, aixfix;
+  static time_t boottime;
+  
+--- 180,194 ----
+  
+  
+  
+  int ci_flag=0;
+  int ni_flag=0;
+  
+  perfstat_netinterface_total_t ninfo[2],*last_ninfo, *cur_ninfo ;
+  
+  
+! struct cpu_info_t cpu_info;
+  
+  
+  int aixver, aixrel, aixlev, aixfix;
+  static time_t boottime;
+  
+***************
+*** 130,143 ****
+  
+  /* Prototypes
+   */
+! void  update_ifdata(void);
+  void get_cpuinfo(void);
+  int bos_level(int *aix_version, int *aix_release, int *aix_level, int *aix_fix);
+  
+  
+- 
+- 
+- 
+  /*
+   * This function is called only once by the gmond.  Use to 
+   * initialize data structures, etc or just return SYNAPSE_SUCCESS;
+--- 196,206 ----
+  
+  /* Prototypes
+   */
+! void update_ifdata(void);
+  void get_cpuinfo(void);
+  int bos_level(int *aix_version, int *aix_release, int *aix_level, int *aix_fix);
+  
+  
+  /*
+   * This function is called only once by the gmond.  Use to 
+   * initialize data structures, etc or just return SYNAPSE_SUCCESS;
+***************
+*** 162,176 ****
+        isVIOserver = 0;
+  
+  
+-    last_cpu_info = &cpu_info[ci_flag];
+-    ci_flag^=1;
+-    cur_cpu_info  = &cpu_info[ci_flag];
+-    cur_cpu_info->total_ticks = 0;
+-    
+     update_ifdata();
+!    
+     get_cpuinfo();
+!    sleep(CPU_INFO_TIMEOUT+1);
+     get_cpuinfo();
+  
+     update_ifdata();
+--- 225,237 ----
+        isVIOserver = 0;
+  
+  
+     update_ifdata();
+! 
+!    val = boottime_func();
+!    boottime = val.uint32; 
+!    cpu_info.timestamp = 0.0;
+     get_cpuinfo();
+!    sleep(CPU_INFO_TIMEOUT + 1);
+     get_cpuinfo();
+  
+     update_ifdata();
+***************
+*** 236,251 ****
+  machine_type_func ( void )
+  {
+     g_val_t val;
+-    perfstat_cpu_total_t c;
+  
+-    if (perfstat_cpu_total (NULL, &c, sizeof( perfstat_cpu_total_t), 1) == -1)
+-       strcpy (val.str, "unknown");
+-    else
+-       strncpy( val.str, c.description, MAX_G_STRING_SIZE );
+  
+!    return val;
+  }
+  
+  g_val_t
+  os_name_func ( void )
+  {
+--- 297,381 ----
+  machine_type_func ( void )
+  {
+     g_val_t val;
+  
+  
+!    switch (_system_configuration.implementation)
+!    {
+!       case POWER_RS1: strcpy( val.str, "RS1 (POWER1)" );
+!                       break;
+!       case POWER_RSC: strcpy( val.str, "RSC" );
+!                       break;
+!       case POWER_RS2: strcpy( val.str, "RS2 (POWER2)" );
+!                       break;
+!       case POWER_601: strcpy( val.str, "601" );
+!                       break;
+!       case POWER_603: strcpy( val.str, "603" );
+!                       break;
+!       case POWER_604: strcpy( val.str, "604" );
+!                       break;
+!       case POWER_620: strcpy( val.str, "620" );
+!                       break;
+!       case POWER_630: strcpy( val.str, "630" );
+!                       break;
+!       case POWER_A35: strcpy( val.str, "A35" );
+!                       break;
+!       case POWER_RS64II: strcpy( val.str, "RS64-II" );
+!                          break;
+!       case POWER_RS64III: strcpy( val.str, "RS64-III" );
+!                           break;
+!       case POWER_4: switch (_system_configuration.version)
+!                     {
+!                        case PV_4:   strcpy( val.str, "POWER4 or RS64-IV" ); 
+!                                     break;
+!                        case PV_4_2: strcpy( val.str, "POWER4.2" ); 
+!                                     break;
+!                        case PV_4_3: strcpy( val.str, "POWER4.3" );
+!                                     break;
+!                        default:     strcpy (val.str, "POWER4 (unknown version)" );
+!                     }    
+!                     break;
+!       case POWER_MPC7450: strcpy( val.str, "POWER MPC7450" );
+!                           break;
+!       case POWER_5: switch (_system_configuration.version)
+!                     {
+!                        case PV_5:   strcpy( val.str, "POWER5" ); 
+!                                     break;
+!                        case PV_5_2: strcpy( val.str, "POWER5.2" ); 
+!                                     break;
+!                        case PV_5_3: strcpy( val.str, "POWER5.3" );
+!                                     break;
+!                        default:     strcpy (val.str, "POWER5 (unknown version)" );
+!                     }    
+!                     break;
+!       case POWER_6: switch (_system_configuration.version)
+!                     {
+!                        case PV_6:        strcpy( val.str, "POWER6" );
+!                                          break;
+!                        case PV_6_1:      strcpy( val.str, "POWER6.1" );
+!                                          break;
+!                        case PV_5_Compat: strcpy( val.str, "POWER6 in POWER5 mode" );
+!                                          break;
+!                        case PV_6_Compat: strcpy( val.str, "POWER6 in POWER6 mode" );
+!                                          break;
+!                        default:          strcpy( val.str, "POWER6 (unknown version)" );
+!                     }
+!                     break;
+!       case POWER_7: switch (_system_configuration.version)
+!                     {
+!                        case PV_7:        strcpy( val.str, "POWER7" );
+!                                          break;
+!                        case PV_7_Compat: strcpy( val.str, "POWER7 in POWER6 mode" );
+!                                          break;
+!                        default:          strcpy( val.str, "POWER7 (unknown version)" );
+!                     }
+!                     break;
+!       default: strcpy( val.str, "unknown" );
+!    }
+! 
+!    return( val );
+  }
+  
++ 
+  g_val_t
+  os_name_func ( void )
+  {
+***************
+*** 277,302 ****
+  }        
+  
+  
+! /* AIX  defines
+     CPU_IDLE, CPU_USER, CPU_SYS(CPU_KERNEL), CPU_WAIT
+     so no metrics for cpu_nice, or cpu_aidle
+  */
+  
+- 
+- #define CALC_CPUINFO(type) ((100.0*(cur_cpu_info->type - last_cpu_info->type))/(1.0*(cur_cpu_info->total_ticks - last_cpu_info->total_ticks)))
+- 
+  g_val_t
+! cpu_user_func ( void )
+  {
+     g_val_t val;
+     
+     
+     get_cpuinfo();
+!    
+!    val.f = CALC_CPUINFO(user);
+  
+!    if(val.f < 0) val.f = 0.0;
+!    return val;
+  }
+  
+  
+--- 407,427 ----
+  }        
+  
+  
+! /* AIX defines
+     CPU_IDLE, CPU_USER, CPU_SYS(CPU_KERNEL), CPU_WAIT
+     so no metrics for cpu_nice, or cpu_aidle
+  */
+  
+  g_val_t
+! cpu_user_func( void )
+  {
+     g_val_t val;
+     
+     
+     get_cpuinfo();
+!    val.f = cpu_info.user;
+  
+!    return( val );
+  }
+  
+  
+***************
+*** 304,388 ****
+  ** AIX does not have this
+  ** FIXME -- 
+  */
+  g_val_t
+! cpu_nice_func ( void )
+  {
+     g_val_t val;
+!    val.f = 0;
+!    return val;
+  }
+  
+  g_val_t 
+! cpu_system_func ( void )
+  {
+     g_val_t val;
+  
+     get_cpuinfo();
+!    val.f = CALC_CPUINFO(sys) ;
+!    if(val.f < 0) val.f = 0.0;
+!    return val;
+  }
+- g_val_t 
+  
+! cpu_wio_func ( void )
+  {
+     g_val_t val;
+     
+     get_cpuinfo();
+!    val.f = CALC_CPUINFO(wait);
+  
+! 
+!    if(val.f < 0) val.f = 0.0;
+!    return val;
+  }
+  
+  g_val_t 
+! cpu_idle_func ( void )
+  {
+     g_val_t val;
+  
+  
+     get_cpuinfo();
+!    val.f = CALC_CPUINFO(idle);
+! 
+  
+!    if(val.f < 0) val.f = 0.0;
+!    return val;
+  }
+  
+  /*
+  ** AIX does not have this
+  ** FIXME -- 
+  */
+  g_val_t 
+! cpu_aidle_func ( void )
+  {
+     g_val_t val;
+     val.f = 0.0;
+!    return val;
+  }
+  
+  /*
+  ** Don't know what it is 
+  ** FIXME -- 
+  */
+  g_val_t 
+! cpu_intr_func ( void )
+  {
+     g_val_t val;
+     val.f = 0.0;
+!    return val;
+  }
+  
+  /* Don't know what it is 
+  ** FIXME -- 
+  */
+  g_val_t 
+! cpu_sintr_func ( void )
+  {
+     g_val_t val;
+     val.f = 0.0;
+!    return val;
+  }
+  
+  
+--- 429,532 ----
+  ** AIX does not have this
+  ** FIXME -- 
+  */
++ 
+  g_val_t
+! cpu_nice_func( void )
+  {
+     g_val_t val;
+! 
+! 
+!    val.f = 0.0;
+! 
+!    return( val );
+  }
+  
++ 
+  g_val_t 
+! cpu_system_func( void )
+  {
+     g_val_t val;
+  
++ 
+     get_cpuinfo();
+!    val.f = cpu_info.sys;
+! 
+!    return( val );
+  }
+  
+! 
+! g_val_t 
+! cpu_wio_func( void )
+  {
+     g_val_t val;
++ 
+     
+     get_cpuinfo();
+!    val.f = cpu_info.wait;
+  
+!    return( val );
+  }
+  
++ 
+  g_val_t 
+! cpu_idle_func( void )
+  {
+     g_val_t val;
+  
+  
+     get_cpuinfo();
+!    val.f = cpu_info.idle;
+  
+!    return( val );
+  }
+  
++ 
+  /*
+  ** AIX does not have this
+  ** FIXME -- 
+  */
++ 
+  g_val_t 
+! cpu_aidle_func( void )
+  {
+     g_val_t val;
++ 
++ 
+     val.f = 0.0;
+! 
+!    return( val );
+  }
+  
++ 
+  /*
+  ** Don't know what it is 
+  ** FIXME -- 
+  */
+  g_val_t 
+! cpu_intr_func( void )
+  {
+     g_val_t val;
++ 
++ 
+     val.f = 0.0;
+! 
+!    return( val );
+  }
+  
++ 
+  /* Don't know what it is 
+  ** FIXME -- 
+  */
++ 
+  g_val_t 
+! cpu_sintr_func( void )
+  {
+     g_val_t val;
++ 
++ 
+     val.f = 0.0;
+! 
+!    return( val );
+  }
+  
+  
+***************
+*** 749,790 ****
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+! void get_cpuinfo() 
+! {
+!   u_longlong_t cpu_total;
+!   time_t new_time;
+  
+  
+!   new_time = time(NULL);
+  
+!   if (new_time - CPU_INFO_TIMEOUT > cur_cpu_info->timestamp ) 
+!     {
+  
+!       perfstat_cpu_total(NULL,  &cpu_total_buffer, sizeof(perfstat_cpu_total_t), 1);
+  
+  
+!       cpu_total = cpu_total_buffer.user +  cpu_total_buffer.sys  
+! 	+  cpu_total_buffer.idle +  cpu_total_buffer.wait;
+  
+!   
+!       last_cpu_info=&cpu_info[ci_flag];
+!       ci_flag^=1; 
+!       cur_cpu_info=&cpu_info[ci_flag];
+! 
+!       cur_cpu_info->timestamp   = new_time;
+!       cur_cpu_info->total_ticks = cpu_total;
+!       cur_cpu_info->user        = cpu_total_buffer.user;
+!       cur_cpu_info->sys         = cpu_total_buffer.sys;
+!       cur_cpu_info->idle        = cpu_total_buffer.idle;
+!       cur_cpu_info->wait        = cpu_total_buffer.wait;
+!     }
+! } /*      get_cpuinfo  */
+    
+  
+  
+--- 893,1042 ----
+  }
+  
+  
++ static void get_cpuinfo() 
++ {
++    double now;
++    u_longlong_t cpu_total;
++    u_longlong_t cpu_user, cpu_sys, cpu_idle, cpu_wait;
++    static u_longlong_t last_cpu_user, last_cpu_sys, last_cpu_idle, last_cpu_wait;
++    perfstat_cpu_total_t cpu_total_buffer;
++    struct timeval timeValue;
++    struct timezone timeZone;
++ #ifdef _AIX53
++    u_longlong_t time_base, delta_time_base;
++    static u_longlong_t last_time_base;
++    u_longlong_t entitled_purr, delta_purr, unused_purr;
++    u_longlong_t lcpu_user, lcpu_sys, lcpu_idle, lcpu_wait;
++    static u_longlong_t last_lcpu_user, last_lcpu_sys, last_lcpu_idle, last_lcpu_wait;
++    u_longlong_t busy_stolen_purr, idle_stolen_purr,
++                 idle_donated_purr, busy_donated_purr;
++    static u_longlong_t last_idle_donated_purr, last_busy_donated_purr,
++                        last_busy_stolen_purr, last_idle_stolen_purr;
++    double entitlement;
++    perfstat_partition_total_t lpar_total_buffer;
++ #endif
++ 
++ 
++    gettimeofday( &timeValue, &timeZone );
++    now = (double) (timeValue.tv_sec - boottime) + (timeValue.tv_usec / 1000000.0);
+  
++    if (now - CPU_INFO_TIMEOUT > cpu_info.timestamp)
++    {
++       perfstat_cpu_total(NULL, &cpu_total_buffer, sizeof(perfstat_cpu_total_t), 1);
+  
++ #ifdef _AIX53
++       perfstat_partition_total(NULL, &lpar_total_buffer, sizeof(perfstat_partition_total_t), 1);
+  
++       if ((_system_configuration.implementation == POWER_5) ||
++           (_system_configuration.implementation == POWER_6) ||
++           (_system_configuration.implementation == POWER_7) ||
++           ((_system_configuration.implementation == POWER_4) &&
++            (_system_configuration.version == PV_4_3)))        /* JS21 */
++       {
++          cpu_user = cpu_total_buffer.puser - last_cpu_user;
++          cpu_sys  = cpu_total_buffer.psys  - last_cpu_sys;
++          cpu_idle = cpu_total_buffer.pidle - last_cpu_idle;
++          cpu_wait = cpu_total_buffer.pwait - last_cpu_wait;
++ 
++          last_cpu_user = cpu_total_buffer.puser;
++          last_cpu_sys  = cpu_total_buffer.psys;
++          last_cpu_idle = cpu_total_buffer.pidle;
++          last_cpu_wait = cpu_total_buffer.pwait;
++ 
++          if (lpar_total_buffer.type.b.shared_enabled)
++          {
++             lcpu_user = cpu_total_buffer.user - last_lcpu_user;
++             lcpu_sys  = cpu_total_buffer.sys  - last_lcpu_sys;
++             lcpu_idle = cpu_total_buffer.idle - last_lcpu_idle;
++             lcpu_wait = cpu_total_buffer.wait - last_lcpu_wait;
++ 
++             last_lcpu_user = cpu_total_buffer.user;
++             last_lcpu_sys  = cpu_total_buffer.sys;
++             last_lcpu_idle = cpu_total_buffer.idle;
++             last_lcpu_wait = cpu_total_buffer.wait;
++ 
++             delta_purr = cpu_user + cpu_sys + cpu_idle + cpu_wait;
++ 
++ #ifdef DONATE_ENABLED
++             if (((_system_configuration.implementation == POWER_6) ||
++                  (_system_configuration.implementation == POWER_7)) &&
++                 lpar_total_buffer.type.b.donate_enabled)
++             {
++                u_longlong_t r1, r2;
++ 
++                idle_donated_purr = lpar_total_buffer.idle_donated_purr - last_idle_donated_purr;
++                busy_donated_purr = lpar_total_buffer.busy_donated_purr - last_busy_donated_purr;
++                idle_stolen_purr = lpar_total_buffer.idle_donated_purr - last_idle_donated_purr;
++                busy_stolen_purr = lpar_total_buffer.busy_stolen_purr - last_busy_stolen_purr;
++ 
++                last_idle_donated_purr = lpar_total_buffer.idle_donated_purr;
++                last_busy_donated_purr = lpar_total_buffer.busy_donated_purr;
++                last_idle_stolen_purr = lpar_total_buffer.idle_donated_purr;
++                last_busy_stolen_purr = lpar_total_buffer.busy_stolen_purr;
++ 
++                if ((lcpu_idle + lcpu_wait) != 0)
++                {
++                   r1 = lcpu_idle / (lcpu_idle + lcpu_wait);
++                   r2 = lcpu_wait / (lcpu_idle + lcpu_wait);
++                }
++                else
++                   r1 = r2 = 0LL;
++ 
++               cpu_user += r1 * (idle_donated_purr + idle_stolen_purr);
++               cpu_wait += r2 * (idle_donated_purr + idle_stolen_purr);
++               cpu_sys += busy_donated_purr + busy_stolen_purr;
+  
++               delta_purr += idle_donated_purr + busy_donated_purr
++                             + idle_stolen_purr + busy_stolen_purr;
++             }
++ #endif
+  
++             entitlement = (double) lpar_total_buffer.entitled_proc_capacity / 100.0;
+  
+!             delta_time_base = lpar_total_buffer.timebase_last - last_time_base;
+!             last_time_base = lpar_total_buffer.timebase_last;
+  
++             entitled_purr = delta_time_base * entitlement;
+  
+! /* when above entitlement, use consumption in percentages */
+!             if (entitled_purr < delta_purr)
+!                entitled_purr = delta_purr;
+  
+!             unused_purr = entitled_purr - delta_purr;
+  
+! /* distribute unused purr in wait and idle proportionally to logical wait and idle */
+!             cpu_wait += unused_purr * ((double) lcpu_wait / 
+!                         (double) (lcpu_wait + lcpu_idle));
+!             cpu_idle += unused_purr * ((double) lcpu_idle / 
+!                         (double) (lcpu_wait + lcpu_idle));
+!          }
+!       }
+!       else
+!       {
+! #endif  /* _AIX53 */
+!          cpu_user = cpu_total_buffer.user - last_cpu_user;
+!          cpu_sys  = cpu_total_buffer.sys  - last_cpu_sys;
+!          cpu_idle = cpu_total_buffer.idle - last_cpu_idle;
+!          cpu_wait = cpu_total_buffer.wait - last_cpu_wait;
+! 
+!          last_cpu_user = cpu_total_buffer.user;
+!          last_cpu_sys  = cpu_total_buffer.sys;
+!          last_cpu_idle = cpu_total_buffer.idle;
+!          last_cpu_wait = cpu_total_buffer.wait;
+! #ifdef _AIX53
+!       }
+! #endif /* _AIX53 */
+  
++       cpu_info.timestamp = now;
+  
+!       cpu_total = cpu_user + cpu_sys + cpu_idle + cpu_wait;
+  
+!       cpu_info.user = 100.0 * cpu_user / (double) cpu_total;
+!       cpu_info.sys  = 100.0 * cpu_sys  / (double) cpu_total;
+!       cpu_info.idle = 100.0 * cpu_idle / (double) cpu_total;
+!       cpu_info.wait = 100.0 * cpu_wait / (double) cpu_total;
+!    }
+! }
+    
+  
+  

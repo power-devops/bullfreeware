@@ -1,0 +1,19 @@
+--- ./Makefile.in.ORIGIN	2020-01-07 16:53:53 +0100
++++ ./Makefile.in	2020-01-07 16:54:32 +0100
+@@ -1911,11 +1911,11 @@
+           testchar$(EXEEXT) testdict$(EXEEXT) runxmlconf$(EXEEXT)
+ 	[ -d test   ] || $(LN_S) $(srcdir)/test   .
+ 	[ -d result ] || $(LN_S) $(srcdir)/result .
+-	$(CHECKER) ./runtest$(EXEEXT) && \
+-	    $(CHECKER) ./testrecurse$(EXEEXT) && \
+-	    ASAN_OPTIONS="$$ASAN_OPTIONS:detect_leaks=0" $(CHECKER) ./testapi$(EXEEXT) && \
+-	    $(CHECKER) ./testchar$(EXEEXT) && \
+-	    $(CHECKER) ./testdict$(EXEEXT) && \
++	$(CHECKER) ./runtest$(EXEEXT) ; \
++	    $(CHECKER) ./testrecurse$(EXEEXT) ; \
++	    ASAN_OPTIONS="$$ASAN_OPTIONS:detect_leaks=0" $(CHECKER) ./testapi$(EXEEXT) ; \
++	    $(CHECKER) ./testchar$(EXEEXT) ; \
++	    $(CHECKER) ./testdict$(EXEEXT) ; \
+ 	    $(CHECKER) ./runxmlconf$(EXEEXT)
+ 	@(if [ "$(PYTHON_SUBDIR)" != "" ] ; then cd python ; \
+ 	    $(MAKE) tests ; fi)

@@ -1,0 +1,645 @@
+*** Makefile.ORIG	Thu Jan 12 16:36:10 2006
+--- Makefile	Thu Jan 12 16:59:04 2006
+***************
+*** 15,24 ****
+  # -Bstatic for sunos,  -static for gcc, etc.  You want this, trust me.
+  STATIC =
+  CC = cc $(CFLAGS)
+! LD = $(CC) -s	# linker; defaults to stripped executables
+  o = o		# object extension
+  
+! ALL = nc
+  
+  ### BOGON-CATCHERS
+  
+--- 15,24 ----
+  # -Bstatic for sunos,  -static for gcc, etc.  You want this, trust me.
+  STATIC =
+  CC = cc $(CFLAGS)
+! LD = $(CC) 	# linker; defaults to stripped executables
+  o = o		# object extension
+  
+! ALL = netcat
+  
+  ### BOGON-CATCHERS
+  
+*** netcat.c.ORIG	Thu Jan 12 16:45:45 2006
+--- netcat.c	Thu Jan 12 16:57:50 2006
+***************
+*** 30,39 ****
+  
+  /* conditional includes -- a very messy section which you may have to dink
+     for your own architecture [and please send diffs...]: */
+! /* #undef _POSIX_SOURCE		/* might need this for something? */
+  #define HAVE_BIND		/* ASSUMPTION -- seems to work everywhere! */
+  #define HAVE_HELP		/* undefine if you dont want the help text */
+! /* #define ANAL			/* if you want case-sensitive DNS matching */
+  
+  #ifdef HAVE_STDLIB_H
+  #include <stdlib.h>
+--- 30,39 ----
+  
+  /* conditional includes -- a very messy section which you may have to dink
+     for your own architecture [and please send diffs...]: */
+! /* #undef _POSIX_SOURCE */	/* might need this for something? */
+  #define HAVE_BIND		/* ASSUMPTION -- seems to work everywhere! */
+  #define HAVE_HELP		/* undefine if you dont want the help text */
+! /* #define ANAL	*/		/* if you want case-sensitive DNS matching */
+  
+  #ifdef HAVE_STDLIB_H
+  #include <stdlib.h>
+***************
+*** 114,120 ****
+--- 114,122 ----
+  static char p_tcp[] = "tcp";	/* for getservby* */
+  static char p_udp[] = "udp";
+  #ifdef HAVE_BIND
++ #ifndef _AIX
+  extern int h_errno;
++ #endif
+  /* stolen almost wholesale from bsd herror.c */
+  static char * h_errs[] = {
+    "Error 0",				/* but we *don't* use this */
+***************
+*** 1290,1295 ****
+--- 1292,1299 ----
+    return (0);
+  } /* readwrite */
+  
++ void helpme(char *);
++ 
+  /* main :
+     now we pull it all together... */
+  main (argc, argv)
+***************
+*** 1313,1319 ****
+--- 1317,1329 ----
+    USHORT hiport = 0;
+    USHORT curport = 0;
+    char * randports = NULL;
++   char * basename;
+  
++   if ((basename = strrchr(argv[0], '/')) == NULL)
++       basename = argv[0];
++   else
++      basename++;
++ 
+  #ifdef HAVE_BIND
+  /* can *you* say "cc -yaddayadda netcat.c -lresolv -l44bsd" on SunLOSs? */
+    res_init();
+***************
+*** 1420,1426 ****
+        case 'h':
+  	errno = 0;
+  #ifdef HAVE_HELP
+! 	helpme();			/* exits by itself */
+  #else
+  	bail ("no help available, dork -- RTFS");
+  #endif
+--- 1430,1436 ----
+        case 'h':
+  	errno = 0;
+  #ifdef HAVE_HELP
+! 	helpme(basename);		/* exits by itself */
+  #else
+  	bail ("no help available, dork -- RTFS");
+  #endif
+***************
+*** 1471,1477 ****
+  	break;
+        default:
+  	errno = 0;
+! 	bail ("nc -h for help");
+      } /* switch x */
+    } /* while getopt */
+  
+--- 1481,1487 ----
+  	break;
+        default:
+  	errno = 0;
+! 	bail ("%s -h for help", basename);
+      } /* switch x */
+    } /* while getopt */
+  
+***************
+*** 1627,1639 ****
+  #ifdef HAVE_HELP		/* unless we wanna be *really* cryptic */
+  /* helpme :
+     the obvious */
+! helpme()
+  {
+    o_verbose = 1;
+    holler ("[v1.10]\n\
+! connect to somewhere:	nc [-options] hostname port[s] [ports] ... \n\
+! listen for inbound:	nc -l -p port [-options] [hostname] [port]\n\
+! options:");
+  /* sigh, this necessarily gets messy.  And the trailing \ characters may be
+     interpreted oddly by some compilers, generating or not generating extra
+     newlines as they bloody please.  u-fix... */
+--- 1637,1649 ----
+  #ifdef HAVE_HELP		/* unless we wanna be *really* cryptic */
+  /* helpme :
+     the obvious */
+! void helpme(char * basename)
+  {
+    o_verbose = 1;
+    holler ("[v1.10]\n\
+! connect to somewhere:	%s [-options] hostname port[s] [ports] ... \n\
+! listen for inbound:	%s -l -p port [-options] [hostname] [port]\n\
+! options:", basename , basename);
+  /* sigh, this necessarily gets messy.  And the trailing \ characters may be
+     interpreted oddly by some compilers, generating or not generating extra
+     newlines as they bloody please.  u-fix... */
+*** scripts/alta.ORIG	Thu Jan 12 16:59:51 2006
+--- scripts/alta	Thu Jan 12 17:00:10 2006
+***************
+*** 16,27 ****
+  QB="GET /cgi-bin/query?pg=q&what=${WHAT}&fmt=c&q=\"${PLUSARG}\""
+  
+  # ping 'em once, to get the routing warm
+! nc -z -w 8 www.altavista.digital.com 24015 2> /dev/null
+  echo "=== Altavista ==="
+  
+  for xx in 0 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 \
+    190 200 210 220 230 240 250 260 270 280 290 300 310 320 330 340 350 ; do
+!   echo "${QB}&stq=${xx}" | nc -w 15 www.altavista.digital.com 80 | \
+    egrep '^<a href="http://'
+  done
+  
+--- 16,27 ----
+  QB="GET /cgi-bin/query?pg=q&what=${WHAT}&fmt=c&q=\"${PLUSARG}\""
+  
+  # ping 'em once, to get the routing warm
+! netcat -z -w 8 www.altavista.digital.com 24015 2> /dev/null
+  echo "=== Altavista ==="
+  
+  for xx in 0 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 \
+    190 200 210 220 230 240 250 260 270 280 290 300 310 320 330 340 350 ; do
+!   echo "${QB}&stq=${xx}" | netcat -w 15 www.altavista.digital.com 80 | \
+    egrep '^<a href="http://'
+  done
+  
+*** scripts/bsh.ORIG	Thu Jan 12 17:00:13 2006
+--- scripts/bsh	Thu Jan 12 17:00:26 2006
+***************
+*** 2,8 ****
+  ## a little wrapper to "password" and re-launch a shell-listener.
+  ## Arg is taken as the port to listen on.  Define "NC" to point wherever.
+  
+! NC=nc
+  
+  case "$1" in
+    ?* )
+--- 2,8 ----
+  ## a little wrapper to "password" and re-launch a shell-listener.
+  ## Arg is taken as the port to listen on.  Define "NC" to point wherever.
+  
+! NC=netcat
+  
+  case "$1" in
+    ?* )
+*** scripts/dist.sh.ORIG	Thu Jan 12 17:00:35 2006
+--- scripts/dist.sh	Thu Jan 12 17:01:08 2006
+***************
+*** 9,15 ****
+  
+  sleep 1
+  SRC=`tail -1 dist.log`
+! echo "<36>elite: ${SRC}" | ./nc -u -w 1 localhost 514 > /dev/null 2>&1
+  echo ";;; Hi, ${SRC}..."
+  echo ";;; This is a PRERELEASE version of 'netcat', tar/gzip/uuencoded."
+  echo ";;; Unless you are capturing this somehow, it won't do you much good."
+--- 9,15 ----
+  
+  sleep 1
+  SRC=`tail -1 dist.log`
+! echo "<36>elite: ${SRC}" | ./netcat -u -w 1 localhost 514 > /dev/null 2>&1
+  echo ";;; Hi, ${SRC}..."
+  echo ";;; This is a PRERELEASE version of 'netcat', tar/gzip/uuencoded."
+  echo ";;; Unless you are capturing this somehow, it won't do you much good."
+***************
+*** 17,23 ****
+  sleep 8
+  cat dist.file
+  sleep 1
+! ./nc -v -l -p ${PORT} -e dist.sh < /dev/null >> dist.log 2>&1 &
+  sleep 1
+! echo "<36>elite: done" | ./nc -u -w 1 localhost 514 > /dev/null 2>&1
+  exit 0
+--- 17,23 ----
+  sleep 8
+  cat dist.file
+  sleep 1
+! ./netcat -v -l -p ${PORT} -e dist.sh < /dev/null >> dist.log 2>&1 &
+  sleep 1
+! echo "<36>elite: done" | ./netcat -u -w 1 localhost 514 > /dev/null 2>&1
+  exit 0
+*** scripts/iscan.ORIG	Thu Jan 12 17:01:54 2006
+--- scripts/iscan	Thu Jan 12 17:02:18 2006
+***************
+*** 13,19 ****
+  esac
+  
+  # ping 'em once and see if they *are* running identd
+! nc -z -w 9 "$1" 113 || { echo "oops, $1 isn't running identd" ; exit 0 ; }
+  
+  # generate a randomish base port
+  RP=`expr $$ % 999 + 31337`
+--- 13,19 ----
+  esac
+  
+  # ping 'em once and see if they *are* running identd
+! netcat -z -w 9 "$1" 113 || { echo "oops, $1 isn't running identd" ; exit 0 ; }
+  
+  # generate a randomish base port
+  RP=`expr $$ % 999 + 31337`
+***************
+*** 22,31 ****
+  shift
+  
+  while test "$1" ; do
+!   nc -v -w 8 -p ${RP} "$TRG" ${1} < /dev/null > /dev/null &
+    PROC=$!
+    sleep 3
+!   echo "${1},${RP}" | nc -w 4 -r "$TRG" 113 2>&1
+    sleep 2
+  # does this look like a lamer script or what...
+    kill -HUP $PROC
+--- 22,31 ----
+  shift
+  
+  while test "$1" ; do
+!   netcat -v -w 8 -p ${RP} "$TRG" ${1} < /dev/null > /dev/null &
+    PROC=$!
+    sleep 3
+!   echo "${1},${RP}" | netcat -w 4 -r "$TRG" 113 2>&1
+    sleep 2
+  # does this look like a lamer script or what...
+    kill -HUP $PROC
+*** scripts/ncp.ORIG	Thu Jan 12 17:02:24 2006
+--- scripts/ncp	Thu Jan 12 17:03:16 2006
+***************
+*** 8,14 ****
+  ## You should probably change this for your own uses.
+  MYPORT=23456
+  
+! ## if "nc" isn't systemwide or in your PATH, add the right place
+  # PATH=${HOME}:${PATH} ; export PATH
+  
+  test "$3" && echo "too many args" && exit 1
+--- 8,14 ----
+  ## You should probably change this for your own uses.
+  MYPORT=23456
+  
+! ## if "netcat" isn't systemwide or in your PATH, add the right place
+  # PATH=${HOME}:${PATH} ; export PATH
+  
+  test "$3" && echo "too many args" && exit 1
+***************
+*** 20,28 ****
+  if test "$2" ; then
+    test ! -f "$1" && echo "can't find $1" && exit 1
+    if test "$me" = "nzp" ; then
+!     compress -c < "$1" | nc -v -w 2 $2 $MYPORT && exit 0
+    else
+!     nc -v -w 2 $2 $MYPORT < "$1" && exit 0
+    fi
+    echo "transfer FAILED!"
+    exit 1
+--- 20,28 ----
+  if test "$2" ; then
+    test ! -f "$1" && echo "can't find $1" && exit 1
+    if test "$me" = "nzp" ; then
+!     compress -c < "$1" | netcat -v -w 2 $2 $MYPORT && exit 0
+    else
+!     netcat -v -w 2 $2 $MYPORT < "$1" && exit 0
+    fi
+    echo "transfer FAILED!"
+    exit 1
+***************
+*** 36,44 ****
+  fi
+  # 30 seconds oughta be pleeeeenty of time, but change if you want.
+  if test "$me" = "nzp" ; then
+!   nc -v -w 30 -p $MYPORT -l < /dev/null | uncompress -c > "$1" && exit 0
+  else
+!   nc -v -w 30 -p $MYPORT -l < /dev/null > "$1" && exit 0
+  fi
+  echo "transfer FAILED!"
+  # clean up, since even if the transfer failed, $1 is already trashed
+--- 36,44 ----
+  fi
+  # 30 seconds oughta be pleeeeenty of time, but change if you want.
+  if test "$me" = "nzp" ; then
+!   netcat -v -w 30 -p $MYPORT -l < /dev/null | uncompress -c > "$1" && exit 0
+  else
+!   netcat -v -w 30 -p $MYPORT -l < /dev/null > "$1" && exit 0
+  fi
+  echo "transfer FAILED!"
+  # clean up, since even if the transfer failed, $1 is already trashed
+*** scripts/probe.ORIG	Thu Jan 12 17:03:24 2006
+--- scripts/probe	Thu Jan 12 17:03:46 2006
+***************
+*** 10,16 ****
+  GATE=192.157.69.11
+  
+  # might conceivably wanna change this for different run styles
+! UCMD='nc -v -w 8'
+  
+  test ! "$1" && echo Needs victim arg && exit 1
+  
+--- 10,16 ----
+  GATE=192.157.69.11
+  
+  # might conceivably wanna change this for different run styles
+! UCMD='netcat -v -w 8'
+  
+  test ! "$1" && echo Needs victim arg && exit 1
+  
+***************
+*** 20,26 ****
+  $UCMD -z -r -g $GATE "$1" 6473 2>&1
+  $UCMD -r -z "$1" 6000 4000-4004 111 53 2105 137-140 1-20 540-550 95 87 2>&1
+  # -s `hostname` may be wrong for some multihomed machines
+! echo 'UDP echoecho!' | nc -u -p 7 -s `hostname` -w 3 "$1" 7 19 2>&1
+  echo '113,10158' | $UCMD -p 10158 "$1" 113 2>&1
+  rservice bin bin | $UCMD -p 1019 "$1" shell 2>&1
+  echo QUIT | $UCMD -w 8 -r "$1" 25 158 159 119 110 109 1109 142-144 220 23 2>&1
+--- 20,26 ----
+  $UCMD -z -r -g $GATE "$1" 6473 2>&1
+  $UCMD -r -z "$1" 6000 4000-4004 111 53 2105 137-140 1-20 540-550 95 87 2>&1
+  # -s `hostname` may be wrong for some multihomed machines
+! echo 'UDP echoecho!' | netcat -u -p 7 -s `hostname` -w 3 "$1" 7 19 2>&1
+  echo '113,10158' | $UCMD -p 10158 "$1" 113 2>&1
+  rservice bin bin | $UCMD -p 1019 "$1" shell 2>&1
+  echo QUIT | $UCMD -w 8 -r "$1" 25 158 159 119 110 109 1109 142-144 220 23 2>&1
+***************
+*** 36,49 ****
+  echo 'BEGIN big udp -- everything may look "open" if packet-filtered'
+  data -g < ${DDIR}/nfs-0.d | $UCMD -i 1 -u "$1" 2049 | od -x 2>&1
+  # no wait-time, uses RTT hack
+! nc -v -z -u -r "$1" 111 66-70 88 53 87 161-164 121-123 213 49 2>&1
+! nc -v -z -u -r "$1" 137-140 694-712 747-770 175-180 2103 510-530 2>&1
+  echo 'END big udp'
+  $UCMD -r -z "$1" 175-180 2000-2003 530-533 1524 1525 666 213 8000 6250 2>&1
+  # Use our identd-sniffer!
+  iscan "$1" 21 25 79 80 111 53 6667 6000 2049 119 2>&1
+  # this gets pretty intrusive, but what the fuck.  Probe for portmap first
+! if nc -w 5 -z -u "$1" 111 ; then
+    showmount -e "$1" 2>&1
+    rpcinfo -p "$1" 2>&1
+  fi
+--- 36,49 ----
+  echo 'BEGIN big udp -- everything may look "open" if packet-filtered'
+  data -g < ${DDIR}/nfs-0.d | $UCMD -i 1 -u "$1" 2049 | od -x 2>&1
+  # no wait-time, uses RTT hack
+! netcat -v -z -u -r "$1" 111 66-70 88 53 87 161-164 121-123 213 49 2>&1
+! netcat -v -z -u -r "$1" 137-140 694-712 747-770 175-180 2103 510-530 2>&1
+  echo 'END big udp'
+  $UCMD -r -z "$1" 175-180 2000-2003 530-533 1524 1525 666 213 8000 6250 2>&1
+  # Use our identd-sniffer!
+  iscan "$1" 21 25 79 80 111 53 6667 6000 2049 119 2>&1
+  # this gets pretty intrusive, but what the fuck.  Probe for portmap first
+! if netcat -w 5 -z -u "$1" 111 ; then
+    showmount -e "$1" 2>&1
+    rpcinfo -p "$1" 2>&1
+  fi
+*** scripts/web.ORIG	Thu Jan 12 17:04:01 2006
+--- scripts/web	Thu Jan 12 17:04:16 2006
+***************
+*** 37,43 ****
+  # PATH=${HOME}:${PATH} ; export PATH
+  
+  test "${PAGER}" || PAGER=more
+! BACKEND="nc -v -w 15"
+  TMPAGE=/tmp/web$$
+  host="$1"
+  port="80"
+--- 37,43 ----
+  # PATH=${HOME}:${PATH} ; export PATH
+  
+  test "${PAGER}" || PAGER=more
+! BACKEND="netcat -v -w 15"
+  TMPAGE=/tmp/web$$
+  host="$1"
+  port="80"
+*** scripts/webproxy.ORIG	Thu Jan 12 17:04:28 2006
+--- scripts/webproxy	Thu Jan 12 17:05:10 2006
+***************
+*** 33,39 ****
+  LFILE=${0}.log
+  # optional: where to dump connect info, so you can see if anything went wrong
+  # CFILE=${0}.conn
+! # optional extra args to the listener "nc", for instance "-s inside-net-addr"
+  # XNC=''
+  
+  # functionality switch has to be done fast, so the next listener can start
+--- 33,39 ----
+  LFILE=${0}.log
+  # optional: where to dump connect info, so you can see if anything went wrong
+  # CFILE=${0}.conn
+! # optional extra args to the listener "netcat", for instance "-s inside-net-addr"
+  # XNC=''
+  
+  # functionality switch has to be done fast, so the next listener can start
+***************
+*** 51,57 ****
+  # is necessary so this shell has NO remaining channel open to the net.
+  # This will hang around for 10 minutes, and exit if no new connections arrive.
+  # Using -n for speed, avoiding any DNS/port lookups.
+!     nc -w 600 -n -l -p $PORT -e "$0" $XNC "$CLIENT" < /dev/null > /dev/null \
+  	2> $CFILE &
+    ;;
+  esac
+--- 51,57 ----
+  # is necessary so this shell has NO remaining channel open to the net.
+  # This will hang around for 10 minutes, and exit if no new connections arrive.
+  # Using -n for speed, avoiding any DNS/port lookups.
+!     netcat -w 600 -n -l -p $PORT -e "$0" $XNC "$CLIENT" < /dev/null > /dev/null \
+  	2> $CFILE &
+    ;;
+  esac
+***************
+*** 64,70 ****
+    if test "$1" = "reset" ; then
+      rm -f $LFILE
+      test -f "$CFILE" && rm -f $CFILE
+!     nc -w 1 -n 127.0.0.1 $PORT < /dev/null > /dev/null 2>&1
+      exit 0
+    fi
+  # find our ass with both hands
+--- 64,70 ----
+    if test "$1" = "reset" ; then
+      rm -f $LFILE
+      test -f "$CFILE" && rm -f $CFILE
+!     netcat -w 1 -n 127.0.0.1 $PORT < /dev/null > /dev/null 2>&1
+      exit 0
+    fi
+  # find our ass with both hands
+***************
+*** 82,88 ****
+    fi
+  
+  # ping client machine and get its bare IP address
+!   CLIENT=`nc -z -v -w 8 "$1" 22000 2>&1 | sed 's/.*\[\(..*\)\].*/\1/'`
+    test ! "$CLIENT" && echo "Can't find address of $1" && exit 1
+  
+  # if this was an initial launch, be informative about it
+--- 82,88 ----
+    fi
+  
+  # ping client machine and get its bare IP address
+!   CLIENT=`netcat -z -v -w 8 "$1" 22000 2>&1 | sed 's/.*\[\(..*\)\].*/\1/'`
+    test ! "$CLIENT" && echo "Can't find address of $1" && exit 1
+  
+  # if this was an initial launch, be informative about it
+***************
+*** 92,98 ****
+    test -f "$CFILE" && echo "  and connection fuckups to $CFILE"
+  
+  # and run the first listener, showing us output just for the first hit
+!   nc -v -w 600 -n -l -p $PORT -e "$0" $XNC "$CLIENT" &
+    exit 0
+  fi
+  
+--- 92,98 ----
+    test -f "$CFILE" && echo "  and connection fuckups to $CFILE"
+  
+  # and run the first listener, showing us output just for the first hit
+!   netcat -v -w 600 -n -l -p $PORT -e "$0" $XNC "$CLIENT" &
+    exit 0
+  fi
+  
+***************
+*** 130,137 ****
+    echo "access to Netscam's servers <b>DENIED.</b>" && exit 0
+  # Do it.  30 sec net-wait time oughta be *plenty*...
+  # Some braindead servers have forgotten how to handle the simple-query syntax.
+! # If necessary, replace below with (echo "$x1 $hf" ; echo '') | nc...
+! echo "$x1 $hf" | nc -w 30 "$hh" "$hp" 2> /dev/null || \
+    echo "oops, can't get to $hh : $hp".
+  echo "sent \"$x1 $hf\" to $hh : $hp" >> $LFILE
+  exit 0
+--- 130,137 ----
+    echo "access to Netscam's servers <b>DENIED.</b>" && exit 0
+  # Do it.  30 sec net-wait time oughta be *plenty*...
+  # Some braindead servers have forgotten how to handle the simple-query syntax.
+! # If necessary, replace below with (echo "$x1 $hf" ; echo '') | netcat...
+! echo "$x1 $hf" | netcat -w 30 "$hh" "$hp" 2> /dev/null || \
+    echo "oops, can't get to $hh : $hp".
+  echo "sent \"$x1 $hf\" to $hh : $hp" >> $LFILE
+  exit 0
+*** scripts/webrelay.ORIG	Thu Jan 12 17:05:22 2006
+--- scripts/webrelay	Thu Jan 12 17:05:39 2006
+***************
+*** 10,16 ****
+  
+  # set these as you wish: proxy port...
+  PORT=8000
+! # any extra args to the listening "nc", for instance "-s inside-net-addr"
+  XNC=''
+  
+  # functionality switch, which has to be done fast to start the next listener
+--- 10,16 ----
+  
+  # set these as you wish: proxy port...
+  PORT=8000
+! # any extra args to the listening "netcat", for instance "-s inside-net-addr"
+  XNC=''
+  
+  # functionality switch, which has to be done fast to start the next listener
+***************
+*** 24,32 ****
+  case "${1}" in
+    "")
+  # no args: fire off new relayer process NOW.  Will hang around for 10 minutes
+!     nc -w 600 -l -n -p $PORT -e "$0" $XNC < /dev/null > /dev/null 2>&1 &
+  # and handle this request, which will simply fail if vars not set yet.
+!     exec nc -w 15 $RDEST $RPORT
+    ;;
+  esac
+  
+--- 24,32 ----
+  case "${1}" in
+    "")
+  # no args: fire off new relayer process NOW.  Will hang around for 10 minutes
+!     netcat -w 600 -l -n -p $PORT -e "$0" $XNC < /dev/null > /dev/null 2>&1 &
+  # and handle this request, which will simply fail if vars not set yet.
+!     exec netcat -w 15 $RDEST $RPORT
+    ;;
+  esac
+  
+***************
+*** 38,44 ****
+  
+  # Launch the first relayer same as above, but let its error msgs show up
+  # will hang around for a minute, and exit if no new connections arrive.
+! nc -v -w 600 -l -p $PORT -e "$0" $XNC < /dev/null > /dev/null &
+  echo \
+    "Relay to ${RDEST}:${RPORT} running -- point your browser here on port $PORT"
+  exit 0
+--- 38,44 ----
+  
+  # Launch the first relayer same as above, but let its error msgs show up
+  # will hang around for a minute, and exit if no new connections arrive.
+! netcat -v -w 600 -l -p $PORT -e "$0" $XNC < /dev/null > /dev/null &
+  echo \
+    "Relay to ${RDEST}:${RPORT} running -- point your browser here on port $PORT"
+  exit 0
+*** scripts/websearch.ORIG	Thu Jan 12 17:05:53 2006
+--- scripts/websearch	Thu Jan 12 17:06:14 2006
+***************
+*** 13,21 ****
+  PIPEARG="`echo ${PLUSARG} | sed 's/+/|/g'`"
+  IFILE=/tmp/.webq.$$
+  
+! # Don't have "nc"?  Get "netcat" from avian.org and add it to your toolkit.
+  doquery () {
+!   echo GET "$1" | nc -v -i 1 -w 30 "$2" "$3"
+  }
+  
+  # changed since original: now supplying port numbers and separator lines...
+--- 13,21 ----
+  PIPEARG="`echo ${PLUSARG} | sed 's/+/|/g'`"
+  IFILE=/tmp/.webq.$$
+  
+! # Don't have "netcat"?  Get "netcat" from avian.org and add it to your toolkit.
+  doquery () {
+!   echo GET "$1" | netcat -v -i 1 -w 30 "$2" "$3"
+  }
+  
+  # changed since original: now supplying port numbers and separator lines...
+***************
+*** 35,41 ****
+  # you want to play, the basic idea and query formats follow.
+  # echo "GET /WW/IS/Titles?qt=${PLUSARG}" > $IFILE
+  # echo "" >> $IFILE
+! # nc -v -w 30 guide-p.infoseek.com 80 < $IFILE
+  
+  # this is kinda flakey; might have to do twice??
+  echo '' ; echo "=== Opentext ==="
+--- 35,41 ----
+  # you want to play, the basic idea and query formats follow.
+  # echo "GET /WW/IS/Titles?qt=${PLUSARG}" > $IFILE
+  # echo "" >> $IFILE
+! # netcat -v -w 30 guide-p.infoseek.com 80 < $IFILE
+  
+  # this is kinda flakey; might have to do twice??
+  echo '' ; echo "=== Opentext ==="
+***************
+*** 66,72 ****
+  echo "Why: go ask todd@pointcom.com (Todd Whitney)" >> $IFILE
+  echo '' >> $IFILE
+  echo '' ; echo "=== Lycos ==="
+! nc -v -i 1 -w 30 twelve.srv.lycos.com 80 < $IFILE
+  
+  rm -f $IFILE
+  exit 0
+--- 66,72 ----
+  echo "Why: go ask todd@pointcom.com (Todd Whitney)" >> $IFILE
+  echo '' >> $IFILE
+  echo '' ; echo "=== Lycos ==="
+! netcat -v -i 1 -w 30 twelve.srv.lycos.com 80 < $IFILE
+  
+  rm -f $IFILE
+  exit 0

@@ -1,0 +1,64 @@
+diff -Nur pixman-0.34.0-orig/test/affine-bench.c pixman-0.34.0-aix/test/affine-bench.c
+--- pixman-0.34.0-orig/test/affine-bench.c	2015-12-27 21:37:37 +0100
++++ pixman-0.34.0-aix/test/affine-bench.c	2016-04-13 14:17:06 +0200
+@@ -42,7 +42,9 @@
+ /* How much data to read to flush all cached data to RAM */
+ #define MAX_L2CACHE_SIZE (8 * 1024 * 1024)
+ 
++#ifndef PAGE_SIZE
+ #define PAGE_SIZE (4 * 1024)
++#endif
+ 
+ struct bench_info
+ {
+diff -Nur pixman-0.34.0-orig/test/pixel-test.c pixman-0.34.0-aix/test/pixel-test.c
+--- pixman-0.34.0-orig/test/pixel-test.c	2015-09-26 15:45:08 +0200
++++ pixman-0.34.0-aix/test/pixel-test.c	2016-04-13 14:30:59 +0200
+@@ -2827,7 +2827,7 @@
+ }
+ 
+ static uint32_t
+-access (pixman_image_t *image, int x, int y)
++pixman_access (pixman_image_t *image, int x, int y)
+ {
+     int bytes_per_pixel;
+     int stride;
+@@ -2913,7 +2913,7 @@
+     {
+ 	for (i = 0; i < size; ++i)
+ 	{
+-	    uint32_t computed = access (dest, i, j);
++	    uint32_t computed = pixman_access (dest, i, j);
+ 	    int32_t a, r, g, b;
+ 
+ 	    if (!pixel_checker_check (&dest_checker, computed, &reference_color))
+diff -Nur pixman-0.34.0-orig/test/tolerance-test.c pixman-0.34.0-aix/test/tolerance-test.c
+--- pixman-0.34.0-orig/test/tolerance-test.c	2015-09-26 15:45:08 +0200
++++ pixman-0.34.0-aix/test/tolerance-test.c	2016-04-13 14:17:27 +0200
+@@ -120,7 +120,7 @@
+ }
+ 
+ static pixman_bool_t
+-access (pixman_image_t *image, int x, int y, uint32_t *pixel)
++pixman_access (pixman_image_t *image, int x, int y, uint32_t *pixel)
+ {
+     int bytes_per_pixel;
+     int stride;
+@@ -153,7 +153,7 @@
+ 	   color_t *color,
+ 	   uint32_t *pixel)
+ {
+-    if (!access (image, x, y, pixel))
++    if (!pixman_access (image, x, y, pixel))
+     {
+ 	color->a = 0.0;
+ 	color->r = 0.0;
+@@ -194,7 +194,7 @@
+             color_t src_color, mask_color, orig_dest_color, result;
+             uint32_t dest_pixel, orig_dest_pixel, src_pixel, mask_pixel;
+ 
+-            access (dest, i, j, &dest_pixel);
++            pixman_access (dest, i, j, &dest_pixel);
+ 
+ 	    get_color (&src_checker,
+ 		       source, i - x, j - y,

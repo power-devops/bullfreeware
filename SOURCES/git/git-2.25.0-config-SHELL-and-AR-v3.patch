@@ -1,0 +1,11 @@
+--- a/config.mak.uname	2021-02-05 16:35:17 +0100
++++ b/config.mak.uname	2021-02-05 16:35:29 +0100
+@@ -301,6 +301,8 @@
+ 		INLINE = ''
+ 	endif
+ 	GIT_TEST_CMP = cmp
++	AR = /usr/bin/ar -X32_64
++	TAR = /opt/freeware/bin/tar
+ endif
+ ifeq ($(uname_S),GNU)
+ 	# GNU/Hurd

@@ -1,0 +1,22 @@
+--- orig/mozilla/security/coreconf/RISCOS.mk	2016-06-29 15:49:29 +0200
++++ new/mozilla/security/coreconf/RISCOS.mk	2016-06-29 15:50:13 +0200
+@@ -7,7 +7,7 @@
+ 
+ LIB_SUFFIX  = a
+ DLL_SUFFIX  = so
+-AR          = ar cr $@
++AR          = /usr/bin/ar cr $@
+ LDOPTS     += -L$(SOURCE_LIB_DIR)
+ MKSHLIB     = $(CC) $(DSO_LDOPTS) -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+ 
+--- orig/mozilla/security/coreconf/UNIX.mk	2016-06-29 15:49:25 +0200
++++ new/mozilla/security/coreconf/UNIX.mk	2016-06-29 15:50:21 +0200
+@@ -6,7 +6,7 @@
+ XP_DEFINE  += -DXP_UNIX
+ LIB_SUFFIX  = a
+ DLL_SUFFIX  = so
+-AR          = ar cr $@
++AR          = /usr/bin/ar cr $@
+ LDOPTS     += -L$(SOURCE_LIB_DIR)
+ 
+ ifdef BUILD_OPT

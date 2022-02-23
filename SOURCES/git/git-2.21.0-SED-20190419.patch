@@ -1,0 +1,173 @@
+From 936172b841757fb126087bd04f4baac7d6edef2b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 19 Apr 2019 10:23:46 -0500
+Subject: [PATCH 5/8] Makefile: use OpenSource sed
+
+---
+ Makefile | 36 +++++++++++++++++++-----------------
+ 1 file changed, 19 insertions(+), 17 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index d5e65070bc..24314d4627 100644
+--- a/Makefile
++++ b/Makefile
+@@ -575,6 +575,8 @@ CURL_CONFIG = curl-config
+ GCOV = gcov
+ STRIP = strip
+ SPATCH = spatch
++# SED = sed
++SED = /opt/freeware/bin/sed
+ 
+ export TCL_PATH TCLTK_PATH
+ 
+@@ -1364,13 +1366,13 @@ endif
+ 	REMOTE_CURL_NAMES = $(REMOTE_CURL_PRIMARY) $(REMOTE_CURL_ALIASES)
+ 	PROGRAM_OBJS += http-fetch.o
+ 	PROGRAMS += $(REMOTE_CURL_NAMES)
+-	curl_check := $(shell (echo 070908; $(CURL_CONFIG) --vernum | sed -e '/^70[BC]/s/^/0/') 2>/dev/null | sort -r | sed -ne 2p)
++	curl_check := $(shell (echo 070908; $(CURL_CONFIG) --vernum | $(SED) -e '/^70[BC]/s/^/0/') 2>/dev/null | sort -r | $(SED) -ne 2p)
+ 	ifeq "$(curl_check)" "070908"
+ 		ifndef NO_EXPAT
+ 			PROGRAM_OBJS += http-push.o
+ 		endif
+ 	endif
+-	curl_check := $(shell (echo 072200; $(CURL_CONFIG) --vernum | sed -e '/^70[BC]/s/^/0/') 2>/dev/null | sort -r | sed -ne 2p)
++	curl_check := $(shell (echo 072200; $(CURL_CONFIG) --vernum | $(SED) -e '/^70[BC]/s/^/0/') 2>/dev/null | sort -r | $(SED) -ne 2p)
+ 	ifeq "$(curl_check)" "072200"
+ 		USE_CURL_FOR_IMAP_SEND = YesPlease
+ 	endif
+@@ -2148,7 +2150,7 @@ SCRIPT_DEFINES = $(SHELL_PATH_SQ):$(DIFF_SQ):$(GIT_VERSION):\
+ 	$(perllibdir_SQ)
+ define cmd_munge_script
+ $(RM) $@ $@+ && \
+-sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
++$(SED) -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+     -e 's|@SHELL_PATH@|$(SHELL_PATH_SQ)|' \
+     -e 's|@@DIFF@@|$(DIFF_SQ)|' \
+     -e 's|@@LOCALEDIR@@|$(localedir_SQ)|g' \
+@@ -2215,7 +2217,7 @@ PERL_DEFINES += $(gitexecdir) $(perllibdir) $(localedir)
+ 
+ $(SCRIPT_PERL_GEN): % : %.perl GIT-PERL-DEFINES GIT-PERL-HEADER GIT-VERSION-FILE
+ 	$(QUIET_GEN)$(RM) $@ $@+ && \
+-	sed -e '1{' \
++	$(SED) -e '1{' \
+ 	    -e '	s|#!.*perl|#!$(PERL_PATH_SQ)|' \
+ 	    -e '	r GIT-PERL-HEADER' \
+ 	    -e '	G' \
+@@ -2238,7 +2240,7 @@ GIT-PERL-HEADER: $(PERL_HEADER_TEMPLATE) GIT-PERL-DEFINES Makefile
+ 	INSTLIBDIR='$(perllibdir_SQ)' && \
+ 	INSTLIBDIR_EXTRA='$(PERLLIB_EXTRA_SQ)' && \
+ 	INSTLIBDIR="$$INSTLIBDIR$${INSTLIBDIR_EXTRA:+:$$INSTLIBDIR_EXTRA}" && \
+-	sed -e 's=@@PATHSEP@@=$(pathsep)=g' \
++	$(SED) -e 's=@@PATHSEP@@=$(pathsep)=g' \
+ 	    -e "s=@@INSTLIBDIR@@=$$INSTLIBDIR=g" \
+ 	    -e 's=@@PERLLIBDIR_REL@@=$(perllibdir_relative_SQ)=g' \
+ 	    -e 's=@@GITEXECDIR_REL@@=$(gitexecdir_relative_SQ)=g' \
+@@ -2261,7 +2263,7 @@ git-instaweb: git-instaweb.sh GIT-SCRIPT-DEFINES
+ else # NO_PERL
+ $(SCRIPT_PERL_GEN) git-instaweb: % : unimplemented.sh
+ 	$(QUIET_GEN)$(RM) $@ $@+ && \
+-	sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
++	$(SED) -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+ 	    -e 's|@@REASON@@|NO_PERL=$(NO_PERL)|g' \
+ 	    unimplemented.sh >$@+ && \
+ 	chmod +x $@+ && \
+@@ -2275,14 +2277,14 @@ ifndef NO_PYTHON
+ $(SCRIPT_PYTHON_GEN): GIT-CFLAGS GIT-PREFIX GIT-PYTHON-VARS
+ $(SCRIPT_PYTHON_GEN): % : %.py
+ 	$(QUIET_GEN)$(RM) $@ $@+ && \
+-	sed -e '1s|#!.*python|#!$(PYTHON_PATH_SQ)|' \
++	$(SED) -e '1s|#!.*python|#!$(PYTHON_PATH_SQ)|' \
+ 	    $< >$@+ && \
+ 	chmod +x $@+ && \
+ 	mv $@+ $@
+ else # NO_PYTHON
+ $(SCRIPT_PYTHON_GEN): % : unimplemented.sh
+ 	$(QUIET_GEN)$(RM) $@ $@+ && \
+-	sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
++	$(SED) -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+ 	    -e 's|@@REASON@@|NO_PYTHON=$(NO_PYTHON)|g' \
+ 	    unimplemented.sh >$@+ && \
+ 	chmod +x $@+ && \
+@@ -2290,7 +2292,7 @@ $(SCRIPT_PYTHON_GEN): % : unimplemented.sh
+ endif # NO_PYTHON
+ 
+ CONFIGURE_RECIPE = $(RM) configure configure.ac+ && \
+-		   sed -e 's/@@GIT_VERSION@@/$(GIT_VERSION)/g' \
++		   $(SED) -e 's/@@GIT_VERSION@@/$(GIT_VERSION)/g' \
+ 			configure.ac >configure.ac+ && \
+ 		   autoconf -o configure configure.ac+ && \
+ 		   $(RM) configure.ac+
+@@ -2530,7 +2532,7 @@ po/git.pot: $(GENERATED_H) FORCE
+ 
+ 	@for s in $(LOCALIZED_C) $(LOCALIZED_SH) $(LOCALIZED_PERL); \
+ 	do \
+-		sed -e 's|PRItime|PRIuMAX|g' <"$$s" >"$$s+" && \
++		$(SED) -e 's|PRItime|PRIuMAX|g' <"$$s" >"$$s+" && \
+ 		cat "$$s+" >"$$s" && rm "$$s+"; \
+ 	done
+ 
+@@ -2572,7 +2574,7 @@ endif
+ 
+ perl/build/lib/%.pm: perl/%.pm
+ 	$(QUIET_GEN)mkdir -p $(dir $@) && \
+-	sed -e 's|@@LOCALEDIR@@|$(perl_localedir_SQ)|g' \
++	$(SED) -e 's|@@LOCALEDIR@@|$(perl_localedir_SQ)|g' \
+ 	    -e 's|@@NO_PERL_CPAN_FALLBACKS@@|$(NO_PERL_CPAN_FALLBACKS_SQ)|g' \
+ 	< $< > $@
+ 
+@@ -2715,7 +2717,7 @@ all:: $(NO_INSTALL)
+ 
+ bin-wrappers/%: wrap-for-bin.sh
+ 	@mkdir -p bin-wrappers
+-	$(QUIET_GEN)sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
++	$(QUIET_GEN)$(SED) -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+ 	     -e 's|@@BUILD_DIR@@|$(shell pwd)|' \
+ 	     -e 's|@@PROG@@|$(patsubst test-%,t/helper/test-%,$(@F))|' < $< > $@ && \
+ 	chmod +x $@
+@@ -2882,7 +2884,7 @@ endif
+ 
+ 	bindir=$$(cd '$(DESTDIR_SQ)$(bindir_SQ)' && pwd) && \
+ 	execdir=$$(cd '$(DESTDIR_SQ)$(gitexec_instdir_SQ)' && pwd) && \
+-	destdir_from_execdir_SQ=$$(echo '$(gitexecdir_relative_SQ)' | sed -e 's|[^/][^/]*|..|g') && \
++	destdir_from_execdir_SQ=$$(echo '$(gitexecdir_relative_SQ)' | $(SED) -e 's|[^/][^/]*|..|g') && \
+ 	{ test "$$bindir/" = "$$execdir/" || \
+ 	  for p in git$X $(filter $(install_bindir_programs),$(ALL_PROGRAMS)); do \
+ 		$(RM) "$$execdir/$$p" && \
+@@ -3096,7 +3098,7 @@ check-docs::
+ 		esac ; \
+ 		test -f "Documentation/$$v.txt" || \
+ 		echo "no doc: $$v"; \
+-		sed -e '1,/^### command list/d' -e '/^#/d' command-list.txt | \
++		$(SED) -e '1,/^### command list/d' -e '/^#/d' command-list.txt | \
+ 		grep -q "^$$v[ 	]" || \
+ 		case "$$v" in \
+ 		git) ;; \
+@@ -3104,13 +3106,13 @@ check-docs::
+ 		esac ; \
+ 	done; \
+ 	( \
+-		sed -e '1,/^### command list/d' \
++		$(SED) -e '1,/^### command list/d' \
+ 		    -e '/^#/d' \
+ 		    -e 's/[ 	].*//' \
+ 		    -e 's/^/listed /' command-list.txt; \
+ 		$(MAKE) -C Documentation print-man1 | \
+ 		grep '\.txt$$' | \
+-		sed -e 's|Documentation/|documented |' \
++		$(SED) -e 's|Documentation/|documented |' \
+ 		    -e 's/\.txt//'; \
+ 	) | while read how cmd; \
+ 	do \
+@@ -3169,7 +3171,7 @@ coverage-report:
+ 
+ coverage-untested-functions: coverage-report
+ 	grep '^function.*called 0 ' *.c.gcov \
+-		| sed -e 's/\([^:]*\)\.gcov: *function \([^ ]*\) called.*/\1: \2/' \
++		| $(SED) -e 's/\([^:]*\)\.gcov: *function \([^ ]*\) called.*/\1: \2/' \
+ 		> coverage-untested-functions
+ 
+ cover_db: coverage-report
+-- 
+2.21.0
+

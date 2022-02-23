@@ -1,0 +1,45 @@
+From 0261d9562cbcf3d2b04095b866bb7fd30004ef2a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 9 Jun 2021 12:53:58 +0200
+Subject: [PATCH] aix: add Power10 flag in ASM_CPU_SPEC
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Changelog:
+2021-06-09  Clément Chigot  <clement.chigot@atos.net>
+
+	* config/rs6000/aix71.h (ASM_CPU_SPEC): Add entry for Power10.
+	* config/rs6000/aix72.h (ASM_CPU_SPEC): Likewise.
+---
+ gcc/config/rs6000/aix71.h | 1 +
+ gcc/config/rs6000/aix72.h | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/gcc/config/rs6000/aix71.h b/gcc/config/rs6000/aix71.h
+index adcca983b6d..0878b2a8204 100644
+--- a/gcc/config/rs6000/aix71.h
++++ b/gcc/config/rs6000/aix71.h
+@@ -78,6 +78,7 @@ do {									\
+ #undef ASM_CPU_SPEC
+ #define ASM_CPU_SPEC \
+ "%{mcpu=native: %(asm_cpu_native); \
++  mcpu=power10: -mpwr10; \
+   mcpu=power9: -mpwr9; \
+   mcpu=power8: -mpwr8; \
+   mcpu=power7: -mpwr7; \
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index 2db9dbd56af..3448878097b 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -78,6 +78,7 @@ do {									\
+ #undef ASM_CPU_SPEC
+ #define ASM_CPU_SPEC \
+ "%{mcpu=native: %(asm_cpu_native); \
++  mcpu=power10: -mpwr10; \
+   mcpu=power9: -mpwr9; \
+   mcpu=power8: -mpwr8; \
+   mcpu=power7: -mpwr7; \
+-- 
+2.31.1
+

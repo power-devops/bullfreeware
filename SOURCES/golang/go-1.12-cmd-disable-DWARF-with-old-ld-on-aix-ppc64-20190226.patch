@@ -1,0 +1,171 @@
+From 1bc96169a11f34f1f0b9c885ab7716be0d615ebd Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Wed, 20 Feb 2019 15:34:08 -0600
+Subject: [PATCH 12/24] cmd: disable DWARF with old ld on aix/ppc64
+
+---
+ src/cmd/compile/internal/ssa/stmtlines_test.go | 34 ++++++++++++++++++++++++++
+ src/cmd/link/dwarf_test.go                     | 24 ++++++++++++++++++
+ src/cmd/link/internal/ld/dwarf.go              | 22 +++++++++++++++++
+ 3 files changed, 80 insertions(+)
+
+diff --git a/src/cmd/compile/internal/ssa/stmtlines_test.go b/src/cmd/compile/internal/ssa/stmtlines_test.go
+index c71f8befd9..4a4f64a04d 100644
+--- a/src/cmd/compile/internal/ssa/stmtlines_test.go
++++ b/src/cmd/compile/internal/ssa/stmtlines_test.go
+@@ -1,6 +1,7 @@
+ package ssa_test
+ 
+ import (
++	"bytes"
+ 	"debug/dwarf"
+ 	"debug/elf"
+ 	"debug/macho"
+@@ -9,7 +10,10 @@ import (
+ 	"internal/testenv"
+ 	"internal/xcoff"
+ 	"io"
++	"os/exec"
+ 	"runtime"
++	"strconv"
++	"strings"
+ 	"testing"
+ )
+ 
+@@ -49,6 +53,36 @@ func TestStmtLines(t *testing.T) {
+ 		t.Skip("skipping on plan9; no DWARF symbol table in executables")
+ 	}
+ 
++	if runtime.GOOS == "aix" {
++		// DWARF isn't generated in Go command if ld has a version
++		// prior to 7.2.2 (cf cmd/link/internal/dwarf.go).
++		mustBeSkipped := func() bool {
++			out, err := exec.Command("ld", "-V").CombinedOutput()
++			if err != nil {
++				t.Fatalf("ld -V failed: %v", err)
++			}
++			// ld -V output is: "ld: LD X.X.X(date)"
++			out = bytes.TrimPrefix(out, []byte("ld: LD "))
++			vers := string(bytes.Split(out, []byte("("))[0])
++			subvers := strings.Split(vers, ".")
++			if v, err := strconv.Atoi(subvers[0]); err != nil || v < 7 {
++				return true
++			}
++			if v, err := strconv.Atoi(subvers[1]); err != nil || v < 2 {
++				return true
++			}
++			if v, err := strconv.Atoi(subvers[2]); err != nil || v < 2 {
++				return true
++			}
++			return false
++		}
++
++		if mustBeSkipped() {
++			t.Skip("skipping on aix; no DWARF with ld version < 7.2.2 ")
++		}
++
++	}
++
+ 	lines := map[Line]bool{}
+ 	dw, err := open(testenv.GoToolPath(t))
+ 	must(err)
+diff --git a/src/cmd/link/dwarf_test.go b/src/cmd/link/dwarf_test.go
+index 2c01456f6b..7c98c644a4 100644
+--- a/src/cmd/link/dwarf_test.go
++++ b/src/cmd/link/dwarf_test.go
+@@ -5,6 +5,7 @@
+ package main
+ 
+ import (
++	"bytes"
+ 	"cmd/internal/objfile"
+ 	"debug/dwarf"
+ 	"internal/testenv"
+@@ -15,6 +16,7 @@ import (
+ 	"path"
+ 	"path/filepath"
+ 	"runtime"
++	"strconv"
+ 	"strings"
+ 	"testing"
+ )
+@@ -45,6 +47,28 @@ func testDWARF(t *testing.T, buildmode string, expectDWARF bool, env ...string)
+ 	defer os.RemoveAll(tmpDir)
+ 
+ 	for _, prog := range []string{"testprog", "testprogcgo"} {
++		if runtime.GOOS == "aix" && prog == "testprogcgo" {
++			// DWARF isn't generated if cgo is enabled and ld has a
++			// version prior to 7.2.2 (cf cmd/link/internal/dwarf.go).
++			out, err := exec.Command("ld", "-V").CombinedOutput()
++			if err != nil {
++				t.Fatalf("ld -V failed: %v", err)
++			}
++			// ld -V output is: "ld: LD X.X.X(date)"
++			out = bytes.TrimPrefix(out, []byte("ld: LD "))
++			vers := string(bytes.Split(out, []byte("("))[0])
++			subvers := strings.Split(vers, ".")
++			if v, err := strconv.Atoi(subvers[0]); err != nil || v < 7 {
++				expectDWARF = false
++			}
++			if v, err := strconv.Atoi(subvers[1]); err != nil || v < 2 {
++				expectDWARF = false
++			}
++			if v, err := strconv.Atoi(subvers[2]); err != nil || v < 2 {
++				expectDWARF = false
++			}
++
++		}
+ 		t.Run(prog, func(t *testing.T) {
+ 			exe := filepath.Join(tmpDir, prog+".exe")
+ 			dir := "../../runtime/testdata/" + prog
+diff --git a/src/cmd/link/internal/ld/dwarf.go b/src/cmd/link/internal/ld/dwarf.go
+index 93ddf503eb..710cc113bf 100644
+--- a/src/cmd/link/internal/ld/dwarf.go
++++ b/src/cmd/link/internal/ld/dwarf.go
+@@ -14,6 +14,7 @@
+ package ld
+ 
+ import (
++	"bytes"
+ 	"cmd/internal/dwarf"
+ 	"cmd/internal/obj"
+ 	"cmd/internal/objabi"
+@@ -21,7 +22,9 @@ import (
+ 	"cmd/link/internal/sym"
+ 	"fmt"
+ 	"log"
++	"os/exec"
+ 	"sort"
++	"strconv"
+ 	"strings"
+ )
+ 
+@@ -1699,6 +1702,25 @@ func dwarfEnabled(ctxt *Link) bool {
+ 		case ctxt.HeadType == objabi.Hdarwin:
+ 		case ctxt.HeadType == objabi.Hwindows:
+ 		case ctxt.HeadType == objabi.Haix:
++			// ld doesn't support DWARF with -bnoobjreorder with version
++			// prior to 7.2.2.
++			out, err := exec.Command("ld", "-V").CombinedOutput()
++			if err != nil {
++				Exitf("ld -V failed: %v", err)
++			}
++			// ld -V output is: "ld: LD X.X.X(date)"
++			out = bytes.TrimPrefix(out, []byte("ld: LD "))
++			vers := string(bytes.Split(out, []byte("("))[0])
++			subvers := strings.Split(vers, ".")
++			if v, err := strconv.Atoi(subvers[0]); err != nil || v < 7 {
++				return false
++			}
++			if v, err := strconv.Atoi(subvers[1]); err != nil || v < 2 {
++				return false
++			}
++			if v, err := strconv.Atoi(subvers[2]); err != nil || v < 2 {
++				return false
++			}
+ 		default:
+ 			return false
+ 		}
+-- 
+2.15.1
+

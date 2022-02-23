@@ -1,0 +1,16 @@
+Index: db-4.4.20/dist/Makefile.in
+===================================================================
+--- db-4.4.20.orig/dist/Makefile.in	2005-11-08 13:47:22.000000000 +0100
++++ db-4.4.20/dist/Makefile.in	2008-11-06 16:54:50.504758504 +0100
+@@ -878,8 +878,9 @@
+ 	@test -d $(DESTDIR)$(libdir) || \
+ 	    ($(mkdir) -p $(DESTDIR)$(libdir) && \
+ 	    $(chmod) $(dmode) $(DESTDIR)$(libdir))
+-	@cd $(DESTDIR)$(libdir) && $(rm) -f $(LIB_INSTALL_FILE_LIST)
+-	@$(INSTALLER) @INSTALL_LIBS@ $(DESTDIR)$(libdir)
++	cd $(DESTDIR)$(libdir) && $(rm) -f $(LIB_INSTALL_FILE_LIST)
++	$(INSTALLER) @INSTALL_LIBS@ $(DESTDIR)$(libdir)
++	$(INSTALLER) .libs/$(libdb_version) $(DESTDIR)$(libdir)
+ 	@(cd $(DESTDIR)$(libdir) && \
+ 	    test -f $(libso) && $(ln) -s $(libso) $(libso_default); \
+ 	    test -f $(libso) && $(ln) -s $(libso) $(libso_major); \

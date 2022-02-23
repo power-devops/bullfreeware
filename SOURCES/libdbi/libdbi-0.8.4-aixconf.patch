@@ -1,0 +1,13 @@
+Index: libdbi-0.8.4/config.guess
+===================================================================
+--- libdbi-0.8.4.orig/config.guess	2010-03-13 10:42:24.000000000 +0100
++++ libdbi-0.8.4/config.guess	2012-03-26 08:20:41.000000000 +0200
+@@ -531,7 +531,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit 0 ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[456])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000

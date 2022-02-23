@@ -1,0 +1,28 @@
+diff --git a/configure b/configure
+index 3b3463e..5f8a49c 100755
+--- a/configure
++++ b/configure
+@@ -10340,7 +10340,10 @@ fi
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem3"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -29279,7 +29282,10 @@ fi
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem3"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do

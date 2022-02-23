@@ -1,0 +1,32 @@
+--- strings/apr_snprintf.c.orig	2017-09-25 09:41:41 -0500
++++ strings/apr_snprintf.c	2017-09-25 09:50:19 -0500
+@@ -830,12 +830,7 @@
+                 var_type = IS_QUAD;
+                 fmt += (sizeof(APR_OFF_T_FMT) - 2);
+             }
+-            else if ((sizeof(APR_INT64_T_FMT) == 4 &&
+-                 fmt[0] == APR_INT64_T_FMT[0] &&
+-                 fmt[1] == APR_INT64_T_FMT[1]) ||
+-                (sizeof(APR_INT64_T_FMT) == 3 &&
+-                 fmt[0] == APR_INT64_T_FMT[0]) ||
+-                (sizeof(APR_INT64_T_FMT) > 4 &&
++            else if ((sizeof(APR_INT64_T_FMT) > 4 &&
+                  strncmp(fmt, APR_INT64_T_FMT, 
+                          sizeof(APR_INT64_T_FMT) - 2) == 0)) {
+                 /* Need to account for trailing 'd' and null in sizeof() */
+@@ -847,8 +842,13 @@
+                 fmt++;
+             }
+             else if (*fmt == 'l') {
+-                var_type = IS_LONG;
+-                fmt++;
++                if (fmt[1] == 'l') { // %ll[du] is always quad on 64- & 32-bit
++                    var_type = IS_QUAD;
++                    fmt++;
++                } else if (sizeof(APR_INT64_T_FMT) == 3) { // %l[du] is quad on 64-bit
++                    var_type = IS_QUAD;
++                } else var_type = IS_LONG;
++		fmt++;
+             }
+             else if (*fmt == 'h') {
+                 var_type = IS_SHORT;

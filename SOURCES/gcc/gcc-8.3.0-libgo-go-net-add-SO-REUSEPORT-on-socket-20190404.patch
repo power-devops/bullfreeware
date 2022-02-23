@@ -1,0 +1,17 @@
+--- ./libgo/go/net/sockopt_aix.ORIGIN.go	2019-04-04 10:53:16 -0500
++++ ./libgo/go/net/sockopt_aix.go	2019-04-04 10:53:31 -0500
+@@ -30,5 +30,13 @@
+ func setDefaultMulticastSockopts(s int) error {
+ 	// Allow multicast UDP and raw IP datagram sockets to listen
+ 	// concurrently across multiple listeners.
+-	return os.NewSyscallError("setsockopt", syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1))
++	if err := syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
++		return os.NewSyscallError("setsockopt", err)
++	}
++
++	// Allow reuse of recently-used ports.
++	// This option is supported only in descendants of 4.4BSD,
++	// to make an effective multicast application that requires
++	// quick draw possible.
++	return os.NewSyscallError("setsockopt", syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1))
+ }

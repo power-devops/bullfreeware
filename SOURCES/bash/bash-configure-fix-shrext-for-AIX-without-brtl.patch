@@ -1,0 +1,27 @@
+From dff5f4a401af1928cff9bfccc01041beba5a04a0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 10 Feb 2020 16:20:06 +0100
+Subject: [PATCH] config.rpath: Fix shrext for AIX without -brtl
+
+---
+ support/config.rpath | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/support/config.rpath b/support/config.rpath
+index fc5913d..7380d54 100755
+--- a/support/config.rpath
++++ b/support/config.rpath
+@@ -517,6 +517,10 @@ case "$host_os" in
+     library_names_spec='$libname.a'
+     ;;
+   aix[4-9]*)
++    # .so must not be used without -brtl.
++    if test $aix_use_runtimelinking = no; then
++      shrext=.a
++    fi
+     library_names_spec='$libname$shrext'
+     ;;
+   amigaos*)
+-- 
+2.25.0
+

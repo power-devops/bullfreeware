@@ -1,0 +1,17 @@
+--- ./configure.ac.ORIGIN	2021-01-13 13:42:45 +0100
++++ ./configure.ac	2021-01-13 15:04:36 +0100
+@@ -787,7 +787,13 @@
+     fi
+   else
+     PYTHON3="$PY3BIN"
+-    AC_CHECK_PROGS(PY3CONFIG, [$PYTHON3-config])
++    case $host in
++      *-*-aix*)
++                # Handle: python3-config python3-config_32 python3-config_64
++                PYTHON3_3264=`echo $PYTHON3 | awk -F_ '{if(NF==2)print "_" $2}'`
++                AC_CHECK_PROGS(PY3CONFIG, [python3-config$PYTHON3_3264]);;
++      *)        AC_CHECK_PROGS(PY3CONFIG, [$PYTHON3-config]);;
++    esac
+   fi
+ 
+   if test -n "$PYTHON3"; then

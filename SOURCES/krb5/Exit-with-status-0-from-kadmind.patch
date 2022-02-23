@@ -1,0 +1,31 @@
+From cb8f31e6bbf72e207b428d52c2fd9ed719bbec4f Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Wed, 14 Mar 2018 14:31:22 -0400
+Subject: [PATCH] Exit with status 0 from kadmind
+
+Typically, 0 denotes successful exit.  In particular, init systems
+will complain if another different value is returned.  This presents a
+problem for automated installation jobs which want to restart kadmind.
+
+`service kadmin stop` typically sends SIGTERM, which is caught by
+verto and passed to our handler.  Besides cleanup, we then call
+verto_break(), which causes the verto_run() event loop to return.  The
+weird return code has been present since the addition of the kadmin
+code, which used a similar event model for signals.
+
+(cherry picked from commit f970ad412aca36f8a7d3addb1cd4026ed22e5592)
+---
+ src/kadmin/server/ovsec_kadmd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/kadmin/server/ovsec_kadmd.c b/src/kadmin/server/ovsec_kadmd.c
+index aac4d4ffd..0a28b2384 100644
+--- a/src/kadmin/server/ovsec_kadmd.c
++++ b/src/kadmin/server/ovsec_kadmd.c
+@@ -559,5 +559,5 @@ main(int argc, char *argv[])
+ 
+     krb5_klog_close(context);
+     krb5_free_context(context);
+-    exit(2);
++    exit(0);
+ }

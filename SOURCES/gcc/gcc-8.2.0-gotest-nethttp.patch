@@ -1,0 +1,25 @@
+--- ./libgo/testsuite/gotest.ORIGIN-20180202.Patch-min-trace	2018-02-02 10:52:10 -0600
++++ ./libgo/testsuite/gotest	2018-02-02 10:51:34 -0600
+@@ -92,6 +92,10 @@
+ 		;;
+ 	x--pkgpath=*)
+ 		pkgpath=`echo $1 | sed -e 's/^--pkgpath=//'`
++		if [ "$pkgpath" = "net/http" ]
++		then
++			NETHTTPFLAGS="-mcmodel=large"
++		fi
+ #		echo "Test: $pkgpath"
+ #		if [ "$pkgpath" != "net/http/httputil" ]
+ #		then
+@@ -625,9 +625,9 @@
+ 	${GC} -g -c _testmain.go
+ 
+ 	if test "$trace" = "true"; then
+-	    echo ${GL} *.o ${GOLIBS}
++	    echo ${GL} *.o ${GOLIBS} ${NETHTTPFLAGS}
+ 	fi
+-	${GL} *.o ${GOLIBS}
++	${GL} *.o ${GOLIBS} ${NETHTTPFLAGS}
+ 
+ 	set +e
+ 	cp a.out a.out.ORIGIN

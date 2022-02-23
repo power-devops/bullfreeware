@@ -1,0 +1,9 @@
+diff -Naur --exclude '*.orig' --exclude '*~' ocaml-3.11.0/emacs/ocamltags.in ocaml-3.11.0-ocamltags-no-site-start/emacs/ocamltags.in
+--- ocaml-3.11.0/emacs/ocamltags.in	2004-08-20 19:04:35.000000000 +0200
++++ ocaml-3.11.0-ocamltags-no-site-start/emacs/ocamltags.in	2008-12-24 00:33:46.000000000 +0100
+@@ -1,4 +1,4 @@
+-":" ; @EMACS@ -batch -l $0 "$@" ; status=$? ; : '--*-Emacs-Lisp-*--' <<';'
++":" ; @EMACS@ --batch --no-init-file --no-site-file -l $0 "$@" ; status=$? ; : '--*-Emacs-Lisp-*--' <<';'
+ 
+ ;(***********************************************************************)
+ ;(*                                                                     *)

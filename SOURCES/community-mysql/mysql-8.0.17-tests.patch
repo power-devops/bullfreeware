@@ -1,0 +1,44 @@
+--- ./mysql-test/lib/My/ConfigFactory.pm.ORIGIN	2019-06-28 11:18:19 -0500
++++ ./mysql-test/lib/My/ConfigFactory.pm	2019-06-28 11:18:46 -0500
+@@ -169,7 +169,7 @@
+ 
+   # Make sure the socket path does not become longer then the path
+   # which mtr uses to test if a new tmpdir should be created.
+-  if (length($socket) > length("$dir/mysql_testsocket.sock")) {
++  if (length($socket) > length("$dir/mysql.sock")) {
+     # Too long socket path, generate shorter based on port
+     my $port = $group->value('port');
+     my $group_prefix = substr($group_name, 0, index($group_name, '.'));
+--- ./mysql-test/mysql-test-run.pl.ORIGIN2	2019-06-28 11:17:43 -0500
++++ ./mysql-test/mysql-test-run.pl	2019-06-28 11:18:06 -0500
+@@ -1817,7 +1817,7 @@
+   if (!$opt_tmpdir) {
+     $opt_tmpdir = "$opt_vardir/tmp" unless $opt_tmpdir;
+ 
+-    my $res = check_socket_path_length("$opt_tmpdir/mysql_testsocket.sock",
++    my $res = check_socket_path_length("$opt_tmpdir/mysql.sock",
+                                        $opt_parallel);
+ 
+     if ($res) {
+@@ -3038,7 +3038,7 @@
+   # On some operating systems, there is a limit to the length of a
+   # UNIX domain socket's path far below PATH_MAX. Don't allow that
+   # to happen.
+-  my $res = check_socket_path_length("$opt_tmpdir/mysql_testsocket.sock",
++  my $res = check_socket_path_length("$opt_tmpdir/mysql.sock",
+                                      $opt_parallel);
+   if ($res) {
+     mtr_error("Socket path '$opt_tmpdir' too long, it would be ",
+--- ./mysql-test/lib/My/Platform.pm.orig        2019-11-25 14:38:47 +0100
++++ ./mysql-test/lib/My/Platform.pm     2019-11-25 14:43:45 +0100
+@@ -115,6 +115,10 @@
+
+   return 0 if IS_WINDOWS;
+
++  # This may not be true, but we can't test for it on AIX due to Perl bug
++  # See Bug #45771
++  return 0 if ($^O eq 'aix');
++
+   require IO::Socket::UNIX;
+
+   my $truncated = undef;

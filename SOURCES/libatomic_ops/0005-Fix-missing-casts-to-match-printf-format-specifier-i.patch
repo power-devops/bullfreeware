@@ -1,0 +1,38 @@
+From 952543ab656f8cf787a39018b8c8b41c475d8902 Mon Sep 17 00:00:00 2001
+From: Ivan Maidanski <ivmai@mail.ru>
+Date: Fri, 13 Jun 2014 12:17:08 +0400
+Subject: [PATCH 05/20] Fix missing casts to match printf format specifier in
+ test_atomic
+
+* tests/test_atomic.c (test_and_set_thr): Add missing casts to long
+for locked_counter (which is unsigned long) to match printf format
+specifier.
+---
+ tests/test_atomic.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tests/test_atomic.c b/tests/test_atomic.c
+index 86fede1..b063a92 100644
+--- a/tests/test_atomic.c
++++ b/tests/test_atomic.c
+@@ -148,7 +148,7 @@ void * test_and_set_thr(void * id)
+       if (locked_counter != 1)
+         {
+           fprintf(stderr, "Test and set failure 1, counter = %ld, id = %d\n",
+-                  locked_counter, (int)(AO_PTRDIFF_T)id);
++                  (long)locked_counter, (int)(AO_PTRDIFF_T)id);
+           abort();
+         }
+       locked_counter *= 2;
+@@ -158,7 +158,7 @@ void * test_and_set_thr(void * id)
+       if (locked_counter != 1)
+         {
+           fprintf(stderr, "Test and set failure 2, counter = %ld, id = %d\n",
+-                  locked_counter, (int)(AO_PTRDIFF_T)id);
++                  (long)locked_counter, (int)(AO_PTRDIFF_T)id);
+           abort();
+         }
+       --locked_counter;
+-- 
+1.9.3
+

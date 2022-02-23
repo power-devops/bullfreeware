@@ -1,0 +1,117 @@
+*** ./mozilla/security/nss/lib/util/secder.h.ORIG	Sat Feb  5 20:27:10 2011
+--- ./mozilla/security/nss/lib/util/secder.h	Sat Feb  5 20:32:35 2011
+***************
+*** 126,134 ****
+  ** The caller is responsible for freeing up the buffer which
+  ** result->data points to upon a successful operation.
+  */
+! extern SECStatus DER_TimeToUTCTime(SECItem *result, PRTime time);
+  extern SECStatus DER_TimeToUTCTimeArena(PLArenaPool* arenaOpt,
+!                                         SECItem *dst, PRTime gmttime);
+  
+  
+  /*
+--- 126,134 ----
+  ** The caller is responsible for freeing up the buffer which
+  ** result->data points to upon a successful operation.
+  */
+! extern SECStatus DER_TimeToUTCTime(SECItem *result, int64 time);
+  extern SECStatus DER_TimeToUTCTimeArena(PLArenaPool* arenaOpt,
+!                                         SECItem *dst, int64 gmttime);
+  
+  
+  /*
+***************
+*** 137,148 ****
+  **	"result" the resulting NSPR time
+  **	"string" the der notation ascii value to decode
+  */
+! extern SECStatus DER_AsciiToTime(PRTime *result, const char *string);
+  
+  /*
+  ** Same as DER_AsciiToTime except takes an SECItem instead of a string
+  */
+! extern SECStatus DER_UTCTimeToTime(PRTime *result, const SECItem *time);
+  
+  /*
+  ** Convert a DER encoded UTC time to an ascii time representation
+--- 137,148 ----
+  **	"result" the resulting NSPR time
+  **	"string" the der notation ascii value to decode
+  */
+! extern SECStatus DER_AsciiToTime(int64 *result, const char *string);
+  
+  /*
+  ** Same as DER_AsciiToTime except takes an SECItem instead of a string
+  */
+! extern SECStatus DER_UTCTimeToTime(int64 *result, const SECItem *time);
+  
+  /*
+  ** Convert a DER encoded UTC time to an ascii time representation
+***************
+*** 168,176 ****
+  ** gmttime must be on or after January 1, year 1 and
+  ** before January 1, 10000.
+  */
+! extern SECStatus DER_TimeToGeneralizedTime(SECItem *dst, PRTime gmttime);
+  extern SECStatus DER_TimeToGeneralizedTimeArena(PLArenaPool* arenaOpt,
+!                                                 SECItem *dst, PRTime gmttime);
+  
+  /*
+  ** Convert a DER encoded Generalized time value into an NSPR time value.
+--- 168,176 ----
+  ** gmttime must be on or after January 1, year 1 and
+  ** before January 1, 10000.
+  */
+! extern SECStatus DER_TimeToGeneralizedTime(SECItem *dst, int64 gmttime);
+  extern SECStatus DER_TimeToGeneralizedTimeArena(PLArenaPool* arenaOpt,
+!                                                 SECItem *dst, int64 gmttime);
+  
+  /*
+  ** Convert a DER encoded Generalized time value into an NSPR time value.
+***************
+*** 177,189 ****
+  **	"dst" the resulting NSPR time
+  **	"string" the der notation ascii value to decode
+  */
+! extern SECStatus DER_GeneralizedTimeToTime(PRTime *dst, const SECItem *time);
+  
+  /*
+  ** Convert from a PRTime UTC time value to a formatted ascii value. The
+  ** caller is responsible for deallocating the returned buffer.
+  */
+! extern char *CERT_UTCTime2FormattedAscii (PRTime utcTime, char *format);
+  #define CERT_GeneralizedTime2FormattedAscii CERT_UTCTime2FormattedAscii
+  
+  /*
+--- 177,189 ----
+  **	"dst" the resulting NSPR time
+  **	"string" the der notation ascii value to decode
+  */
+! extern SECStatus DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time);
+  
+  /*
+  ** Convert from a PRTime UTC time value to a formatted ascii value. The
+  ** caller is responsible for deallocating the returned buffer.
+  */
+! extern char *CERT_UTCTime2FormattedAscii (int64 utcTime, char *format);
+  #define CERT_GeneralizedTime2FormattedAscii CERT_UTCTime2FormattedAscii
+  
+  /*
+***************
+*** 190,196 ****
+  ** Convert from a PRTime Generalized time value to a formatted ascii value. The
+  ** caller is responsible for deallocating the returned buffer.
+  */
+! extern char *CERT_GenTime2FormattedAscii (PRTime genTime, char *format);
+  
+  /*
+  ** decode a SECItem containing either a SEC_ASN1_GENERALIZED_TIME 
+--- 190,196 ----
+  ** Convert from a PRTime Generalized time value to a formatted ascii value. The
+  ** caller is responsible for deallocating the returned buffer.
+  */
+! extern char *CERT_GenTime2FormattedAscii (int64 genTime, char *format);
+  
+  /*
+  ** decode a SECItem containing either a SEC_ASN1_GENERALIZED_TIME 

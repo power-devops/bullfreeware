@@ -1,0 +1,18 @@
+MySQL 8.0 includes a feature that requires we set linux NICE capabilities to
+mysqld daemon. Because of that, LD_LIBRARY_PATH does not work (see
+secure-execution mode in http://man7.org/linux/man-pages/man8/ld.so.8.html).
+
+Related: #1628814
+
+diff -up mysql-8.0.12/sql/CMakeLists.txt.patchrpath mysql-8.0.12/sql/CMakeLists.txt
+--- mysql-8.0.12/sql/CMakeLists.txt.patchrpath	2018-09-14 13:59:02.884021458 +0200
++++ mysql-8.0.12/sql/CMakeLists.txt	2018-09-14 14:01:10.897983621 +0200
+@@ -711,6 +711,8 @@ ENDIF()
+ MYSQL_ADD_EXECUTABLE(mysqld
+   ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
+ 
++SET_TARGET_PROPERTIES(mysqld PROPERTIES INSTALL_RPATH "${RPATH_LIBDIR}")
++
+ OPTION(DEBUG_EXTNAME "Build server as mysqld-debug (debug builds only)" OFF)
+ MARK_AS_ADVANCED(DEBUG_EXTNAME)
+ 

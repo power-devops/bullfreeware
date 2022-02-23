@@ -1,0 +1,41 @@
+*** ./src/Makefile.in.ORIG	Wed Jun 29 10:58:01 2011
+--- ./src/Makefile.in	Mon Aug  1 15:33:15 2011
+***************
+*** 112,118 ****
+  	libgcrypt_la-stdmem.lo libgcrypt_la-secmem.lo \
+  	libgcrypt_la-missing-string.lo libgcrypt_la-module.lo \
+  	libgcrypt_la-fips.lo libgcrypt_la-hmac256.lo \
+! 	libgcrypt_la-ath.lo
+  libgcrypt_la_OBJECTS = $(am_libgcrypt_la_OBJECTS)
+  libgcrypt_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+  	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libgcrypt_la_CFLAGS) \
+--- 112,119 ----
+  	libgcrypt_la-stdmem.lo libgcrypt_la-secmem.lo \
+  	libgcrypt_la-missing-string.lo libgcrypt_la-module.lo \
+  	libgcrypt_la-fips.lo libgcrypt_la-hmac256.lo \
+! 	libgcrypt_la-ath.lo \
+! 	../cipher/*.lo ../mpi/*.lo
+  libgcrypt_la_OBJECTS = $(am_libgcrypt_la_OBJECTS)
+  libgcrypt_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+  	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libgcrypt_la_CFLAGS) \
+***************
+*** 372,380 ****
+  	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
+  
+  libgcrypt_la_LIBADD = $(gcrypt_res) \
+! 	../cipher/libcipher.la \
+! 	../random/librandom.la \
+! 	../mpi/libmpi.la \
+  	../compat/libcompat.la  $(GPG_ERROR_LIBS)
+  
+  dumpsexp_SOURCES = dumpsexp.c
+--- 373,381 ----
+  	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
+  
+  libgcrypt_la_LIBADD = $(gcrypt_res) \
+! 	../cipher/.libs/libcipher.a \
+! 	../random/.libs/librandom.a \
+! 	../mpi/.libs/libmpi.a \
+  	../compat/libcompat.la  $(GPG_ERROR_LIBS)
+  
+  dumpsexp_SOURCES = dumpsexp.c

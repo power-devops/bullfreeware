@@ -1,0 +1,157 @@
+From 89b4e866b9778d77689be20d04c30072db184981 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 26 May 2020 11:14:03 -0500
+Subject: [PATCH] runtime, net: fix build errors on AIX
+
+---
+ libgo/go/internal/cpu/cpu_no_init.go                 |  1 +
+ libgo/go/internal/cpu/{cpu_ppc64x.go => cpu_ppcx.go} |  2 +-
+ libgo/go/net/interface_aix.go                        |  2 --
+ libgo/go/runtime/os_aix.go                           | 11 +++++------
+ libgo/mksysinfo.sh                                   |  9 ++++++++-
+ libgo/sysinfo.c                                      |  8 ++++++++
+ 6 files changed, 23 insertions(+), 10 deletions(-)
+ rename libgo/go/internal/cpu/{cpu_ppc64x.go => cpu_ppcx.go} (97%)
+
+diff --git a/libgo/go/internal/cpu/cpu_no_init.go b/libgo/go/internal/cpu/cpu_no_init.go
+index d4b2be8cf4f..601f637fc34 100644
+--- a/libgo/go/internal/cpu/cpu_no_init.go
++++ b/libgo/go/internal/cpu/cpu_no_init.go
+@@ -6,6 +6,7 @@
+ // +build !amd64
+ // +build !arm
+ // +build !arm64
++// +build !ppc
+ // +build !ppc64
+ // +build !ppc64le
+ // +build !s390x
+diff --git a/libgo/go/internal/cpu/cpu_ppc64x.go b/libgo/go/internal/cpu/cpu_ppcx.go
+similarity index 97%
+rename from libgo/go/internal/cpu/cpu_ppc64x.go
+rename to libgo/go/internal/cpu/cpu_ppcx.go
+index 02f2c06c60b..e6665928ade 100644
+--- a/libgo/go/internal/cpu/cpu_ppc64x.go
++++ b/libgo/go/internal/cpu/cpu_ppcx.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build ppc64 ppc64le
++// +build ppc ppc64 ppc64le
+ 
+ package cpu
+ 
+diff --git a/libgo/go/net/interface_aix.go b/libgo/go/net/interface_aix.go
+index f57c5ff6622..bd5538699bb 100644
+--- a/libgo/go/net/interface_aix.go
++++ b/libgo/go/net/interface_aix.go
+@@ -33,8 +33,6 @@ const _RTAX_NETMASK = 2
+ const _RTAX_IFA = 5
+ const _RTAX_MAX = 8
+ 
+-const _SIOCGIFMTU = -0x3fd796aa
+-
+ func getIfList() ([]byte, error) {
+ 	needed, err := syscall.Getkerninfo(_KINFO_RT_IFLIST, 0, 0, 0)
+ 	if err != nil {
+diff --git a/libgo/go/runtime/os_aix.go b/libgo/go/runtime/os_aix.go
+index b337330c8f2..951aeb6cffd 100644
+--- a/libgo/go/runtime/os_aix.go
++++ b/libgo/go/runtime/os_aix.go
+@@ -46,7 +46,7 @@ func clock_gettime(clock_id int64, timeout *timespec) int32
+ 
+ //go:nosplit
+ func semacreate(mp *m) {
+-	if mp.mos.waitsema != 0 {
++	if mp.waitsema != 0 {
+ 		return
+ 	}
+ 
+@@ -59,7 +59,7 @@ func semacreate(mp *m) {
+ 	if sem_init(sem, 0, 0) != 0 {
+ 		throw("sem_init")
+ 	}
+-	mp.mos.waitsema = uintptr(unsafe.Pointer(sem))
++	mp.waitsema = uintptr(unsafe.Pointer(sem))
+ }
+ 
+ //go:nosplit
+@@ -85,7 +85,7 @@ func semasleep(ns int64) int32 {
+ 		ts.tv_sec = timespec_sec_t(sec)
+ 		ts.tv_nsec = timespec_nsec_t(nsec)
+ 
+-		if sem_timedwait((*semt)(unsafe.Pointer(_m_.mos.waitsema)), &ts) != 0 {
++		if sem_timedwait((*semt)(unsafe.Pointer(_m_.waitsema)), &ts) != 0 {
+ 			err := errno()
+ 			if err == _ETIMEDOUT || err == _EAGAIN || err == _EINTR {
+ 				return -1
+@@ -96,7 +96,7 @@ func semasleep(ns int64) int32 {
+ 		return 0
+ 	}
+ 	for {
+-		r1 := sem_wait((*semt)(unsafe.Pointer(_m_.mos.waitsema)))
++		r1 := sem_wait((*semt)(unsafe.Pointer(_m_.waitsema)))
+ 		if r1 == 0 {
+ 			break
+ 		}
+@@ -110,7 +110,7 @@ func semasleep(ns int64) int32 {
+ 
+ //go:nosplit
+ func semawakeup(mp *m) {
+-	if sem_post((*semt)(unsafe.Pointer(mp.mos.waitsema))) != 0 {
++	if sem_post((*semt)(unsafe.Pointer(mp.waitsema))) != 0 {
+ 		throw("sem_post")
+ 	}
+ }
+@@ -128,7 +128,6 @@ const (
+ 
+ const (
+ 	// getsystemcfg constants
+-	_SC_IMPL     = 2
+ 	_IMPL_POWER8 = 0x10000
+ 	_IMPL_POWER9 = 0x20000
+ )
+diff --git a/libgo/mksysinfo.sh b/libgo/mksysinfo.sh
+index bd2ba32cba1..9671e394cb8 100755
+--- a/libgo/mksysinfo.sh
++++ b/libgo/mksysinfo.sh
+@@ -1041,9 +1041,16 @@ grep '^const _IFF' gen-sysinfo.go | \
+     sed -e 's/^\(const \)_\(IFF[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+ grep '^const _IFNAMSIZ' gen-sysinfo.go | \
+     sed -e 's/^\(const \)_\(IFNAMSIZ[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+-grep '^const _SIOC' gen-sysinfo.go |
++grep '^const _SIOC' gen-sysinfo.go | \
++    grep -v '_val =' | \
+     sed -e 's/^\(const \)_\(SIOC[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+ 
++if ! grep '^const SIOCGIFMTU' ${OUT} >/dev/null 2>&1; then
++	if grep '^const _SIOCGIFMTU_val' ${OUT} >/dev/null 2>&1; then
++		echo 'const SIOCGIFMTU = _SIOCGIFMTU_val' >> ${OUT}
++	fi
++fi
++
+ # The ifaddrmsg struct.
+ grep '^type _ifaddrmsg ' gen-sysinfo.go | \
+     sed -e 's/_ifaddrmsg/IfAddrmsg/' \
+diff --git a/libgo/sysinfo.c b/libgo/sysinfo.c
+index 0692fd41eb7..bb9a3fb5d8e 100644
+--- a/libgo/sysinfo.c
++++ b/libgo/sysinfo.c
+@@ -281,6 +281,14 @@ enum {
+ #endif
+ };
+ 
++// SIOCGIFMTU can't be added in the above enum as it might
++// be signed in some OSes.
++#ifdef SIOCGIFMTU
++enum {
++  SIOCGIFMTU_val = SIOCGIFMTU,
++};
++#endif
++
+ #if defined(HAVE_SYS_EPOLL_H)
+ enum {
+   epoll_data_offset = offsetof(struct epoll_event, data)
+-- 
+2.25.0
+

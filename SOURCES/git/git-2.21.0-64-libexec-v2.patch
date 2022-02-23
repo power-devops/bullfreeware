@@ -1,0 +1,33 @@
+--- Makefile.ORIGIN	2019-03-04 09:25:39 -0600
++++ Makefile	2019-03-04 09:26:06 -0600
+@@ -537,7 +537,7 @@
+ bindir = $(prefix)/bin
+ mandir = $(prefix)/share/man
+ infodir = $(prefix)/share/info
+-gitexecdir = libexec/git-core
++gitexecdir = libexec64/git-core
+ mergetoolsdir = $(gitexecdir)/mergetools
+ sharedir = $(prefix)/share
+ gitwebdir = $(sharedir)/gitweb
+--- contrib/contacts/Makefile.ORIGIN	2019-03-04 09:26:51 -0600
++++ contrib/contacts/Makefile	2019-03-04 09:13:57 -0600
+@@ -5,7 +5,7 @@
+ -include ../../config.mak
+ 
+ prefix ?= /usr/local
+-gitexecdir ?= $(prefix)/libexec/git-core
++gitexecdir ?= $(prefix)/libexec64/git-core
+ mandir ?= $(prefix)/share/man
+ man1dir ?= $(mandir)/man1
+ htmldir ?= $(prefix)/share/doc/git-doc
+--- contrib/subtree/Makefile.ORIGIN	2019-03-04 09:27:43 -0600
++++ contrib/subtree/Makefile	2019-03-04 09:13:57 -0600
+@@ -5,7 +5,7 @@
+ -include ../../config.mak
+ 
+ prefix ?= /usr/local
+-gitexecdir ?= $(prefix)/libexec/git-core
++gitexecdir ?= $(prefix)/libexec64/git-core
+ mandir ?= $(prefix)/share/man
+ man1dir ?= $(mandir)/man1
+ htmldir ?= $(prefix)/share/doc/git-doc

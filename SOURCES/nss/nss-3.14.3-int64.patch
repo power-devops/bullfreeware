@@ -1,0 +1,316 @@
+Index: nss-3.14.3/mozilla/security/nss/lib/certdb/cert.h
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/certdb/cert.h	2012-09-28 18:05:02.000000000 +0200
++++ nss-3.14.3/mozilla/security/nss/lib/certdb/cert.h	2013-02-25 09:38:11.000000000 +0100
+@@ -164,7 +164,7 @@
+ **	"notBefore" the time before which the validity is not valid
+ **	"notAfter" the time after which the validity is not valid
+ */
+-extern CERTValidity *CERT_CreateValidity(PRTime notBefore, PRTime notAfter);
++extern CERTValidity *CERT_CreateValidity(int64 notBefore, int64 notAfter);
+ 
+ /*
+ ** Destroy a validity object.
+@@ -287,7 +287,7 @@
+ extern CERTCertDBHandle *CERT_GetDefaultCertDB(void);
+ 
+ extern CERTCertList *CERT_GetCertChainFromCert(CERTCertificate *cert, 
+-					       PRTime time, 
++					       int64 time, 
+ 					       SECCertUsage usage);
+ extern CERTCertificate *
+ CERT_NewTempCertificate (CERTCertDBHandle *handle, SECItem *derCert,
+@@ -582,7 +582,7 @@
+  * Find the issuer of a cert
+  */
+ CERTCertificate *
+-CERT_FindCertIssuer(CERTCertificate *cert, PRTime validTime, SECCertUsage usage);
++CERT_FindCertIssuer(CERTCertificate *cert, int64 validTime, SECCertUsage usage);
+ 
+ /*
+ ** Check the validity times of a certificate vs. time 't', allowing
+@@ -628,7 +628,7 @@
+ */
+ extern SECStatus CERT_VerifySignedData(CERTSignedData *sd,
+ 				       CERTCertificate *cert,
+-				       PRTime t,
++				       int64 t,
+ 				       void *wincx);
+ /*
+ ** verify the signature of a signed data object with the given DER publickey
+@@ -656,7 +656,7 @@
+ extern SECStatus
+ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
+ 		PRBool checkSig, SECCertificateUsage requiredUsages,
+-                PRTime t, void *wincx, CERTVerifyLog *log,
++                int64 t, void *wincx, CERTVerifyLog *log,
+                 SECCertificateUsage* returnedUsages);
+ 
+ /* same as above, but uses current time */
+@@ -672,7 +672,7 @@
+ */
+ extern SECStatus
+ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
+-		PRBool checkSig, SECCertUsage certUsage, PRTime t,
++		PRBool checkSig, SECCertUsage certUsage, int64 t,
+ 		void *wincx, CERTVerifyLog *log);
+ 
+ /*
+@@ -685,7 +685,7 @@
+ */
+ extern SECStatus
+ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
+-		PRBool checkSig, SECCertUsage certUsage, PRTime t,
++		PRBool checkSig, SECCertUsage certUsage, int64 t,
+ 		void *wincx, CERTVerifyLog *log);
+ 
+ /* same as above, but uses current time */
+@@ -695,7 +695,7 @@
+ 
+ SECStatus
+ CERT_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
+-		     PRBool checkSig, SECCertUsage certUsage, PRTime t,
++		     PRBool checkSig, SECCertUsage certUsage, int64 t,
+ 		     void *wincx, CERTVerifyLog *log);
+ 
+ /*
+@@ -998,7 +998,7 @@
+    (CERTCrl *crl, int tag, SECItem *value);
+ 
+ extern SECStatus
+-   CERT_FindInvalidDateExten (CERTCrl *crl, PRTime *value);
++   CERT_FindInvalidDateExten (CERTCrl *crl, int64 *value);
+ 
+ /*
+ ** Set up a crl for adding X509v3 extensions.  Returns an opaque handle
+@@ -1268,7 +1268,7 @@
+  */
+ CERTCertList *
+ CERT_CreateSubjectCertList(CERTCertList *certList, CERTCertDBHandle *handle,
+-			   SECItem *name, PRTime sorttime, PRBool validOnly);
++			   SECItem *name, int64 sorttime, PRBool validOnly);
+ 
+ /*
+  * remove certs from a list that don't have keyUsage and certType
+@@ -1419,7 +1419,7 @@
+ CERTCertificate *
+ CERT_FindMatchingCert(CERTCertDBHandle *handle, SECItem *derName,
+ 		      CERTCertOwner owner, SECCertUsage usage,
+-		      PRBool preferTrusted, PRTime validTime, PRBool validOnly);
++		      PRBool preferTrusted, int64 validTime, PRBool validOnly);
+ 
+ /*
+  * Acquire the global lock on the cert database.
+Index: nss-3.14.3/mozilla/security/nss/lib/certdb/certi.h
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/certdb/certi.h	2012-12-06 18:56:57.000000000 +0100
++++ nss-3.14.3/mozilla/security/nss/lib/certdb/certi.h	2013-02-25 09:29:52.000000000 +0100
+@@ -246,7 +246,7 @@
+  * Automatically creates the cache object if it doesn't exist yet.
+  */
+ SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
+-                         const SECItem* dp, int64 t, void* wincx,
++                         const SECItem* dp, PRTime t, void* wincx,
+                          CRLDPCache** dpcache, PRBool* writeLocked);
+ 
+ /* check if a particular SN is in the CRL cache and return its entry */
+Index: nss-3.14.3/mozilla/security/nss/lib/certhigh/ocsp.h
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/certhigh/ocsp.h	2012-12-12 17:03:44.000000000 +0100
++++ nss-3.14.3/mozilla/security/nss/lib/certhigh/ocsp.h	2013-02-25 09:57:30.000000000 +0100
+@@ -214,7 +214,7 @@
+  *   Other errors are low-level problems (no memory, bad database, etc.).
+  */
+ extern CERTOCSPRequest *
+-CERT_CreateOCSPRequest(CERTCertList *certList, PRTime time, 
++CERT_CreateOCSPRequest(CERTCertList *certList, int64 time, 
+ 		       PRBool addServiceLocator,
+ 		       CERTCertificate *signerCert);
+ 
+@@ -362,7 +362,7 @@
+  */
+ extern SECItem *
+ CERT_GetEncodedOCSPResponse(PLArenaPool *arena, CERTCertList *certList,
+-			    const char *location, PRTime time,
++			    const char *location, int64 time,
+ 			    PRBool addServiceLocator,
+ 			    CERTCertificate *signerCert, void *pwArg,
+ 			    CERTOCSPRequest **pRequest);
+@@ -517,7 +517,7 @@
+  */    
+ extern SECStatus 
+ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
+-		     PRTime time, void *pwArg);
++		     int64 time, void *pwArg);
+ 
+ /*
+  * FUNCTION: CERT_CacheOCSPResponseFromSideChannel
+@@ -550,7 +550,7 @@
+ extern SECStatus
+ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
+ 				      CERTCertificate *cert,
+-				      PRTime time,
++				      int64 time,
+ 				      SECItem *encodedResponse,
+ 				      void *pwArg);
+ 
+@@ -578,7 +578,7 @@
+ 			    CERTOCSPResponse *response,
+ 			    CERTOCSPCertID   *certID,
+ 			    CERTCertificate  *signerCert,
+-                            PRTime            time);
++                            int64            time);
+ 
+ /*
+  * FUNCTION CERT_GetOCSPResponseStatus
+@@ -616,7 +616,7 @@
+  *    certID is no longer necessary.
+  */
+ extern CERTOCSPCertID*
+-CERT_CreateOCSPCertID(CERTCertificate *cert, PRTime time);
++CERT_CreateOCSPCertID(CERTCertificate *cert, int64 time);
+ 
+ /*
+  * FUNCTION: CERT_DestroyOCSPCertID
+@@ -637,22 +637,22 @@
+ extern CERTOCSPSingleResponse*
+ CERT_CreateOCSPSingleResponseGood(PLArenaPool *arena,
+                                   CERTOCSPCertID *id,
+-                                  PRTime thisUpdate,
+-                                  const PRTime *nextUpdate);
++                                  int64 thisUpdate,
++                                  const int64 *nextUpdate);
+ 
+ extern CERTOCSPSingleResponse*
+ CERT_CreateOCSPSingleResponseUnknown(PLArenaPool *arena,
+                                      CERTOCSPCertID *id,
+-                                     PRTime thisUpdate,
+-                                     const PRTime *nextUpdate);
++                                     int64 thisUpdate,
++                                     const int64 *nextUpdate);
+ 
+ extern CERTOCSPSingleResponse*
+ CERT_CreateOCSPSingleResponseRevoked(
+     PLArenaPool *arena,
+     CERTOCSPCertID *id,
+-    PRTime thisUpdate,
+-    const PRTime *nextUpdate,
+-    PRTime revocationTime,
++    int64 thisUpdate,
++    const int64 *nextUpdate,
++    int64 revocationTime,
+     const CERTCRLEntryReasonCode* revocationReason);
+ 
+ extern SECItem*
+@@ -660,7 +660,7 @@
+     PLArenaPool *arena,
+     CERTCertificate *responderCert,
+     CERTOCSPResponderIDType responderIDType,
+-    PRTime producedAt,
++    int64 producedAt,
+     CERTOCSPSingleResponse **responses,
+     void *wincx);
+ 
+Index: nss-3.14.3/mozilla/security/nss/lib/freebl/stubs.c
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/freebl/stubs.c	2012-09-22 02:27:05.000000000 +0200
++++ nss-3.14.3/mozilla/security/nss/lib/freebl/stubs.c	2013-02-25 09:42:54.000000000 +0100
+@@ -336,6 +336,10 @@
+ extern char *
+ PR_GetLibraryFilePathname_stub(const char *name, PRFuncPtr addr)
+ {
++#ifdef _AIX
++/* AIX does not have Dl_info in <dlfcn.h> and dladdr() ! */
++    return NULL;
++#else
+     Dl_info dli;
+     char *result;
+ 
+@@ -349,6 +353,7 @@
+         strcpy(result, dli.dli_fname);
+     }
+     return result;
++#endif
+ }
+ 
+ 
+@@ -577,8 +582,13 @@
+ /*
+  * fetch the library if it's loaded. For NSS it should already be loaded
+  */
++#ifdef _AIX
++#define freebl_getLibrary(libName)  \
++     dlopen (libName, RTLD_LAZY)
++#else
+ #define freebl_getLibrary(libName)  \
+     dlopen (libName, RTLD_LAZY|RTLD_NOLOAD)
++#endif
+ 
+ #define freebl_releaseLibrary(lib) \
+     if (lib) dlclose(lib)
+Index: nss-3.14.3/mozilla/security/nss/lib/util/secder.h
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/util/secder.h	2012-11-14 02:14:12.000000000 +0100
++++ nss-3.14.3/mozilla/security/nss/lib/util/secder.h	2013-02-25 09:26:49.000000000 +0100
+@@ -91,9 +91,9 @@
+ ** The caller is responsible for freeing up the buffer which
+ ** result->data points to upon a successful operation.
+ */
+-extern SECStatus DER_TimeToUTCTime(SECItem *result, PRTime time);
++extern SECStatus DER_TimeToUTCTime(SECItem *result, int64 time);
+ extern SECStatus DER_TimeToUTCTimeArena(PLArenaPool* arenaOpt,
+-                                        SECItem *dst, PRTime gmttime);
++                                        SECItem *dst, int64 gmttime);
+ 
+ 
+ /*
+@@ -102,12 +102,12 @@
+ **	"result" the resulting NSPR time
+ **	"string" the der notation ascii value to decode
+ */
+-extern SECStatus DER_AsciiToTime(PRTime *result, const char *string);
++extern SECStatus DER_AsciiToTime(int64 *result, const char *string);
+ 
+ /*
+ ** Same as DER_AsciiToTime except takes an SECItem instead of a string
+ */
+-extern SECStatus DER_UTCTimeToTime(PRTime *result, const SECItem *time);
++extern SECStatus DER_UTCTimeToTime(int64 *result, const SECItem *time);
+ 
+ /*
+ ** Convert a DER encoded UTC time to an ascii time representation
+@@ -133,29 +133,29 @@
+ ** gmttime must be on or after January 1, year 1 and
+ ** before January 1, 10000.
+ */
+-extern SECStatus DER_TimeToGeneralizedTime(SECItem *dst, PRTime gmttime);
++extern SECStatus DER_TimeToGeneralizedTime(SECItem *dst, int64 gmttime);
+ extern SECStatus DER_TimeToGeneralizedTimeArena(PLArenaPool* arenaOpt,
+-                                                SECItem *dst, PRTime gmttime);
++                                                SECItem *dst, int64 gmttime);
+ 
+ /*
+ ** Convert a DER encoded Generalized time value into an NSPR time value.
+ **	"dst" the resulting NSPR time
+ **	"string" the der notation ascii value to decode
+ */
+-extern SECStatus DER_GeneralizedTimeToTime(PRTime *dst, const SECItem *time);
++extern SECStatus DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time);
+ 
+ /*
+ ** Convert from a PRTime UTC time value to a formatted ascii value. The
+ ** caller is responsible for deallocating the returned buffer.
+ */
+-extern char *CERT_UTCTime2FormattedAscii (PRTime utcTime, char *format);
++extern char *CERT_UTCTime2FormattedAscii (int64 utcTime, char *format);
+ #define CERT_GeneralizedTime2FormattedAscii CERT_UTCTime2FormattedAscii
+ 
+ /*
+ ** Convert from a PRTime Generalized time value to a formatted ascii value. The
+ ** caller is responsible for deallocating the returned buffer.
+ */
+-extern char *CERT_GenTime2FormattedAscii (PRTime genTime, char *format);
++extern char *CERT_GenTime2FormattedAscii (int64 genTime, char *format);
+ 
+ /*
+ ** decode a SECItem containing either a SEC_ASN1_GENERALIZED_TIME 

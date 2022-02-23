@@ -1,0 +1,89 @@
+From 36b95d8c695bc0489db3cd8c2160d5db4d60a605 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 25 Sep 2020 09:48:22 +0200
+Subject: [PATCH] aix: apply aix_malloc more narrowly.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In recent Technology Levels of AIX 7.2, new "#ifdef __cplusplus" have been
+added. Thus, the aix_malloc fix was applied in wrong locations. This patch
+increases the context to avoid this.
+
+fixincludes/ChangeLog:
+2020-09-25  Clément Chigot <clement.chigot@atos.net>
+	* inclhack.def (aix_malloc): Add more context to select.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/socket.h: Update expected results.
+---
+ fixincludes/fixincl.x           | 12 ++++++++----
+ fixincludes/inclhack.def        | 12 +++++++++---
+ fixincludes/tests/base/malloc.h |  2 ++
+ 3 files changed, 19 insertions(+), 7 deletions(-)
+
+diff --git a/fixincludes/fixincl.x b/fixincludes/fixincl.x
+index bf54305b9c0..d3105a8d3f5 100644
+--- a/fixincludes/fixincl.x
++++ b/fixincludes/fixincl.x
+@@ -906,7 +906,9 @@ tSCC* apzAix_MallocMachs[] = {
+  *  content selection pattern - do fix if pattern found
+  */
+ tSCC zAix_MallocSelect0[] =
+-       "#ifdef __cplusplus";
++       "#ifdef __cplusplus\n\
++extern \"C\" \\{\n\
++[ \t]extern \"builtin\" char \\*__alloca \\(size_t\\);";
+ 
+ #define    AIX_MALLOC_TEST_CT  1
+ static tTestDesc aAix_MallocTests[] = {
+@@ -917,7 +919,9 @@ static tTestDesc aAix_MallocTests[] = {
+  */
+ static const char* apzAix_MallocPatch[] = {
+     "format",
+-    "#if (defined(__cplusplus) && defined(__IBMCPP__))",
++    "#if (defined(__cplusplus) && defined(__IBMCPP__))\n\
++extern \"C\" {\n\
++\textern \"builtin\" char *__alloca (size_t);",
+     (char*)NULL };
+ 
+ /* * * * * * * * * * * * * * * * * * * * * * * * * *
+diff --git a/fixincludes/inclhack.def b/fixincludes/inclhack.def
+index 3b397422bc1..5a58d1b2b47 100644
+--- a/fixincludes/inclhack.def
++++ b/fixincludes/inclhack.def
+@@ -584,10 +584,16 @@ fix = {
+     hackname  = aix_malloc;
+     mach      = "*-*-aix*";
+     files     = "malloc.h";
+-    select    = "#ifdef __cplusplus";
++    select    = "#ifdef __cplusplus\n"
++                "extern \"C\" \\{\n"
++                "[ \t]extern \"builtin\" char \\*__alloca \\(size_t\\);";
+     c_fix     = format;
+-    c_fix_arg = "#if (defined(__cplusplus) && defined(__IBMCPP__))";
+-    test_text = "#ifdef __cplusplus";
++    c_fix_arg = "#if (defined(__cplusplus) && defined(__IBMCPP__))\n"
++                "extern \"C\" {\n"
++	"\textern \"builtin\" char *__alloca (size_t);";
++    test_text = "#ifdef __cplusplus\n"
++                "extern \"C\" {\n"
++	"\textern \"builtin\" char *__alloca (size_t);";
+ };
+ 
+ /*
+diff --git a/fixincludes/tests/base/malloc.h b/fixincludes/tests/base/malloc.h
+index 15be8b02b88..b5d0e6e31c9 100644
+--- a/fixincludes/tests/base/malloc.h
++++ b/fixincludes/tests/base/malloc.h
+@@ -11,6 +11,8 @@
+ 
+ #if defined( AIX_MALLOC_CHECK )
+ #if (defined(__cplusplus) && defined(__IBMCPP__))
++extern "C" {
++	extern "builtin" char *__alloca (size_t);
+ #endif  /* AIX_MALLOC_CHECK */
+ 
+ 
+-- 
+2.25.0
+

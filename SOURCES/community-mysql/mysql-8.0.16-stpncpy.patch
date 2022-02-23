@@ -1,0 +1,40 @@
+--- ./include/m_string.h.ORIGIN	2019-09-10 15:29:05 -0500
++++ ./include/m_string.h	2019-09-10 15:30:09 -0500
+@@ -169,6 +169,27 @@
+ #endif
+ }
+ 
++char *
++linux_stpncpy(char *dst, const char *src, size_t n)
++{
++    if (n != 0) {
++        char *d = dst;
++        const char *s = src;
++
++        dst = &dst[n];
++        do {
++            if ((*d++ = *s++) == 0) {
++                dst = d - 1;
++                /* NUL pad the remaining n-1 bytes */
++                while (--n != 0)
++                    *d++ = 0;
++                break;
++            }
++        } while (--n != 0);
++    }
++    return (dst);
++}
++
+ /**
+    Copy fixed-size string from src to dst.
+ 
+@@ -183,7 +204,8 @@
+ */
+ static inline char *my_stpncpy(char *dst, const char *src, size_t n) {
+ #if defined(HAVE_STPNCPY)
+-  return stpncpy(dst, src, n);
++//  return stpncpy(dst, src, n);
++  return linux_stpncpy(dst, src, n);
+ #else
+   /* Fallback to implementation supporting overlap. */
+   return my_stpnmov(dst, src, n);

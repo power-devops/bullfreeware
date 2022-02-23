@@ -1,0 +1,31 @@
+Index: gdb-7.2/sim/ppc/Makefile.in
+===================================================================
+--- gdb-7.2.orig/sim/ppc/Makefile.in	2009-09-16 01:26:44.000000000 +0200
++++ gdb-7.2/sim/ppc/Makefile.in	2011-05-23 15:01:02.000000000 +0200
+@@ -692,7 +692,7 @@
+ 	$(SHELL) $(srcdir)/../../move-if-change tmp-spreg.c spreg.c
+ 	touch tmp-dgen
+ 
+-tmp-igen: igen $(srcdir)/ppc-instructions $(srcdir)/altivec.igen $(srcdir)/e500.igen $(IGEN_OPCODE_RULES) $(srcdir)/../../move-if-change tmp-ld-decode tmp-ld-cache tmp-ld-insn tmp-filter
++tmp-igen: igen $(srcdir)/ppc-instructions $(srcdir)/altivec.igen $(srcdir)/e500.igen $(IGEN_OPCODE_RULES) $(srcdir)/../../move-if-change tmp-ld-insn tmp-ld-decode tmp-ld-cache tmp-filter
+ 	./igen	$(IGEN_FLAGS) \
+ 		-o $(srcdir)/$(IGEN_OPCODE_RULES) \
+ 		-I $(srcdir) -i $(srcdir)/ppc-instructions \
+Index: gdb-7.2/sim/ppc/words.h
+===================================================================
+--- gdb-7.2.orig/sim/ppc/words.h	2006-01-25 18:29:44.000000000 +0100
++++ gdb-7.2/sim/ppc/words.h	2011-05-23 15:01:34.000000000 +0200
+@@ -61,11 +61,11 @@
+ typedef unsigned short unsigned16;
+ typedef unsigned int unsigned32;
+ 
+-#ifdef __GNUC__
++/* #ifdef __GNUC__ */
+ typedef long long natural64;
+ typedef signed long long signed64;
+ typedef unsigned long long unsigned64;
+-#endif
++/* #endif */
+ 
+ #ifdef _MSC_VER
+ typedef __int64 natural64;

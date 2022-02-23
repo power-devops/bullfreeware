@@ -1,0 +1,13 @@
+Index: exim-4.69/scripts/exim_install
+===================================================================
+--- exim-4.69.orig/scripts/exim_install	2005-09-06 15:18:13.000000000 +0200
++++ exim-4.69/scripts/exim_install	2008-12-10 18:23:37.1141974760 +0100
+@@ -415,7 +415,7 @@
+     echo $com "*** Exim installation ${ver}failed ***"
+     exit 1
+   fi
+-  if [ ! -f ${SYSTEM_ALIASES_FILE} ]; then
++  if [ ! -f ${SYSTEM_ALIASES_FILE} ] && [ ! -f ${ACTUAL_SYSTEM_ALIASES_FILE} ]; then
+     echo $com '****'
+     echo $com Installing a dummy ${SYSTEM_ALIASES_FILE} file because you do not have
+     echo $com one, and the default configuration requires it. You should

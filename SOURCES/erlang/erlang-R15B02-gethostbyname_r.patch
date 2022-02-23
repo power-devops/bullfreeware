@@ -1,0 +1,28 @@
+Index: otp_src_R15B02/lib/erl_interface/src/connect/ei_resolve.c
+===================================================================
+--- otp_src_R15B02.orig/lib/erl_interface/src/connect/ei_resolve.c	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/erl_interface/src/connect/ei_resolve.c	2012-11-29 14:32:08.000000000 +0100
+@@ -54,6 +54,11 @@
+ #include "ei_resolve.h"
+ #include "ei_locking.h"
+ 
++/* Dont't use gethostbyname_r Aix definition */
++#ifdef _AIX
++#undef HAVE_GETHOSTBYNAME_R
++#endif
++
+ #ifdef HAVE_GETHOSTBYNAME_R
+ 
+ void ei_init_resolve(void)
+@@ -75,8 +80,11 @@
+ #endif /* _REENTRANT */
+ static int ei_resolve_initialized = 0;
+ #ifndef __WIN32__
++/* Hidden for Aix platform */
++#ifndef _AIX
+ int h_errno;
+ #endif
++#endif
+ 
+ #ifdef DEBUG
+ #define DEBUGF(X) fprintf X

@@ -1,0 +1,31 @@
+--- a/erts/etc/unix/run_erl.c.orig	2020-07-17 10:03:18 -0500
++++ b/erts/etc/unix/run_erl.c	2020-07-17 10:05:09 -0500
+@@ -85,8 +85,12 @@
+ #  include <util.h>
+ #endif
+ #ifdef HAVE_SYS_IOCTL_H
++#ifdef _AIX
++#  include <stropts.h>
++#else
+ #  include <sys/ioctl.h>
+ #endif
++#endif
+ #if defined(__sun) && defined(__SVR4)
+ #  include <stropts.h>
+ #endif
+@@ -1199,6 +1203,7 @@
+     va_list args;
+     va_start(args, format);
+ 
++#ifndef _AIX
+ #ifdef HAVE_SYSLOG_H
+     if (run_daemon) {
+ #ifdef HAVE_VSYSLOG
+@@ -1217,6 +1222,7 @@
+     }
+     else
+ #endif
++#endif
+     {
+ 	time_t now = time(NULL);
+ 	fprintf(stderr, "run_erl:%d [%d] %s", line, (int)getpid(), ctime(&now));

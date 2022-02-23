@@ -1,0 +1,88 @@
+--- ./cdda2wav/Makefile.org	2004-06-29 13:48:34.000000000 -0500
++++ ./cdda2wav/Makefile	2004-06-29 13:48:49.000000000 -0500
+@@ -17,7 +17,7 @@
+ 		config.h saveargs.h sndfile.h aiff.h aifc.h \
+ 		sndconfig.h scsi_cmds.h lowlevel.h byteorder.h mycdrom.h \
+ 		base64.h sha.h mmsystem.h
+-LIBS=		-lscg -lschily $(SCSILIB) $(EXTRALIB)
++LIBS=		-lm -lscg -lschily $(SCSILIB) $(EXTRALIB)
+ XMK_FILE=	Makefile.man
+ 
+ LCONFIG=	local.cnf
+--- ./cdrecord/Makefile.org	2004-06-29 13:49:11.000000000 -0500
++++ ./cdrecord/Makefile	2004-06-29 13:49:31.000000000 -0500
+@@ -22,7 +22,7 @@
+ 		../include/scg/scgio.h ../include/scg/scsidefs.h \
+ 		../include/scg/scsireg.h ../include/scg/scsitransp.h
+ #LIBS=		-lschily $(LIB_SOCKET)
+-LIBS=		-ldeflt -lscg -lschily $(SCSILIB)
++LIBS=		-lm -ldeflt -lscg -lschily $(SCSILIB)
+ XMK_FILE=	Makefile.man
+ 
+ ###########################################################################
+--- ./misc/Makefile.org	2004-06-29 13:49:57.000000000 -0500
++++ ./misc/Makefile	2004-06-29 13:50:05.000000000 -0500
+@@ -13,7 +13,7 @@
+ 		modes.c misc.c
+ HFILES=		
+ #LIBS=		-lschily $(LIB_SOCKET)
+-LIBS=		-lscg -lschily $(SCSILIB)
++LIBS=		-lm -lscg -lschily $(SCSILIB)
+ XMK_FILE=	Makefile.man
+ 
+ ###########################################################################
+--- ./mkisofs/Makefile.org	2004-06-29 13:49:42.000000000 -0500
++++ ./mkisofs/Makefile	2004-06-29 13:49:53.000000000 -0500
+@@ -40,7 +40,7 @@
+ 		fnmatch.h getopt.h iso9660.h mac_label.h mactypes.h match.h \
+ 		mkisofs.h sunlabel.h vms.h 
+ 
+-LIBS=		-lhfs -lfile -lunls -lscg -lschily $(SCSILIB)
++LIBS=		-lm -lhfs -lfile -lunls -lscg -lschily $(SCSILIB)
+ XMK_FILE=	Makefile.man hybridman.mk
+ 
+ ###########################################################################
+--- ./mkisofs/diag/dump.mk.orig	2004-08-23 10:48:09.000000000 -0500
++++ ./mkisofs/diag/dump.mk	2004-08-23 10:48:19.000000000 -0500
+@@ -12,7 +12,7 @@
+ #CPPOPTS +=	-DADD_FILES
+ CPPOPTS +=	-DUSE_LIBSCHILY
+ CFILES=		dump.c
+-LIBS=		-lschily
++LIBS=		-lm -lschily
+ #XMK_FILE=	Makefile.man
+ 
+ ###########################################################################
+--- ./mkisofs/diag/isodump.mk.orig	2004-08-23 10:48:45.000000000 -0500
++++ ./mkisofs/diag/isodump.mk	2004-08-23 10:49:11.000000000 -0500
+@@ -12,7 +12,7 @@
+ #CPPOPTS +=	-DADD_FILES
+ CPPOPTS +=	-DUSE_LIBSCHILY
+ CFILES=		isodump.c
+-LIBS=		-lschily
++LIBS=		-lm -lschily
+ #XMK_FILE=	Makefile.man
+ 
+ ###########################################################################
+--- ./mkisofs/diag/isoinfo.mk.orig	2004-08-23 10:48:54.000000000 -0500
++++ ./mkisofs/diag/isoinfo.mk	2004-08-23 10:49:20.000000000 -0500
+@@ -12,7 +12,7 @@
+ #CPPOPTS +=	-DADD_FILES
+ CPPOPTS +=	-DUSE_LIBSCHILY
+ CFILES=		isoinfo.c
+-LIBS=		-lschily
++LIBS=		-lm -lschily
+ XMK_FILE=	Makefile.man
+ 
+ ###########################################################################
+--- ./mkisofs/diag/isovfy.mk.orig	2004-08-23 10:49:00.000000000 -0500
++++ ./mkisofs/diag/isovfy.mk	2004-08-23 10:49:28.000000000 -0500
+@@ -12,7 +12,7 @@
+ #CPPOPTS +=	-DADD_FILES
+ CPPOPTS +=	-DUSE_LIBSCHILY
+ CFILES=		isovfy.c
+-LIBS=		-lschily
++LIBS=		-lm -lschily
+ #XMK_FILE=	Makefile.man
+ 
+ ###########################################################################

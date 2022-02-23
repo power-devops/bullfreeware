@@ -1,0 +1,47 @@
+diff -up file-5.00/magic/Magdir/msdos.devdrv file-5.00/magic/Magdir/msdos
+--- file-5.00/magic/Magdir/msdos.devdrv	2009-02-09 14:35:12.000000000 +0100
++++ file-5.00/magic/Magdir/msdos	2009-02-09 14:37:32.000000000 +0100
+@@ -294,22 +294,37 @@
+ >10	string	>\x23			
+ >>10	string	!\x2e			
+ >>>17	string	<\x5B			
+->>>>10	string	x			\b, name: %.8s
+-#UDMA.SYS KEYB.SYS CMD640X2.SYS
++>>>>10	string	CMD640X2.SYS			\b, name: %.8s
++#UDMA.SYS
+ >10	string	<\x41			
+ >>12	string	>\x40			
+ >>>10	string	!$			
+->>>>12	string	x			\b, name: %.8s
+-#BTCDROM.SYS ASPICD.SYS
++>>>>12	string	UDMA.SYS			\b, name: %.8s
++#CMD640X2.SYS
++>10	string	<\x41			
++>>12	string	>\x40			
++>>>10	string	!$			
++>>>>12	string	CMD640X2.SYS			\b, name: %.8s
++#KEYB.SYS
++>10	string	<\x41			
++>>12	string	>\x40			
++>>>10	string	!$			
++>>>>12	string	KEYB.SYS			\b, name: %.8s
++#BTCDROM.SYS
++>22	string	>\x40			
++>>22	string	<\x5B			
++>>>23	string	<\x5B			
++>>>>22	string	BTCDROM.SYS			\b, name: %.8s
++#ASPICD.SYS
+ >22	string	>\x40			
+ >>22	string	<\x5B			
+ >>>23	string	<\x5B			
+->>>>22	string	x			\b, name: %.8s
++>>>>22	string	ASPICD.SYS			\b, name: %.8s
+ #ATAPICD.SYS
+ >76	string	\0			
+ >>77	string	>\x40			
+ >>>77	string	<\x5B			
+->>>>77	string	x			\b, name: %.8s
++>>>>77	string	ATAPICD.SYS			\b, name: %.8s
+ # test too generic ?
+ 0	byte		0x8c		DOS executable (COM)
+ # updated by Joerg Jenderek at Oct 2008

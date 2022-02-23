@@ -1,0 +1,14 @@
+#! /bin/sh
+
+if test $# != 0; then
+  echo usage: update-gdk-pixbuf-loaders 1>&2
+  exit 1
+fi
+
+umask 022
+
+FILE=/etc/gtk-2.0/gdk-pixbuf.loaders
+
+/opt/freeware/bin/gdk-pixbuf-query-loaders_64 > $FILE
+/opt/freeware/bin/gdk-pixbuf-query-loaders    > $FILE
+

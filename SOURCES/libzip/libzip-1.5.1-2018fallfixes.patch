@@ -1,0 +1,79 @@
+diff -ru lib/zip_fdopen.c libnew/zip_fdopen.c
+--- lib/zip_fdopen.c	2019-02-14 17:32:30 +0100
++++ libnew/zip_fdopen.c	2019-02-14 17:01:17 +0100
+@@ -67,12 +67,14 @@
+ 
+     zip_error_init(&error);
+     if ((src = zip_source_filep_create(fp, 0, -1, &error)) == NULL) {
++	fclose(fp);
+ 	_zip_set_open_error(zep, &error, 0);
+ 	zip_error_fini(&error);
+ 	return NULL;
+     }
+ 
+     if ((za = zip_open_from_source(src, _flags, &error)) == NULL) {
++	zip_source_free(src);
+ 	_zip_set_open_error(zep, &error, 0);
+ 	zip_error_fini(&error);
+ 	return NULL;
+diff -ru lib/zip_open.c libnew/zip_open.c
+--- lib/zip_open.c	2019-02-14 17:32:40 +0100
++++ libnew/zip_open.c	2019-02-14 17:18:40 +0100
+@@ -147,7 +147,9 @@
+ 	}
+ 
+ 	if (za == NULL) {
+-	    zip_source_close(src);
++
++	    /* Fixing on 31 Oct 2018 : Remove inconsistent zip_source_free for zero-length files */
++	    /* zip_source_close(src); */
+ 	    return NULL;
+ 	}
+ 	return za;
+diff -ru lib/zip_source_crc.c libnew/zip_source_crc.c
+--- lib/zip_source_crc.c	2019-02-14 17:33:05 +0100
++++ libnew/zip_source_crc.c	2019-02-14 17:14:39 +0100
+@@ -148,7 +148,9 @@
+ 	    st->comp_method = ZIP_CM_STORE;
+ 	    st->encryption_method = ZIP_EM_NONE;
+ 	    st->valid |= ZIP_STAT_SIZE | ZIP_STAT_CRC | ZIP_STAT_COMP_SIZE | ZIP_STAT_COMP_METHOD | ZIP_STAT_ENCRYPTION_METHOD;
+-	    ;
++
++	    /* Fixing on 31 Jul 2018  : Remove extra semicolon */
++	    /* ; */
+ 	}
+ 	return 0;
+     }
+diff -ru lib/zip_source_seek.c libnew/zip_source_seek.c
+--- lib/zip_source_seek.c	2019-02-14 17:33:26 +0100
++++ libnew/zip_source_seek.c	2019-02-14 17:12:34 +0100
+@@ -50,7 +50,14 @@
+     args.offset = offset;
+     args.whence = whence;
+ 
+-    return (_zip_source_call(src, &args, sizeof(args), ZIP_SOURCE_SEEK) < 0 ? -1 : 0);
++    /* fix Commits on Jul 25, 2018 : zip_source_seek: fix EOF status after successful seek */
++    /* return (_zip_source_call(src, &args, sizeof(args), ZIP_SOURCE_SEEK) < 0 ? -1 : 0); */
++    if (_zip_source_call(src, &args, sizeof(args), ZIP_SOURCE_SEEK) < 0) {
++	return -1;
++    }
++
++    src->eof = 0;
++    return 0;
+ }
+ 
+ 
+diff -ru lib/zip_utf-8.c libnew/zip_utf-8.c
+--- lib/zip_utf-8.c	2019-02-14 17:33:43 +0100
++++ libnew/zip_utf-8.c	2019-02-14 17:11:24 +0100
+@@ -39,7 +39,9 @@
+ 
+ static const zip_uint16_t _cp437_to_unicode[256] = {
+     /* 0x00 - 0x0F */
+-    0x2007, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, 0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,
++    /* Fixing 30 Jul 2018 : When converting from CP437 to UTF-8, translate '0' to '0' */
++    /* 0x2007, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, 0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,
++    0x0000, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, 0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,
+ 
+     /* 0x10 - 0x1F */
+     0x25BA, 0x25C4, 0x2195, 0x203C, 0x00B6, 0x00A7, 0x25AC, 0x21A8, 0x2191, 0x2193, 0x2192, 0x2190, 0x221F, 0x2194, 0x25B2, 0x25BC,

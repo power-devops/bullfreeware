@@ -1,0 +1,34 @@
+From a568c3788f4cd182eac353972f8f5bba46ba1aa2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 31 Jan 2020 13:30:12 +0100
+Subject: [PATCH] libbeat/processors/add_host_metadata: add AIX
+
+---
+ .../processors/add_host_metadata/add_host_metadata_test.go    | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/libbeat/processors/add_host_metadata/add_host_metadata_test.go b/libbeat/processors/add_host_metadata/add_host_metadata_test.go
+index 57f4358b6..fa552ced0 100644
+--- a/libbeat/processors/add_host_metadata/add_host_metadata_test.go
++++ b/libbeat/processors/add_host_metadata/add_host_metadata_test.go
+@@ -41,7 +41,7 @@ func TestConfigDefault(t *testing.T) {
+ 
+ 	p, err := New(testConfig)
+ 	switch runtime.GOOS {
+-	case "windows", "darwin", "linux":
++	case "windows", "darwin", "linux", "aix":
+ 		assert.NoError(t, err)
+ 	default:
+ 		assert.IsType(t, types.ErrNotImplemented, err)
+@@ -84,7 +84,7 @@ func TestConfigNetInfoEnabled(t *testing.T) {
+ 
+ 	p, err := New(testConfig)
+ 	switch runtime.GOOS {
+-	case "windows", "darwin", "linux":
++	case "windows", "darwin", "linux", "aix":
+ 		assert.NoError(t, err)
+ 	default:
+ 		assert.IsType(t, types.ErrNotImplemented, err)
+-- 
+2.22.0
+

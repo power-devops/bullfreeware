@@ -1,0 +1,465 @@
+Index: gcc-4.2.0-aix/gcc/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/Makefile.in	2008-03-19 17:37:21.1201486712 +0100
++++ gcc-4.2.0-aix/gcc/Makefile.in	2008-03-19 17:37:33.-93969728 +0100
+@@ -154,9 +154,9 @@
+ TCFLAGS =
+ CFLAGS = @CFLAGS@
+ LDFLAGS = @LDFLAGS@
+-STAGE1_CFLAGS = -g @stage1_cflags@
++STAGE1_CFLAGS = @stage1_cflags@
+ STAGE1_CHECKING_CFLAGS = -DENABLE_CHECKING -DENABLE_ASSERT_CHECKING
+-BOOT_CFLAGS = -g -O2
++BOOT_CFLAGS = -O2
+ 
+ # Flags to determine code coverage. When coverage is disabled, this will
+ # contain the optimization flags, as you normally want code coverage
+@@ -553,7 +553,7 @@
+ 
+ # Options to use when compiling libgcc2.a.
+ #
+-LIBGCC2_DEBUG_CFLAGS = -g
++LIBGCC2_DEBUG_CFLAGS =
+ LIBGCC2_CFLAGS = -O2 $(LIBGCC2_INCLUDES) $(GCC_CFLAGS) $(TARGET_LIBGCC2_CFLAGS) \
+ 		 $(LIBGCC2_DEBUG_CFLAGS) $(GTHREAD_FLAGS) \
+ 		 -DIN_LIBGCC2 -D__GCC_FLOAT_NOT_NEEDED \
+@@ -567,7 +567,7 @@
+ TARGET_LIBGCC2_CFLAGS =
+ 
+ # Options to use when compiling crtbegin/end.
+-CRTSTUFF_CFLAGS = -O2 $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) -g0 \
++CRTSTUFF_CFLAGS = -O2 $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) \
+   -finhibit-size-directive -fno-inline-functions -fno-exceptions \
+   -fno-zero-initialized-in-bss -fno-toplevel-reorder \
+   $(INHIBIT_LIBC_CFLAGS)
+Index: gcc-4.2.0-aix/libffi/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libffi/Makefile.am	2008-03-19 17:37:21.-1748366248 +0100
++++ gcc-4.2.0-aix/libffi/Makefile.am	2008-03-19 17:37:33.-223596872 +0100
+@@ -155,7 +155,7 @@
+ libffi_convenience_la_SOURCES = $(libffi_la_SOURCES)
+ nodist_libffi_convenience_la_SOURCES = $(nodist_libffi_la_SOURCES)
+ 
+-AM_CFLAGS = -Wall -g -fexceptions
++AM_CFLAGS = -Wall -fexceptions
+ 
+ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version`
+ 
+Index: gcc-4.2.0-aix/libjava/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.am	2008-03-19 17:37:21.-532487056 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.am	2008-03-19 17:37:33.-353075016 +0100
+@@ -142,7 +142,7 @@
+ ## Extra CFLAGS used for JNI C sources shared with GNU Classpath.
+ PEDANTIC_CFLAGS = -ansi -pedantic -Wall -Wno-long-long
+ 
+-JCFLAGS = -g
++JCFLAGS =
+ JC1FLAGS = @LIBGCJ_JAVAFLAGS@ $(GCJFLAGS)
+ 
+ LIBFFIINCS = @LIBFFIINCS@
+Index: gcc-4.2.0-aix/libjava/classpath/lib/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/classpath/lib/Makefile.am	2008-03-19 17:37:21.747916208 +0100
++++ gcc-4.2.0-aix/libjava/classpath/lib/Makefile.am	2008-03-19 17:37:33.-482588160 +0100
+@@ -28,7 +28,7 @@
+ JAVAC = $(KJC) -classpath .:$(USER_CLASSLIB) -d . @classes
+ else
+ if FOUND_GCJX
+-JAVAC = $(GCJX) -g -encoding UTF-8 -classpath .:$(USER_CLASSLIB) -d . @classes
++JAVAC = $(GCJX) -encoding UTF-8 -classpath .:$(USER_CLASSLIB) -d . @classes
+ else
+ if FOUND_ECJ
+ JAVAC = $(ECJ) -source 1.4 -encoding UTF-8 -warn:-deprecation,serial,unused -proceedOnError -bootclasspath '' -classpath $(compile_classpath) -d . @classes
+Index: gcc-4.2.0-aix/libstdc++-v3/include/Makefile.am
+===================================================================
+--- gcc-4.2.0-aix.orig/libstdc++-v3/include/Makefile.am	2008-03-19 17:37:21.1834246256 +0100
++++ gcc-4.2.0-aix/libstdc++-v3/include/Makefile.am	2008-03-19 17:37:33.-2086774784 +0100
+@@ -1059,14 +1059,14 @@
+ 	if [ ! -d "${pch1_output_builddir}" ]; then \
+ 	  mkdir -p ${pch1_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 ${pch1_source} -o $@
+ 	touch ${pch1_output_anchor}
+ 
+ ${pch1b_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	if [ ! -d "${pch1_output_builddir}" ]; then \
+ 	  mkdir -p ${pch1_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch1_source} -o $@
+ 	touch ${pch1_output_anchor}
+ 
+ # Build a precompiled TR1 include, stdtr1c++.h.gch/O2.gch
+@@ -1074,7 +1074,7 @@
+ 	if [ ! -d "${pch2_output_builddir}" ]; then \
+ 	  mkdir -p ${pch2_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch2_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch2_source} -o $@
+ 	touch ${pch2_output_anchor}
+ 
+ # Build a precompiled extension include, extc++.h.gch/O2.gch
+@@ -1082,7 +1082,7 @@
+ 	if [ ! -d "${pch3_output_builddir}" ]; then \
+ 	  mkdir -p ${pch3_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch3_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch3_source} -o $@
+ 	touch ${pch3_output_anchor}
+ 
+ # For robustness sake (in light of junk files or in-source
+Index: gcc-4.2.0-aix/libffi/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libffi/Makefile.in	2008-03-19 17:37:21.-1877714392 +0100
++++ gcc-4.2.0-aix/libffi/Makefile.in	2008-03-19 17:39:03.231699632 +0100
+@@ -228,6 +228,7 @@
+ EXEEXT = @EXEEXT@
+ FRV_FALSE = @FRV_FALSE@
+ FRV_TRUE = @FRV_TRUE@
++GREP = @GREP@
+ HAVE_LONG_DOUBLE = @HAVE_LONG_DOUBLE@
+ IA64_FALSE = @IA64_FALSE@
+ IA64_TRUE = @IA64_TRUE@
+@@ -235,6 +236,7 @@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
++LDFLAGS = @LDFLAGS@
+ LIBFFI_CRIS_FALSE = @LIBFFI_CRIS_FALSE@
+ LIBFFI_CRIS_TRUE = @LIBFFI_CRIS_TRUE@
+ LIBOBJS = @LIBOBJS@
+@@ -302,8 +304,6 @@
+ X86_WIN32_FALSE = @X86_WIN32_FALSE@
+ X86_WIN32_TRUE = @X86_WIN32_TRUE@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+ am__include = @am__include@
+@@ -318,24 +318,31 @@
+ build_os = @build_os@
+ build_vendor = @build_vendor@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host = @host@
+ host_alias = @host_alias@
+ host_cpu = @host_cpu@
+ host_os = @host_os@
+ host_vendor = @host_vendor@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+@@ -427,7 +434,7 @@
+ 	$(am__append_21) $(am__append_22) $(am__append_23)
+ libffi_convenience_la_SOURCES = $(libffi_la_SOURCES)
+ nodist_libffi_convenience_la_SOURCES = $(nodist_libffi_la_SOURCES)
+-AM_CFLAGS = -Wall -g -fexceptions
++AM_CFLAGS = -Wall -fexceptions
+ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version`
+ AM_CPPFLAGS = -I. -I$(top_srcdir)/include -Iinclude -I$(top_srcdir)/src
+ AM_CCASFLAGS = $(AM_CPPFLAGS)
+Index: gcc-4.2.0-aix/libjava/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/Makefile.in	2008-03-19 17:37:21.489164920 +0100
++++ gcc-4.2.0-aix/libjava/Makefile.in	2008-03-19 17:40:09.1206715712 +0100
+@@ -515,6 +515,7 @@
+ GCTESTSPEC = @GCTESTSPEC@
+ GLIB_CFLAGS = @GLIB_CFLAGS@
+ GLIB_LIBS = @GLIB_LIBS@
++GREP = @GREP@
+ GTK_CFLAGS = @GTK_CFLAGS@
+ GTK_LIBS = @GTK_LIBS@
+ HASH_SYNC_SPEC = @HASH_SYNC_SPEC@
+@@ -613,6 +614,7 @@
+ VERSION = @VERSION@
+ XLIB_AWT_FALSE = @XLIB_AWT_FALSE@
+ XLIB_AWT_TRUE = @XLIB_AWT_TRUE@
++XMKMF = @XMKMF@
+ X_CFLAGS = @X_CFLAGS@
+ X_EXTRA_LIBS = @X_EXTRA_LIBS@
+ X_LIBS = @X_LIBS@
+@@ -622,14 +624,8 @@
+ ZLIBS = @ZLIBS@
+ ZLIBSPEC = @ZLIBSPEC@
+ ZLIBTESTSPEC = @ZLIBTESTSPEC@
+-ac_ct_AR = @ac_ct_AR@
+-ac_ct_AS = @ac_ct_AS@
+ ac_ct_CC = @ac_ct_CC@
+ ac_ct_CXX = @ac_ct_CXX@
+-ac_ct_GCJ = @ac_ct_GCJ@
+-ac_ct_LD = @ac_ct_LD@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+ am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
+@@ -650,7 +646,10 @@
+ build_subdir = @build_subdir@
+ build_vendor = @build_vendor@
+ datadir = @datadir@
++datarootdir = @datarootdir@
+ dbexecdir = @dbexecdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ extra_ldflags_libjava = @extra_ldflags_libjava@
+ gxx_include_dir = @gxx_include_dir@
+@@ -661,20 +660,24 @@
+ host_os = @host_os@
+ host_subdir = @host_subdir@
+ host_vendor = @host_vendor@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
+ libstdcxx_incdir = @libstdcxx_incdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ mkinstalldirs = @mkinstalldirs@
+ multi_basedir = @multi_basedir@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ subdirs = @subdirs@
+@@ -762,7 +765,7 @@
+ 
+ AM_CFLAGS = @LIBGCJ_CFLAGS@ $(am__append_5)
+ PEDANTIC_CFLAGS = -ansi -pedantic -Wall -Wno-long-long
+-JCFLAGS = -g
++JCFLAGS = 
+ JC1FLAGS = @LIBGCJ_JAVAFLAGS@ $(GCJFLAGS)
+ AM_CPPFLAGS = -I$(top_srcdir) \
+ 	-Iinclude -I$(top_srcdir)/include \
+Index: gcc-4.2.0-aix/libjava/classpath/lib/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/classpath/lib/Makefile.in	2008-03-19 17:37:21.618454064 +0100
++++ gcc-4.2.0-aix/libjava/classpath/lib/Makefile.in	2008-03-19 17:41:01.-482648160 +0100
+@@ -151,6 +151,7 @@
+ GJDOC = @GJDOC@
+ GLIB_CFLAGS = @GLIB_CFLAGS@
+ GLIB_LIBS = @GLIB_LIBS@
++GREP = @GREP@
+ GTK_CFLAGS = @GTK_CFLAGS@
+ GTK_LIBS = @GTK_LIBS@
+ INIT_LOAD_LIBRARY = @INIT_LOAD_LIBRARY@
+@@ -226,6 +227,7 @@
+ VERSION = @VERSION@
+ VM_BINARY = @VM_BINARY@
+ WARNING_CFLAGS = @WARNING_CFLAGS@
++XMKMF = @XMKMF@
+ XML_CFLAGS = @XML_CFLAGS@
+ XML_LIBS = @XML_LIBS@
+ XSLT_CFLAGS = @XSLT_CFLAGS@
+@@ -238,8 +240,6 @@
+ ZIP = @ZIP@
+ ac_ct_CC = @ac_ct_CC@
+ ac_ct_CXX = @ac_ct_CXX@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+ am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
+@@ -256,7 +256,10 @@
+ build_os = @build_os@
+ build_vendor = @build_vendor@
+ datadir = @datadir@
++datarootdir = @datarootdir@
+ default_toolkit = @default_toolkit@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ glibjdir = @glibjdir@
+ host = @host@
+@@ -264,19 +267,23 @@
+ host_cpu = @host_cpu@
+ host_os = @host_os@
+ host_vendor = @host_vendor@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+ nativeexeclibdir = @nativeexeclibdir@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+@@ -294,7 +301,7 @@
+ iconfiles := $(shell cd $(top_srcdir) && $(FIND) gnu/javax/swing/plaf/gtk/icons -name *.png -type f -print)
+ compile_classpath = $(vm_classes):$(top_srcdir):$(top_srcdir)/external/w3c_dom:$(top_srcdir)/external/sax:$(top_srcdir)/external/relaxngDatatype:.:$(USER_CLASSLIB):$(PATH_TO_ESCHER)
+ @FOUND_ECJ_TRUE@@FOUND_GCJX_FALSE@@FOUND_GCJ_FALSE@@FOUND_JIKES_FALSE@@FOUND_KJC_FALSE@JAVAC = $(ECJ) -source 1.4 -encoding UTF-8 -warn:-deprecation,serial,unused -proceedOnError -bootclasspath '' -classpath $(compile_classpath) -d . @classes
+-@FOUND_GCJX_TRUE@@FOUND_GCJ_FALSE@@FOUND_JIKES_FALSE@@FOUND_KJC_FALSE@JAVAC = $(GCJX) -g -encoding UTF-8 -classpath .:$(USER_CLASSLIB) -d . @classes
++@FOUND_GCJX_TRUE@@FOUND_GCJ_FALSE@@FOUND_JIKES_FALSE@@FOUND_KJC_FALSE@JAVAC = $(GCJX) -encoding UTF-8 -classpath .:$(USER_CLASSLIB) -d . @classes
+ @FOUND_GCJ_FALSE@@FOUND_JIKES_FALSE@@FOUND_KJC_TRUE@JAVAC = $(KJC) -classpath .:$(USER_CLASSLIB) -d . @classes
+ @FOUND_GCJ_FALSE@@FOUND_JIKES_TRUE@JAVAC = $(JIKES) $(JIKESWARNINGS) +F $(JIKESENCODING) -bootclasspath '' -extdirs '' -sourcepath '' --classpath $(compile_classpath) -d . @classes
+ 
+Index: gcc-4.2.0-aix/libstdc++-v3/include/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/libstdc++-v3/include/Makefile.in	2008-03-19 17:37:21.-1180011776 +0100
++++ gcc-4.2.0-aix/libstdc++-v3/include/Makefile.in	2008-03-19 17:42:52.1137241640 +0100
+@@ -128,10 +128,12 @@
+ GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
+ GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
+ GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
++LDFLAGS = @LDFLAGS@
+ LIBICONV = @LIBICONV@
+ LIBMATHOBJS = @LIBMATHOBJS@
+ LIBOBJS = @LIBOBJS@
+@@ -167,12 +169,8 @@
+ VERSION = @VERSION@
+ WARN_FLAGS = @WARN_FLAGS@
+ WERROR = @WERROR@
+-ac_ct_AR = @ac_ct_AR@
+-ac_ct_AS = @ac_ct_AS@
+ ac_ct_CC = @ac_ct_CC@
+ ac_ct_CXX = @ac_ct_CXX@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ am__leading_dot = @am__leading_dot@
+ am__tar = @am__tar@
+ am__untar = @am__untar@
+@@ -185,6 +183,9 @@
+ build_vendor = @build_vendor@
+ check_msgfmt = @check_msgfmt@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ enable_shared = @enable_shared@
+ enable_static = @enable_static@
+ exec_prefix = @exec_prefix@
+@@ -204,20 +205,24 @@
+ host_cpu = @host_cpu@
+ host_os = @host_os@
+ host_vendor = @host_vendor@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
+ libtool_VERSION = @libtool_VERSION@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ port_specific_symbol_files = @port_specific_symbol_files@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+@@ -1433,14 +1438,14 @@
+ 	if [ ! -d "${pch1_output_builddir}" ]; then \
+ 	  mkdir -p ${pch1_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 ${pch1_source} -o $@
+ 	touch ${pch1_output_anchor}
+ 
+ ${pch1b_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	if [ ! -d "${pch1_output_builddir}" ]; then \
+ 	  mkdir -p ${pch1_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch1_source} -o $@
+ 	touch ${pch1_output_anchor}
+ 
+ # Build a precompiled TR1 include, stdtr1c++.h.gch/O2.gch
+@@ -1448,7 +1453,7 @@
+ 	if [ ! -d "${pch2_output_builddir}" ]; then \
+ 	  mkdir -p ${pch2_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch2_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch2_source} -o $@
+ 	touch ${pch2_output_anchor}
+ 
+ # Build a precompiled extension include, extc++.h.gch/O2.gch
+@@ -1456,7 +1461,7 @@
+ 	if [ ! -d "${pch3_output_builddir}" ]; then \
+ 	  mkdir -p ${pch3_output_builddir}; \
+ 	fi; \
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch3_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch3_source} -o $@
+ 	touch ${pch3_output_anchor}
+ 
+ # For robustness sake (in light of junk files or in-source
+Index: gcc-4.2.0-aix/configure
+===================================================================
+--- gcc-4.2.0-aix.orig/configure	2008-03-19 17:37:27.-856053416 +0100
++++ gcc-4.2.0-aix/configure	2008-03-19 17:37:34.942484424 +0100
+@@ -2102,8 +2102,8 @@
+   fi
+ 
+   CXX=${CXX-"c++"}
+-  CFLAGS=${CFLAGS-"-g"}
+-  CXXFLAGS=${CXXFLAGS-"-g -O2"}
++  CFLAGS=${CFLAGS-""}
++  CXXFLAGS=${CXXFLAGS-"-O2"}
+ fi
+ 
+ if test $host != $build; then
+Index: gcc-4.2.0-aix/configure.in
+===================================================================
+--- gcc-4.2.0-aix.orig/configure.in	2008-03-19 17:37:27.-919524488 +0100
++++ gcc-4.2.0-aix/configure.in	2008-03-19 17:37:34.-597149128 +0100
+@@ -1041,8 +1041,8 @@
+   fi
+ 
+   CXX=${CXX-"c++"}
+-  CFLAGS=${CFLAGS-"-g"}
+-  CXXFLAGS=${CXXFLAGS-"-g -O2"}
++  CFLAGS=${CFLAGS-""}
++  CXXFLAGS=${CXXFLAGS-"-O2"}
+ fi
+ 
+ ACX_PROG_GNAT

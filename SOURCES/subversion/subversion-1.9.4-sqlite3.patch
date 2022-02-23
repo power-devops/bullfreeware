@@ -1,0 +1,13 @@
+Index: subversion-1.8.0/Makefile.in
+===================================================================
+--- subversion-1.8.0.orig/Makefile.in	2013-06-06 19:01:29.000000000 +0200
++++ subversion-1.8.0/Makefile.in	2013-07-09 11:15:26.000000000 +0200
+@@ -224,7 +224,7 @@
+ libsvn_ra_serf_LDFLAGS = @libsvn_ra_serf_LDFLAGS@
+ libsvn_ra_svn_LDFLAGS = @libsvn_ra_svn_LDFLAGS@
+ libsvn_repos_LDFLAGS = @libsvn_repos_LDFLAGS@
+-libsvn_subr_LDFLAGS = @libsvn_subr_LDFLAGS@
++libsvn_subr_LDFLAGS = -L/opt/freeware/lib -lsqlite3
+ libsvn_wc_LDFLAGS = @libsvn_wc_LDFLAGS@
+ 
+ # Compilation of SWIG-generated C source code

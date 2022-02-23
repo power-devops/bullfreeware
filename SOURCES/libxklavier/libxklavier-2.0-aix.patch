@@ -1,0 +1,162 @@
+diff -crN ./libxklavier/configure.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/configure.in
+*** ./libxklavier/configure.in	Fri Feb 25 23:57:46 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/configure.in	Tue Apr 19 16:51:01 2005
+***************
+*** 58,63 ****
+--- 58,67 ----
+               xkb_base="$withval", 
+               xkb_base="$x_libraries/X11/xkb" )
+  			 
++ dnl if ! test -d $xkb_base; then
++ dnl         AC_MSG_WARN([The path $xkb_base does not denote the directory])
++ dnl fi
++ 
+  AC_DEFINE_UNQUOTED(XKB_BASE,"${xkb_base}",Base for XKB configuration)
+  
+  AC_ARG_WITH( xkb_default_ruleset,
+***************
+*** 113,121 ****
+  AM_CONDITIONAL(ENABLE_XMM_SUPPORT, test "$enable_xmm_support" = "yes")
+  
+  AC_MSG_CHECKING(whether at least one libxklavier backend is enabled)
+! if test \( "$enable_xkb_support" == "yes" -a \
+!           "$xkb_headers_present" == "yes" \) -o \
+!         "$enable_xmm_support" == "yes" ; then
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+--- 117,125 ----
+  AM_CONDITIONAL(ENABLE_XMM_SUPPORT, test "$enable_xmm_support" = "yes")
+  
+  AC_MSG_CHECKING(whether at least one libxklavier backend is enabled)
+! if test \( "$enable_xkb_support" = "yes" -a \
+!           "$xkb_headers_present" = "yes" \) -o \
+!         "$enable_xmm_support" = "yes" ; then
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+***************
+*** 144,157 ****
+  
+  echo '**********************************************************'
+  echo '  Libxklavier is configured with the following backends:'
+! if test "$enable_xkb_support" == "yes" ; then
+!   if test "$xkb_headers_present" == "yes" ; then
+      echo '    XKB (libxkbfile headers are present)'
+    else
+      echo '    XKB (but libxkbfile headers are NOT present)'
+    fi
+  fi
+! if test "$enable_xmm_support" == "yes" ; then
+    echo '    xmodmap'
+  fi
+  echo '**********************************************************'
+--- 148,161 ----
+  
+  echo '**********************************************************'
+  echo '  Libxklavier is configured with the following backends:'
+! if test "$enable_xkb_support" = "yes" ; then
+!   if test "$xkb_headers_present" = "yes" ; then
+      echo '    XKB (libxkbfile headers are present)'
+    else
+      echo '    XKB (but libxkbfile headers are NOT present)'
+    fi
+  fi
+! if test "$enable_xmm_support" = "yes" ; then
+    echo '    xmodmap'
+  fi
+  echo '**********************************************************'
+diff -crN ./libxklavier/libxklavier/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/Makefile.am
+*** ./libxklavier/libxklavier/Makefile.am	Thu Nov 25 23:49:29 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/Makefile.am	Tue Apr 19 12:13:04 2005
+***************
+*** 14,20 ****
+    ENABLE_XMM_SUPPORT_CFLAG = -DDISABLE_XMM_SUPPORT=1
+  endif
+  
+! AM_CFLAGS=-Wall -Werror -DDATA_DIR=\"$(datadir)/$(PACKAGE)\" \
+    -I. -I$(includedir) $(XML_CFLAGS) -I$(x_includes) -I$(top_srcdir) \
+    $(XKB_HEADERS_PRESENT_CFLAG) \
+    $(ENABLE_XKB_SUPPORT_CFLAG) \
+--- 14,20 ----
+    ENABLE_XMM_SUPPORT_CFLAG = -DDISABLE_XMM_SUPPORT=1
+  endif
+  
+! AM_CFLAGS= -DDATA_DIR=\"$(datadir)/$(PACKAGE)\" \
+    -I. -I$(includedir) $(XML_CFLAGS) -I$(x_includes) -I$(top_srcdir) \
+    $(XKB_HEADERS_PRESENT_CFLAG) \
+    $(ENABLE_XKB_SUPPORT_CFLAG) \
+diff -crN ./libxklavier/libxklavier/xklavier.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/xklavier.h
+*** ./libxklavier/libxklavier/xklavier.h	Wed Dec  8 02:27:03 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/libxklavier/xklavier.h	Thu Apr  7 17:31:01 2005
+***************
+*** 537,544 ****
+  #define XklDebug( level, format, args... ) \
+     _XklDebug( __FILE__, __func__, level, format, ## args )
+  #else
+! #define XklDebug( level, ... ) \
+!   _XklDebug( __FILE__, __func__, level, __VA_ARGS__ )
+  #endif
+  
+  /** @} */
+--- 537,550 ----
+  #define XklDebug( level, format, args... ) \
+     _XklDebug( __FILE__, __func__, level, format, ## args )
+  #else
+! static void
+! XklDebug(int level, const char format[], ... )
+! {
+!   va_list args;
+!   va_start (args, format);
+!   _XklDebug ("unknown", "unknown", level, format, args);
+!   va_end (args);
+! }
+  #endif
+  
+  /** @} */
+diff -crN ./libxklavier/tests/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/Makefile.am
+*** ./libxklavier/tests/Makefile.am	Thu Nov 25 23:49:39 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/Makefile.am	Tue Apr 19 12:18:03 2005
+***************
+*** 4,10 ****
+  
+  test_monitor_SOURCES=test_monitor.c
+  
+! AM_CFLAGS=-Wall -Werror -I$(includedir) -I$(x_includes) -I$(top_srcdir)
+  
+  AM_LDFLAGS=$(top_builddir)/libxklavier/libxklavier.la -L$(x_libraries) -lX11
+  
+--- 4,10 ----
+  
+  test_monitor_SOURCES=test_monitor.c
+  
+! AM_CFLAGS= -I. -I$(includedir) -I$(x_includes) -I$(top_srcdir)
+  
+  AM_LDFLAGS=$(top_builddir)/libxklavier/libxklavier.la -L$(x_libraries) -lX11
+  
+diff -crN ./libxklavier/tests/test_config.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_config.c
+*** ./libxklavier/tests/test_config.c	Thu Dec  9 22:46:51 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_config.c	Tue Apr 19 12:22:11 2005
+***************
+*** 1,7 ****
+  #include <config.h>
+  #include <stdio.h>
+  #include <unistd.h>
+- #include <getopt.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <X11/Xlib.h>
+--- 1,6 ----
+diff -crN ./libxklavier/tests/test_monitor.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_monitor.c
+*** ./libxklavier/tests/test_monitor.c	Thu Nov 25 01:34:17 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxklavier/tests/test_monitor.c	Tue Apr 19 12:25:42 2005
+***************
+*** 1,7 ****
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <unistd.h>
+- #include <getopt.h>
+  #include <X11/Xlib.h>
+  #include <X11/Xutil.h>
+  #include <X11/XKBlib.h>
+--- 1,6 ----

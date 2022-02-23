@@ -1,0 +1,11 @@
+--- a/lib/erl_interface/test/all_SUITE_data/my_ussi.c_orig	2020-07-28 10:45:31 +0200
++++ b/lib/erl_interface/test/all_SUITE_data/my_ussi.c	2020-07-28 11:09:03 +0200
+@@ -90,7 +90,7 @@
+     struct my_ctx *conn_ctx = malloc(sizeof(struct my_ctx));
+     int ret;
+     *conn_ctx = *listen_ctx;
+-    ret = ei_default_socket_callbacks.accept(&conn_ctx->ctx, addr, len, tmo);
++    ret = ei_default_socket_callbacks.accept_ei(&conn_ctx->ctx, addr, len, tmo);
+     if (ret == 0)
+         *ctx = conn_ctx;
+     else

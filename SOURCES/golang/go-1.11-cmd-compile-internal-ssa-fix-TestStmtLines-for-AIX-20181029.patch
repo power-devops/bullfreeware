@@ -1,0 +1,39 @@
+From 64967ffe6d7e8a82c87db7c11f76117072e7aff7 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Tue, 23 Oct 2018 15:15:37 +0200
+Subject: [PATCH] cmd/compile/internal/ssa: fix TestStmtLines for AIX
+
+This commit adapts TestStmtLines for AIX operating system.
+
+Update #25893
+
+Change-Id: I1c76bbd8fc679a66b65ecfbd1ed7745518064eae
+Reviewed-on: https://go-review.googlesource.com/c/144958
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+Run-TryBot: Brad Fitzpatrick <bradfitz@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+---
+
+diff --git a/src/cmd/compile/internal/ssa/stmtlines_test.go b/src/cmd/compile/internal/ssa/stmtlines_test.go
+index c0fc7ad..6fc0239 100644
+--- a/src/cmd/compile/internal/ssa/stmtlines_test.go
++++ b/src/cmd/compile/internal/ssa/stmtlines_test.go
+@@ -1,6 +1,7 @@
+ package ssa_test
+ 
+ import (
++	"cmd/internal/xcoff"
+ 	"debug/dwarf"
+ 	"debug/elf"
+ 	"debug/macho"
+@@ -25,6 +26,10 @@
+ 		return fh.DWARF()
+ 	}
+ 
++	if fh, err := xcoff.Open(path); err == nil {
++		return fh.DWARF()
++	}
++
+ 	return nil, fmt.Errorf("unrecognized executable format")
+ }
+ 

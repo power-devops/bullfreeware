@@ -1,0 +1,25 @@
+--- ./libmariadb/mariadb_async.c-ORIGIN	2018-09-14 14:07:55 -0500
++++ ./libmariadb/mariadb_async.c	2018-09-14 14:09:05 -0500
+@@ -48,6 +48,10 @@
+ #define WIN_SET_NONBLOCKING(mysql)
+ #endif
+ 
++#if defined(_AIX) && !defined(MSG_DONTWAIT)
++#define MSG_DONTWAIT MSG_NONBLOCK
++#endif
++
+ extern void mysql_close_slow_part(MYSQL *mysql);
+ 
+ 
+--- ./plugins/pvio/pvio_socket.c.ORIGIN	2018-09-14 16:26:40 -0500
++++ ./plugins/pvio/pvio_socket.c	2018-09-14 16:27:21 -0500
+@@ -53,6 +53,9 @@
+ #include <netdb.h>
+ #include <netinet/tcp.h>
+ #define IS_SOCKET_EINTR(err) ((err) == SOCKET_EINTR)
++#if defined(_AIX) && !defined(MSG_DONTWAIT)
++#define MSG_DONTWAIT MSG_NONBLOCK
++#endif
+ #else
+ #include <ws2tcpip.h>
+ #define O_NONBLOCK 1

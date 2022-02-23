@@ -1,0 +1,13 @@
+Index: httpd-2.2.29/srclib/apr-util/configure
+===================================================================
+--- httpd-2.2.29.orig/srclib/apr-util/configure	2014-08-22 19:54:17.000000000 +0200
++++ httpd-2.2.29/srclib/apr-util/configure	2014-12-09 13:44:37.000000000 +0100
+@@ -3839,7 +3839,7 @@
+   fi
+ 
+         ;;
+-    *-ibm-aix4*|*-ibm-aix5.1*)
++    *-ibm-aix4*|*-ibm-aix5.1*|*-ibm-aix6.1*|*-ibm-aix7.1*)
+ 
+   if test -z "$apu_iconv_inbuf_const"; then
+     test "x$silent" != "xyes" && echo "  setting apu_iconv_inbuf_const to \"1\""

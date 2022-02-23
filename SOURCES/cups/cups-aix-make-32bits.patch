@@ -1,0 +1,65 @@
+--- a/Makedefs	2015-09-01 16:55:15.000000000 +0200
++++ b/Makedefs	2015-09-01 16:57:53.000000000 +0200
+@@ -18,14 +18,14 @@
+ #
+ 
+ AR		=	/usr/bin/ar
+-AWK		=	/usr/bin/awk
+-CC		=	 gcc 
++AWK		=	gawk
++CC		=	 gcc
+ CHMOD		=	/usr/bin/chmod
+-CXX		=	 g++ 
++CXX		=	 g++
+ DSO		=	$(CC)
+ DSOXX		=	$(CXX)
+ GZIP		=	/usr/bin/gzip
+-INSTALL		=	/opt/freeware/src/packages/BUILD/cups-2.0.2/32bit/install-sh
++INSTALL		=	/opt/hamza/cups-2.0.2/install-sh
+ LD		=	/usr/bin/ld
+ LIBTOOL		=	
+ LN		=	/usr/bin/ln -sf
+@@ -84,7 +84,7 @@
+ LIBCUPSMIME	=	libcupsmime.so.1
+ LIBCUPSPPDC	=	libcupsppdc.so.1
+ LIBCUPSSTATIC	=	libcups.a
+-LIBGSSAPI	=	-L/opt/freeware/lib -blibpath:/opt/freeware/lib::/usr/lib:/lib -I/opt/freeware/include -maix32 -I/opt/freeware/include/dbus-1.0 -I/opt/freeware/lib/dbus-1.0/include -DDBUS_API_SUBJECT_TO_CHANGE -L/opt/freeware/lib -blibpath:/opt/freeware/lib:/usr/lib:/lib -bmaxdata:0x80000000 -brtl -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err -lpthreads
++LIBGSSAPI	=	-L/opt/freeware/lib -L/opt/freeware/lib -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err -lpthreads
+ LIBMALLOC	=	
+ LIBMXML		=	
+ LIBPAPER	=	
+@@ -128,14 +128,14 @@
+ ARFLAGS		=	crvs
+ BACKLIBS	=	
+ BUILDDIRS	=	filter backend berkeley cgi-bin monitor notifier ppdc scheduler systemv conf data desktop locale man doc examples templates
+-CFLAGS		=	-I/opt/freeware/include  -I/opt/freeware/include  -maix32 -I/opt/freeware/include/dbus-1.0 -I/opt/freeware/lib/dbus-1.0/include   -DDBUS_API_SUBJECT_TO_CHANGE
++CFLAGS		=	-I/opt/freeware/include  -I/opt/freeware/include  -I/opt/freeware/include/dbus-1.0 -I/opt/freeware/lib/dbus-1.0/include   -DDBUS_API_SUBJECT_TO_CHANGE
+ COMMONLIBS	=	-lpthreads -lm  -liconv  -liconv  -lz
+-CXXFLAGS	=	-I/opt/freeware/include  -maix32
++CXXFLAGS	=	-I/opt/freeware/include  
+ CXXLIBS		=	
+ DBUS_NOTIFIER	=	dbus
+ DBUS_NOTIFIERLIBS =	-L/opt/freeware/lib -ldbus-1  
+ DNSSD_BACKEND	=	
+-DSOFLAGS	=	-L../cups  -Wl,-soname,`basename $@` -shared $(OPTIM)
++DSOFLAGS	=	-L../cups  -shared $(OPTIM)
+ DSOLIBS		=	$(LIBZ) $(COMMONLIBS)
+ DNSSDLIBS	=	
+ IPPFIND_BIN	=	
+--- a/ppdc/Makefile	2014-04-08 21:53:57.000000000 +0200
++++ b/ppdc/Makefile	2015-09-01 16:58:17.000000000 +0200
+@@ -334,9 +334,12 @@
+ # libcupsppdc.so.1
+ #
+ 
+-libcupsppdc.so.1:	$(LIBOBJS) ../cups/$(LIBCUPS)
++libcupsppdc.so.1:	$(LIBOBJS) 
++	echo $(LDFLAGS)
+ 	echo Linking $@...
+-	$(DSOXX) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LINKCUPS)
++	echo $(DSOXX) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LINKCUPS)
++	$(DSOXX) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LINKCUPS) \
++		$(SSLLIBS) $(DNSSDLIBS) $(COMMONLIBS) $(LIBZ)
+ 	$(RM) `basename $@ .1`
+ 	$(LN) $@ `basename $@ .1`
+ 

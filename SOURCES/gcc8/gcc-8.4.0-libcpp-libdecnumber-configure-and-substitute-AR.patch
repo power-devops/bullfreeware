@@ -1,0 +1,310 @@
+From 731c4ce0e93065fb70db5faa2bd6c9c6bad56738 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Sat, 23 May 2020 21:41:45 +0000
+Subject: [PATCH] libcpp, libdecnumber: configure and substitute AR
+
+AIX supports "FAT" libraries containing 32 bit and 64 bit objects
+(similar to Darwin), but commands for manipulating libraries do not
+default to accept both 32 bit and 64 bit object files.  While updating
+the AIX configuration to support building and running GCC as a 64 bit
+application, I have encountered some build libraries that hard code
+AR=ar instead of testing the environment.
+
+This patch adds AR_CHECK_TOOL(AR, ar) to configure.ac for the two
+libraries and updates Makefile.in to accept the substitution.
+
+2020-05-23  David Edelsohn  <dje.gcc@gmail.com>
+
+libcpp/ChangeLog:
+	* Makefile.in (AR): Substitute @AR@.
+	* configure.ac (CHECK_PROG AR): New.
+	* configure: Regenerate.
+
+libdecnumber/ChangeLog:
+	* Makefile.in (AR): Substitute @AR@.
+	* configure.ac (CHECK_PROG AR): New.
+	* configure: Regenerate.
+---
+ libcpp/Makefile.in        |  2 +-
+ libcpp/configure          | 93 +++++++++++++++++++++++++++++++++++++++
+ libcpp/configure.ac       |  1 +
+ libdecnumber/Makefile.in  |  2 +-
+ libdecnumber/configure    | 93 +++++++++++++++++++++++++++++++++++++++
+ libdecnumber/configure.ac |  1 +
+ 8 files changed, 202 insertions(+), 2 deletions(-)
+
+diff --git a/libcpp/Makefile.in b/libcpp/Makefile.in
+index ebbca07f542..5fbba9b9c76 100644
+--- a/libcpp/Makefile.in
++++ b/libcpp/Makefile.in
+@@ -25,7 +25,7 @@ srcdir = @srcdir@
+ top_builddir = .
+ VPATH = @srcdir@
+ INSTALL = @INSTALL@
+-AR = ar
++AR = @AR@
+ ARFLAGS = cru
+ ACLOCAL = @ACLOCAL@
+ AUTOCONF = @AUTOCONF@
+diff --git a/libcpp/configure b/libcpp/configure
+index 7f02d6b4a9e..6a967cff6ac 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -658,6 +658,7 @@ ACLOCAL
+ EGREP
+ GREP
+ CPP
++AR
+ RANLIB
+ ac_ct_CXX
+ CXXFLAGS
+@@ -4011,6 +4012,98 @@ else
+   RANLIB="$ac_cv_prog_RANLIB"
+ fi
+ 
++if test -n "$ac_tool_prefix"; then
++  # Extract the first word of "${ac_tool_prefix}ar", so it can be a program name with args.
++set dummy ${ac_tool_prefix}ar; ac_word=$2
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_prog_AR+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if test -n "$AR"; then
++  ac_cv_prog_AR="$AR" # Let the user override the test.
++else
++as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++for as_dir in $PATH
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++    for ac_exec_ext in '' $ac_executable_extensions; do
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_prog_AR="${ac_tool_prefix}ar"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++  done
++IFS=$as_save_IFS
++
++fi
++fi
++AR=$ac_cv_prog_AR
++if test -n "$AR"; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AR" >&5
++$as_echo "$AR" >&6; }
++else
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++
++fi
++if test -z "$ac_cv_prog_AR"; then
++  ac_ct_AR=$AR
++  # Extract the first word of "ar", so it can be a program name with args.
++set dummy ar; ac_word=$2
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_prog_ac_ct_AR+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if test -n "$ac_ct_AR"; then
++  ac_cv_prog_ac_ct_AR="$ac_ct_AR" # Let the user override the test.
++else
++as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++for as_dir in $PATH
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++    for ac_exec_ext in '' $ac_executable_extensions; do
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_prog_ac_ct_AR="ar"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++  done
++IFS=$as_save_IFS
++
++fi
++fi
++ac_ct_AR=$ac_cv_prog_ac_ct_AR
++if test -n "$ac_ct_AR"; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_AR" >&5
++$as_echo "$ac_ct_AR" >&6; }
++else
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++  if test "x$ac_ct_AR" = x; then
++    AR=""
++  else
++    case $cross_compiling:$ac_tool_warned in
++yes:)
++{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
++$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
++ac_tool_warned=yes ;;
++esac
++    AR=$ac_ct_AR
++  fi
++else
++  AR="$ac_cv_prog_AR"
++fi
++
+ 
+ 
+ ac_ext=c
+diff --git a/libcpp/configure.ac b/libcpp/configure.ac
+index 540efeb4629..1efa96f7ca3 100644
+--- a/libcpp/configure.ac
++++ b/libcpp/configure.ac
+@@ -12,6 +12,7 @@ AC_PROG_INSTALL
+ AC_PROG_CC
+ AC_PROG_CXX
+ AC_PROG_RANLIB
++AC_CHECK_TOOL(AR, ar)
+ 
+ AC_USE_SYSTEM_EXTENSIONS
+ AC_SYS_LARGEFILE
+diff --git a/libdecnumber/Makefile.in b/libdecnumber/Makefile.in
+index 9260b4849c8..9da028d7f2f 100644
+--- a/libdecnumber/Makefile.in
++++ b/libdecnumber/Makefile.in
+@@ -25,7 +25,7 @@ srcdir = @srcdir@
+ top_builddir = .
+ VPATH = @srcdir@
+ INSTALL = @INSTALL@
+-AR = ar
++AR = @AR@
+ ARFLAGS = cru
+ ACLOCAL = @ACLOCAL@
+ AUTOCONF = @AUTOCONF@
+diff --git a/libdecnumber/configure b/libdecnumber/configure
+index c2c8040f5f3..577b250930c 100755
+--- a/libdecnumber/configure
++++ b/libdecnumber/configure
+@@ -651,6 +651,7 @@ WARN_CFLAGS
+ AUTOHEADER
+ AUTOCONF
+ ACLOCAL
++AR
+ RANLIB
+ OBJEXT
+ EXEEXT
+@@ -3247,6 +3248,98 @@ else
+   RANLIB="$ac_cv_prog_RANLIB"
+ fi
+ 
++if test -n "$ac_tool_prefix"; then
++  # Extract the first word of "${ac_tool_prefix}ar", so it can be a program name with args.
++set dummy ${ac_tool_prefix}ar; ac_word=$2
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_prog_AR+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if test -n "$AR"; then
++  ac_cv_prog_AR="$AR" # Let the user override the test.
++else
++as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++for as_dir in $PATH
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++    for ac_exec_ext in '' $ac_executable_extensions; do
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_prog_AR="${ac_tool_prefix}ar"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++  done
++IFS=$as_save_IFS
++
++fi
++fi
++AR=$ac_cv_prog_AR
++if test -n "$AR"; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AR" >&5
++$as_echo "$AR" >&6; }
++else
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++
++fi
++if test -z "$ac_cv_prog_AR"; then
++  ac_ct_AR=$AR
++  # Extract the first word of "ar", so it can be a program name with args.
++set dummy ar; ac_word=$2
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_prog_ac_ct_AR+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if test -n "$ac_ct_AR"; then
++  ac_cv_prog_ac_ct_AR="$ac_ct_AR" # Let the user override the test.
++else
++as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++for as_dir in $PATH
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++    for ac_exec_ext in '' $ac_executable_extensions; do
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_prog_ac_ct_AR="ar"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++  done
++IFS=$as_save_IFS
++
++fi
++fi
++ac_ct_AR=$ac_cv_prog_ac_ct_AR
++if test -n "$ac_ct_AR"; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_AR" >&5
++$as_echo "$ac_ct_AR" >&6; }
++else
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++  if test "x$ac_ct_AR" = x; then
++    AR=""
++  else
++    case $cross_compiling:$ac_tool_warned in
++yes:)
++{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
++$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
++ac_tool_warned=yes ;;
++esac
++    AR=$ac_ct_AR
++  fi
++else
++  AR="$ac_cv_prog_AR"
++fi
++
+ 
+ MISSING=`cd $ac_aux_dir && ${PWDCMD-pwd}`/missing
+ for ac_prog in aclocal
+diff --git a/libdecnumber/configure.ac b/libdecnumber/configure.ac
+index de7e0088ceb..ae475a02c23 100644
+--- a/libdecnumber/configure.ac
++++ b/libdecnumber/configure.ac
+@@ -28,6 +28,7 @@ AC_CONFIG_AUX_DIR(..)
+ AC_PROG_MAKE_SET
+ AC_PROG_CC
+ AC_PROG_RANLIB
++AC_CHECK_TOOL(AR, ar)
+ 
+ MISSING=`cd $ac_aux_dir && ${PWDCMD-pwd}`/missing
+ AC_CHECK_PROGS([ACLOCAL], [aclocal], [$MISSING aclocal])
+-- 
+2.25.0
+

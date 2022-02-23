@@ -1,0 +1,11 @@
+--- ./cmake/maintainer.cmake.orig	2020-07-07 08:53:22 +0200
++++ ./cmake/maintainer.cmake	2020-07-07 08:53:33 +0200
+@@ -40,7 +40,7 @@
+   MY_CHECK_AND_SET_COMPILER_FLAG(${F} DEBUG RELWITHDEBINFO)
+ ENDFOREACH()
+ 
+-SET(MY_ERROR_FLAGS -Werror)
++SET(MY_ERROR_FLAGS "")
+ 
+ IF(CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_LESS "6.0.0")
+   SET(MY_ERROR_FLAGS ${MY_ERROR_FLAGS} -Wno-error=maybe-uninitialized)

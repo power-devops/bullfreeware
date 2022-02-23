@@ -1,0 +1,30 @@
+*** ./lib/nettle/egd.c.ORIG	Wed Apr 13 20:49:15 2011
+--- ./lib/nettle/egd.c	Wed Apr 13 20:49:40 2011
+***************
+*** 115,120 ****
+--- 115,124 ----
+    return NULL;
+  }
+  
++ #ifndef AF_LOCAL
++ #define AF_LOCAL AF_UNIX
++ #endif
++ 
+  /* Connect to the EGD and return the file descriptor.  Return -1 on
+     error.  With NOFAIL set to true, silently fail and return the
+     error, otherwise print an error message and die. */
+*** ./tests/openpgp-auth.c.ORIG	Wed Apr 13 20:56:17 2011
+--- ./tests/openpgp-auth.c	Wed Apr 13 20:56:47 2011
+***************
+*** 19,24 ****
+--- 19,28 ----
+   * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+   */
+  
++ #ifdef _AIX
++ #include <alloca.h>
++ #endif
++ 
+  #ifdef HAVE_CONFIG_H
+  #include <config.h>
+  #endif

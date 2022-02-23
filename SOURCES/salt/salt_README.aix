@@ -1,0 +1,14 @@
+The following packages are optional dependencies for salt.
+By default, they (and others) may not included in the salt RPMs.
+To enable the corresponding functionality within salt, they must be
+installed.
+
+MySQL-python
+libvirt-python
+python-mako
+pymongo
+python-redis / redis
+
+A list of the optional salt modules (MOCK_MODULES) can be found at
+https://github.com/saltstack/salt/blob/develop/doc/conf.py
+

@@ -1,0 +1,20 @@
+--- ./src/mongo/util/time_support.cpp.ORIGIN	2019-05-23 14:53:00 -0500
++++ ./src/mongo/util/time_support.cpp	2019-05-23 14:53:57 -0500
+@@ -47,7 +47,7 @@
+ #include "mongo/util/timer.h"
+ #include <boost/date_time/filetime_functions.hpp>
+ #include <mmsystem.h>
+-#elif defined(__linux__)
++#elif defined(__linux__) || defined(_AIX)
+ #include <time.h>
+ #elif defined(__APPLE__)
+ #include <mach/clock.h>
+@@ -968,7 +968,7 @@
+ // Find minimum timer resolution of OS
+ Nanoseconds getMinimumTimerResolution() {
+     Nanoseconds minTimerResolution;
+-#if defined(__linux__) || defined(__FreeBSD__)
++#if defined(__linux__) || defined(__FreeBSD__) || defined(_AIX)
+     struct timespec tp;
+     clock_getres(CLOCK_REALTIME, &tp);
+     minTimerResolution = Nanoseconds{tp.tv_nsec};

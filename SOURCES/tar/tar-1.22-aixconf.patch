@@ -1,0 +1,13 @@
+Index: tar-1.21/configure
+===================================================================
+--- tar-1.21.orig/configure	2009-03-06 12:48:09.000000000 +0100
++++ tar-1.21/configure	2009-03-06 12:51:33.-753335864 +0100
+@@ -38742,7 +38742,7 @@
+         if test $gt_api_version -ge 3; then
+           gt_revision_test_code='
+ #ifndef __GNU_GETTEXT_SUPPORTED_REVISION
+-#define __GNU_GETTEXT_SUPPORTED_REVISION(major) ((major) == 0 ? 0 : -1)
++#define __GNU_GETTEXT_SUPPORTED_REVISION(major) ((major) == 0 ? 1 : -1)
+ #endif
+ typedef int array [2 * (__GNU_GETTEXT_SUPPORTED_REVISION(0) >= 1) - 1];
+ '

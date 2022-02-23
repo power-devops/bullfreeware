@@ -1,0 +1,47 @@
+Index: emacs-25.1/doc/misc/Makefile.in
+===================================================================
+--- emacs-25.1.orig/doc/misc/Makefile.in	2016-06-29 11:49:16 +0200
++++ emacs-25.1/doc/misc/Makefile.in	2017-03-24 11:33:48 +0100
+@@ -68,7 +68,7 @@
+ INFO_COMMON = ada-mode auth autotype bovine calc ccmode cl \
+ 	dbus dired-x ebrowse ede ediff edt eieio \
+ 	emacs-mime epa erc ert eshell eudc efaq eww \
+-	flymake forms gnus emacs-gnutls htmlfontify idlwave ido info.info \
++	flymake forms gnus emacs-gnutls htmlfontify idlwave ido emacs.info.info \
+ 	mairix-el message mh-e newsticker nxml-mode octave-mode \
+ 	org pcl-cvs pgg rcirc remember reftex sasl \
+ 	sc semantic ses sieve smtpmail speedbar srecode todo-mode tramp \
+@@ -85,7 +85,7 @@
+ # There are some naming differences between the info targets and the other
+ # targets, so let's resolve them here.
+ TARGETS_1 = $(INFO_INSTALL:ccmode=cc-mode)
+-TARGETS = $(TARGETS_1:info.info=info)
++TARGETS = $(TARGETS_1:emacs.info.info=info)
+ 
+ DVI_TARGETS  = $(TARGETS:=.dvi)
+ HTML_TARGETS = $(TARGETS:=.html)
+@@ -151,9 +151,9 @@
+ endef
+ 
+ ## "info" is already taken.
+-info.info: $(buildinfodir)/info.info
++emacs.info.info: $(buildinfodir)/emacs.info.info
+ 
+-$(foreach ifile,$(filter-out info.info,$(INFO_TARGETS)),$(eval $(call info_template,$(ifile))))
++$(foreach ifile,$(filter-out emacs.info.info,$(INFO_TARGETS)),$(eval $(call info_template,$(ifile))))
+ 
+ 
+ %.dvi: ${srcdir}/%.texi ${gfdl} ${style}
+Index: emacs-25.1/doc/misc/info.texi
+===================================================================
+--- emacs-25.1.orig/doc/misc/info.texi	2016-06-29 11:49:17 +0200
++++ emacs-25.1/doc/misc/info.texi	2017-03-24 11:17:35 +0100
+@@ -3,7 +3,7 @@
+ @c distcheck in the Texinfo distribution fails, because the texinfo Info
+ @c file is made first, and texi2dvi must include . first in the path.
+ @comment %**start of header
+-@setfilename info.info
++@setfilename emacs.info.info
+ @settitle Info
+ @include docstyle.texi
+ @syncodeindex fn cp

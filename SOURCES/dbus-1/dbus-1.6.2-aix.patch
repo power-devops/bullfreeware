@@ -1,0 +1,12 @@
+Index: dbus-1.4.1/dbus/dbus-sysdeps-unix.c
+===================================================================
+--- dbus-1.4.1.orig/dbus/dbus-sysdeps-unix.c	2010-12-16 14:53:48.000000000 +0100
++++ dbus-1.4.1/dbus/dbus-sysdeps-unix.c	2012-07-09 10:55:20.000000000 +0200
+@@ -55,6 +55,7 @@
+ #include <netinet/in.h>
+ #include <netdb.h>
+ #include <grp.h>
++#include <alloca.h>
+ 
+ #ifdef HAVE_ERRNO_H
+ #include <errno.h>

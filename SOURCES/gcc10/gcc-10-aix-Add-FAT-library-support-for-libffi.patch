@@ -1,0 +1,207 @@
+From 4565f481bd8cebe6493c9682abd10acef032ed72 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 4 Sep 2020 14:34:58 +0200
+Subject: [PATCH] aix: Add FAT library support for libffi
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Changelog:
+ClÃement Chigot <clement.chigot@atos.net>
+ * Makefile.am (tmake_file): Build and install AIX-style FAT libraries.
+ * Makefile.in: Regenerate.
+ * include/Makefile.in: Regenerate.
+ * man/Makefile.in: Regenerate.
+ * testsuite/Makefile.in: Regenerate.
+ * configure.ac (tmake_file): Substitute.
+ * configure: Regenerate.
+ * configure.host (powerpc-*-aix*): Define tmake_file.
+ * src/powerpc/t-aix: New file.
+---
+ libffi/Makefile.am           |  3 +++
+ libffi/Makefile.in           |  4 ++++
+ libffi/configure             | 17 +++++++++++++++--
+ libffi/configure.ac          | 12 ++++++++++++
+ libffi/configure.host        |  2 ++
+ libffi/include/Makefile.in   |  1 +
+ libffi/man/Makefile.in       |  1 +
+ libffi/src/powerpc/t-aix     | 10 ++++++++++
+ libffi/testsuite/Makefile.in |  1 +
+ 9 files changed, 49 insertions(+), 2 deletions(-)
+ create mode 100644 libffi/src/powerpc/t-aix
+
+diff --git a/libffi/Makefile.am b/libffi/Makefile.am
+index 203b7d10a42..19758b8b232 100644
+--- a/libffi/Makefile.am
++++ b/libffi/Makefile.am
+@@ -247,4 +247,7 @@ clean-recursive: clean-multi
+ distclean-recursive: distclean-multi
+ maintainer-clean-recursive: maintainer-clean-multi
+ 
++# target overrides
++-include $(tmake_file)
++
+ include $(top_srcdir)/../multilib.am
+diff --git a/libffi/Makefile.in b/libffi/Makefile.in
+index 745bdd80777..43336d05ca6 100644
+--- a/libffi/Makefile.in
++++ b/libffi/Makefile.in
+@@ -436,6 +436,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+@@ -1912,6 +1913,9 @@ clean-recursive: clean-multi
+ distclean-recursive: distclean-multi
+ maintainer-clean-recursive: maintainer-clean-multi
+ 
++# target overrides
++-include $(tmake_file)
++
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+ # comments below.
+diff --git a/libffi/configure b/libffi/configure
+index f0051505d10..ce541e7ed62 100755
+--- a/libffi/configure
++++ b/libffi/configure
+@@ -644,6 +644,7 @@ LIBAT_BUILD_VERSIONED_SHLIB_FALSE
+ LIBAT_BUILD_VERSIONED_SHLIB_TRUE
+ OPT_LDFLAGS
+ SECTION_LDFLAGS
++tmake_file
+ toolexeclibdir
+ toolexecdir
+ FFI_DEBUG_FALSE
+@@ -11561,7 +11562,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11564 "configure"
++#line 11565 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11667,7 +11668,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11670 "configure"
++#line 11671 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -16225,6 +16226,18 @@ esac
+ 
+ 
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/src/$TARGETDIR/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/src/$TARGETDIR/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++
++
+ if test "${multilib}" = "yes"; then
+   multilib_arg="--enable-multilib"
+ else
+diff --git a/libffi/configure.ac b/libffi/configure.ac
+index 0bf4af410d3..b4214459c6c 100644
+--- a/libffi/configure.ac
++++ b/libffi/configure.ac
+@@ -362,6 +362,18 @@ esac
+ AC_SUBST(toolexecdir)
+ AC_SUBST(toolexeclibdir)
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/src/$TARGETDIR/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/src/$TARGETDIR/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++AC_SUBST(tmake_file)
++
+ if test "${multilib}" = "yes"; then
+   multilib_arg="--enable-multilib"
+ else
+diff --git a/libffi/configure.host b/libffi/configure.host
+index 786b32c5bb0..21db0133de6 100644
+--- a/libffi/configure.host
++++ b/libffi/configure.host
+@@ -183,6 +183,8 @@ case "${host}" in
+ 	;;
+   powerpc-*-aix* | rs6000-*-aix*)
+ 	TARGET=POWERPC_AIX; TARGETDIR=powerpc
++	# Create AIX-style "FAT" libraries.
++	tmake_file="t-aix"
+ 	;;
+   powerpc-*-freebsd* | powerpc-*-openbsd*)
+ 	TARGET=POWERPC_FREEBSD; TARGETDIR=powerpc
+diff --git a/libffi/include/Makefile.in b/libffi/include/Makefile.in
+index 99da8410d8b..57690655e8d 100644
+--- a/libffi/include/Makefile.in
++++ b/libffi/include/Makefile.in
+@@ -310,6 +310,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+diff --git a/libffi/man/Makefile.in b/libffi/man/Makefile.in
+index 754691095f7..a5f55de0f88 100644
+--- a/libffi/man/Makefile.in
++++ b/libffi/man/Makefile.in
+@@ -292,6 +292,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+diff --git a/libffi/src/powerpc/t-aix b/libffi/src/powerpc/t-aix
+new file mode 100644
+index 00000000000..1956adcff12
+--- /dev/null
++++ b/libffi/src/powerpc/t-aix
+@@ -0,0 +1,10 @@
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
++    echo '64'; else echo '32'; fi)
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
++# MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++MAJOR=7
++all-local:
++	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++endif
+\ No newline at end of file
+diff --git a/libffi/testsuite/Makefile.in b/libffi/testsuite/Makefile.in
+index 8b574dad5d7..5d83c3caf05 100644
+--- a/libffi/testsuite/Makefile.in
++++ b/libffi/testsuite/Makefile.in
+@@ -263,6 +263,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+-- 
+2.25.0
+

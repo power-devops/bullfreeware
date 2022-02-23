@@ -1,0 +1,117 @@
+--- ./storage/innobase/handler/handler0alter.cc.ORIGIN	2019-06-12 16:55:04 -0500
++++ ./storage/innobase/handler/handler0alter.cc	2019-06-12 16:48:31 -0500
+@@ -10691,7 +10691,7 @@
+ 
+     dd_set_autoinc(swap_table->se_private_data(), max_autoinc);
+     dd_set_autoinc(part_table->se_private_data(),
+-                   std::max(swap_autoinc, m_part_share->next_auto_inc_val));
++                   std::max(swap_autoinc, (uint64) m_part_share->next_auto_inc_val));
+ 
+     dict_table_autoinc_lock(part);
+     dict_table_autoinc_initialize(part, max_autoinc);
+--- ./sql/rpl_trx_tracking.cc.ORIGIN	2019-06-13 17:16:50 -0500
++++ ./sql/rpl_trx_tracking.cc	2019-06-13 17:18:14 -0500
+@@ -100,7 +100,7 @@
+   DBUG_ASSERT(new_val > 0);
+ 
+   while (
+-      !(cas_rc = atomic_compare_exchange_strong(&state, &old_val, new_val)) &&
++      !(cas_rc = atomic_compare_exchange_strong(&state, (int64 *)&old_val, new_val)) &&
+       old_val < new_val) {
+   }
+ 
+--- ./sql/field.cc.ORIGIN	2019-06-13 18:05:53 -0500
++++ ./sql/field.cc	2019-06-13 18:13:39 -0500
+@@ -10021,7 +10021,7 @@
+     val = sint8korr(from);
+   else
+ #endif
+-    longlongget(&val, from);
++    longlongget((longlong*)&val, from);
+ 
+ #ifdef WORDS_BIGENDIAN
+   if (low_byte_first_to)
+--- ./sql/rpl_handler.cc.ORIGIN	2019-06-14 09:16:57 -0500
++++ ./sql/rpl_handler.cc	2019-06-14 09:24:26 -0500
+@@ -317,7 +317,7 @@
+   param.trx_cache_log = trx_cache_log;
+   param.stmt_cache_log = stmt_cache_log;
+   param.cache_log_max_size = cache_log_max_size;
+-  param.original_commit_timestamp = &thd->variables.original_commit_timestamp;
++  param.original_commit_timestamp = (uint64 *)(&thd->variables.original_commit_timestamp);
+   param.is_atomic_ddl = is_atomic_ddl_arg;
+   param.rpl_channel_type = thd->rpl_thd_ctx.get_rpl_channel_type();
+   param.group_replication_consistency =
+--- ./sql/sql_executor.cc.ORIGIN	2019-06-14 09:45:57 -0500
++++ ./sql/sql_executor.cc	2019-06-14 09:46:50 -0500
+@@ -5393,7 +5393,7 @@
+                                    current row== 1 => 1
+                                    current row== 3 => 2
+         */
+-        lower_limit = std::max(current_row - border, 1ll);
++        lower_limit = std::max((int64) (current_row - border), (int64) 1ll);
+         break;
+       case WBT_VALUE_FOLLOWING:
+         /*
+--- ./include/mysql/plugin.h.ORIGIN	2019-06-14 12:13:34 -0500
++++ ./include/mysql/plugin.h	2019-06-14 12:14:09 -0500
+@@ -404,7 +404,7 @@
+       comment,                                                                 \
+       check,                                                                   \
+       update,                                                                  \
+-      &varname,                                                                \
++      (long long int*) &varname,                                                                \
+       def,                                                                     \
+       min,                                                                     \
+       max,                                                                     \
+--- ./plugin/group_replication/src/pipeline_stats.cc.ORIGIN	2019-06-18 16:06:33 -0500
++++ ./plugin/group_replication/src/pipeline_stats.cc	2019-06-18 16:09:35 -0500
+@@ -249,17 +249,17 @@
+ 
+   uint64 transactions_certified_aux = 0;
+   decode_payload_item_int8(&slider, &payload_item_type,
+-                           &transactions_certified_aux);
++                           (ulonglong*) &transactions_certified_aux);
+   m_transactions_certified = (int64)transactions_certified_aux;
+ 
+   uint64 transactions_applied_aux = 0;
+   decode_payload_item_int8(&slider, &payload_item_type,
+-                           &transactions_applied_aux);
++                           (ulonglong*) &transactions_applied_aux);
+   m_transactions_applied = (int64)transactions_applied_aux;
+ 
+   uint64 transactions_local_aux = 0;
+   decode_payload_item_int8(&slider, &payload_item_type,
+-                           &transactions_local_aux);
++                           (ulonglong*) &transactions_local_aux);
+   m_transactions_local = (int64)transactions_local_aux;
+ 
+   while (slider + Plugin_gcs_message::WIRE_PAYLOAD_ITEM_HEADER_SIZE <= end) {
+--- ./plugin/group_replication/src/plugin_messages/transaction_prepared_message.cc.ORIGIN	2019-06-18 16:20:37 -0500
++++ ./plugin/group_replication/src/plugin_messages/transaction_prepared_message.cc	2019-06-18 16:20:55 -0500
+@@ -66,7 +66,7 @@
+   unsigned long long payload_item_length = 0;
+ 
+   uint64 gno_aux = 0;
+-  decode_payload_item_int8(&slider, &payload_item_type, &gno_aux);
++  decode_payload_item_int8(&slider, &payload_item_type, (ulonglong*) &gno_aux);
+   m_gno = static_cast<rpl_gno>(gno_aux);
+ 
+   while (slider + Plugin_gcs_message::WIRE_PAYLOAD_ITEM_HEADER_SIZE <= end) {
+--- ./client/dump/abstract_progress_watcher.cc.ORIGIN	2019-06-20 11:59:25 -0500
++++ ./client/dump/abstract_progress_watcher.cc	2019-06-20 12:07:24 -0500
+@@ -47,9 +47,11 @@
+                  0.1);  //  Do not expand stage by more than 10 times the steps.
+ 
+     m_step_countdown = m_last_step_countdown = std::max(
+-        1LL,
+-        ((int64)(m_last_step_countdown / stages_past) + m_last_step_countdown) /
+-            2);
++        (int64) 1LL,
++        (int64) ((m_last_step_countdown / stages_past) + m_last_step_countdown) / 2);
++//        ((int64)(m_last_step_countdown / stages_past) + m_last_step_countdown) /
++//            2);
++
+     m_last_stage_time = now;
+ 
+     uint64 stages_past_int = 1000 * std::min(stages_past, 10.0);

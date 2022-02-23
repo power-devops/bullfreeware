@@ -1,0 +1,19 @@
+diff -ur PyXML-0.8.4.orig/xml/sax/saxutils.py PyXML-0.8.4/xml/sax/saxutils.py
+--- PyXML-0.8.4.orig/xml/sax/saxutils.py	2004-11-11 19:02:46.097146160 +0100
++++ PyXML-0.8.4/xml/sax/saxutils.py	2004-11-11 19:07:44.566771880 +0100
+@@ -514,10 +514,11 @@
+ 
+     if source.getByteStream() is None:
+         sysid = source.getSystemId()
+-        if os.path.isfile(sysid):
+-            basehead = os.path.split(os.path.normpath(base))[0]
+-            source.setSystemId(os.path.join(basehead, sysid))
+-            f = open(sysid, "rb")
++        basehead = os.path.dirname(os.path.normpath(base))
++        sysidfilename = os.path.join(basehead, sysid)
++        if os.path.isfile(sysidfilename):
++            source.setSystemId(sysidfilename)
++            f = open(sysidfilename, "rb")
+         else:
+             source.setSystemId(urlparse.urljoin(base, sysid))
+             f = urllib2.urlopen(source.getSystemId())

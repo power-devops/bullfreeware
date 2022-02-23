@@ -1,0 +1,285 @@
+From cd51cb241aad7b362b793200ca7d42595c14f52b Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Mon, 21 Oct 2019 16:17:42 +0900
+Subject: [PATCH] Take effect sysroot functionality to the default config file
+
+When loading the default config file with FONTCONFIG_SYSROOT,
+it fails if no /etc/fonts/fonts.conf is available, even if it is
+there where is based on sysroot.
+
+To address this, FcConfig is required to determine the sysroot.
+therefore, this change makes FcConfigFilename() deprecated,
+use FcConfigGetFilename() instead.
+
+Fixes https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/181
+---
+ doc/fcconfig.fncs       | 11 +++++++
+ fontconfig/fontconfig.h |  4 +++
+ src/fccfg.c             | 67 ++++++++++++++++++++++++++++-------------
+ src/fcxml.c             | 24 ++++++++++++---
+ 4 files changed, 81 insertions(+), 25 deletions(-)
+
+diff --git a/doc/fcconfig.fncs b/doc/fcconfig.fncs
+index 5f1ef43..82769d5 100644
+--- a/doc/fcconfig.fncs
++++ b/doc/fcconfig.fncs
+@@ -344,6 +344,15 @@ to be up to date, and used.
+ @TYPE1@         const FcChar8 *			@ARG1@          name
+ @PURPOSE@	Find a config file
+ @DESC@
++This function is deprecated and is replaced by <function>FcConfigGetFilename</function>.
++@@
++
++@RET@           FcChar8 *
++@FUNC@          FcConfigGetFilename
++@TYPE1@         FcConfig *			@ARG1@          config
++@TYPE2@         const FcChar8 *			@ARG2@          name
++@PURPOSE@	Find a config file
++@DESC@
+ Given the specified external entity name, return the associated filename.
+ This provides applications a way to convert various configuration file
+ references into filename form.
+@@ -355,6 +364,8 @@ refers to a file in the current users home directory.  Otherwise if the name
+ doesn't start with '/', it refers to a file in the default configuration
+ directory; the built-in default directory can be overridden with the
+ FONTCONFIG_PATH environment variable.
++    </para><para>
++The result of this function is affected by the FONTCONFIG_SYSROOT environment variable or equivalent functionality.
+ @@
+ 
+ @RET@		FcBool
+diff --git a/fontconfig/fontconfig.h b/fontconfig/fontconfig.h
+index 9586616..2f0e8cf 100644
+--- a/fontconfig/fontconfig.h
++++ b/fontconfig/fontconfig.h
+@@ -393,6 +393,10 @@ FcConfigHome (void);
+ FcPublic FcBool
+ FcConfigEnableHome (FcBool enable);
+ 
++FcPublic FcChar8 *
++FcConfigGetFilename (FcConfig      *config,
++		     const FcChar8 *url);
++
+ FcPublic FcChar8 *
+ FcConfigFilename (const FcChar8 *url);
+     
+diff --git a/src/fccfg.c b/src/fccfg.c
+index e81eeba..21ccd25 100644
+--- a/src/fccfg.c
++++ b/src/fccfg.c
+@@ -686,7 +686,7 @@ FcConfigAddConfigFile (FcConfig	    *config,
+ 		       const FcChar8   *f)
+ {
+     FcBool	ret;
+-    FcChar8	*file = FcConfigFilename (f);
++    FcChar8	*file = FcConfigGetFilename (config, f);
+ 
+     if (!file)
+ 	return FcFalse;
+@@ -2284,10 +2284,19 @@ FcConfigEnableHome (FcBool enable)
+ }
+ 
+ FcChar8 *
+-FcConfigFilename (const FcChar8 *url)
++FcConfigGetFilename (FcConfig      *config,
++		     const FcChar8 *url)
+ {
+     FcChar8    *file, *dir, **path, **p;
++    const FcChar8 *sysroot;
+ 
++    if (!config)
++    {
++	config = FcConfigGetCurrent ();
++	if (!config)
++	    return NULL;
++    }
++    sysroot = FcConfigGetSysRoot (config);
+     if (!url || !*url)
+     {
+ 	url = (FcChar8 *) getenv ("FONTCONFIG_FILE");
+@@ -2297,13 +2306,23 @@ FcConfigFilename (const FcChar8 *url)
+     file = 0;
+ 
+     if (FcStrIsAbsoluteFilename(url))
+-	return FcConfigFileExists (0, url);
++	return FcConfigFileExists (sysroot, url);
+ 
+     if (*url == '~')
+     {
+ 	dir = FcConfigHome ();
+ 	if (dir)
+-	    file = FcConfigFileExists (dir, url + 1);
++	{
++	    FcChar8 *s;
++
++	    if (sysroot)
++		s = FcStrBuildFilename (sysroot, dir, NULL);
++	    else
++		s = dir;
++	    file = FcConfigFileExists (s, url + 1);
++	    if (sysroot)
++		FcStrFree (s);
++	}
+ 	else
+ 	    file = 0;
+     }
+@@ -2314,7 +2333,15 @@ FcConfigFilename (const FcChar8 *url)
+ 	    return NULL;
+ 	for (p = path; *p; p++)
+ 	{
+-	    file = FcConfigFileExists (*p, url);
++	    FcChar8 *s;
++
++	    if (sysroot)
++		s = FcStrBuildFilename (sysroot, *p, NULL);
++	    else
++		s = *p;
++	    file = FcConfigFileExists (s, url);
++	    if (sysroot)
++		FcStrFree (s);
+ 	    if (file)
+ 		break;
+ 	}
+@@ -2323,33 +2350,31 @@ FcConfigFilename (const FcChar8 *url)
+     return file;
+ }
+ 
++FcChar8 *
++FcConfigFilename (const FcChar8 *url)
++{
++    return FcConfigGetFilename (NULL, url);
++}
++
+ FcChar8 *
+ FcConfigRealFilename (FcConfig		*config,
+ 		      const FcChar8	*url)
+ {
+-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+-    FcChar8 *n = FcConfigFilename (url);
+-    FcChar8 *nn = NULL;
++    FcChar8 *n = FcConfigGetFilename (config, url);
+ 
+     if (n)
+     {
+ 	FcChar8 buf[FC_PATH_MAX];
+ 	ssize_t len;
+ 
+-	if (sysroot)
+-	    nn = FcStrBuildFilename (sysroot, n, NULL);
+-	else
+-	    nn = FcStrdup (n);
+-	FcStrFree (n);
+-
+-	if ((len = FcReadLink (nn, buf, sizeof (buf) - 1)) != -1)
++	if ((len = FcReadLink (n, buf, sizeof (buf) - 1)) != -1)
+ 	{
+ 	    buf[len] = 0;
+ 
+ 	    if (!FcStrIsAbsoluteFilename (buf))
+ 	    {
+-		FcChar8 *dirname = FcStrDirname (nn);
+-		FcStrFree (nn);
++		FcChar8 *dirname = FcStrDirname (n);
++		FcStrFree (n);
+ 		if (!dirname)
+ 		    return NULL;
+ 
+@@ -2358,18 +2383,18 @@ FcConfigRealFilename (FcConfig		*config,
+ 		if (!path)
+ 		    return NULL;
+ 
+-		nn = FcStrCanonFilename (path);
++		n = FcStrCanonFilename (path);
+ 		FcStrFree (path);
+ 	    }
+ 	    else
+ 	    {
+-		FcStrFree (nn);
+-		nn = FcStrdup (buf);
++		FcStrFree (n);
++		n = FcStrdup (buf);
+ 	    }
+ 	}
+     }
+ 
+-    return nn;
++    return n;
+ }
+ 
+ /*
+diff --git a/src/fcxml.c b/src/fcxml.c
+index d9a67f6..a366644 100644
+--- a/src/fcxml.c
++++ b/src/fcxml.c
+@@ -2541,7 +2541,7 @@ FcParseInclude (FcConfigParse *parse)
+         FcChar8 *filename;
+ 	static FcBool warn_conf = FcFalse, warn_confd = FcFalse;
+ 
+-        filename = FcConfigFilename(s);
++        filename = FcConfigGetFilename(parse->config, s);
+ 	if (deprecated == FcTrue &&
+ 	    filename != NULL &&
+ 	    userdir != NULL &&
+@@ -3532,7 +3532,9 @@ _FcConfigParse (FcConfig	*config,
+     FcStrBuf	    sbuf;
+     char            buf[BUFSIZ];
+     FcBool	    ret = FcFalse, complain_again = complain;
++    FcStrBuf	    reason;
+ 
++    FcStrBufInit (&reason, NULL, 0);
+ #ifdef _WIN32
+     if (!pGetSystemWindowsDirectory)
+     {
+@@ -3549,12 +3551,20 @@ _FcConfigParse (FcConfig	*config,
+     }
+ #endif
+ 
+-    filename = FcConfigFilename (name);
++    filename = FcConfigGetFilename (config, name);
+     if (!filename)
++    {
++	FcStrBufString (&reason, (FcChar8 *)"No such file: ");
++	FcStrBufString (&reason, name ? name : (FcChar8 *)"(null)");
+ 	goto bail0;
++    }
+     realfilename = FcConfigRealFilename (config, name);
+     if (!realfilename)
++    {
++	FcStrBufString (&reason, (FcChar8 *)"No such realfile: ");
++	FcStrBufString (&reason, name ? name : (FcChar8 *)"(null)");
+ 	goto bail0;
++    }
+     if (FcStrSetMember (config->availConfigFiles, realfilename))
+     {
+         FcStrFree (filename);
+@@ -3582,7 +3592,11 @@ _FcConfigParse (FcConfig	*config,
+ 
+     fd = FcOpen ((char *) realfilename, O_RDONLY);
+     if (fd == -1)
++    {
++	FcStrBufString (&reason, (FcChar8 *)"Unable to open ");
++	FcStrBufString (&reason, realfilename);
+ 	goto bail1;
++    }
+ 
+     do {
+ 	len = read (fd, buf, BUFSIZ);
+@@ -3623,11 +3637,13 @@ bail0:
+     if (!ret && complain_again)
+     {
+ 	if (name)
+-	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\"", load ? "load" : "scan", name);
++	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\": %s", load ? "load" : "scan", name, FcStrBufDoneStatic (&reason));
+ 	else
+-	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file", load ? "load" : "scan");
++	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file: %s", load ? "load" : "scan", FcStrBufDoneStatic (&reason));
++	FcStrBufDestroy (&reason);
+ 	return FcFalse;
+     }
++    FcStrBufDestroy (&reason);
+     return ret;
+ }
+ 
+-- 
+2.24.1
+

@@ -1,0 +1,20 @@
+--- ./src/mongo/db/storage/storage_engine_lock_file_posix.cpp.ORIGIN	2015-12-02 20:01:34.000000000 +0100
++++ ./src/mongo/db/storage/storage_engine_lock_file_posix.cpp	2015-12-23 14:07:49.000000000 +0100
+@@ -160,7 +160,7 @@
+                                     << _dbpath
+                                     << " directory");
+     }
+-#if !defined(__sun)
++#if !defined(__sun) && !defined(_AIX)
+     int ret = ::flock(lockFile, LOCK_EX | LOCK_NB);
+ #else
+     struct flock fileLockInfo = {0};
+@@ -256,7 +256,7 @@
+         int errorcode = errno;
+         log() << "couldn't remove fs lock " << errnoWithDescription(errorcode);
+     }
+-#if !defined(__sun)
++#if !defined(__sun) && !defined(_AIX)
+     ::flock(_lockFileHandle->_fd, LOCK_UN);
+ #else
+     struct flock fileLockInfo = {0};

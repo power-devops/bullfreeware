@@ -1,0 +1,66 @@
+From 0d2dabe74063364e27f971da83364c175369bed8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 27 Mar 2020 14:45:09 -0500
+Subject: [PATCH] gcc/config/rs6000: Add link with libc128 with
+ -mlong-double-128 for AIX
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Description:
+ * AIX applications using 128-bit long double must be linked with
+   libc128.a, in order to have 128-bit compatible routines.
+
+Tests:
+ * AIX 7.2, 7.1, 6.1: Build/Tests: OK
+
+Changelog:
+2020-04-03 Clément Chigot <clement.chigot@atos.net>
+ * config/rs6000/aix61.h (LIB_SPEC): Add -lc128 with -mlong-double-128.
+ * config/rs6000/aix71.h (LIB_SPEC): Likewise.
+ * config/rs6000/aix72.h (LIB_SPEC): Likewise.
+---
+ gcc/config/rs6000/aix61.h | 1 +
+ gcc/config/rs6000/aix71.h | 1 +
+ gcc/config/rs6000/aix72.h | 1 +
+ 3 files changed, 3 insertions(+)
+
+diff --git a/gcc/config/rs6000/aix61.h b/gcc/config/rs6000/aix61.h
+index 0abc856647f..9e195994d4e 100644
+--- a/gcc/config/rs6000/aix61.h
++++ b/gcc/config/rs6000/aix61.h
+@@ -154,6 +154,7 @@ do {									\
+    %{!maix64:%{!shared:%{g*:-lg}}}\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
++   %{mlong-double-128:-lc128}\
+    %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #undef LINK_SPEC
+diff --git a/gcc/config/rs6000/aix71.h b/gcc/config/rs6000/aix71.h
+index 0b06c94f2e0..b809f1fac86 100644
+--- a/gcc/config/rs6000/aix71.h
++++ b/gcc/config/rs6000/aix71.h
+@@ -162,6 +162,7 @@ do {									\
+    %{!maix64:%{!shared:%{g*:-lg}}}\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
++   %{mlong-double-128:-lc128}\
+    %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #undef LINK_SPEC
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index 3c1185b3f3e..3a87638fe6c 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -163,6 +163,7 @@ do {									\
+    %{!maix64:%{!shared:%{g*:-lg}}}\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
++   %{mlong-double-128:-lc128}\
+    %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #undef LINK_SPEC
+-- 
+2.25.0
+

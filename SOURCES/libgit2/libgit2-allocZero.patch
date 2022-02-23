@@ -1,0 +1,39 @@
+--- ./src/pack-objects.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./src/pack-objects.c	2020-11-17 11:48:27 +0100
+@@ -533,7 +533,7 @@
+ 	size_t i, wo_end, last_untagged;
+ 	git_pobject **wo;
+ 
+-	if ((wo = git__mallocarray(pb->nr_objects, sizeof(*wo))) == NULL)
++	if ((wo = git__mallocarray((pb->nr_objects?pb->nr_objects:1), sizeof(*wo))) == NULL)
+ 		return NULL;
+ 
+ 	for (i = 0; i < pb->nr_objects; i++) {
+--- ./src/merge.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./src/merge.c	2020-11-17 13:32:51 +0100
+@@ -1522,11 +1522,14 @@
+ 	if ((opts->flags & GIT_MERGE_FIND_RENAMES) == 0)
+ 		return 0;
+ 
+-	similarity_ours = git__calloc(diff_list->conflicts.length,
++	/* Check if nelem/length is zero to avoid calloc(0) */
++	int conflicts_length = (diff_list->conflicts.length?diff_list->conflicts.length:1);
++
++	similarity_ours = git__calloc(conflicts_length,
+ 		sizeof(struct merge_diff_similarity));
+ 	GIT_ERROR_CHECK_ALLOC(similarity_ours);
+ 
+-	similarity_theirs = git__calloc(diff_list->conflicts.length,
++	similarity_theirs = git__calloc(conflicts_length,
+ 		sizeof(struct merge_diff_similarity));
+ 	GIT_ERROR_CHECK_ALLOC(similarity_theirs);
+ 
+@@ -1538,7 +1541,7 @@
+ 
+ 	if (opts->rename_threshold < 100 && diff_list->conflicts.length <= opts->target_limit) {
+ 		GIT_ERROR_CHECK_ALLOC_MULTIPLY(&cache_size, diff_list->conflicts.length, 3);
+-		cache = git__calloc(cache_size, sizeof(void *));
++		cache = git__calloc((cache_size?cache_size:1), sizeof(void *));
+ 		GIT_ERROR_CHECK_ALLOC(cache);
+ 
+ 		merge_diff_list_count_candidates(diff_list, &src_count, &tgt_count);

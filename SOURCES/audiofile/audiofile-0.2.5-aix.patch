@@ -1,0 +1,24 @@
+diff -ru audiofile-0.2.1.orig/libaudiofile/afinternal.h audiofile-0.2.1/libaudiofile/afinternal.h
+--- audiofile-0.2.1.orig/libaudiofile/afinternal.h	Fri Dec 22 12:29:15 2000
++++ audiofile-0.2.1/libaudiofile/afinternal.h	Mon Apr 30 14:31:43 2001
+@@ -344,7 +344,7 @@
+ 
+ enum
+ {
+-	AIFC_VERSION_1 = 0xa2805140
++	AIFC_VERSION_1 = (int)0xa2805140
+ };
+ 
+ enum
+diff -ru audiofile-0.2.1.orig/libaudiofile/aiff.h audiofile-0.2.1/libaudiofile/aiff.h
+--- audiofile-0.2.1.orig/libaudiofile/aiff.h	Tue Nov  7 19:24:20 2000
++++ audiofile-0.2.1/libaudiofile/aiff.h	Mon Apr 30 14:33:37 2001
+@@ -33,7 +33,7 @@
+ 
+ enum
+ {
+-	AIFCVersion1 = 0xa2805140
++	AIFCVersion1 = (int)0xa2805140
+ };
+ 
+ struct _COMM

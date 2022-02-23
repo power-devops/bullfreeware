@@ -1,0 +1,631 @@
+From 9f69b78a93de5ae396eb96d2957f36f8b9dc7458 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 12 Mar 2018 11:31:46 -0400
+Subject: [PATCH] Add PKINIT KDC support for freshness token
+
+Send a freshness token in the preauth hint list if PKINIT is
+configured and the request padata indicates support.  Verify the
+freshness token if the client includes one in a PKINIT request, and
+log whether one was received.  If pkinit_require_freshness is set to
+true in the realm config, reject non-anonymous requests which don't
+contain a freshness token.
+
+Add freshness token tests to t_pkinit.py with some related changes.
+Remove client long-term keys after testing password preauth so we get
+better error reporting when pkinit_require_freshness is set and a
+token is not sent.  Remove ./responder invocations for test cases
+which don't ask PKINIT responder questions, or else the responder
+would fail now that it isn't being asked for the password.  Leave
+anonymous PKINIT enabled after the anonymous tests so that we can use
+it again when testing enforcement of pkinit_require_freshness.  Add
+expected trace messages for the basic test, including one for
+receiving a freshness token.  Add minimal expected trace messages for
+the RSA test.
+
+ticket: 8648
+(cherry picked from commit 4a9050df0bc34bfb08ba24462d6e2514640f4b8e)
+---
+ doc/admin/conf_files/kdc_conf.rst       |   4 +
+ doc/admin/pkinit.rst                    |  25 +++++
+ doc/appdev/refs/macros/index.rst        |   2 +
+ doc/formats/freshness_token.rst         |  19 ++++
+ doc/formats/index.rst                   |   1 +
+ src/include/krb5/kdcpreauth_plugin.h    |  17 ++++
+ src/include/krb5/krb5.hin               |   3 +
+ src/kdc/do_as_req.c                     |   2 +
+ src/kdc/kdc_preauth.c                   | 130 +++++++++++++++++++++++-
+ src/kdc/kdc_util.h                      |   2 +
+ src/plugins/preauth/pkinit/pkinit.h     |   2 +
+ src/plugins/preauth/pkinit/pkinit_srv.c |  51 +++++++++-
+ src/tests/t_pkinit.py                   |  50 ++++++---
+ 13 files changed, 292 insertions(+), 16 deletions(-)
+ create mode 100644 doc/formats/freshness_token.rst
+
+diff --git a/doc/admin/conf_files/kdc_conf.rst b/doc/admin/conf_files/kdc_conf.rst
+index 3af1c3796..1ac1a37c2 100644
+--- a/doc/admin/conf_files/kdc_conf.rst
++++ b/doc/admin/conf_files/kdc_conf.rst
+@@ -798,6 +798,10 @@ For information about the syntax of some of these options, see
+     **pkinit_require_crl_checking** should be set to true if the
+     policy is such that up-to-date CRLs must be present for every CA.
+ 
++**pkinit_require_freshness**
++    Specifies whether to require clients to include a freshness token
++    in PKINIT requests.  The default value is false.  (New in release
++    1.17.)
+ 
+ .. _Encryption_types:
+ 
+diff --git a/doc/admin/pkinit.rst b/doc/admin/pkinit.rst
+index c601c5c9e..bec4fc800 100644
+--- a/doc/admin/pkinit.rst
++++ b/doc/admin/pkinit.rst
+@@ -327,3 +327,28 @@ appropriate :ref:`kdc_realms` subsection of the KDC's
+ To obtain anonymous credentials on a client, run ``kinit -n``, or
+ ``kinit -n @REALMNAME`` to specify a realm.  The resulting tickets
+ will have the client name ``WELLKNOWN/ANONYMOUS@WELLKNOWN:ANONYMOUS``.
++
++
++Freshness tokens
++----------------
++
++Freshness tokens can ensure that the client has recently had access to
++its certificate private key.  If freshness tokens are not required by
++the KDC, a client program with temporary possession of the private key
++can compose requests for future timestamps and use them later.
++
++In release 1.17 and later, freshness tokens are supported by the
++client and are sent by the KDC when the client indicates support for
++them.  Because not all clients support freshness tokens yet, they are
++not required by default.  To check if freshness tokens are supported
++by a realm's clients, look in the KDC logs for the lines::
++
++    PKINIT: freshness token received from <client principal>
++    PKINIT: no freshness token received from <client principal>
++
++To require freshness tokens for all clients in a realm (except for
++clients authenticating anonymously), set the
++**pkinit_require_freshness** variable to ``true`` in the appropriate
++:ref:`kdc_realms` subsection of the KDC's :ref:`kdc.conf(5)` file.  To
++test that this option is in effect, run ``kinit -X disable_freshness``
++and verify that authentication is unsuccessful.
+diff --git a/doc/appdev/refs/macros/index.rst b/doc/appdev/refs/macros/index.rst
+index e76747102..dba818b26 100644
+--- a/doc/appdev/refs/macros/index.rst
++++ b/doc/appdev/refs/macros/index.rst
+@@ -181,6 +181,7 @@ Public
+    KRB5_KEYUSAGE_KRB_ERROR_CKSUM.rst
+    KRB5_KEYUSAGE_KRB_PRIV_ENCPART.rst
+    KRB5_KEYUSAGE_KRB_SAFE_CKSUM.rst
++   KRB5_KEYUSAGE_PA_AS_FRESHNESS.rst
+    KRB5_KEYUSAGE_PA_FX_COOKIE.rst
+    KRB5_KEYUSAGE_PA_OTP_REQUEST.rst
+    KRB5_KEYUSAGE_PA_PKINIT_KX.rst
+@@ -241,6 +242,7 @@ Public
+    KRB5_PADATA_AFS3_SALT.rst
+    KRB5_PADATA_AP_REQ.rst
+    KRB5_PADATA_AS_CHECKSUM.rst
++   KRB5_PADATA_AS_FRESHNESS.rst
+    KRB5_PADATA_ENCRYPTED_CHALLENGE.rst
+    KRB5_PADATA_ENC_SANDIA_SECURID.rst
+    KRB5_PADATA_ENC_TIMESTAMP.rst
+diff --git a/doc/formats/freshness_token.rst b/doc/formats/freshness_token.rst
+new file mode 100644
+index 000000000..3127621a9
+--- /dev/null
++++ b/doc/formats/freshness_token.rst
+@@ -0,0 +1,19 @@
++PKINIT freshness tokens
++=======================
++
++:rfc:`8070` specifies a pa-data type PA_AS_FRESHNESS, which clients
++should reflect within signed PKINIT data to prove recent access to the
++client certificate private key.  The contents of a freshness token are
++left to the KDC implementation.  The MIT krb5 KDC uses the following
++format for freshness tokens (starting in release 1.17):
++
++* a four-byte big-endian POSIX timestamp
++* a four-byte big-endian key version number
++* an :rfc:`3961` checksum, with no ASN.1 wrapper
++
++The checksum is computed using the first key in the local krbtgt
++principal entry for the realm (e.g. ``krbtgt/KRBTEST.COM@KRBTEST.COM``
++if the request is to the ``KRBTEST.COM`` realm) of the indicated key
++version.  The checksum type must be the mandatory checksum type for
++the encryption type of the krbtgt key.  The key usage value for the
++checksum is 514.
+diff --git a/doc/formats/index.rst b/doc/formats/index.rst
+index 8b30626d4..4ad534424 100644
+--- a/doc/formats/index.rst
++++ b/doc/formats/index.rst
+@@ -7,3 +7,4 @@ Protocols and file formats
+    ccache_file_format
+    keytab_file_format
+    cookie
++   freshness_token
+diff --git a/src/include/krb5/kdcpreauth_plugin.h b/src/include/krb5/kdcpreauth_plugin.h
+index f38820099..3a4754234 100644
+--- a/src/include/krb5/kdcpreauth_plugin.h
++++ b/src/include/krb5/kdcpreauth_plugin.h
+@@ -240,6 +240,23 @@ typedef struct krb5_kdcpreauth_callbacks_st {
+ 
+     /* End of version 4 kdcpreauth callbacks. */
+ 
++    /*
++     * Instruct the KDC to send a freshness token in the method data
++     * accompanying a PREAUTH_REQUIRED or PREAUTH_FAILED error, if the client
++     * indicated support for freshness tokens.  This callback should only be
++     * invoked from the edata method.
++     */
++    void (*send_freshness_token)(krb5_context context,
++                                 krb5_kdcpreauth_rock rock);
++
++    /* Validate a freshness token sent by the client.  Return 0 on success,
++     * KRB5KDC_ERR_PREAUTH_EXPIRED on error. */
++    krb5_error_code (*check_freshness_token)(krb5_context context,
++                                             krb5_kdcpreauth_rock rock,
++                                             const krb5_data *token);
++
++    /* End of version 5 kdcpreauth callbacks. */
++
+ } *krb5_kdcpreauth_callbacks;
+ 
+ /* Optional: preauth plugin initialization function. */
+diff --git a/src/include/krb5/krb5.hin b/src/include/krb5/krb5.hin
+index 833e72335..a650ecece 100644
+--- a/src/include/krb5/krb5.hin
++++ b/src/include/krb5/krb5.hin
+@@ -1035,7 +1035,10 @@ krb5_c_keyed_checksum_types(krb5_context context, krb5_enctype enctype,
+ #define KRB5_KEYUSAGE_AS_REQ 56
+ #define KRB5_KEYUSAGE_CAMMAC 64
+ 
++/* Key usage values 512-1023 are reserved for uses internal to a Kerberos
++ * implementation. */
+ #define KRB5_KEYUSAGE_PA_FX_COOKIE 513  /**< Used for encrypted FAST cookies */
++#define KRB5_KEYUSAGE_PA_AS_FRESHNESS 514  /**< Used for freshness tokens */
+ /** @} */ /* end of KRB5_KEYUSAGE group */
+ 
+ /**
+diff --git a/src/kdc/do_as_req.c b/src/kdc/do_as_req.c
+index 7c8da63e1..588c1375a 100644
+--- a/src/kdc/do_as_req.c
++++ b/src/kdc/do_as_req.c
+@@ -563,6 +563,7 @@ process_as_req(krb5_kdc_req *request, krb5_data *req_pkt,
+     state->rock.rstate = state->rstate;
+     state->rock.vctx = vctx;
+     state->rock.auth_indicators = &state->auth_indicators;
++    state->rock.send_freshness_token = FALSE;
+     if (!state->request->client) {
+         state->status = "NULL_CLIENT";
+         errcode = KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN;
+@@ -659,6 +660,7 @@ process_as_req(krb5_kdc_req *request, krb5_data *req_pkt,
+         state->status = "GET_LOCAL_TGT";
+         goto errout;
+     }
++    state->rock.local_tgt = state->local_tgt;
+ 
+     au_state->stage = VALIDATE_POL;
+ 
+diff --git a/src/kdc/kdc_preauth.c b/src/kdc/kdc_preauth.c
+index 6f34dc289..80b130222 100644
+--- a/src/kdc/kdc_preauth.c
++++ b/src/kdc/kdc_preauth.c
+@@ -87,6 +87,9 @@
+ #include <assert.h>
+ #include <krb5/kdcpreauth_plugin.h>
+ 
++/* Let freshness tokens be valid for ten minutes. */
++#define FRESHNESS_LIFETIME 600
++
+ typedef struct preauth_system_st {
+     const char *name;
+     int type;
+@@ -497,8 +500,68 @@ client_name(krb5_context context, krb5_kdcpreauth_rock rock)
+     return rock->client->princ;
+ }
+ 
++static void
++send_freshness_token(krb5_context context, krb5_kdcpreauth_rock rock)
++{
++    rock->send_freshness_token = TRUE;
++}
++
++static krb5_error_code
++check_freshness_token(krb5_context context, krb5_kdcpreauth_rock rock,
++                      const krb5_data *token)
++{
++    krb5_timestamp token_ts, now;
++    krb5_key_data *kd;
++    krb5_keyblock kb;
++    krb5_kvno token_kvno;
++    krb5_checksum cksum;
++    krb5_data d;
++    uint8_t *token_cksum;
++    size_t token_cksum_len;
++    krb5_boolean valid = FALSE;
++    char ckbuf[4];
++
++    memset(&kb, 0, sizeof(kb));
++
++    if (krb5_timeofday(context, &now) != 0)
++        goto cleanup;
++
++    if (token->length <= 8)
++        goto cleanup;
++    token_ts = load_32_be(token->data);
++    token_kvno = load_32_be(token->data + 4);
++    token_cksum = (uint8_t *)token->data + 8;
++    token_cksum_len = token->length - 8;
++
++    /* Check if the token timestamp is too old. */
++    if (ts_after(now, ts_incr(token_ts, FRESHNESS_LIFETIME)))
++        goto cleanup;
++
++    /* Fetch and decrypt the local krbtgt key of the token's kvno. */
++    if (krb5_dbe_find_enctype(context, rock->local_tgt, -1, -1, token_kvno,
++                              &kd) != 0)
++        goto cleanup;
++    if (krb5_dbe_decrypt_key_data(context, NULL, kd, &kb, NULL) != 0)
++        goto cleanup;
++
++    /* Verify the token checksum against the current KDC time.  The checksum
++     * must use the mandatory checksum type of the krbtgt key's enctype. */
++    store_32_be(token_ts, ckbuf);
++    d = make_data(ckbuf, sizeof(ckbuf));
++    cksum.magic = KV5M_CHECKSUM;
++    cksum.checksum_type = 0;
++    cksum.length = token_cksum_len;
++    cksum.contents = token_cksum;
++    (void)krb5_c_verify_checksum(context, &kb, KRB5_KEYUSAGE_PA_AS_FRESHNESS,
++                                 &d, &cksum, &valid);
++
++cleanup:
++    krb5_free_keyblock_contents(context, &kb);
++    return valid ? 0 : KRB5KDC_ERR_PREAUTH_EXPIRED;
++}
++
+ static struct krb5_kdcpreauth_callbacks_st callbacks = {
+-    4,
++    5,
+     max_time_skew,
+     client_keys,
+     free_keys,
+@@ -514,7 +577,9 @@ static struct krb5_kdcpreauth_callbacks_st callbacks = {
+     get_cookie,
+     set_cookie,
+     match_client,
+-    client_name
++    client_name,
++    send_freshness_token,
++    check_freshness_token
+ };
+ 
+ static krb5_error_code
+@@ -770,6 +835,62 @@ cleanup:
+     return ret;
+ }
+ 
++static krb5_error_code
++add_freshness_token(krb5_context context, krb5_kdcpreauth_rock rock,
++                    krb5_pa_data ***pa_list)
++{
++    krb5_error_code ret;
++    krb5_timestamp now;
++    krb5_key_data *kd;
++    krb5_keyblock kb;
++    krb5_checksum cksum;
++    krb5_data d;
++    krb5_pa_data *pa;
++    char ckbuf[4];
++
++    memset(&cksum, 0, sizeof(cksum));
++    memset(&kb, 0, sizeof(kb));
++
++    if (!rock->send_freshness_token)
++        return 0;
++    if (krb5int_find_pa_data(context, rock->request->padata,
++                             KRB5_PADATA_AS_FRESHNESS) == NULL)
++        return 0;
++
++    /* Fetch and decrypt the current local krbtgt key. */
++    ret = krb5_dbe_find_enctype(context, rock->local_tgt, -1, -1, 0, &kd);
++    if (ret)
++        goto cleanup;
++    ret = krb5_dbe_decrypt_key_data(context, NULL, kd, &kb, NULL);
++    if (ret)
++        goto cleanup;
++
++    /* Compute a checksum over the current KDC time. */
++    ret = krb5_timeofday(context, &now);
++    if (ret)
++        goto cleanup;
++    store_32_be(now, ckbuf);
++    d = make_data(ckbuf, sizeof(ckbuf));
++    ret = krb5_c_make_checksum(context, 0, &kb, KRB5_KEYUSAGE_PA_AS_FRESHNESS,
++                               &d, &cksum);
++
++    /* Compose a freshness token from the time, krbtgt kvno, and checksum. */
++    ret = alloc_pa_data(KRB5_PADATA_AS_FRESHNESS, 8 + cksum.length, &pa);
++    if (ret)
++        goto cleanup;
++    store_32_be(now, pa->contents);
++    store_32_be(kd->key_data_kvno, pa->contents + 4);
++    memcpy(pa->contents + 8, cksum.contents, cksum.length);
++
++    /* add_pa_data_element() claims pa on success or failure. */
++    ret = add_pa_data_element(pa_list, pa);
++
++cleanup:
++    krb5_free_keyblock_contents(context, &kb);
++    krb5_free_checksum_contents(context, &cksum);
++    return ret;
++}
++
+ struct hint_state {
+     kdc_hint_respond_fn respond;
+     void *arg;
+@@ -792,6 +913,11 @@ hint_list_finish(struct hint_state *state, krb5_error_code code)
+     void *oldarg = state->arg;
+     kdc_realm_t *kdc_active_realm = state->realm;
+ 
++    /* Add a freshness token if a preauth module requested it and the client
++     * request indicates support for it. */
++    if (!code)
++        code = add_freshness_token(kdc_context, state->rock, &state->pa_data);
++
+     if (!code) {
+         if (state->pa_data == NULL) {
+             krb5_klog_syslog(LOG_INFO,
+diff --git a/src/kdc/kdc_util.h b/src/kdc/kdc_util.h
+index 198eab9c4..1885c9f80 100644
+--- a/src/kdc/kdc_util.h
++++ b/src/kdc/kdc_util.h
+@@ -426,11 +426,13 @@ struct krb5_kdcpreauth_rock_st {
+     krb5_kdc_req *request;
+     krb5_data *inner_body;
+     krb5_db_entry *client;
++    krb5_db_entry *local_tgt;
+     krb5_key_data *client_key;
+     krb5_keyblock *client_keyblock;
+     struct kdc_request_state *rstate;
+     verto_ctx *vctx;
+     krb5_data ***auth_indicators;
++    krb5_boolean send_freshness_token;
+ };
+ 
+ #define isflagset(flagfield, flag) (flagfield & (flag))
+diff --git a/src/plugins/preauth/pkinit/pkinit.h b/src/plugins/preauth/pkinit/pkinit.h
+index 8489a3e23..fe2ec0d31 100644
+--- a/src/plugins/preauth/pkinit/pkinit.h
++++ b/src/plugins/preauth/pkinit/pkinit.h
+@@ -77,6 +77,7 @@
+ #define KRB5_CONF_PKINIT_KDC_OCSP               "pkinit_kdc_ocsp"
+ #define KRB5_CONF_PKINIT_POOL                   "pkinit_pool"
+ #define KRB5_CONF_PKINIT_REQUIRE_CRL_CHECKING   "pkinit_require_crl_checking"
++#define KRB5_CONF_PKINIT_REQUIRE_FRESHNESS      "pkinit_require_freshness"
+ #define KRB5_CONF_PKINIT_REVOKE                 "pkinit_revoke"
+ 
+ /* Make pkiDebug(fmt,...) print, or not.  */
+@@ -148,6 +149,7 @@ typedef struct _pkinit_plg_opts {
+     int allow_upn;	    /* allow UPN-SAN instead of pkinit-SAN */
+     int dh_or_rsa;	    /* selects DH or RSA based pkinit */
+     int require_crl_checking; /* require CRL for a CA (default is false) */
++    int require_freshness;  /* require freshness token (default is false) */
+     int disable_freshness;  /* disable freshness token on client for testing */
+     int dh_min_bits;	    /* minimum DH modulus size allowed */
+ } pkinit_plg_opts;
+diff --git a/src/plugins/preauth/pkinit/pkinit_srv.c b/src/plugins/preauth/pkinit/pkinit_srv.c
+index 8aa4d8b49..76ad5bf19 100644
+--- a/src/plugins/preauth/pkinit/pkinit_srv.c
++++ b/src/plugins/preauth/pkinit/pkinit_srv.c
+@@ -161,6 +161,10 @@ pkinit_server_get_edata(krb5_context context,
+     if (plgctx == NULL)
+         retval = EINVAL;
+ 
++    /* Send a freshness token if the client requested one. */
++    if (!retval)
++        cb->send_freshness_token(context, rock);
++
+     (*respond)(arg, retval, NULL);
+ }
+ 
+@@ -403,6 +407,31 @@ cleanup:
+     return ret;
+ }
+ 
++/* Return an error if freshness tokens are required and one was not received.
++ * Log an appropriate message indicating whether a valid token was received. */
++static krb5_error_code
++check_log_freshness(krb5_context context, pkinit_kdc_context plgctx,
++                    krb5_kdc_req *request, krb5_boolean valid_freshness_token)
++{
++    krb5_error_code ret;
++    char *name = NULL;
++
++    ret = krb5_unparse_name(context, request->client, &name);
++    if (ret)
++        return ret;
++    if (plgctx->opts->require_freshness && !valid_freshness_token) {
++        com_err("", 0, _("PKINIT: no freshness token, rejecting auth from %s"),
++                name);
++        ret = KRB5KDC_ERR_PREAUTH_FAILED;
++    } else if (valid_freshness_token) {
++        com_err("", 0, _("PKINIT: freshness token received from %s"), name);
++    } else {
++        com_err("", 0, _("PKINIT: no freshness token received from %s"), name);
++    }
++    krb5_free_unparsed_name(context, name);
++    return ret;
++}
++
+ static void
+ pkinit_server_verify_padata(krb5_context context,
+                             krb5_data *req_pkt,
+@@ -425,10 +454,11 @@ pkinit_server_verify_padata(krb5_context context,
+     pkinit_kdc_req_context reqctx = NULL;
+     krb5_checksum cksum = {0, 0, 0, NULL};
+     krb5_data *der_req = NULL;
+-    krb5_data k5data;
++    krb5_data k5data, *ftoken;
+     int is_signed = 1;
+     krb5_pa_data **e_data = NULL;
+     krb5_kdcpreauth_modreq modreq = NULL;
++    krb5_boolean valid_freshness_token = FALSE;
+     char **sp;
+ 
+     pkiDebug("pkinit_verify_padata: entered!\n");
+@@ -599,6 +629,14 @@ pkinit_server_verify_padata(krb5_context context,
+             goto cleanup;
+         }
+ 
++        ftoken = auth_pack->pkAuthenticator.freshnessToken;
++        if (ftoken != NULL) {
++            retval = cb->check_freshness_token(context, rock, ftoken);
++            if (retval)
++                goto cleanup;
++            valid_freshness_token = TRUE;
++        }
++
+         /* check if kdcPkId present and match KDC's subjectIdentifier */
+         if (reqp->kdcPkId.data != NULL) {
+             int valid_kdcPkId = 0;
+@@ -641,6 +679,13 @@ pkinit_server_verify_padata(krb5_context context,
+         break;
+     }
+ 
++    if (is_signed) {
++        retval = check_log_freshness(context, plgctx, request,
++                                     valid_freshness_token);
++        if (retval)
++            goto cleanup;
++    }
++
+     if (is_signed && plgctx->auth_indicators != NULL) {
+         /* Assert configured authentication indicators. */
+         for (sp = plgctx->auth_indicators; *sp != NULL; sp++) {
+@@ -1330,6 +1375,10 @@ pkinit_init_kdc_profile(krb5_context context, pkinit_kdc_context plgctx)
+                               KRB5_CONF_PKINIT_REQUIRE_CRL_CHECKING,
+                               0, &plgctx->opts->require_crl_checking);
+ 
++    pkinit_kdcdefault_boolean(context, plgctx->realmname,
++                              KRB5_CONF_PKINIT_REQUIRE_FRESHNESS,
++                              0, &plgctx->opts->require_freshness);
++
+     pkinit_kdcdefault_string(context, plgctx->realmname,
+                              KRB5_CONF_PKINIT_EKU_CHECKING,
+                              &eku_string);
+diff --git a/src/tests/t_pkinit.py b/src/tests/t_pkinit.py
+index 86fe661a0..5bc60cb1e 100755
+--- a/src/tests/t_pkinit.py
++++ b/src/tests/t_pkinit.py
+@@ -39,6 +39,8 @@ pkinit_kdc_conf = {'realms': {'$realm': {
+             'pkinit_indicator': ['indpkinit1', 'indpkinit2']}}}
+ restrictive_kdc_conf = {'realms': {'$realm': {
+             'restrict_anonymous_to_tgt': 'true' }}}
++freshness_kdc_conf = {'realms': {'$realm': {
++            'pkinit_require_freshness': 'true'}}}
+ 
+ testprincs = {'krbtgt/KRBTEST.COM': {'keys': 'aes128-cts'},
+               'user': {'keys': 'aes128-cts', 'flags': '+preauth'},
+@@ -118,6 +120,10 @@ realm.kinit(realm.user_princ, password=password('user'))
+ realm.klist(realm.user_princ)
+ realm.run([kvno, realm.host_princ])
+ 
++# Having tested password preauth, remove the keys for better error
++# reporting.
++realm.run([kadminl, 'purgekeys', '-all', realm.user_princ])
++
+ # Test anonymous PKINIT.
+ realm.kinit('@%s' % realm.realm, flags=['-n'], expected_code=1,
+             expected_msg='not found in Kerberos database')
+@@ -153,23 +159,32 @@ realm.run([kvno, realm.host_princ], expected_code=1,
+ realm.kinit(realm.host_princ, flags=['-k'])
+ realm.run([kvno, '-U', 'user', realm.host_princ])
+ 
+-# Go back to a normal KDC and disable anonymous PKINIT.
++# Go back to the normal KDC environment.
+ realm.stop_kdc()
+ realm.start_kdc()
+-realm.run([kadminl, 'delprinc', 'WELLKNOWN/ANONYMOUS'])
+ 
+ # Run the basic test - PKINIT with FILE: identity, with no password on the key.
+-realm.run(['./responder', '-x', 'pkinit=',
+-           '-X', 'X509_user_identity=%s' % file_identity, realm.user_princ])
+ realm.kinit(realm.user_princ,
+-            flags=['-X', 'X509_user_identity=%s' % file_identity])
++            flags=['-X', 'X509_user_identity=%s' % file_identity],
++            expected_trace=('Sending unauthenticated request',
++                            '/Additional pre-authentication required',
++                            'Preauthenticating using KDC method data',
++                            'PKINIT client received freshness token from KDC',
++                            'PKINIT loading CA certs and CRLs from FILE',
++                            'PKINIT client making DH request',
++                            'Produced preauth for next request: 133, 16',
++                            'PKINIT client verified DH reply',
++                            'PKINIT client found id-pkinit-san in KDC cert',
++                            'PKINIT client matched KDC principal krbtgt/'))
+ realm.klist(realm.user_princ)
+ realm.run([kvno, realm.host_princ])
+ 
+ # Try again using RSA instead of DH.
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % file_identity,
+-                   '-X', 'flag_RSA_PROTOCOL=yes'])
++                   '-X', 'flag_RSA_PROTOCOL=yes'],
++            expected_trace=('PKINIT client making RSA request',
++                            'PKINIT client verified RSA reply'))
+ realm.klist(realm.user_princ)
+ 
+ # Test a DH parameter renegotiation by temporarily setting a 4096-bit
+@@ -192,8 +207,23 @@ expected_trace = ('Sending unauthenticated request',
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % file_identity],
+             expected_trace=expected_trace)
++
++# Test enforcement of required freshness tokens.  (We can leave
++# freshness tokens required after this test.)
++realm.kinit(realm.user_princ,
++            flags=['-X', 'X509_user_identity=%s' % file_identity,
++                   '-X', 'disable_freshness=yes'])
++f_env = realm.special_env('freshness', True, kdc_conf=freshness_kdc_conf)
+ realm.stop_kdc()
+-realm.start_kdc()
++realm.start_kdc(env=f_env)
++realm.kinit(realm.user_princ,
++            flags=['-X', 'X509_user_identity=%s' % file_identity])
++realm.kinit(realm.user_princ,
++            flags=['-X', 'X509_user_identity=%s' % file_identity,
++                   '-X', 'disable_freshness=yes'],
++            expected_code=1, expected_msg='Preauthentication failed')
++# Anonymous should never require a freshness token.
++realm.kinit('@%s' % realm.realm, flags=['-n', '-X', 'disable_freshness=yes'])
+ 
+ # Run the basic test - PKINIT with FILE: identity, with a password on the key,
+ # supplied by the prompter.
+@@ -229,8 +259,6 @@ shutil.copy(privkey_pem, os.path.join(path, 'user.key'))
+ shutil.copy(privkey_enc_pem, os.path.join(path_enc, 'user.key'))
+ shutil.copy(user_pem, os.path.join(path, 'user.crt'))
+ shutil.copy(user_pem, os.path.join(path_enc, 'user.crt'))
+-realm.run(['./responder', '-x', 'pkinit=', '-X',
+-           'X509_user_identity=%s' % dir_identity, realm.user_princ])
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % dir_identity])
+ realm.klist(realm.user_princ)
+@@ -262,8 +290,6 @@ realm.klist(realm.user_princ)
+ realm.run([kvno, realm.host_princ])
+ 
+ # PKINIT with PKCS12: identity, with no password on the bundle.
+-realm.run(['./responder', '-x', 'pkinit=',
+-           '-X', 'X509_user_identity=%s' % p12_identity, realm.user_princ])
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % p12_identity])
+ realm.klist(realm.user_princ)
+@@ -357,8 +383,6 @@ conf = open(softpkcs11rc, 'w')
+ conf.write("%s\t%s\t%s\t%s\n" % ('user', 'user token', user_pem, privkey_pem))
+ conf.close()
+ # Expect to succeed without having to supply any more information.
+-realm.run(['./responder', '-x', 'pkinit=',
+-           '-X', 'X509_user_identity=%s' % p11_identity, realm.user_princ])
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % p11_identity])
+ realm.klist(realm.user_princ)

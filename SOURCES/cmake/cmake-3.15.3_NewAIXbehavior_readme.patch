@@ -1,0 +1,70 @@
+--- /dev/null	2019-04-11 09:13:36.892000000 +0200
++++ ./Modules/readme_aix.txt	2019-04-16 10:48:27.124000000 +0200
+@@ -0,0 +1,67 @@
++= New behavior =
++
++== About the previous port of CMake ==
++
++The previous port of CMake to AIX uses two main flags to compile: '''-G''' and '''-bexpall''' (or some variants, e.g. '''-brtl''' that is induced by '''-G'''). These flags have sides effects.
++
++-bexpall exports all symbols. In large software, ld can crash. Moreover, if you distribute a library with all symbols (including standard library symbols!) in a first time, and without in a second, software can search symbol where they were and stop to work. '''-bexpall''' is a wrong way to force AIX to have a behavior similar to Linux. As -bexpall exports standard library and kernel symbols of AIX, compatibility from a version to another cannot be guaranteed.
++
++'''-G''' implies '''-berok''', '''-brtl''', '''-bnortllib''', '''-nosymbolic''', '''-noautoexp''', and '''-M:SRE'''. It permits to link an executable with .so files (that is not the AIX way) and it ignores missing symbols errors during compilation. So, it crashes during execution. It works in lot of cases, but it is a bad deal in more complicated softwares (e.g. plugin system).
++
++Mariadb is a huge software with a very complicated build. So, using these options permits to compile, but it produces a poor-quality software (can crash when a plugin is loaded).
++
++Our goal is to educate CMake to work well on AIX, without tricks.
++
++== Goals ==
++
++AIX makes use of library as .a archives, filled with .so shared object. AIX ld’s can use .so library, but it is not the canonical way, and it needs the '''-brtl''' flag. We want CMake produces .a and not .so files for linking.
++
++We also want a way to produce plugin without '''-bexpall''' flag.
++
++== Proposal ==
++
++We focus on compiling and using CMake with GCC. Use old Xlc version for compiling is not possible (C++11 not well implemented), Xlc for use with CMake will be considered after GCC. Xlclang can probably compile CMake and can be used with, but we don’t use it, so we will ignore this possibility.
++
++We modified the '''CMAKE_<LANG>_CREATE_SHARED_LIBRARY''' to produce a temporary .so, and then create .a. For module, we create a striped -e .so. In some cases, we produce for OpenSource library .a **and** stripped .so, because the difference between library and module is not well known in Linux. As it introduces a more complex treatment, we produce only the theorical good extension, and we will modify CMakeFiles of Open Source Projects as needed.
++
++About Plugin and module system, in AIX we need to export and import symbols. So, we create two macro to import and export symbols. Export symbols are exported from objects files (.o), so we need to separate add_executable in two parts : a add_library with OBJECT first, and a add_executable using objects after. Export comes after add_exectuable. See “Usage”. To restore old comportment, see “Restore old comportment”.
++
++== Usage ==
++
++Simple example:
++
++ add_executable(myExec myExec.c)
++ add_library(myLib MODULE myLib.c)
++
++becomes:
++
++ add_library(myExecObj OBJECT myExec.c)
++ add_executable(myExec $<TARGET_OBJECTS:myExecObj>)
++ ExportAIX(myExec myExecObj "/tmp/export.exp" ".")
++ add_library(myLib MODULE myLib.c)
++ ImportAIX(myLib "/tmp/export.exp")
++
++Consider using '''if(CMAKE_SYSTEM_NAME MATCHES AIX)''' to write portable CMakeLists.txt files.
++
++In order to know where to modify CMakeLists.txt, try to compile, wait for Undefined symbols, and identify where are provided these symbols, and which file makes use of it.
++
++To ensure that symbols are exported before being imported, add the right add_dependencies. In this example,
++
++ add_dependencies(myLib myExec)
++
++== Xlc with CMake==
++
++Use xlc with CMake (NOT COMPILE CMAKE WITH XLC) is possible. With vanilla version, 27 tests fail (6%) with xlc13. With modified version, 26 test fail, including 2 different tests.
++
++Note that vanilla CMake uses '''-bexpall''' and '''-brtl''' with xlc, and patched version does not use it. For plugin and dlopen cases, follow “Usage” as with GCC. 
++
++== Xlc16 (xlclang) with CMake ==
++
++Use xlclang is also possible. We have similar behavior with patched and vanilla CMake. Xlclang is available on Linux, but 60 tests fail (10%), with Vanilla and patched CMake.
++
++== Restore old comportment ==
++
++If you want to restore the old comportment, you can add to '''CMAKE_SHARED_LIBRARY/MODULE_LINK_<lang>_FLAGS''' the '''-Wl,-bexpall''' option, and to '''CMAKE_SHARED_LIBRARY_CREATE_<lang>_FLAGS''', '''-Wl,-G'''.
++
++Producing .so for shared library may be more complex to restore.
++

@@ -1,0 +1,78 @@
+--- ./source3/winbindd/wscript_build.orig	2020-04-14 14:42:42 +0200
++++ ./source3/winbindd/wscript_build	2020-04-14 14:43:07 +0200
+@@ -281,5 +281,4 @@
+                  LIBLSA
+                  ''',
+                  enabled=bld.env.build_winbind,
+-                 ldflags='-Wl,-bE:./../../samba_winbindd_syms.exp',
+                  install_path='${SBINDIR}')
+--- ./third_party/cmocka/cmocka.h.orig	2020-04-10 19:35:00 +0200
++++ ./third_party/cmocka/cmocka.h	2020-04-10 19:36:35 +0200
+@@ -124,7 +124,7 @@
+ #   if __WORDSIZE == 64
+       typedef unsigned long int uintptr_t;
+ #   else
+-      typedef unsigned int uintptr_t;
++//      typedef unsigned int uintptr_t;
+ #   endif /* __WORDSIZE == 64 */
+ #  else /* __WORDSIZE */
+ #   if defined(_LP64) || defined(_I32LPx)
+--- ./third_party/pam_wrapper/pam_wrapper.c.orig	2020-04-15 15:38:44 +0200
++++ ./third_party/pam_wrapper/pam_wrapper.c	2020-04-15 15:39:18 +0200
+@@ -38,6 +38,9 @@
+ 
+ #include <ftw.h>
+ 
++#undef HAVE_SECURITY_PAM_APPL_H 
++#undef HAVE_SECURITY_PAM_MODULES_H
++
+ #ifdef HAVE_SECURITY_PAM_APPL_H
+ #include <security/pam_appl.h>
+ #endif
+--- ./third_party/uid_wrapper/uid_wrapper.c.orig	2020-04-15 16:19:42 +0200
++++ ./third_party/uid_wrapper/uid_wrapper.c	2020-04-15 16:19:33 +0200
+@@ -2045,6 +2045,7 @@
+ 	return rc;
+ }
+ 
++#ifndef _AIX
+ #ifdef HAVE_SETGROUPS_INT
+ int setgroups(int size, const gid_t *list)
+ #else
+@@ -2058,6 +2059,7 @@
+ 	uwrap_init();
+ 	return uwrap_setgroups(size, list);
+ }
++#endif
+ 
+ static int uwrap_getgroups(int size, gid_t *list)
+ {
+--- ./source3/wscript_build.orig	2020-04-17 14:44:18 +0200
++++ ./source3/wscript_build	2020-04-17 14:44:46 +0200
+@@ -186,7 +186,7 @@
+                           passdb/pdb_ldap_schema.c
+                           passdb/pdb_ldap_util.c
+                           ''',
+-                   deps='smbldap secrets3',
++                   deps='smbldap secrets3 samba-passdb',
+                    allow_undefined_symbols=True,
+                    enabled=bld.CONFIG_SET('HAVE_LDAP'),
+                    private_library=True)
+--- ./source3/lib/cluster_support.c.orig	2020-04-17 16:18:06 +0200
++++ ./source3/lib/cluster_support.c	2020-04-17 16:18:46 +0200
+@@ -58,7 +58,9 @@
+ const char *lp_ctdbd_socket(void)
+ {
+ 	const char *ret;
++	return "";
+ 
++/*	
+ 	ret = lp__ctdbd_socket();
+ 	if (ret != NULL && strlen(ret) > 0) {
+ 		return ret;
+@@ -69,4 +71,5 @@
+ #else
+ 	return "";
+ #endif
++*/
+ }

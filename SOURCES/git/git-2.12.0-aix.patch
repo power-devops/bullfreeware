@@ -1,0 +1,22 @@
+--- 64bit/Makefile.orig	2017-04-21 04:41:57 -0500
++++ 64bit/Makefile	2017-04-21 04:42:15 -0500
+@@ -396,7 +396,7 @@
+ # CFLAGS and LDFLAGS are for the users to override from the command line.
+ 
+ CFLAGS = -g -O2 -Wall
+-CFLAGS = -std=gnu99
++CFLAGS = -std=gnu99 -maix64
+ DEVELOPER_CFLAGS = -Werror \
+ 	-Wdeclaration-after-statement \
+ 	-Wno-format-zero-length \
+--- 64bit/Makefile.orig	2017-04-27 06:47:11 -0500
++++ 64bit/Makefile	2017-04-27 06:47:46 -0500
+@@ -406,7 +406,7 @@
+ 	-Wstrict-prototypes \
+ 	-Wunused \
+ 	-Wvla
+-LDFLAGS =
++LDFLAGS = -L/opt/freeware/lib64 -L/opt/freeware/lib -Wl,-bbigtoc
+ ALL_CFLAGS = $(CPPFLAGS) $(CFLAGS)
+ ALL_LDFLAGS = $(LDFLAGS)
+ STRIP ?= strip

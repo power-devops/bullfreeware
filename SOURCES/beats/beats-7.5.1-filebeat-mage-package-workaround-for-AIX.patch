@@ -1,0 +1,25 @@
+From ab78d29027ce02295e24000abc2e52a136ba1b38 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 7 Jan 2020 15:40:31 +0100
+Subject: [PATCH 5/5] filebeat: mage package workaround for AIX
+
+---
+ filebeat/magefile.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/filebeat/magefile.go b/filebeat/magefile.go
+index d4ffea0ee..342d7d977 100644
+--- a/filebeat/magefile.go
++++ b/filebeat/magefile.go
+@@ -84,7 +84,7 @@ func Package() {
+ 	filebeat.CustomizePackaging()
+ 
+ 	mg.Deps(Update)
+-	mg.Deps(CrossBuild, CrossBuildGoDaemon)
++	// mg.Deps(CrossBuild, CrossBuildGoDaemon)
+ 	mg.SerialDeps(devtools.Package, TestPackages)
+ }
+ 
+-- 
+2.22.0
+

@@ -1,0 +1,11 @@
+--- ./test/ippserver.c.origine	2016-10-03 21:55:40 +0200
++++ ./test/ippserver.c	2016-11-24 14:46:29 +0100
+@@ -48,7 +48,7 @@
+ #else
+ extern char **environ;
+ 
+-#  include <sys/fcntl.h>
++#  include <fcntl.h>
+ #  include <sys/wait.h>
+ #  include <poll.h>
+ #endif /* WIN32 */

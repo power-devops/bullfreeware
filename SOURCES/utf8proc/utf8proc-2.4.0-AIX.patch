@@ -1,0 +1,28 @@
+--- ./Makefile.ORIGIN	2020-11-17 11:15:21 +0100
++++ ./Makefile	2020-11-17 11:18:31 +0100
+@@ -14,7 +14,7 @@
+ WCFLAGS = -Wall -pedantic
+ UCFLAGS = $(CPPFLAGS) $(CFLAGS) $(PICFLAG) $(C99FLAG) $(WCFLAGS) -DUTF8PROC_EXPORTS $(UTF8PROC_DEFINES)
+ LDFLAG_SHARED = -shared
+-SOFLAG = -Wl,-soname
++SOFLAG = 
+ 
+ # shared-library version MAJOR.MINOR.PATCH ... this may be *different*
+ # from the utf8proc version number because it indicates ABI compatibility,
+@@ -80,7 +80,7 @@
+ 	$(AR) rs libutf8proc.a utf8proc.o
+ 
+ libutf8proc.so.$(MAJOR).$(MINOR).$(PATCH): utf8proc.o
+-	$(CC) $(LDFLAGS) $(LDFLAG_SHARED) -o $@ $(SOFLAG) -Wl,libutf8proc.so.$(MAJOR) utf8proc.o
++	$(CC) $(LDFLAGS) $(LDFLAG_SHARED) -o $@ $(SOFLAG) utf8proc.o
+ 	chmod a-x $@
+ 
+ libutf8proc.so: libutf8proc.so.$(MAJOR).$(MINOR).$(PATCH)
+--- ./test/normtest.c.ORIGIN	2020-11-17 11:45:14 +0100
++++ ./test/normtest.c	2020-11-17 11:45:45 +0100
+@@ -1,3 +1,5 @@
++// Required with AIX 6.1 for getline
++#define _GETDELIM
+ #include "tests.h"
+ 
+ #define CHECK_NORM(NRM, norm, src) {                                 \

@@ -1,0 +1,11 @@
+--- ./mysql-test/include/explain_for_connection.inc.ORIGIN	2019-06-25 05:23:30 -0500
++++ ./mysql-test/include/explain_for_connection.inc	2019-09-19 18:10:16 -0500
+@@ -52,7 +52,7 @@
+ SET DEBUG_SYNC= 'RESET';
+ 
+ --error 0,1,2
+---exec diff -U 1 $MYSQL_TMP_DIR/EN $MYSQL_TMP_DIR/EO > $MYSQL_TMP_DIR/ED;
++--exec /opt/freeware/bin/diff -U 1 $MYSQL_TMP_DIR/EN $MYSQL_TMP_DIR/EO > $MYSQL_TMP_DIR/ED;
+ let $status= $__error;
+ if ($status == 2)
+ {

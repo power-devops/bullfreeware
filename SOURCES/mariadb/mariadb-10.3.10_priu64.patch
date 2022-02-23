@@ -1,0 +1,11 @@
+--- ./storage/innobase/include/univ.i.orig	2018-10-16 16:33:02 -0500
++++ ./storage/innobase/include/univ.i	2018-10-16 16:33:32 -0500
+@@ -433,7 +433,7 @@
+ /* Use the integer types and formatting strings defined in the C99 standard. */
+ # define UINT32PF	"%" PRIu32
+ # define INT64PF	"%" PRId64
+-# define UINT64scan	PRIu64
++# define UINT64scan     "llu"
+ # define UINT64PFx	"%016" PRIx64
+ # define TIMETPF	"%" PRIdFAST32
+ #endif

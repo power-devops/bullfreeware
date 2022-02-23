@@ -1,0 +1,1439 @@
+From b5bcf61fe789e66df2de609ec246cb7e4d326180 Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Fri, 1 Nov 2019 14:43:42 +0900
+Subject: [PATCH 3/9] Use FcConfigReference/Destroy appropriately instead of
+ FcConfigGetCurrent
+
+This may improves to be MT-safe.
+
+Reported at https://bugs.chromium.org/p/chromium/issues/detail?id=1004254
+---
+ doc/fcconfig.fncs        |  20 ++++
+ fontconfig/fontconfig.h  |   4 +-
+ src/fccache.c            |  73 +++++++++---
+ src/fccfg.c              | 237 ++++++++++++++++++++++++---------------
+ src/fcdir.c              |  31 ++++-
+ src/fcinit.c             |  15 ++-
+ src/fclist.c             |  25 +++--
+ src/fcmatch.c            |  48 ++++----
+ test/Makefile.am         |   5 +
+ test/run-test.sh         |  15 +++
+ test/test-crbug1004254.c | 116 +++++++++++++++++++
+ 11 files changed, 436 insertions(+), 153 deletions(-)
+ create mode 100644 test/test-crbug1004254.c
+
+diff --git a/doc/fcconfig.fncs b/doc/fcconfig.fncs
+index 82769d5..e709b54 100644
+--- a/doc/fcconfig.fncs
++++ b/doc/fcconfig.fncs
+@@ -174,6 +174,10 @@ Returns one of the two sets of fonts from the configuration as specified
+ by <parameter>set</parameter>. This font set is owned by the library and must
+ not be modified or freed.
+ If <parameter>config</parameter> is NULL, the current configuration is used.
++    </para><para>
++This function isn't MT-safe. <function>FcConfigReference</function> must be called
++before using this and then <function>FcConfigDestroy</function> when
++the return value is no longer referenced.
+ @@
+ 
+ @RET@           FcBlanks *
+@@ -407,6 +411,10 @@ parse error, semantic error or allocation failure. Otherwise returns FcTrue.
+ Obtains the system root directory in 'config' if available. All files
+ (including file properties in patterns) obtained from this 'config' are
+ relative to this system root directory.
++    </para><para>
++This function isn't MT-safe. <function>FcConfigReference</function> must be called
++before using this and then <function>FcConfigDestroy</function> when
++the return value is no longer referenced.
+ @SINCE@		2.10.92
+ @@
+ 
+@@ -433,6 +441,10 @@ When setting this on the current config this causes changing current config
+ @PURPOSE@	Initialize the iterator
+ @DESC@
+ Initialize 'iter' with the first iterator in the config file information list.
++    </para><para>
++This function isn't MT-safe. <function>FcConfigReference</function> must be called
++before using this and then <function>FcConfigDestroy</function> when the relevant
++values are no longer referenced.
+ @SINCE@		2.12.91
+ @@
+ 
+@@ -444,6 +456,10 @@ Initialize 'iter' with the first iterator in the config file information list.
+ @DESC@
+ Set 'iter' to point to the next node in the config file information list.
+ If there is no next node, FcFalse is returned.
++    </para><para>
++This function isn't MT-safe. <function>FcConfigReference</function> must be called
++before using <function>FcConfigFileInfoIterInit</function> and then
++<function>FcConfigDestroy</function> when the relevant values are no longer referenced.
+ @SINCE@		2.12.91
+ @@
+ 
+@@ -459,5 +475,9 @@ If there is no next node, FcFalse is returned.
+ Obtain the filename, the description and the flag whether it is enabled or not
+ for 'iter' where points to current configuration file information.
+ If the iterator is invalid, FcFalse is returned.
++    </para><para>
++This function isn't MT-safe. <function>FcConfigReference</function> must be called
++before using <function>FcConfigFileInfoIterInit</function> and then
++<function>FcConfigDestroy</function> when the relevant values are no longer referenced.
+ @SINCE@		2.12.91
+ @@
+diff --git a/fontconfig/fontconfig.h b/fontconfig/fontconfig.h
+index 2f0e8cf..c795245 100644
+--- a/fontconfig/fontconfig.h
++++ b/fontconfig/fontconfig.h
+@@ -375,7 +375,7 @@ FcPublic FcBool
+ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose);
+ 
+ FcPublic void
+-FcCacheCreateTagFile (const FcConfig *config);
++FcCacheCreateTagFile (FcConfig *config);
+ 
+ FcPublic FcBool
+ FcDirCacheCreateUUID (FcChar8  *dir,
+@@ -437,7 +437,7 @@ FcPublic FcBlanks *
+ FcConfigGetBlanks (FcConfig *config);
+ 
+ FcPublic FcStrList *
+-FcConfigGetCacheDirs (const FcConfig	*config);
++FcConfigGetCacheDirs (FcConfig	*config);
+ 
+ FcPublic int
+ FcConfigGetRescanInterval (FcConfig *config);
+diff --git a/src/fccache.c b/src/fccache.c
+index c565560..d8f1dab 100644
+--- a/src/fccache.c
++++ b/src/fccache.c
+@@ -58,11 +58,15 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
+ {
+     FcBool ret = FcTrue;
+ #ifndef _WIN32
+-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
++    const FcChar8 *sysroot;
+     FcChar8 *target, *d;
+     struct stat statb;
+     struct timeval times[2];
+ 
++    config = FcConfigReference (config);
++    if (!config)
++	return FcFalse;
++    sysroot = FcConfigGetSysRoot (config);
+     if (sysroot)
+ 	d = FcStrBuildFilename (sysroot, dir, NULL);
+     else
+@@ -94,6 +98,7 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
+ bail:
+     FcStrFree (d);
+ #endif
++    FcConfigDestroy (config);
+ 
+     return ret;
+ }
+@@ -265,7 +270,13 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
+ #endif
+     FcStrList	*list;
+     FcChar8	*cache_dir;
+-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
++    const FcChar8 *sysroot;
++    FcBool	ret = FcTrue;
++
++    config = FcConfigReference (config);
++    if (!config)
++	return FcFalse;
++    sysroot = FcConfigGetSysRoot (config);
+ 
+     FcDirCacheBasenameMD5 (config, dir, cache_base);
+ #ifndef _WIN32
+@@ -274,7 +285,10 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
+ 
+     list = FcStrListCreate (config->cacheDirs);
+     if (!list)
+-        return FcFalse;
++    {
++	ret = FcFalse;
++	goto bail;
++    }
+ 	
+     while ((cache_dir = FcStrListNext (list)))
+     {
+@@ -304,8 +318,11 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
+     FcDirCacheDeleteUUID (dir, config);
+     /* return FcFalse if something went wrong */
+     if (cache_dir)
+-	return FcFalse;
+-    return FcTrue;
++	ret = FcFalse;
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ static int
+@@ -1041,10 +1058,15 @@ FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file)
+ {
+     FcCache *cache = NULL;
+ 
++    config = FcConfigReference (config);
++    if (!config)
++	return NULL;
+     if (!FcDirCacheProcess (config, dir,
+ 			    FcDirCacheMapHelper,
+ 			    &cache, cache_file))
+-	return NULL;
++	cache = NULL;
++
++    FcConfigDestroy (config);
+ 
+     return cache;
+ }
+@@ -1055,13 +1077,16 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
+     int	fd;
+     FcCache *cache;
+     struct stat	my_file_stat;
++    FcConfig *config;
+ 
+     if (!file_stat)
+ 	file_stat = &my_file_stat;
+     fd = FcDirCacheOpenFile (cache_file, file_stat);
+     if (fd < 0)
+ 	return NULL;
+-    cache = FcDirCacheMapFd (FcConfigGetCurrent (), fd, file_stat, NULL);
++    config = FcConfigReference (NULL);
++    cache = FcDirCacheMapFd (config, fd, file_stat, NULL);
++    FcConfigDestroy (config);
+     close (fd);
+     return cache;
+ }
+@@ -1155,12 +1180,16 @@ FcBool
+ FcDirCacheValid (const FcChar8 *dir)
+ {
+     FcConfig	*config;
++    FcBool	ret;
+ 
+-    config = FcConfigGetCurrent ();
++    config = FcConfigReference (NULL);
+     if (!config)
+         return FcFalse;
+ 
+-    return FcDirCacheValidConfig (dir, config);
++    ret = FcDirCacheValidConfig (dir, config);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ /*
+@@ -1438,9 +1467,13 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
+     FcCache	*cache;
+     struct stat	target_stat;
+     const FcChar8 *sysroot;
++    FcConfig	*config;
+ 
++    config = FcConfigReference (NULL);
++    if (!config)
++	return FcFalse;
+     /* FIXME: this API needs to support non-current FcConfig */
+-    sysroot = FcConfigGetSysRoot (NULL);
++    sysroot = FcConfigGetSysRoot (config);
+     if (sysroot)
+ 	dir = FcStrBuildFilename (sysroot, cache_dir, NULL);
+     else
+@@ -1448,7 +1481,8 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
+     if (!dir)
+     {
+ 	fprintf (stderr, "Fontconfig error: %s: out of memory\n", cache_dir);
+-	return FcFalse;
++	ret = FcFalse;
++	goto bail;
+     }
+     if (access ((char *) dir, W_OK) != 0)
+     {
+@@ -1525,8 +1559,10 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
+     }
+ 
+     closedir (d);
+-  bail0:
++bail0:
+     FcStrFree (dir);
++bail:
++    FcConfigDestroy (config);
+ 
+     return ret;
+ }
+@@ -1968,15 +2004,20 @@ FcDirCacheCreateTagFile (const FcChar8 *cache_dir)
+ }
+ 
+ void
+-FcCacheCreateTagFile (const FcConfig *config)
++FcCacheCreateTagFile (FcConfig *config)
+ {
+     FcChar8   *cache_dir = NULL, *d = NULL;
+     FcStrList *list;
+-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
++    const FcChar8 *sysroot;
++
++    config = FcConfigReference (config);
++    if (!config)
++	return;
++    sysroot = FcConfigGetSysRoot (config);
+ 
+     list = FcConfigGetCacheDirs (config);
+     if (!list)
+-	return;
++	goto bail;
+ 
+     while ((cache_dir = FcStrListNext (list)))
+     {
+@@ -1992,6 +2033,8 @@ FcCacheCreateTagFile (const FcConfig *config)
+     if (d)
+ 	FcStrFree (d);
+     FcStrListDone (list);
++bail:
++    FcConfigDestroy (config);
+ }
+ 
+ #define __fccache__
+diff --git a/src/fccfg.c b/src/fccfg.c
+index 21ccd25..11dc876 100644
+--- a/src/fccfg.c
++++ b/src/fccfg.c
+@@ -237,12 +237,12 @@ FcConfigUptoDate (FcConfig *config)
+ {
+     FcFileTime	config_time, config_dir_time, font_time;
+     time_t	now = time(0);
++    FcBool	ret = FcTrue;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
++	return FcFalse;
++
+     config_time = FcConfigNewestFile (config->configFiles);
+     config_dir_time = FcConfigNewestFile (config->configDirs);
+     font_time = FcConfigNewestFile (config->fontDirs);
+@@ -258,13 +258,19 @@ FcConfigUptoDate (FcConfig *config)
+ 	    fprintf (stderr,
+                     "Fontconfig warning: Directory/file mtime in the future. New fonts may not be detected.\n");
+ 	    config->rescanTime = now;
+-	    return FcTrue;
++	    goto bail;
+ 	}
+ 	else
+-	    return FcFalse;
++	{
++	    ret = FcFalse;
++	    goto bail;
++	}
+     }
+     config->rescanTime = now;
+-    return FcTrue;
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcExpr *
+@@ -291,11 +297,26 @@ FcConfigReference (FcConfig *config)
+ {
+     if (!config)
+     {
+-	config = FcConfigGetCurrent ();
++	/* Do not use FcConfigGetCurrent () for the purpose of obtaining current FcConfig here.
++	 * because the reference counter must be increased before setting it to _fcConfig.
++	 */
++    retry:
++	config = fc_atomic_ptr_get (&_fcConfig);
+ 	if (!config)
+-	    return 0;
+-    }
++	{
++	    config = FcConfigCreate ();
++	    FcRefInc (&config->ref);
+ 
++	    config = FcInitLoadOwnConfigAndFonts (config);
++	    if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config))
++	    {
++		FcConfigDestroy (config); /* To decrease the refcount for the above one. */
++		FcConfigDestroy (config); /* To destroy it actualy */
++		goto retry;
++	    }
++	    return config;
++	}
++    }
+     FcRefInc (&config->ref);
+ 
+     return config;
+@@ -475,25 +496,32 @@ FcBool
+ FcConfigBuildFonts (FcConfig *config)
+ {
+     FcFontSet	    *fonts;
++    FcBool	    ret = FcTrue;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
++	return FcFalse;
+ 	
+     fonts = FcFontSetCreate ();
+     if (!fonts)
+-	return FcFalse;
++    {
++	ret = FcFalse;
++	goto bail;
++    }
+ 
+     FcConfigSetFonts (config, fonts, FcSetSystem);
+ 
+     if (!FcConfigAddDirList (config, FcSetSystem, config->fontDirs))
+-	return FcFalse;
++    {
++	ret = FcFalse;
++	goto bail;
++    }
+     if (FcDebug () & FC_DBG_FONTSET)
+ 	FcFontSetPrint (fonts);
+-    return FcTrue;
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcBool
+@@ -537,13 +565,15 @@ FcConfigAddConfigDir (FcConfig	    *config,
+ FcStrList *
+ FcConfigGetConfigDirs (FcConfig   *config)
+ {
++    FcStrList *ret;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
+-    return FcStrListCreate (config->configDirs);
++	return NULL;
++    ret = FcStrListCreate (config->configDirs);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcBool
+@@ -579,13 +609,15 @@ FcConfigResetFontDirs (FcConfig *config)
+ FcStrList *
+ FcConfigGetFontDirs (FcConfig	*config)
+ {
++    FcStrList *ret;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
+-    return FcStrListCreate (config->fontDirs);
++	return NULL;
++    ret = FcStrListCreate (config->fontDirs);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ static FcBool
+@@ -670,15 +702,17 @@ FcConfigAddCacheDir (FcConfig	    *config,
+ }
+ 
+ FcStrList *
+-FcConfigGetCacheDirs (const FcConfig *config)
++FcConfigGetCacheDirs (FcConfig *config)
+ {
++    FcStrList *ret;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
+-    return FcStrListCreate (config->cacheDirs);
++	return NULL;
++    ret = FcStrListCreate (config->cacheDirs);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcBool
+@@ -699,13 +733,15 @@ FcConfigAddConfigFile (FcConfig	    *config,
+ FcStrList *
+ FcConfigGetConfigFiles (FcConfig    *config)
+ {
++    FcStrList *ret;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
+-    return FcStrListCreate (config->configFiles);
++	return NULL;
++    ret = FcStrListCreate (config->configFiles);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcChar8 *
+@@ -784,25 +820,26 @@ FcConfigAddBlank (FcConfig	*config FC_UNUSED,
+ int
+ FcConfigGetRescanInterval (FcConfig *config)
+ {
++    int ret;
++
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
+-    return config->rescanInterval;
++	return 0;
++    ret = config->rescanInterval;
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcBool
+ FcConfigSetRescanInterval (FcConfig *config, int rescanInterval)
+ {
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
++	return FcFalse;
+     config->rescanInterval = rescanInterval;
++    FcConfigDestroy (config);
++
+     return FcTrue;
+ }
+ 
+@@ -1670,15 +1707,13 @@ FcConfigSubstituteWithPat (FcConfig    *config,
+     FcBool	    retval = FcTrue;
+     FcTest	    **tst = NULL;
+ 
+-    if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
+-
+     if (kind < FcMatchKindBegin || kind >= FcMatchKindEnd)
+ 	return FcFalse;
++
++    config = FcConfigReference (config);
++    if (!config)
++	return FcFalse;
++
+     s = config->subst[kind];
+     if (kind == FcMatchPattern)
+     {
+@@ -1973,6 +2008,7 @@ bail1:
+ 	free (value);
+     if (tst)
+ 	free (tst);
++    FcConfigDestroy (config);
+ 
+     return retval;
+ }
+@@ -2290,12 +2326,9 @@ FcConfigGetFilename (FcConfig      *config,
+     FcChar8    *file, *dir, **path, **p;
+     const FcChar8 *sysroot;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return NULL;
+-    }
++	return NULL;
+     sysroot = FcConfigGetSysRoot (config);
+     if (!url || !*url)
+     {
+@@ -2306,7 +2339,10 @@ FcConfigGetFilename (FcConfig      *config,
+     file = 0;
+ 
+     if (FcStrIsAbsoluteFilename(url))
+-	return FcConfigFileExists (sysroot, url);
++    {
++	file = FcConfigFileExists (sysroot, url);
++	goto bail;
++    }
+ 
+     if (*url == '~')
+     {
+@@ -2330,7 +2366,10 @@ FcConfigGetFilename (FcConfig      *config,
+     {
+ 	path = FcConfigGetPath ();
+ 	if (!path)
+-	    return NULL;
++	{
++	    file = NULL;
++	    goto bail;
++	}
+ 	for (p = path; *p; p++)
+ 	{
+ 	    FcChar8 *s;
+@@ -2347,6 +2386,9 @@ FcConfigGetFilename (FcConfig      *config,
+ 	}
+ 	FcConfigFreePath (path);
+     }
++bail:
++    FcConfigDestroy (config);
++
+     return file;
+ }
+ 
+@@ -2409,17 +2451,18 @@ FcConfigAppFontAddFile (FcConfig    *config,
+     FcStrSet	*subdirs;
+     FcStrList	*sublist;
+     FcChar8	*subdir;
++    FcBool	ret = FcTrue;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
++	return FcFalse;
+ 
+     subdirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
+     if (!subdirs)
+-	return FcFalse;
++    {
++	ret = FcFalse;
++	goto bail;
++    }
+ 
+     set = FcConfigGetFonts (config, FcSetApplication);
+     if (!set)
+@@ -2428,7 +2471,8 @@ FcConfigAppFontAddFile (FcConfig    *config,
+ 	if (!set)
+ 	{
+ 	    FcStrSetDestroy (subdirs);
+-	    return FcFalse;
++	    ret = FcFalse;
++	    goto bail;
+ 	}
+ 	FcConfigSetFonts (config, set, FcSetApplication);
+     }
+@@ -2436,7 +2480,8 @@ FcConfigAppFontAddFile (FcConfig    *config,
+     if (!FcFileScanConfig (set, subdirs, file, config))
+     {
+ 	FcStrSetDestroy (subdirs);
+-	return FcFalse;
++	ret = FcFalse;
++	goto bail;
+     }
+     if ((sublist = FcStrListCreate (subdirs)))
+     {
+@@ -2447,7 +2492,10 @@ FcConfigAppFontAddFile (FcConfig    *config,
+ 	FcStrListDone (sublist);
+     }
+     FcStrSetDestroy (subdirs);
+-    return FcTrue;
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcBool
+@@ -2456,17 +2504,18 @@ FcConfigAppFontAddDir (FcConfig	    *config,
+ {
+     FcFontSet	*set;
+     FcStrSet	*dirs;
++    FcBool	ret = FcTrue;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return FcFalse;
+-    }
++	return FcFalse;
+ 
+     dirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
+     if (!dirs)
+-	return FcFalse;
++    {
++	ret = FcFalse;
++	goto bail;
++    }
+ 
+     set = FcConfigGetFonts (config, FcSetApplication);
+     if (!set)
+@@ -2475,7 +2524,8 @@ FcConfigAppFontAddDir (FcConfig	    *config,
+ 	if (!set)
+ 	{
+ 	    FcStrSetDestroy (dirs);
+-	    return FcFalse;
++	    ret = FcFalse;
++	    goto bail;
+ 	}
+ 	FcConfigSetFonts (config, set, FcSetApplication);
+     }
+@@ -2485,23 +2535,26 @@ FcConfigAppFontAddDir (FcConfig	    *config,
+     if (!FcConfigAddDirList (config, FcSetApplication, dirs))
+     {
+ 	FcStrSetDestroy (dirs);
+-	return FcFalse;
++	ret = FcFalse;
++	goto bail;
+     }
+     FcStrSetDestroy (dirs);
+-    return FcTrue;
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ void
+ FcConfigAppFontClear (FcConfig	    *config)
+ {
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return;
+-    }
++	return;
+ 
+     FcConfigSetFonts (config, 0, FcSetApplication);
++
++    FcConfigDestroy (config);
+ }
+ 
+ /*
+diff --git a/src/fcdir.c b/src/fcdir.c
+index 7d7b23c..693c845 100644
+--- a/src/fcdir.c
++++ b/src/fcdir.c
+@@ -167,7 +167,16 @@ FcFileScan (FcFontSet	    *set,
+ 	    const FcChar8   *file,
+ 	    FcBool	    force FC_UNUSED)
+ {
+-    return FcFileScanConfig (set, dirs, file, FcConfigGetCurrent ());
++    FcConfig *config;
++    FcBool ret;
++
++    config = FcConfigReference (NULL);
++    if (!config)
++	return FcFalse;
++    ret = FcFileScanConfig (set, dirs, file, config);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ /*
+@@ -271,10 +280,19 @@ FcDirScan (FcFontSet	    *set,
+ 	   const FcChar8    *dir,
+ 	   FcBool	    force FC_UNUSED)
+ {
++    FcConfig *config;
++    FcBool ret;
++
+     if (cache || !force)
+ 	return FcFalse;
+ 
+-    return FcDirScanConfig (set, dirs, dir, force, FcConfigGetCurrent ());
++    config = FcConfigReference (NULL);
++    if (!config)
++	return FcFalse;
++    ret = FcDirScanConfig (set, dirs, dir, force, config);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ /*
+@@ -353,12 +371,16 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
+     FcCache *new = NULL;
+     struct stat dir_stat;
+     FcStrSet *dirs;
+-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
++    const FcChar8 *sysroot;
+     FcChar8 *d = NULL;
+ #ifndef _WIN32
+     int fd = -1;
+ #endif
+ 
++    config = FcConfigReference (config);
++    if (!config)
++	return NULL;
++    sysroot = FcConfigGetSysRoot (config);
+     cache = FcDirCacheLoad (dir, config, NULL);
+     if (!cache)
+ 	goto bail;
+@@ -401,6 +423,7 @@ bail1:
+ bail:
+     if (d)
+ 	FcStrFree (d);
++    FcConfigDestroy (config);
+ 
+     return new;
+ }
+@@ -413,6 +436,7 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
+ {
+     FcCache		*cache = NULL;
+ 
++    config = FcConfigReference (config);
+     /* Try to use existing cache file */
+     if (!force)
+ 	cache = FcDirCacheLoad (dir, config, NULL);
+@@ -420,6 +444,7 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
+     /* Not using existing cache file, construct new cache */
+     if (!cache)
+ 	cache = FcDirCacheScan (dir, config);
++    FcConfigDestroy (config);
+ 
+     return cache;
+ }
+diff --git a/src/fcinit.c b/src/fcinit.c
+index 5831a19..6f82ebd 100644
+--- a/src/fcinit.c
++++ b/src/fcinit.c
+@@ -229,7 +229,8 @@ FcInitReinitialize (void)
+ FcBool
+ FcInitBringUptoDate (void)
+ {
+-    FcConfig	*config = FcConfigGetCurrent ();
++    FcConfig	*config = FcConfigReference (NULL);
++    FcBool	ret = FcTrue;
+     time_t	now;
+ 
+     if (!config)
+@@ -238,19 +239,23 @@ FcInitBringUptoDate (void)
+      * rescanInterval == 0 disables automatic up to date
+      */
+     if (config->rescanInterval == 0)
+-	return FcTrue;
++	goto bail;
+     /*
+      * Check no more often than rescanInterval seconds
+      */
+     now = time (0);
+     if (config->rescanTime + config->rescanInterval - now > 0)
+-	return FcTrue;
++	goto bail;
+     /*
+      * If up to date, don't reload configuration
+      */
+     if (FcConfigUptoDate (0))
+-	return FcTrue;
+-    return FcInitReinitialize ();
++	goto bail;
++    ret = FcInitReinitialize ();
++bail:
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ #define __fcinit__
+diff --git a/src/fclist.c b/src/fclist.c
+index 494bdea..053803b 100644
+--- a/src/fclist.c
++++ b/src/fclist.c
+@@ -491,11 +491,10 @@ FcFontSetList (FcConfig	    *config,
+     {
+ 	if (!FcInitBringUptoDate ())
+ 	    goto bail0;
+-
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    goto bail0;
+     }
++    config = FcConfigReference (config);
++    if (!config)
++	goto bail0;
+     FcListHashTableInit (&table);
+ 
+     if (!os)
+@@ -558,7 +557,7 @@ FcFontSetList (FcConfig	    *config,
+      */
+     ret = FcFontSetCreate ();
+     if (!ret)
+-	goto bail0;
++	goto bail1;
+     for (i = 0; i < FC_LIST_HASH_SIZE; i++)
+ 	while ((bucket = table.buckets[i]))
+ 	{
+@@ -570,6 +569,7 @@ FcFontSetList (FcConfig	    *config,
+ 
+     if (destroy_os)
+         FcObjectSetDestroy (os);
++    FcConfigDestroy (config);
+ 
+     return ret;
+ 
+@@ -577,6 +577,7 @@ bail2:
+     FcFontSetDestroy (ret);
+ bail1:
+     FcListHashTableCleanup (&table);
++    FcConfigDestroy (config);
+ bail0:
+     if (destroy_os)
+ 	FcObjectSetDestroy (os);
+@@ -588,24 +589,26 @@ FcFontList (FcConfig	*config,
+ 	    FcPattern	*p,
+ 	    FcObjectSet *os)
+ {
+-    FcFontSet	*sets[2];
++    FcFontSet	*sets[2], *ret;
+     int		nsets;
+ 
+     if (!config)
+     {
+ 	if (!FcInitBringUptoDate ())
+ 	    return 0;
+-
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+     }
++    config = FcConfigReference (config);
++    if (!config)
++	return NULL;
+     nsets = 0;
+     if (config->fonts[FcSetSystem])
+ 	sets[nsets++] = config->fonts[FcSetSystem];
+     if (config->fonts[FcSetApplication])
+ 	sets[nsets++] = config->fonts[FcSetApplication];
+-    return FcFontSetList (config, sets, nsets, p, os);
++    ret = FcFontSetList (config, sets, nsets, p, os);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ #define __fclist__
+ #include "fcaliastail.h"
+diff --git a/src/fcmatch.c b/src/fcmatch.c
+index 78bcf7b..3bc352b 100644
+--- a/src/fcmatch.c
++++ b/src/fcmatch.c
+@@ -845,7 +845,7 @@ FcFontSetMatch (FcConfig    *config,
+ 		FcPattern   *p,
+ 		FcResult    *result)
+ {
+-    FcPattern	    *best;
++    FcPattern	    *best, *ret = NULL;
+ 
+     assert (sets != NULL);
+     assert (p != NULL);
+@@ -853,17 +853,16 @@ FcFontSetMatch (FcConfig    *config,
+ 
+     *result = FcResultNoMatch;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
++	    return NULL;
+     best = FcFontSetMatchInternal (sets, nsets, p, result);
+     if (best)
+-	return FcFontRenderPrepare (config, p, best);
+-    else
+-	return NULL;
++	ret = FcFontRenderPrepare (config, p, best);
++
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ FcPattern *
+@@ -873,19 +872,16 @@ FcFontMatch (FcConfig	*config,
+ {
+     FcFontSet	*sets[2];
+     int		nsets;
+-    FcPattern   *best;
++    FcPattern   *best, *ret = NULL;
+ 
+     assert (p != NULL);
+     assert (result != NULL);
+ 
+     *result = FcResultNoMatch;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
++	return NULL;
+     nsets = 0;
+     if (config->fonts[FcSetSystem])
+ 	sets[nsets++] = config->fonts[FcSetSystem];
+@@ -894,9 +890,11 @@ FcFontMatch (FcConfig	*config,
+ 
+     best = FcFontSetMatchInternal (sets, nsets, p, result);
+     if (best)
+-	return FcFontRenderPrepare (config, p, best);
+-    else
+-	return NULL;
++	ret = FcFontRenderPrepare (config, p, best);
++
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ 
+ typedef struct _FcSortNode {
+@@ -1183,7 +1181,7 @@ FcFontSort (FcConfig	*config,
+ 	    FcCharSet	**csp,
+ 	    FcResult	*result)
+ {
+-    FcFontSet	*sets[2];
++    FcFontSet	*sets[2], *ret;
+     int		nsets;
+ 
+     assert (p != NULL);
+@@ -1191,18 +1189,18 @@ FcFontSort (FcConfig	*config,
+ 
+     *result = FcResultNoMatch;
+ 
++    config = FcConfigReference (config);
+     if (!config)
+-    {
+-	config = FcConfigGetCurrent ();
+-	if (!config)
+-	    return 0;
+-    }
++	return NULL;
+     nsets = 0;
+     if (config->fonts[FcSetSystem])
+ 	sets[nsets++] = config->fonts[FcSetSystem];
+     if (config->fonts[FcSetApplication])
+ 	sets[nsets++] = config->fonts[FcSetApplication];
+-    return FcFontSetSort (config, sets, nsets, p, trim, csp, result);
++    ret = FcFontSetSort (config, sets, nsets, p, trim, csp, result);
++    FcConfigDestroy (config);
++
++    return ret;
+ }
+ #define __fcmatch__
+ #include "fcaliastail.h"
+diff --git a/test/Makefile.am b/test/Makefile.am
+index e44aa0b..aae45cb 100644
+--- a/test/Makefile.am
++++ b/test/Makefile.am
+@@ -42,6 +42,11 @@ test_pthread_LDADD = $(top_builddir)/src/libfontconfig.la
+ # We don't enable this test by default because it will require config and fonts
+ # to meaningfully test anything, and we are not installed yet.
+ #TESTS += test-pthread
++
++check_PROGRAMS += test-crbug1004254
++test_crbug1004254_LDADD = $(top_builddir)/src/libfontconfig.la
++# Disabling this for the same reason as above but trying to run in run-test.sh.
++#TESTS += test-crbug1004254
+ endif
+ check_PROGRAMS += test-bz89617
+ test_bz89617_CFLAGS = \
+diff --git a/test/run-test.sh b/test/run-test.sh
+index 8ad09e3..e1ee6d0 100644
+--- a/test/run-test.sh
++++ b/test/run-test.sh
+@@ -20,6 +20,8 @@
+ # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ # PERFORMANCE OF THIS SOFTWARE.
++set -e
++
+ case "$OSTYPE" in
+     msys ) MyPWD=`pwd -W` ;;  # On Msys/MinGW, returns a MS Windows style path.
+     *    ) MyPWD=`pwd`    ;;  # On any other platforms, returns a Unix style path.
+@@ -408,4 +410,17 @@ rm -rf $MYCACHEBASEDIR $MYCONFIG my-fonts.conf my-out my-out.expected
+ 
+ fi # if [ "x$EXEEXT" = "x" ]
+ 
++if [ -x $BUILDTESTDIR/test-crbug1004254 ]; then
++    dotest "MT-safe global config"
++    prep
++    curl -s -o $FONTDIR/noto.zip https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip
++    (cd $FONTDIR; unzip noto.zip)
++    if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
++	touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
++    fi
++    $BUILDTESTDIR/test-crbug1004254
++else
++    echo "No test-crbug1004254: skipped"
++fi
++
+ rm -rf $FONTDIR $CACHEFILE $CACHEDIR $BASEDIR $FONTCONFIG_FILE out
+diff --git a/test/test-crbug1004254.c b/test/test-crbug1004254.c
+new file mode 100644
+index 0000000..1cc6fc7
+--- /dev/null
++++ b/test/test-crbug1004254.c
+@@ -0,0 +1,116 @@
++/*
++ * fontconfig/test/test-pthread.c
++ *
++ * Copyright © 2000 Keith Packard
++ * Copyright © 2013 Raimund Steger
++ *
++ * Permission to use, copy, modify, distribute, and sell this software and its
++ * documentation for any purpose is hereby granted without fee, provided that
++ * the above copyright notice appear in all copies and that both that
++ * copyright notice and this permission notice appear in supporting
++ * documentation, and that the name of the author(s) not be used in
++ * advertising or publicity pertaining to distribution of the software without
++ * specific, written prior permission.  The authors make no
++ * representations about the suitability of this software for any purpose.  It
++ * is provided "as is" without express or implied warranty.
++ *
++ * THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++ * EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++ * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++ * PERFORMANCE OF THIS SOFTWARE.
++ */
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <pthread.h>
++#include <fontconfig/fontconfig.h>
++
++struct thr_arg_s
++{
++    int thr_num;
++};
++
++static void
++run_query (void)
++{
++    FcPattern *pat = FcPatternCreate (), *match;
++    FcResult result;
++
++    FcPatternAddString (pat, FC_FAMILY, "sans-serif");
++    FcPatternAddBool (pat, FC_SCALABLE, FcTrue);
++    FcConfigSubstitute (NULL, pat, FcMatchPattern);
++    FcDefaultSubstitute (pat);
++    match = FcFontMatch (NULL, pat, &result);
++    if (result != FcResultMatch || !match)
++    {
++	fprintf (stderr, "ERROR: No matches found\n");
++    }
++    if (match)
++	FcPatternDestroy (match);
++    FcPatternDestroy (pat);
++}
++
++static void
++run_reinit (void)
++{
++    if (!FcInitReinitialize ())
++    {
++	fprintf (stderr, "ERROR: Reinitializing failed\n");
++    }
++}
++
++#define NTEST 3000
++
++static void *
++run_test_in_thread (void *arg)
++{
++    struct thr_arg_s *thr_arg = (struct thr_arg_s *) arg;
++    int thread_num = thr_arg->thr_num;
++
++    fprintf (stderr, "Worker %d: started (round %d)\n", thread_num % 2, thread_num / 2);
++    if ((thread_num % 2) == 0)
++    {
++	run_query ();
++    }
++    else
++    {
++	run_reinit ();
++    }
++    fprintf (stderr, "Worker %d: done (round %d)\n", thread_num % 2, thread_num / 2);
++
++    return NULL;
++}
++
++int
++main (int argc, char **argv)
++{
++    pthread_t threads[NTEST];
++    struct thr_arg_s thr_arg[NTEST];
++    int i, j;
++
++    for (i = 0; i < NTEST; i++)
++    {
++	int result;
++
++	fprintf (stderr, "Thread %d (worker %d round %d): creating\n", i, i % 2, i / 2);
++	thr_arg[i].thr_num = i;
++	result = pthread_create (&threads[i], NULL, run_test_in_thread,
++				 (void *) &thr_arg[i]);
++	if (result != 0)
++	{
++	    fprintf (stderr, "Cannot create thread %d\n", i);
++	    break;
++	}
++    }
++    for (j = 0; j < i; j++)
++    {
++	pthread_join(threads[j], NULL);
++	fprintf (stderr, "Joined thread %d\n", j);
++    }
++    FcFini ();
++
++    return 0;
++}
+-- 
+2.24.1
+
+From aa8c8cfa9fb2563482336249e3f56459099fcf6e Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Sat, 2 Nov 2019 00:14:48 +0900
+Subject: [PATCH 4/9] Fix potential race condition in FcConfigSetCurrent and
+ FcConfigReference
+
+---
+ src/fccache.c |   2 +
+ src/fccfg.c   | 105 ++++++++++++++++++++++++++++++++++++++++++--------
+ 2 files changed, 90 insertions(+), 17 deletions(-)
+
+diff --git a/src/fccache.c b/src/fccache.c
+index d8f1dab..4744a84 100644
+--- a/src/fccache.c
++++ b/src/fccache.c
+@@ -1085,6 +1085,8 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
+     if (fd < 0)
+ 	return NULL;
+     config = FcConfigReference (NULL);
++    if (!config)
++	return NULL;
+     cache = FcDirCacheMapFd (config, fd, file_stat, NULL);
+     FcConfigDestroy (config);
+     close (fd);
+diff --git a/src/fccfg.c b/src/fccfg.c
+index 11dc876..30f37af 100644
+--- a/src/fccfg.c
++++ b/src/fccfg.c
+@@ -33,6 +33,49 @@
+ #endif
+ 
+ static FcConfig    *_fcConfig; /* MT-safe */
++static FcMutex	   *_lock;
++
++static void
++lock_config (void)
++{
++    FcMutex *lock;
++retry:
++    lock = fc_atomic_ptr_get (&_lock);
++    if (!lock)
++    {
++	lock = (FcMutex *) malloc (sizeof (FcMutex));
++	FcMutexInit (lock);
++	if (!fc_atomic_ptr_cmpexch (&_lock, NULL, lock))
++	{
++	    FcMutexFinish (lock);
++	    goto retry;
++	}
++	FcMutexLock (lock);
++	/* Initialize random state */
++	FcRandom ();
++	return;
++    }
++    FcMutexLock (lock);
++}
++
++static void
++unlock_config (void)
++{
++    FcMutexUnlock (_lock);
++}
++
++static void
++free_lock (void)
++{
++    FcMutex *lock;
++
++    lock = fc_atomic_ptr_get (&_lock);
++    if (lock && fc_atomic_ptr_cmpexch (&_lock, lock, NULL))
++    {
++	FcMutexFinish (lock);
++	free (lock);
++    }
++}
+ 
+ static FcConfig *
+ FcConfigEnsure (void)
+@@ -44,8 +87,9 @@ retry:
+     {
+ 	config = FcInitLoadConfigAndFonts ();
+ 
+-	if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
+-	    FcConfigDestroy (config);
++	if (!config || !fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
++	    if (config)
++		FcConfigDestroy (config);
+ 	    goto retry;
+ 	}
+     }
+@@ -76,6 +120,7 @@ FcConfigFini (void)
+     FcConfig *cfg = fc_atomic_ptr_get (&_fcConfig);
+     if (cfg && fc_atomic_ptr_cmpexch (&_fcConfig, cfg, NULL))
+ 	FcConfigDestroy (cfg);
++    free_lock ();
+ }
+ 
+ static FcChar8 *
+@@ -297,27 +342,31 @@ FcConfigReference (FcConfig *config)
+ {
+     if (!config)
+     {
+-	/* Do not use FcConfigGetCurrent () for the purpose of obtaining current FcConfig here.
+-	 * because the reference counter must be increased before setting it to _fcConfig.
++	/* lock during obtaining the value from _fcConfig and count up refcount there,
++	 * there are the race between them.
+ 	 */
++	lock_config ();
+     retry:
+ 	config = fc_atomic_ptr_get (&_fcConfig);
+ 	if (!config)
+ 	{
+-	    config = FcConfigCreate ();
+-	    FcRefInc (&config->ref);
++	    unlock_config ();
+ 
+-	    config = FcInitLoadOwnConfigAndFonts (config);
++	    config = FcInitLoadConfigAndFonts ();
++	    if (!config)
++		goto retry;
++	    lock_config ();
+ 	    if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config))
+ 	    {
+-		FcConfigDestroy (config); /* To decrease the refcount for the above one. */
+-		FcConfigDestroy (config); /* To destroy it actualy */
++		FcConfigDestroy (config);
+ 		goto retry;
+ 	    }
+-	    return config;
+ 	}
++	FcRefInc (&config->ref);
++	unlock_config ();
+     }
+-    FcRefInc (&config->ref);
++    else
++	FcRefInc (&config->ref);
+ 
+     return config;
+ }
+@@ -529,20 +578,29 @@ FcConfigSetCurrent (FcConfig *config)
+ {
+     FcConfig *cfg;
+ 
++    if (config)
++    {
++	if (!config->fonts[FcSetSystem])
++	    if (!FcConfigBuildFonts (config))
++		return FcFalse;
++	FcRefInc (&config->ref);
++    }
++
++    lock_config ();
+ retry:
+     cfg = fc_atomic_ptr_get (&_fcConfig);
+ 
+     if (config == cfg)
++    {
++	unlock_config ();
++	if (config)
++	    FcConfigDestroy (config);
+ 	return FcTrue;
+-
+-    if (config && !config->fonts[FcSetSystem])
+-	if (!FcConfigBuildFonts (config))
+-	    return FcFalse;
++    }
+ 
+     if (!fc_atomic_ptr_cmpexch (&_fcConfig, cfg, config))
+ 	goto retry;
+-
+-    FcConfigReference (config);
++    unlock_config ();
+     if (cfg)
+ 	FcConfigDestroy (cfg);
+ 
+@@ -2649,7 +2707,9 @@ FcConfigSetSysRoot (FcConfig      *config,
+ {
+     FcChar8 *s = NULL;
+     FcBool init = FcFalse;
++    int nretry = 3;
+ 
++retry:
+     if (!config)
+     {
+ 	/* We can't use FcConfigGetCurrent() here to ensure
+@@ -2681,6 +2741,17 @@ FcConfigSetSysRoot (FcConfig      *config,
+     if (init)
+     {
+ 	config = FcInitLoadOwnConfigAndFonts (config);
++	if (!config)
++	{
++	    /* Something failed. this is usually unlikely. so retrying */
++	    init = FcFalse;
++	    if (--nretry == 0)
++	    {
++		fprintf (stderr, "Fontconfig warning: Unable to initialize config and retry limit exceeded. sysroot functionality may not work as expected.\n");
++		return;
++	    }
++	    goto retry;
++	}
+ 	FcConfigSetCurrent (config);
+ 	/* FcConfigSetCurrent() increases the refcount.
+ 	 * decrease it here to avoid the memory leak.
+-- 
+2.24.1
+

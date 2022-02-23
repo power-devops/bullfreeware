@@ -1,0 +1,171 @@
+From 3c11f25fb8bc3eaed35a90eece9d2f9444373513 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 18 Aug 2020 14:05:33 +0200
+Subject: [PATCH] aix: Use $(AR) without -X32_64 to build FAT libraries.
+
+AIX FAT libraries should be built with the version of AR chosen by configure.
+The GNU Make $(AR) variable includes the AIX -X32_64 option needed
+by the default Makefile rules to accept both 32 bit and 64 bit object files.
+The -X32_64 option conflicts with ar archiving objects of the same name
+used to build FAT libraries.
+
+This patch changes the Makefile fragments for AIX FAT libraries to use $(AR),
+but strips the -X32_64 option from the Make variable.
+
+libgcc/ChangeLog:
+
+2020-09-27  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/rs6000/t-slibgcc-aix: Use $(AR) without -X32_64.
+
+libatomic/ChangeLog:
+
+2020-09-27  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Use $(AR) without -X32_64.
+
+libgomp/ChangeLog:
+
+2020-09-27  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Use $(AR) without -X32_64.
+
+libstdc++-v3/ChangeLog:
+
+2020-09-27  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/os/aix/t-aix: Use $(AR) without -X32_64.
+
+libgfortran/ChangeLog:
+
+2020-09-27  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Use $(AR) without -X32_64.
+---
+ libatomic/config/t-aix             |  5 +++--
+ libgcc/config/rs6000/t-slibgcc-aix | 21 +++++++++++----------
+ libgfortran/config/t-aix           |  9 +++++----
+ libgomp/config/t-aix               |  5 +++--
+ libstdc++-v3/config/os/aix/t-aix   | 12 ++++++------
+ 5 files changed, 28 insertions(+), 24 deletions(-)
+
+diff --git a/libatomic/config/t-aix b/libatomic/config/t-aix
+index 0f37aaa15f3..08607727574 100644
+--- a/libatomic/config/t-aix
++++ b/libatomic/config/t-aix
+@@ -3,8 +3,9 @@ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
+     echo '64'; else echo '32'; fi)
+ #MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ MAJOR=1
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ all-local:
+-	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ endif
+ 
+diff --git a/libgcc/config/rs6000/t-slibgcc-aix b/libgcc/config/rs6000/t-slibgcc-aix
+index b3bdda6f9a8..a6c5ceebbe8 100644
+--- a/libgcc/config/rs6000/t-slibgcc-aix
++++ b/libgcc/config/rs6000/t-slibgcc-aix
+@@ -92,27 +92,28 @@ AR_FLAGS_FOR_TARGET = -X32_64
+ ifeq ($(MULTIBUILDTOP),)
+ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ all: all-multi
+ ifeq ($(enable_shared),yes)
+-	ar -X$(BITS) x ../ppc$(BITS)/libgcc/libgcc_s.a shr.o
+-	ar -X$(BITS) rc ./libgcc_s.a shr.o
++	$(ARX) -X$(BITS) x ../ppc$(BITS)/libgcc/libgcc_s.a shr.o
++	$(ARX) -X$(BITS) rc ./libgcc_s.a shr.o
+ 	rm -f shr.o
+-	ar -X$(BITS) x ../pthread/ppc$(BITS)/libgcc/libgcc_s.a shr.o
+-	ar -X$(BITS) rc ../pthread/libgcc/libgcc_s.a shr.o
++	$(ARX) -X$(BITS) x ../pthread/ppc$(BITS)/libgcc/libgcc_s.a shr.o
++	$(ARX) -X$(BITS) rc ../pthread/libgcc/libgcc_s.a shr.o
+ 	rm -f shr.o
+ endif
+-	ar -X$(BITS) rc libgcc.a \
++	$(ARX) -X$(BITS) rc libgcc.a \
+ 	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcc-objects))
+-	ar -X$(BITS) rc libgcc_eh.a \
++	$(ARX) -X$(BITS) rc libgcc_eh.a \
+ 	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcc-eh-objects))
+-	ar -X$(BITS) rc ../pthread/libgcc/libgcc.a \
++	$(ARX) -X$(BITS) rc ../pthread/libgcc/libgcc.a \
+ 	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcc-objects))
+-	ar -X$(BITS) rc ../pthread/libgcc/libgcc_eh.a \
++	$(ARX) -X$(BITS) rc ../pthread/libgcc/libgcc_eh.a \
+ 	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcc-eh-objects))
+ ifeq ($(enable_gcov),yes)
+-	ar -X$(BITS) rc libgcov.a \
++	$(ARX) -X$(BITS) rc libgcov.a \
+ 	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcov-objects))
+-	ar -X$(BITS) rc ../pthread/libgcc/libgcov.a \
++	$(ARX) -X$(BITS) rc ../pthread/libgcc/libgcov.a \
+ 	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcov-objects))
+ endif
+ 	$(MAKE) install-leaf DESTDIR=$(gcc_objdir) \
+diff --git a/libgfortran/config/t-aix b/libgfortran/config/t-aix
+index e398b15c9eb..0e50501d10e 100644
+--- a/libgfortran/config/t-aix
++++ b/libgfortran/config/t-aix
+@@ -3,9 +3,10 @@ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
+     echo '64'; else echo '32'; fi)
+ #MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ MAJOR=5
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ all-local:
+-	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc .libs/libcaf_single.a ../ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/libcaf_single.a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
++	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc .libs/libcaf_single.a ../ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/libcaf_single.a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(libcaf_single_la_OBJECTS:.lo=.o)
+ endif
+diff --git a/libgomp/config/t-aix b/libgomp/config/t-aix
+index c3bb6c0bce0..35bff8bb019 100644
+--- a/libgomp/config/t-aix
++++ b/libgomp/config/t-aix
+@@ -1,9 +1,10 @@
+ ifeq ($(MULTIBUILDTOP),)
+ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ all-local:
+-	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ endif
+ 
+diff --git a/libstdc++-v3/config/os/aix/t-aix b/libstdc++-v3/config/os/aix/t-aix
+index 3e36bc8308e..14d2ac740ec 100644
+--- a/libstdc++-v3/config/os/aix/t-aix
++++ b/libstdc++-v3/config/os/aix/t-aix
+@@ -2,11 +2,11 @@ ifeq ($(MULTIBUILDTOP),)
+ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+-STOBJS=$(shell ar -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a)
++ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
++STOBJS=$(shell $(ARX) -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a)
+ all-local:
+-	ar -X$(BITS) rc src/.libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
+-	ar -X$(BITS) rc libsupc++/.libs/libsupc++.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
+-	ar -X$(BITS) rc ../pthread/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
++	$(ARX) -X$(BITS) rc src/.libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
++	$(ARX) -X$(BITS) rc libsupc++/.libs/libsupc++.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
+ endif
+-
+-- 
+2.25.0
+

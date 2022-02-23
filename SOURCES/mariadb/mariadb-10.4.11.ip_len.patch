@@ -1,0 +1,43 @@
+--- ./sql/sql_insert.cc.orig	2020-01-23 10:31:53 +0100
++++ ./sql/sql_insert.cc	2020-01-23 10:33:08 +0100
+@@ -2718,7 +2718,7 @@
+   delayed_row *row= 0;
+   Delayed_insert *di=thd->di;
+   const Discrete_interval *forced_auto_inc;
+-  size_t user_len, host_len, ip_len;
++  size_t user_len, host_len, ip_len_AIX;
+   DBUG_ENTER("write_delayed");
+   DBUG_PRINT("enter", ("query = '%s' length %lu", query.str,
+                        (ulong) query.length));
+@@ -2752,7 +2752,7 @@
+     goto err;
+   }
+ 
+-  user_len= host_len= ip_len= 0;
++  user_len= host_len= ip_len_AIX= 0;
+   row->user= row->host= row->ip= NULL;
+   if (thd->security_ctx)
+   {
+@@ -2761,11 +2761,11 @@
+     if (thd->security_ctx->host)
+       host_len= strlen(thd->security_ctx->host) + 1;
+     if (thd->security_ctx->ip)
+-      ip_len= strlen(thd->security_ctx->ip) + 1;
++      ip_len_AIX= strlen(thd->security_ctx->ip) + 1;
+   }
+   /* This can't be THREAD_SPECIFIC as it's freed in delayed thread */
+   if (!(row->record= (char*) my_malloc(table->s->reclength +
+-                                       user_len + host_len + ip_len,
++                                       user_len + host_len + ip_len_AIX,
+                                        MYF(MY_WME))))
+     goto err;
+   memcpy(row->record, table->record[0], table->s->reclength);
+@@ -2785,7 +2785,7 @@
+     if (thd->security_ctx->ip)
+     {
+       row->ip= row->record + table->s->reclength + user_len + host_len;
+-      memcpy(row->ip, thd->security_ctx->ip, ip_len);
++      memcpy(row->ip, thd->security_ctx->ip, ip_len_AIX);
+     }
+   }
+   row->query_id= thd->query_id;

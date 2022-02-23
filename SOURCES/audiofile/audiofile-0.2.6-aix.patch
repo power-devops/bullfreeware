@@ -1,0 +1,90 @@
+diff -crN ./audiofile/audiofile-config-uninstalled.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./audiofile/audiofile-config-uninstalled.in
+*** ./audiofile/audiofile-config-uninstalled.in	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./audiofile/audiofile-config-uninstalled.in	Mon Apr 29 16:17:00 2002
+***************
+*** 0 ****
+--- 1,58 ----
++ #!/bin/sh
++ 
++ prefix=@prefix@
++ exec_prefix=@exec_prefix@
++ exec_prefix_set=no
++ me="$0"
++ path=`dirname ${me}`
++ 
++ usage="\
++ Usage: audiofile-config [--prefix[=DIR]] [--exec-prefix[=DIR]] [--version] [--libs] [--cflags]"
++ 
++ if test $# -eq 0; then
++       echo "${usage}" 1>&2
++       exit 1
++ fi
++ 
++ while test $# -gt 0; do
++   case "$1" in
++   -*=*) optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
++   *) optarg= ;;
++   esac
++ 
++   case $1 in
++     --prefix=*)
++       prefix=$optarg
++       if test $exec_prefix_set = no ; then
++         exec_prefix=$optarg
++       fi
++       ;;
++     --prefix)
++       echo $prefix
++       ;;
++     --exec-prefix=*)
++       exec_prefix=$optarg
++       exec_prefix_set=yes
++       ;;
++     --exec-prefix)
++       echo $exec_prefix
++       ;;
++     --version)
++       echo @AUDIOFILE_VERSION@
++       ;;
++     --cflags)
++       includes=-I@srcdir@/libaudiofile
++       echo $includes
++       ;;
++     --libs)
++       libdirs="-L${path}/libaudiofile -L${path}/libaudiofile/.libs"
++       echo $libdirs -laudiofile -lm
++       ;;
++     *)
++       echo "${usage}" 1>&2
++       exit 1
++       ;;
++   esac
++   shift
++ done
++ 
+diff -crN ./audiofile/libaudiofile/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./audiofile/libaudiofile/Makefile.am
+*** ./audiofile/libaudiofile/Makefile.am	Sat Mar  6 07:39:23 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./audiofile/libaudiofile/Makefile.am	Thu Nov  4 17:49:11 2004
+***************
+*** 28,36 ****
+  
+  libaudiofile_la_LIBADD = modules/libmodules.la
+  
+! libaudiofile_la_LDFLAGS = -version-info 0:2:0 -no-undefined \
+  	-export-symbols audiofile.exports
+  
+  include_HEADERS = audiofile.h aupvlist.h af_vfs.h
+  
+  # GNU gcc
+--- 28,38 ----
+  
+  libaudiofile_la_LIBADD = modules/libmodules.la
+  
+! # libaudiofile_la_LDFLAGS = -version-info 0:2:0 -no-undefined \
+  	-export-symbols audiofile.exports
+  
++ libaudiofile_la_LDFLAGS = -version-info 0:2:0 -no-undefined
++ 
+  include_HEADERS = audiofile.h aupvlist.h af_vfs.h
+  
+  # GNU gcc

@@ -1,0 +1,11 @@
+--- ./configure_orig	2021-01-27 11:52:48 +0000
++++ ./configure	2021-01-27 11:53:28 +0000
+@@ -15340,7 +15340,7 @@
+ 		case "$OSREV" in
+ 		    [1-4].*)	with_noexec=no;;
+ 		    5.[1-2]*)	with_noexec=no;;
+-		    *)		RTLD_PRELOAD_VAR="LDR_PRELOAD";;
++		    *)		RTLD_PRELOAD_VAR="LDR_PRELOAD64";;
+ 		esac
+ 
+ 		# cfmakeraw is broken on AIX (and is not documented)

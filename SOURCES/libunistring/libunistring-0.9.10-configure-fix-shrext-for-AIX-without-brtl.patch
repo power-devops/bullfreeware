@@ -1,0 +1,28 @@
+From 2cb80374854fda57c65c5404f69a63071f3b55b3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 23 Oct 2019 15:27:32 +0200
+Subject: [PATCH] build-aux/config.rpath: Fix shrext for AIX without -brtl
+
+---
+ build-aux/config.rpath | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/build-aux/config.rpath b/build-aux/config.rpath
+index be202c1a9..0a7bd9dc6 100755
+--- a/build-aux/config.rpath
++++ b/build-aux/config.rpath
+@@ -517,6 +517,11 @@ case "$host_os" in
+     library_names_spec='$libname.a'
+     ;;
+   aix[4-9]*)
++    # Without -brtl, shared libraries stored inside .a files
++    # must be used/
++    if test $aix_use_runtimelinking = no; then
++      shrext=.a
++    fi
+     library_names_spec='$libname$shrext'
+     ;;
+   amigaos*)
+-- 
+2.22.0
+

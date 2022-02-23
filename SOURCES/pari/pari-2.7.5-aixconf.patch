@@ -1,0 +1,65 @@
+Index: pari-2.7.5/config/TOP_Make.SH
+===================================================================
+--- pari-2.7.5.orig/config/TOP_Make.SH	2014-07-30 15:38:47.000000000 +0200
++++ pari-2.7.5/config/TOP_Make.SH	2016-03-09 13:31:59.000000000 +0100
+@@ -40,7 +40,6 @@
+ 
+ all::
+ 	@\$(MAKE) gp
+-	@-cd doc && \$(MAKE) doc
+ 
+ gp bench test-kernel test-all install cleanall cleanobj cleantest nsis install-bin install-doc install-docpdf install-nodata install-data install-lib-sta install-bin-sta dobench dyntest-all statest-all tune $top_test_extra $top_dotest_extra::
+ 	@dir=\`config/objdir\`; echo "Making \$@ in \$\$dir";\\
+Index: pari-2.7.5/config/Makefile.SH
+===================================================================
+--- pari-2.7.5.orig/config/Makefile.SH	2014-12-13 21:52:52.000000000 +0100
++++ pari-2.7.5/config/Makefile.SH	2016-03-09 13:35:54.000000000 +0100
+@@ -170,7 +170,7 @@
+ SHELL      = $make_sh
+ PERL       = $perl
+ BISON      = bison
+-AR         = ar
++AR         = /usr/bin/ar -X32_64
+ RANLIB     = ranlib
+ 
+ SIZEOF_LONG= $sizeof_long
+@@ -425,7 +425,6 @@
+ 
+ install-doc::
+ 	-mkdir -p \$(BINDIR) \$(DOCDIR)
+-	-cd $doc; \$(MAKE) all
+ 	-\$(INSTALL_PROGRAM) $doc/gphelp    \$(BINDIR)
+ 	-\$(INSTALL_DATA) $doc/translations \$(DOCDIR)
+ 	-\$(INSTALL_DATA) $doc/appa.tex     \$(DOCDIR)
+@@ -443,12 +442,12 @@
+ 	-\$(INSTALL_DATA) $doc/usersch4.tex \$(DOCDIR)
+ 	-\$(INSTALL_DATA) $doc/usersch5.tex \$(DOCDIR)
+ 	-\$(INSTALL_DATA) $doc/paricfg.tex  \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/develop.dvi  \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/libpari.dvi  \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/users.dvi    \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/tutorial.dvi \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/refcard.dvi  \$(DOCDIR)
+-	-\$(INSTALL_DATA) $doc/refcard.ps   \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/develop.dvi  \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/libpari.dvi  \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/users.dvi    \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/tutorial.dvi \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/refcard.dvi  \$(DOCDIR)
++#-\$(INSTALL_DATA) $doc/refcard.ps   \$(DOCDIR)
+ 
+ install-docpdf::
+ 	-mkdir -p \$(BINDIR) \$(DOCDIR)
+Index: pari-2.7.5/config/get_dlld
+===================================================================
+--- pari-2.7.5.orig/config/get_dlld	2015-03-18 11:33:24.000000000 +0100
++++ pari-2.7.5/config/get_dlld	2016-03-09 13:37:17.000000000 +0100
+@@ -73,7 +73,7 @@
+     DLLDFLAGS="-shared -soname=\$(LIBPARI_SONAME)"
+   else # DLLD != GNU ld
+     case "$osname" in
+-      aix)     DLLDFLAGS='-r' ;;
++      aix)     DLLDFLAGS='-i' ;;
+       darwin)  DLLDFLAGS="-compatibility_version $compat_ver -current_version $num_ver" ;;
+       freebsd) DLLDFLAGS='-Bshareable -x' ;;
+       hpux)    DLLDFLAGS='-b' ;;

@@ -1,0 +1,196 @@
+Index: samba-4.4.5.orig/source4/torture/smb2/replay.c
+===================================================================
+--- samba-4.4.5.orig/source4/torture/smb2/replay.c	2016-06-06 09:40:23 +0200
++++ samba-4.4.5.orig/source4/torture/smb2/replay.c	2016-08-03 18:27:01 +0200
+@@ -278,19 +278,18 @@
+ 	status = smb2_util_write(tree, h, buf, 0, ARRAY_SIZE(buf));
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+-	f = (struct smb2_flush) {
+-		.in.file.handle = h
+-	};
++		f.in.file.handle = h;
++	
+ 	torture_comment(tctx, "Trying flush\n");
+ 	status = smb2_flush(tree, &f);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+-	rd = (struct smb2_read) {
+-		.in.file.handle = h,
+-		.in.length = 10,
+-		.in.offset = 0,
+-		.in.min_count = 1
+-	};
++	rd.in.file.handle = h;
++        rd.in.length = 10;
++        rd.in.offset = 0;
++        rd.in.min_count = 1;
++
++
+ 	torture_comment(tctx, "Trying read\n");
+ 	status = smb2_read(tree, tmp_ctx, &rd);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+@@ -303,32 +302,31 @@
+ 	status = smb2_setinfo_file(tree, &sfinfo);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+-	qfinfo = (union smb_fileinfo) {
+-		.generic.level = RAW_SFILEINFO_POSITION_INFORMATION,
+-		.generic.in.file.handle = h
+-	};
++        qfinfo.generic.level = RAW_SFILEINFO_POSITION_INFORMATION;
++        qfinfo.generic.in.file.handle = h;
++
+ 	torture_comment(tctx, "Trying getinfo\n");
+ 	status = smb2_getinfo_file(tree, tmp_ctx, &qfinfo);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 	CHECK_VAL(qfinfo.position_information.out.position, 0x1000);
+ 
+-	ioctl = (union smb_ioctl) {
+-		.smb2.level = RAW_IOCTL_SMB2,
+-		.smb2.in.file.handle = h,
+-		.smb2.in.function = FSCTL_CREATE_OR_GET_OBJECT_ID,
+-		.smb2.in.max_response_size = 64,
+-		.smb2.in.flags = SMB2_IOCTL_FLAG_IS_FSCTL
+-	};
++        ioctl.smb2.level = RAW_IOCTL_SMB2;
++        ioctl.smb2.in.file.handle = h;
++        ioctl.smb2.in.function = FSCTL_CREATE_OR_GET_OBJECT_ID;
++        ioctl.smb2.in.max_response_size = 64;
++        ioctl.smb2.in.flags = SMB2_IOCTL_FLAG_IS_FSCTL;
++
++
+ 	torture_comment(tctx, "Trying ioctl\n");
+ 	status = smb2_ioctl(tree, tmp_ctx, &ioctl.smb2);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+-	lck = (struct smb2_lock) {
+-		.in.locks = el,
+-		.in.lock_count = 0x0001,
+-		.in.lock_sequence = 0x00000000,
+-		.in.file.handle	= h
+-	};
++        lck.in.locks = el;
++        lck.in.lock_count = 0x0001;
++        lck.in.lock_sequence = 0x00000000;
++        lck.in.file.handle      = h;
++
++
+ 	el[0].reserved		= 0x00000000;
+ 	el[0].flags		= SMB2_LOCK_FLAG_EXCLUSIVE |
+ 		SMB2_LOCK_FLAG_FAIL_IMMEDIATELY;
+@@ -1635,11 +1633,9 @@
+ 			if (NT_STATUS_IS_OK(status)) {
+ 				struct smb2_read rd;
+ 
+-				rd = (struct smb2_read) {
+-					.in.file.handle = handle,
+-					.in.length = blob.length,
+-					.in.offset = 0
+-				};
++				rd.in.file.handle = handle;
++				rd.in.length = blob.length;
++				rd.in.offset = 0;
+ 
+ 				torture_assert_ntstatus_ok_goto(tctx,
+ 					smb2_read(tree, tree, &rd),
+@@ -1653,13 +1649,12 @@
+ 		}
+ 		case SMB2_OP_IOCTL: {
+ 			union smb_ioctl ioctl;
+-			ioctl = (union smb_ioctl) {
+-				.smb2.level = RAW_IOCTL_SMB2,
+-				.smb2.in.file.handle = handle,
+-				.smb2.in.function = FSCTL_CREATE_OR_GET_OBJECT_ID,
+-				.smb2.in.max_response_size = 64,
+-				.smb2.in.flags = SMB2_IOCTL_FLAG_IS_FSCTL
+-			};
++			ioctl.smb2.level = RAW_IOCTL_SMB2;
++			ioctl.smb2.in.file.handle = handle;
++			ioctl.smb2.in.function = FSCTL_CREATE_OR_GET_OBJECT_ID;
++			ioctl.smb2.in.max_response_size = 64;
++			ioctl.smb2.in.flags = SMB2_IOCTL_FLAG_IS_FSCTL;
++
+ 			status = smb2_ioctl(tree, mem_ctx, &ioctl.smb2);
+ 			break;
+ 		}
+@@ -1676,10 +1671,8 @@
+ 			break;
+ 		}
+ 
+-		qfinfo = (union smb_fileinfo) {
+-			.generic.level = RAW_SFILEINFO_POSITION_INFORMATION,
+-			.generic.in.file.handle = handle
+-		};
++                qfinfo.generic.level = RAW_SFILEINFO_POSITION_INFORMATION;
++                qfinfo.generic.in.file.handle = handle;
+ 
+ 		torture_assert_ntstatus_ok_goto(tctx,
+ 			smb2_getinfo_file(tree, mem_ctx, &qfinfo),
+@@ -2015,11 +2008,11 @@
+ 	/*
+ 	 * Perform a Read with incremented ChannelSequence
+ 	 */
+-	rd = (struct smb2_read) {
+-		.in.file.handle = *h1,
+-		.in.length = sizeof(buf),
+-		.in.offset = 0
+-	};
++
++        rd.in.file.handle = *h1;
++        rd.in.length = sizeof(buf);
++        rd.in.offset = 0;
++
+ 	status = smb2_read(tree1, tree1, &rd);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+@@ -2056,11 +2049,11 @@
+ 	/*
+ 	 * Performing a Read with stale ChannelSequence is allowed
+ 	 */
+-	rd = (struct smb2_read) {
+-		.in.file.handle = *h1,
+-		.in.length = ARRAY_SIZE(buf),
+-		.in.offset = 0
+-	};
++
++        rd.in.file.handle = *h1;
++        rd.in.length = ARRAY_SIZE(buf);
++        rd.in.offset = 0;
++
+ 	status = smb2_read(tree1, tree1, &rd);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+@@ -2124,11 +2117,13 @@
+ 	/*
+ 	 * Read back from File to verify what was written
+ 	 */
+-	rd = (struct smb2_read) {
+-		.in.file.handle = *h1,
+-		.in.length = ARRAY_SIZE(buf),
+-		.in.offset = 0
+-	};
++
++        rd.in.file.handle = *h1;
++        rd.in.length = ARRAY_SIZE(buf);
++        rd.in.offset = 0;
++
++
++
+ 	status = smb2_read(tree1, tree1, &rd);
+ 	CHECK_STATUS(status, NT_STATUS_OK);
+ 
+@@ -2351,10 +2346,9 @@
+ 	CHECK_VAL(break_info.count, 0);
+ 	torture_reset_break_info(tctx, &break_info);
+ 
+-	qfinfo = (union smb_fileinfo) {
+-		.generic.level = RAW_SFILEINFO_POSITION_INFORMATION,
+-		.generic.in.file.handle = *h
+-	};
++	qfinfo.generic.level = RAW_SFILEINFO_POSITION_INFORMATION;
++	qfinfo.generic.in.file.handle = *h;
++
+ 	torture_comment(tctx, "Trying getinfo\n");
+ 	status = smb2_getinfo_file(tree, mem_ctx, &qfinfo);
+ 	CHECK_STATUS(status, NT_STATUS_OK);

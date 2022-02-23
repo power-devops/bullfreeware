@@ -1,0 +1,65 @@
+--- ./mysql-test/main/myisam_crash_before_flush_keys-master.opt.orig     2019-01-04 09:28:48.000000000 -0600
++++ ./mysql-test/main/myisam_crash_before_flush_keys-master.opt  2019-05-09 16:37:33.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file
++--skip-core-file
+--- ./mysql-test/suite/binlog/t/binlog_index-master.opt.orig     2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/binlog/t/binlog_index-master.opt  2019-05-09 16:19:58.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --log-warnings=0 --log-bin=master-bin --log-bin-index=master-bin
++--log-warnings=0 --log-bin=master-bin --log-bin-index=master-bin
+--- ./mysql-test/suite/maria/maria-gis-recovery.opt.orig 2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-gis-recovery.opt      2019-05-09 16:22:44.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
++--skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
+--- ./mysql-test/suite/maria/maria-recovery-big-master.opt.orig  2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery-big-master.opt       2019-05-09 16:21:24.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --max_allowed_packet=32000000
++--skip-core-file --max_allowed_packet=32000000
+--- ./mysql-test/suite/maria/maria-recovery-bitmap-master.opt.orig       2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery-bitmap-master.opt    2019-05-09 16:21:30.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file
++--skip-core-file
+--- ./mysql-test/suite/maria/maria-recovery-master.opt.orig      2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery-master.opt   2019-05-09 16:21:35.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
++--skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
+--- ./mysql-test/suite/maria/maria-recovery-rtree-ft-master.opt.orig     2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery-rtree-ft-master.opt  2019-05-09 16:21:40.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file
++--skip-core-file
+--- ./mysql-test/suite/maria/maria-recovery2-master.opt.orig     2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery2-master.opt  2019-05-09 16:21:12.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp --myisam-recover-options=
++--skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp --myisam-recover-options=
+--- ./mysql-test/suite/maria/maria-recovery3-master.opt.orig     2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/maria/maria-recovery3-master.opt  2019-05-09 16:21:18.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
++--skip-core-file --loose-aria-log-dir-path=$MYSQLTEST_VARDIR/tmp
+--- ./mysql-test/suite/parts/t/partition_debug_myisam-master.opt.orig    2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/parts/t/partition_debug_myisam-master.opt 2019-05-09 16:29:39.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --myisam-recover-options=off
++--skip-core-file --myisam-recover-options=off
+--- ./mysql-test/suite/perfschema/t/no_threads-master.opt.orig   2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/perfschema/t/no_threads-master.opt        2019-05-09 16:04:18.000000000 -0500
+@@ -1 +1 @@
+---thread-handling=no-threads --loose-performance-schema-max-thread_instances=10 --default-storage-engine=MyISAM --skip-innodb
++--thread-handling=no-threads --loose-performance-schema-max-thread_instances=10 --default-storage-engine=MyISAM 
+--- ./mysql-test/suite/rpl/t/rpl_gtid_crash_myisam-master.opt.orig       2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/rpl/t/rpl_gtid_crash_myisam-master.opt    2019-05-09 15:01:32.000000000 -0500
+@@ -1 +1 @@
+---skip-stack-trace --skip-core-file --skip-innodb
++--skip-core-file 
+--- ./mysql-test/suite/sys_vars/t/wsrep_on_basic.opt.orig        2019-01-04 09:28:49.000000000 -0600
++++ ./mysql-test/suite/sys_vars/t/wsrep_on_basic.opt     2019-05-09 16:17:40.000000000 -0500
+@@ -1 +1 @@
+---innodb-lock-schedule-algorithm=FCFS
++  

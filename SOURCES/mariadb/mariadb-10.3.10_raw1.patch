@@ -1,0 +1,11 @@
+--- ./sql/sql_yacc.hh.orig	2018-10-17 08:35:20 -0500
++++ ./sql/sql_yacc.hh	2018-10-17 08:36:24 -0500
+@@ -624,7 +624,7 @@
+     QUARTER_SYM = 834,
+     QUERY_SYM = 835,
+     QUICK = 836,
+-    RAW = 837,
++    RAW_VALUE = 837,
+     READ_ONLY_SYM = 838,
+     REBUILD_SYM = 839,
+     RECOVER_SYM = 840,

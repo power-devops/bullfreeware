@@ -1,0 +1,130 @@
+From 21fdebc519578aad72c8550b05c05813c5b28c21 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Wed, 16 Sep 2020 18:56:00 +0000
+Subject: [PATCH] aix: apply socket.h extern "C++" more narrowly.
+
+Recent Technology Levels of AIX 7.2 have made sys/socket.h more C++-aware,
+which causes the fix to be applied in too many locations.  This patch adds
+more context for the selection to apply the fix more narrowly.
+
+fixincludes/ChangeLog:
+
+2020-09-17  David Edelsohn  <dje.gcc@gmail.com>
+
+	* inclhack.def (aix_externcpp1): Add more context to select.
+	(aix_externcpp2): Same.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/socket.h: Update expected results.
+---
+ fixincludes/fixincl.x               | 16 ++++++++++------
+ fixincludes/inclhack.def            | 20 ++++++++++++--------
+ fixincludes/tests/base/sys/socket.h |  2 ++
+ 3 files changed, 24 insertions(+), 14 deletions(-)
+
+diff --git a/fixincludes/fixincl.x b/fixincludes/fixincl.x
+index b88139950e3..bf54305b9c0 100644
+--- a/fixincludes/fixincl.x
++++ b/fixincludes/fixincl.x
+@@ -826,7 +826,8 @@ tSCC* apzAix_Externcpp1Machs[] = {
+  *  content selection pattern - do fix if pattern found
+  */
+ tSCC zAix_Externcpp1Select0[] =
+-       "#ifdef __cplusplus";
++       "#ifndef _KERNEL\n\
++#ifdef __cplusplus";
+ 
+ #define    AIX_EXTERNCPP1_TEST_CT  1
+ static tTestDesc aAix_Externcpp1Tests[] = {
+@@ -837,7 +838,8 @@ static tTestDesc aAix_Externcpp1Tests[] = {
+  */
+ static const char* apzAix_Externcpp1Patch[] = {
+     "format",
+-    "#ifdef __cplusplus\n\
++    "#ifndef _KERNEL\n\
++#ifdef __cplusplus\n\
+ extern \"C++\" {",
+     (char*)NULL };
+ 
+@@ -864,7 +866,8 @@ tSCC* apzAix_Externcpp2Machs[] = {
+  *  content selection pattern - do fix if pattern found
+  */
+ tSCC zAix_Externcpp2Select0[] =
+-       "#else  /\\* __cplusplus \\*/";
++       "#endif /\\* COMPAT_43 \\*/\n\
++#else  /\\* __cplusplus \\*/";
+ 
+ #define    AIX_EXTERNCPP2_TEST_CT  1
+ static tTestDesc aAix_Externcpp2Tests[] = {
+@@ -875,7 +878,8 @@ static tTestDesc aAix_Externcpp2Tests[] = {
+  */
+ static const char* apzAix_Externcpp2Patch[] = {
+     "format",
+-    "} /* extern \"C++\" */\n\
++    "#endif /* COMPAT_43 */\n\
++} /* extern \"C++\" */\n\
+ #else  /* __cplusplus */",
+     (char*)NULL };
+ 
+diff --git a/fixincludes/inclhack.def b/fixincludes/inclhack.def
+index f58e7771e1c..3b397422bc1 100644
+--- a/fixincludes/inclhack.def
++++ b/fixincludes/inclhack.def
+@@ -553,24 +553,28 @@ fix = {
+   hackname  = aix_externcpp1;
+   mach      = "*-*-aix*";
+   files     = "sys/socket.h";
+-  select    = "#ifdef __cplusplus";
++  select    = "#ifndef _KERNEL\n"
++	      "#ifdef __cplusplus";
+   c_fix     = format;
+-  c_fix_arg = "#ifdef __cplusplus\n"
++  c_fix_arg = "#ifndef _KERNEL\n"
++	      "#ifdef __cplusplus\n"
+               "extern \"C++\" {";
+-  test_text = "#ifdef __cplusplus";
+-
++  test_text = "#ifndef _KERNEL\n"
++	      "#ifdef __cplusplus";
+ };
+ 
+ fix = {
+   hackname  = aix_externcpp2;
+   mach      = "*-*-aix*";
+   files     = "sys/socket.h";
+-  select    = "#else  /\\* __cplusplus \\*/";
++  select    = "#endif /\\* COMPAT_43 \\*/\n"
++	      "#else  /\\* __cplusplus \\*/";
+   c_fix     = format;
+-  c_fix_arg = "} /* extern \"C++\" */\n"
++  c_fix_arg = "#endif /* COMPAT_43 */\n"
++	      "} /* extern \"C++\" */\n"
+               "#else  /* __cplusplus */";
+-  test_text = "#else  /* __cplusplus */";
+-
++  test_text = "#endif /* COMPAT_43 */\n"
++	      "#else  /* __cplusplus */";
+ };
+ 
+ /*
+diff --git a/fixincludes/tests/base/sys/socket.h b/fixincludes/tests/base/sys/socket.h
+index 5d66f8be291..c1e2b425be1 100644
+--- a/fixincludes/tests/base/sys/socket.h
++++ b/fixincludes/tests/base/sys/socket.h
+@@ -10,12 +10,14 @@
+ 
+ 
+ #if defined( AIX_EXTERNCPP1_CHECK )
++#ifndef _KERNEL
+ #ifdef __cplusplus
+ extern "C++" {
+ #endif  /* AIX_EXTERNCPP1_CHECK */
+ 
+ 
+ #if defined( AIX_EXTERNCPP2_CHECK )
++#endif /* COMPAT_43 */
+ } /* extern "C++" */
+ #else  /* __cplusplus */
+ #endif  /* AIX_EXTERNCPP2_CHECK */
+-- 
+2.25.0
+

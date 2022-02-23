@@ -1,0 +1,11 @@
+--- ./sql/current_thd.h.ORIGIN	2019-06-14 17:22:49 -0500
++++ ./sql/current_thd.h	2019-06-14 17:24:07 -0500
+@@ -30,7 +30,7 @@
+ static inline THD *inline_current_thd(void) { return _current_thd_noinline(); }
+ #define current_thd _current_thd_noinline()
+ #else
+-extern thread_local THD *current_thd;
++extern __thread THD *current_thd;
+ #endif
+ 
+ #endif  // CURRENT_THD_INCLUDED

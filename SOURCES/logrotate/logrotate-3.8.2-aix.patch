@@ -1,0 +1,74 @@
+*** ./Makefile.ORIG	Thu Dec  2 23:07:45 2010
+--- ./Makefile	Thu Dec  2 23:09:12 2010
+***************
+*** 1,7 ****
+  VERSION = $(shell awk '/Version:/ { print $$2 }' logrotate.spec)
+  OS_NAME = $(shell uname -s)
+  LFS = $(shell echo `getconf LFS_CFLAGS 2>/dev/null`)
+! CFLAGS = -Wall -D_GNU_SOURCE -D$(OS_NAME) -DVERSION=\"$(VERSION)\" $(RPM_OPT_FLAGS) $(LFS)
+  PROG = logrotate
+  MAN = logrotate.8
+  MAN5 = logrotate.conf.5
+--- 1,7 ----
+  VERSION = $(shell awk '/Version:/ { print $$2 }' logrotate.spec)
+  OS_NAME = $(shell uname -s)
+  LFS = $(shell echo `getconf LFS_CFLAGS 2>/dev/null`)
+! CFLAGS = -D_GNU_SOURCE -D$(OS_NAME) -DVERSION=\"$(VERSION)\" $(RPM_OPT_FLAGS) $(LFS)
+  PROG = logrotate
+  MAN = logrotate.8
+  MAN5 = logrotate.conf.5
+***************
+*** 15,20 ****
+--- 15,33 ----
+  LOADLIBES += -lselinux
+  endif
+  
++ # AIX using cc
++ ifeq ($(OS_NAME),AIX)
++     ifeq ($(RPM_OPT_FLAGS),)
++         RPM_OPT_FLAGS = -O
++     endif
++     CC = /usr/vac/bin/xlc_r
++     CFLAGS += -qcpluscmt -D_LARGE_FILES
++     INSTALL = /opt/freeware/bin/install
++     ifeq ($(BASEDIR),)
++         BASEDIR = /opt/freeware
++     endif
++ endif
++ 
+  # HP-UX using GCC
+  ifeq ($(OS_NAME),HP-UX)
+      ifeq ($(RPM_OPT_FLAGS),)
+***************
+*** 67,73 ****
+  
+  #--------------------------------------------------------------------------
+  
+! OBJS = logrotate.o log.o config.o basenames.o
+  SOURCES = $(subst .o,.c,$(OBJS) $(LIBOBJS))
+  
+  ifeq ($(RPM_OPT_FLAGS),)
+--- 80,86 ----
+  
+  #--------------------------------------------------------------------------
+  
+! OBJS = logrotate.o log.o config.o basenames.o asprintf.o vasprintf.o
+  SOURCES = $(subst .o,.c,$(OBJS) $(LIBOBJS))
+  
+  ifeq ($(RPM_OPT_FLAGS),)
+*** ./logrotate.c.ORIG	Wed Aug  1 12:56:47 2012
+--- ./logrotate.c	Tue Sep 18 13:11:52 2012
+***************
+*** 55,60 ****
+--- 55,65 ----
+  extern int asprintf(char **str, const char *fmt, ...);
+  #endif
+  
++ #ifndef O_NOFOLLOW
++ #define O_NOFOLLOW 0
++ #warning O_NOFOLLOW undeclared - ignoring
++ #endif
++ 
+  struct logState {
+      char *fn;
+      struct tm lastRotated;	/* only tm.mon, tm_mday, tm_year are good! */

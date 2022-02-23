@@ -1,0 +1,106 @@
+From 5ed0331bd6bfd39b9c5ca40ec38d536221118998 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sat, 3 Feb 2018 20:53:42 -0500
+Subject: [PATCH] Add vector support to k5_sha256()
+
+Add a length argument so that multiple krb5_data values can be passed
+to k5_sha256(), for efficient computation of SHA-256 hashes over
+concatenations of data values.
+
+(cherry picked from commit 4f3373e8c55b3e9bdfb5b065e07214c5816c85fa)
+---
+ src/include/k5-int.h                 | 4 ++--
+ src/lib/crypto/builtin/sha2/sha256.c | 6 ++++--
+ src/lib/crypto/crypto_tests/t_sha2.c | 2 +-
+ src/lib/crypto/openssl/sha256.c      | 6 ++++--
+ src/lib/krb5/rcache/rc_conv.c        | 2 +-
+ 5 files changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/src/include/k5-int.h b/src/include/k5-int.h
+index 9378ae047..1c1d9783b 100644
+--- a/src/include/k5-int.h
++++ b/src/include/k5-int.h
+@@ -635,9 +635,9 @@ krb5int_arcfour_gsscrypt(const krb5_keyblock *keyblock, krb5_keyusage usage,
+ 
+ #define K5_SHA256_HASHLEN (256 / 8)
+ 
+-/* Write the SHA-256 hash of in to out. */
++/* Write the SHA-256 hash of in (containing n elements) to out. */
+ krb5_error_code
+-k5_sha256(const krb5_data *in, uint8_t out[K5_SHA256_HASHLEN]);
++k5_sha256(const krb5_data *in, size_t n, uint8_t out[K5_SHA256_HASHLEN]);
+ 
+ /*
+  * Attempt to zero memory in a way that compilers won't optimize out.
+diff --git a/src/lib/crypto/builtin/sha2/sha256.c b/src/lib/crypto/builtin/sha2/sha256.c
+index 2b5cbe480..9a940b3f8 100644
+--- a/src/lib/crypto/builtin/sha2/sha256.c
++++ b/src/lib/crypto/builtin/sha2/sha256.c
+@@ -257,12 +257,14 @@ k5_sha256_final(void *res, SHA256_CTX *m)
+ }
+ 
+ krb5_error_code
+-k5_sha256(const krb5_data *in, uint8_t out[K5_SHA256_HASHLEN])
++k5_sha256(const krb5_data *in, size_t n, uint8_t out[K5_SHA256_HASHLEN])
+ {
+     SHA256_CTX ctx;
++    size_t i;
+ 
+     k5_sha256_init(&ctx);
+-    k5_sha256_update(&ctx, in->data, in->length);
++    for (i = 0; i < n; i++)
++        k5_sha256_update(&ctx, in[i].data, in[i].length);
+     k5_sha256_final(out, &ctx);
+     return 0;
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_sha2.c b/src/lib/crypto/crypto_tests/t_sha2.c
+index 12f32869b..e6fa58498 100644
+--- a/src/lib/crypto/crypto_tests/t_sha2.c
++++ b/src/lib/crypto/crypto_tests/t_sha2.c
+@@ -125,7 +125,7 @@ hash_test(const struct krb5_hash_provider *hash, struct test *tests)
+ 
+ 	    if (hash == &krb5int_hash_sha256) {
+ 		/* Try again using k5_sha256(). */
+-		if (k5_sha256(&iov.data, (uint8_t *)hval.data) != 0)
++		if (k5_sha256(&iov.data, 1, (uint8_t *)hval.data) != 0)
+ 		    abort();
+ 		if (memcmp(hval.data, t->hash, hval.length) != 0)
+ 		    abort();
+diff --git a/src/lib/crypto/openssl/sha256.c b/src/lib/crypto/openssl/sha256.c
+index fa095d472..0edd8b7ba 100644
+--- a/src/lib/crypto/openssl/sha256.c
++++ b/src/lib/crypto/openssl/sha256.c
+@@ -34,16 +34,18 @@
+ #include <openssl/evp.h>
+ 
+ krb5_error_code
+-k5_sha256(const krb5_data *in, uint8_t out[K5_SHA256_HASHLEN])
++k5_sha256(const krb5_data *in, size_t n, uint8_t out[K5_SHA256_HASHLEN])
+ {
+     EVP_MD_CTX *ctx;
++    size_t i;
+     int ok;
+ 
+     ctx = EVP_MD_CTX_new();
+     if (ctx == NULL)
+         return ENOMEM;
+     ok = EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+-    ok = ok && EVP_DigestUpdate(ctx, in->data, in->length);
++    for (i = 0; i < n; i++)
++        ok = ok && EVP_DigestUpdate(ctx, in[i].data, in[i].length);
+     ok = ok && EVP_DigestFinal_ex(ctx, out, NULL);
+     EVP_MD_CTX_free(ctx);
+     return ok ? 0 : ENOMEM;
+diff --git a/src/lib/krb5/rcache/rc_conv.c b/src/lib/krb5/rcache/rc_conv.c
+index 0e021f5d8..f2fe528ac 100644
+--- a/src/lib/krb5/rcache/rc_conv.c
++++ b/src/lib/krb5/rcache/rc_conv.c
+@@ -58,7 +58,7 @@ krb5_rc_hash_message(krb5_context context, const krb5_data *message,
+     *out = NULL;
+ 
+     /* Calculate the binary checksum. */
+-    retval = k5_sha256(message, cksum);
++    retval = k5_sha256(message, 1, cksum);
+     if (retval)
+         return retval;
+ 

@@ -1,0 +1,50 @@
+From 4a6acd381e96b776013f1d62270c0f6de27feec1 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Thu, 14 Feb 2019 10:17:39 -0600
+Subject: [PATCH 21/24] cmd/internal/goobj: fix TestParseCGOArchive for
+ aix/ppc64
+
+---
+ src/cmd/internal/goobj/goobj_test.go | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/src/cmd/internal/goobj/goobj_test.go b/src/cmd/internal/goobj/goobj_test.go
+index 840b45c908..4a4d35a413 100644
+--- a/src/cmd/internal/goobj/goobj_test.go
++++ b/src/cmd/internal/goobj/goobj_test.go
+@@ -10,6 +10,7 @@ import (
+ 	"debug/pe"
+ 	"fmt"
+ 	"internal/testenv"
++	"internal/xcoff"
+ 	"io"
+ 	"io/ioutil"
+ 	"os"
+@@ -292,6 +293,24 @@ func TestParseCGOArchive(t *testing.T) {
+ 				}
+ 			}
+ 		}
++	case "aix":
++		c1 = "." + c1
++		c2 = "." + c2
++		for _, obj := range p.Native {
++			xf, err := xcoff.NewFile(obj)
++			if err != nil {
++				t.Fatal(err)
++			}
++			for _, s := range xf.Symbols {
++				switch s.Name {
++				case c1:
++					found1 = true
++				case c2:
++					found2 = true
++				}
++			}
++		}
++
+ 	default:
+ 		for _, obj := range p.Native {
+ 			ef, err := elf.NewFile(obj)
+-- 
+2.15.1
+

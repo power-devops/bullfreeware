@@ -1,0 +1,133 @@
+From bd76756930e0ddb8d4eebb262a89d08f9da4bcf0 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Fri, 25 Jan 2019 13:50:15 -0600
+Subject: [PATCH 16/24] net, os/user: allow build on aix/ppc64 with cgo
+
+---
+ src/net/cgo_aix.go            | 24 ++++++++++++++++++++++++
+ src/net/cgo_sockold.go        |  2 +-
+ src/net/cgo_unix.go           |  7 ++++++-
+ src/net/cgo_unix_test.go      |  2 +-
+ src/os/user/listgroups_aix.go | 13 +++++++++++++
+ src/os/user/user_test.go      |  3 +++
+ 6 files changed, 48 insertions(+), 3 deletions(-)
+ create mode 100644 src/net/cgo_aix.go
+ create mode 100644 src/os/user/listgroups_aix.go
+
+diff --git a/src/net/cgo_aix.go b/src/net/cgo_aix.go
+new file mode 100644
+index 0000000000..b7ede3c93e
+--- /dev/null
++++ b/src/net/cgo_aix.go
+@@ -0,0 +1,24 @@
++// Copyright 2011 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build cgo,!netgo
++
++package net
++
++/*
++#include <sys/types.h>
++#include <sys/socket.h>
++
++#include <netdb.h>
++*/
++import "C"
++
++import "unsafe"
++
++const cgoAddrInfoFlags = C.AI_CANONNAME
++
++func cgoNameinfoPTR(b []byte, sa *C.struct_sockaddr, salen C.socklen_t) (int, error) {
++	gerrno, err := C.getnameinfo(sa, C.size_t(salen), (*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)), nil, 0, C.NI_NAMEREQD)
++	return int(gerrno), err
++}
+diff --git a/src/net/cgo_sockold.go b/src/net/cgo_sockold.go
+index e629a09f9c..e1e642bb41 100644
+--- a/src/net/cgo_sockold.go
++++ b/src/net/cgo_sockold.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd netbsd openbsd
++// +build aix darwin dragonfly freebsd netbsd openbsd
+ 
+ package net
+ 
+diff --git a/src/net/cgo_unix.go b/src/net/cgo_unix.go
+index b7cbcfe77a..7a150d7baa 100644
+--- a/src/net/cgo_unix.go
++++ b/src/net/cgo_unix.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+@@ -14,6 +14,11 @@ package net
+ #include <netdb.h>
+ #include <unistd.h>
+ #include <string.h>
++
++// If nothing else defined EAI_OVERFLOW, make sure it has a value.
++#ifndef EAI_OVERFLOW
++#define EAI_OVERFLOW 0
++#endif
+ */
+ import "C"
+ 
+diff --git a/src/net/cgo_unix_test.go b/src/net/cgo_unix_test.go
+index c3eab5b3b2..99d79a60c4 100644
+--- a/src/net/cgo_unix_test.go
++++ b/src/net/cgo_unix_test.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff --git a/src/os/user/listgroups_aix.go b/src/os/user/listgroups_aix.go
+new file mode 100644
+index 0000000000..3c5522cb9c
+--- /dev/null
++++ b/src/os/user/listgroups_aix.go
+@@ -0,0 +1,13 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build cgo,!osusergo
++
++package user
++
++import "fmt"
++
++func listGroups(u *User) ([]string, error) {
++	return nil, fmt.Errorf("user: list groups for %s: not supported on AIX", u.Username)
++}
+diff --git a/src/os/user/user_test.go b/src/os/user/user_test.go
+index 2563077eb2..7a5492467d 100644
+--- a/src/os/user/user_test.go
++++ b/src/os/user/user_test.go
+@@ -129,6 +129,9 @@ func TestLookupGroup(t *testing.T) {
+ 
+ func TestGroupIds(t *testing.T) {
+ 	checkGroup(t)
++	if runtime.GOOS == "aix" {
++		t.Skip("skipping GroupIds, Not Yet Implemented on AIX")
++	}
+ 	if runtime.GOOS == "solaris" {
+ 		t.Skip("skipping GroupIds, see golang.org/issue/14709")
+ 	}
+-- 
+2.15.1
+

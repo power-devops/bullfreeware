@@ -1,0 +1,40 @@
+From 9724b7f409410a7c3cc0330089009d7b9aa92ae6 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Fri, 4 Jan 2019 17:00:15 -0500
+Subject: [PATCH] Use openssl's PRNG in FIPS mode
+
+---
+ src/lib/crypto/krb/prng.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/crypto/krb/prng.c b/src/lib/crypto/krb/prng.c
+index cb9ca9b98..f0e9984ca 100644
+--- a/src/lib/crypto/krb/prng.c
++++ b/src/lib/crypto/krb/prng.c
+@@ -26,6 +26,8 @@
+ 
+ #include "crypto_int.h"
+ 
++#include <openssl/rand.h>
++
+ krb5_error_code KRB5_CALLCONV
+ krb5_c_random_seed(krb5_context context, krb5_data *data)
+ {
+@@ -99,9 +101,16 @@ krb5_boolean
+ k5_get_os_entropy(unsigned char *buf, size_t len, int strong)
+ {
+     const char *device;
+-#if defined(__linux__) && defined(SYS_getrandom)
+     int r;
+ 
++    /* A wild FIPS mode appeared! */
++    if (FIPS_mode()) {
++        /* The return codes on this API are not good */
++        r = RAND_bytes(buf, len);
++        return r == 1;
++    }
++
++#if defined(__linux__) && defined(SYS_getrandom)
+     while (len > 0) {
+         /*
+          * Pull from the /dev/urandom pool, but require it to have been seeded.

@@ -1,0 +1,17 @@
+--- ././src/timezone/zic.c.ORIGIN	2018-11-23 11:33:45 +0100
++++ ././src/timezone/zic.c	2018-11-23 11:40:37 +0100
+@@ -8,6 +8,14 @@
+  *	  src/timezone/zic.c
+  */
+ 
++#if defined(_AIX) && defined(__xlc__) && defined(__ILP32__) && defined(__OPTIMIZE__)
++/* Some versions of XLC on AIX, 32bit, generate wrong code for
++ * routine writezone() when optimizing with -O3.
++ * This forces the optimization to -O2 when using -O2 or -O3 .
++ */
++#pragma option_override(writezone, "OPT(LEVEL,2)")
++#endif
++
+ #include "postgres_fe.h"
+ 
+ #include <fcntl.h>

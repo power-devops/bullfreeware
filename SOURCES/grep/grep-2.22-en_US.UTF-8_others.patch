@@ -1,0 +1,48 @@
+Index: grep-2.22/Makefile.am
+===================================================================
+--- grep-2.22.orig/Makefile.am	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/Makefile.am	2016-01-08 11:58:54.000000000 +0100
+@@ -75,7 +75,7 @@
+ 	    git log --pretty=format:'%aN%x00%aE'			\
+ 	      | $(ASSORT) -u;						\
+ 	  } | $(srcdir)/thanks-gen					\
+-	    | LC_ALL=en_US.UTF-8 sort -f;				\
++	    | LC_ALL=EN_US.UTF-8 sort -f;				\
+ 	  echo;								\
+ 	  printf ';; %s\n' 'Local Variables:' 'coding: utf-8' End:;	\
+ 	} > $@-t && chmod a-w $@-t && mv $@-t $@
+Index: grep-2.22/Makefile.in
+===================================================================
+--- grep-2.22.orig/Makefile.in	2015-11-02 02:15:53.000000000 +0100
++++ grep-2.22/Makefile.in	2016-01-08 11:58:54.000000000 +0100
+@@ -1705,7 +1705,7 @@
+ 	    git log --pretty=format:'%aN%x00%aE'			\
+ 	      | $(ASSORT) -u;						\
+ 	  } | $(srcdir)/thanks-gen					\
+-	    | LC_ALL=en_US.UTF-8 sort -f;				\
++	    | LC_ALL=EN_US.UTF-8 sort -f;				\
+ 	  echo;								\
+ 	  printf ';; %s\n' 'Local Variables:' 'coding: utf-8' End:;	\
+ 	} > $@-t && chmod a-w $@-t && mv $@-t $@
+Index: grep-2.22/configure
+===================================================================
+--- grep-2.22.orig/configure	2015-11-02 02:48:24.000000000 +0100
++++ grep-2.22/configure	2016-01-08 11:58:54.000000000 +0100
+@@ -26056,7 +26056,7 @@
+             mallopt (M_CHECK_ACTION, 2);
+ #endif
+ 
+-            if (setlocale (LC_ALL, "en_US.UTF-8"))
++            if (setlocale (LC_ALL, "EN_US.UTF-8"))
+               {
+                 {
+                   /* http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html
+@@ -29386,7 +29386,7 @@
+ 
+ int main ()
+ {
+-  setlocale (LC_ALL, "en_US.UTF-8");
++  setlocale (LC_ALL, "EN_US.UTF-8");
+ 
+   global = 0x12345678;
+   if (wctob (0x00FC) != -1)

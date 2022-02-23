@@ -1,0 +1,29 @@
+From 5f9e0a40b3e8af20f94a73425e2ead6a745d11ed Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 27 May 2021 13:04:01 +0200
+Subject: [PATCH] Include <alloca.h> when using alloca on AIX
+
+Using "#pragma alloca" only work with XLC, in order to enable alloca
+calls. Including <alloca.h> works for both GCC and XLC
+
+* dyn_load.c: Replace "#pragma alloca" by "#include <alloca.h>"
+---
+ dyn_load.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dyn_load.c b/dyn_load.c
+index e779532d..2d51af16 100644
+--- a/dyn_load.c
++++ b/dyn_load.c
+@@ -1207,7 +1207,7 @@ GC_INNER void GC_register_dynamic_libraries(void)
+ #endif /* HPUX */
+ 
+ #ifdef AIX
+-# pragma alloca
++# include <alloca.h>
+ # include <sys/ldr.h>
+ # include <sys/errno.h>
+   GC_INNER void GC_register_dynamic_libraries(void)
+-- 
+2.25.1
+

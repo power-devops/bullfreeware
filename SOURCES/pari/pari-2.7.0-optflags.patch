@@ -1,0 +1,11 @@
+--- config/get_cc
++++ config/get_cc
+@@ -91,7 +91,7 @@ if test -n "$__gnuc__"; then
+   cmd="$CC $CFLAGS $extraflag -fno-strict-aliasing -o $exe gnu.c"
+   . log_cmd
+   if test -s $exe; then
+-    OPTFLAGS="$OPTFLAGS -fno-strict-aliasing"
++    OPTFLAGS="@OPTFLAGS@ -fno-strict-aliasing"
+   fi
+   rm -f $exe $exe$exe_suff
+   KERNELCFLAGS=-funroll-loops

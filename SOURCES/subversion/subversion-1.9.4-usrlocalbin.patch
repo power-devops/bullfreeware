@@ -1,0 +1,52 @@
+diff -Nru OLD/subversion/libsvn_repos/repos.c NEW/subversion/libsvn_repos/repos.c
+--- OLD/subversion/libsvn_repos/repos.c	2016-08-09 15:44:54 +0200
++++ NEW/subversion/libsvn_repos/repos.c	2016-08-09 15:46:08 +0200
+@@ -979,7 +979,7 @@
+ ""                                                                           NL
+ "### This sets the PATH environment variable for the pre-commit hook."       NL
+ "[pre-commit]"                                                               NL
+-"PATH = /usr/local/bin:/usr/bin:/usr/sbin"                                   NL;
++"PATH = /opt/freeware/bin:/usr/local/bin:/usr/bin:/usr/sbin"                 NL;
+ 
+     SVN_ERR_W(svn_io_file_create(svn_dirent_join(repos->conf_path,
+                                                  SVN_REPOS__CONF_HOOKS_ENV \
+diff -Nru OLD/tools/server-side/svnpubsub/commit-hook.py NEW/tools/server-side/svnpubsub/commit-hook.py
+--- OLD/tools/server-side/svnpubsub/commit-hook.py	2016-08-09 15:45:04 +0200
++++ NEW/tools/server-side/svnpubsub/commit-hook.py	2016-08-09 15:47:00 +0200
+@@ -1,4 +1,4 @@
+-#!/usr/local/bin/python
++#!/opt/freeware/bin/python
+ #
+ # Licensed to the Apache Software Foundation (ASF) under one or more
+ # contributor license agreements.  See the NOTICE file distributed with
+@@ -16,8 +16,9 @@
+ # limitations under the License.
+ #
+ 
+-SVNLOOK="/usr/local/svn-install/current/bin/svnlook"
++#SVNLOOK="/usr/local/svn-install/current/bin/svnlook"
+ #SVNLOOK="/usr/local/bin/svnlook"
++SVNLOOK="/opt/freeware/bin/svnlook"
+ 
+ HOST="127.0.0.1"
+ PORT=2069
+diff -Nru OLD/tools/server-side/svnpubsub/revprop-change-hook.py NEW/tools/server-side/svnpubsub/revprop-change-hook.py
+--- OLD/tools/server-side/svnpubsub/revprop-change-hook.py	2016-08-09 15:45:15 +0200
++++ NEW/tools/server-side/svnpubsub/revprop-change-hook.py	2016-08-09 15:47:20 +0200
+@@ -1,4 +1,4 @@
+-#!/usr/local/bin/python
++#!/opt/freeware/bin/python
+ #
+ # Licensed to the Apache Software Foundation (ASF) under one or more
+ # contributor license agreements.  See the NOTICE file distributed with
+@@ -16,8 +16,9 @@
+ # limitations under the License.
+ #
+ 
+-SVNLOOK="/usr/local/svn-install/current/bin/svnlook"
++#SVNLOOK="/usr/local/svn-install/current/bin/svnlook"
+ #SVNLOOK="/usr/local/bin/svnlook"
++SVNLOOK="/opt/freeware/bin/svnlook"
+ 
+ HOST="127.0.0.1"
+ PORT=2069

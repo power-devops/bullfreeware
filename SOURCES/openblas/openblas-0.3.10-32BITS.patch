@@ -1,0 +1,17 @@
+--- ./kernel/power/cgemm_kernel_8x4_power8.S.orig	2020-06-29 09:42:15 +0200
++++ ./kernel/power/cgemm_kernel_8x4_power8.S	2020-06-29 09:54:15 +0200
+@@ -424,7 +424,7 @@
+ 	lwz	r16,  204(SP)
+ 	lwz	r15,  208(SP)
+ 	lwz	r14,  212(SP)
+-        addi    r11, 224
++        addi    r11, SP, 224
+ #endif
+         lvx     v20, r11, r0
+         addi    r11, r11, 16
+@@ -459,4 +459,4 @@
+ 	blr
+ 
+ 	EPILOGUE
+-#endif^
++#endif

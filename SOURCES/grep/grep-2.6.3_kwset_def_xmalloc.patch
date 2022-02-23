@@ -1,0 +1,13 @@
+Index: grep-2.6.3/src/kwset.c
+===================================================================
+--- grep-2.6.3.orig/src/kwset.c	2010-04-01 10:15:35.000000000 +0200
++++ grep-2.6.3/src/kwset.c	2010-06-01 17:33:12.000000000 +0200
+@@ -40,7 +40,7 @@
+ #ifdef GREP
+ # include "xalloc.h"
+ # undef malloc
+-# define malloc(s) xmalloc(s)
++# define malloc xmalloc
+ #endif
+ 
+ #define NCHAR (UCHAR_MAX + 1)

@@ -1,0 +1,57 @@
+From 4e2b4d7fb2343ea5a05fcb9da821b6912ca86893 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 10 Apr 2019 16:29:57 +0200
+Subject: [PATCH] runtime: move libcall to stack for syscall package on aix/ppc64
+
+Inside syscall_syscall6 function, libcall can directly be on the stack.
+This is first function called with //go:nosplit, unlike runtime syscalls
+which can be called during the sigtramp or by others //go:nosplit
+functions.
+
+Change-Id: Icc28def1a63e525850ec3bfb8184b995dfeaa736
+Reviewed-on: https://go-review.googlesource.com/c/go/+/171338
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/syscall_aix.go b/src/runtime/syscall_aix.go
+index 7f2bcbe..1ed1dfa 100644
+--- a/src/runtime/syscall_aix.go
++++ b/src/runtime/syscall_aix.go
+@@ -69,11 +69,13 @@
+ }
+ 
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall_syscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
+-	c := getg().m.libcall
+-	c.fn = uintptr(unsafe.Pointer(fn))
+-	c.n = nargs
+-	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++	c := libcall{
++		fn:   fn,
++		n:    nargs,
++		args: uintptr(unsafe.Pointer(&a1)),
++	}
+ 
+ 	entersyscallblock()
+ 	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
+@@ -82,11 +84,13 @@
+ }
+ 
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall_rawSyscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
+-	c := getg().m.libcall
+-	c.fn = uintptr(unsafe.Pointer(fn))
+-	c.n = nargs
+-	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++	c := libcall{
++		fn:   fn,
++		n:    nargs,
++		args: uintptr(unsafe.Pointer(&a1)),
++	}
+ 
+ 	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
+ 

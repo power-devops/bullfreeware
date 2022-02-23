@@ -1,0 +1,11 @@
+--- ./CPP/myWindows/config.h_orig	2020-02-25 12:23:10 +0000
++++ ./CPP/myWindows/config.h	2020-02-24 21:16:06 +0000
+@@ -42,7 +42,7 @@
+ 
+     #define ENV_HAVE_GETPASS
+ 
+-    #if !defined(sun)
++    #if !defined(sun) && !defined(_AIX)
+       #define ENV_HAVE_TIMEGM
+     #endif
+ 

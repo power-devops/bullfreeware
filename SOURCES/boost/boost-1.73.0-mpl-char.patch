@@ -1,0 +1,9 @@
+--- ../libs/mpl/test/char.cpp.ORIGIN	2020-06-16 08:36:47 -0500
++++ ../libs/mpl/test/char.cpp	2020-06-16 08:36:58 -0500
+@@ -20,5 +20,5 @@
+ MPL_TEST_CASE()
+ {
+ #   define WRAPPER(T, i) char_<i>
+-    BOOST_PP_REPEAT(10, INTEGRAL_WRAPPER_TEST, char)
++    BOOST_PP_REPEAT(10, INTEGRAL_WRAPPER_TEST, signed char)
+ }

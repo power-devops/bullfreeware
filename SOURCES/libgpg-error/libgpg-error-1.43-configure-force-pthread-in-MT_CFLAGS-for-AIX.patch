@@ -1,0 +1,46 @@
+From d6654495bc600d4167159cdba56f036491392a1e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 8 Nov 2021 11:18:55 +0100
+Subject: [PATCH] configure: force -pthread in MT_CFLAGS for AIX
+
+This is more a workaround than a true fix. The problem is that
+configure is using THREADLIB_CPPFLAGS as CFLAGS for pthread.
+But it should be coupled with THREADLIBS or a flag like this.
+
+This patch is needed not for libgpg-error but for gpgme.
+---
+ configure       | 3 ++-
+ m4/threadlib.m4 | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index 64b99de..f62fe6c 100755
+--- a/configure
++++ b/configure
+@@ -5190,7 +5190,8 @@ fi
+     # need special flags to disable these optimizations. For example, the
+     # definition of 'errno' in <errno.h>.
+     case "$host_os" in
+-      aix* | freebsd*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_THREAD_SAFE" ;;
++      aix*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -pthread -D_THREAD_SAFE" ;;
++      freebsd*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_THREAD_SAFE" ;;
+       solaris*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_REENTRANT" ;;
+     esac
+     gl_anythreadlib_early_done=done
+diff --git a/m4/threadlib.m4 b/m4/threadlib.m4
+index 6a24e49..9a0dc3d 100644
+--- a/m4/threadlib.m4
++++ b/m4/threadlib.m4
+@@ -70,7 +70,8 @@ AC_DEFUN([gl_ANYTHREADLIB_EARLY],
+     # need special flags to disable these optimizations. For example, the
+     # definition of 'errno' in <errno.h>.
+     case "$host_os" in
+-      aix* | freebsd*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_THREAD_SAFE" ;;
++      aix*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -pthread -D_THREAD_SAFE" ;;
++      freebsd*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_THREAD_SAFE" ;;
+       solaris*) THREADLIB_CPPFLAGS="$THREADLIB_CPPFLAGS -D_REENTRANT" ;;
+     esac
+     gl_anythreadlib_early_done=done
+-- 
+2.33.1
+

@@ -1,0 +1,11 @@
+--- a/source3/smbd/msdfs.c	2020-10-22 10:09:44 +0200
++++ b/source3/smbd/msdfs.c	2020-10-22 10:10:01 +0200
+@@ -624,7 +624,7 @@
+ 			char **pp_link_target)
+ {
+ 	int referral_len = 0;
+-#if defined(HAVE_BROKEN_READLINK)
++#if defined(HAVE_BROKEN_READLINK) || defined(_AIX)
+ 	char link_target_buf[PATH_MAX];
+ #else
+ 	char link_target_buf[7];

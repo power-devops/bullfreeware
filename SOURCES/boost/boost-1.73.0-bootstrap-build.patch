@@ -1,0 +1,18 @@
+--- ./tools/build/src/engine/build.sh.ORIGIN	2020-04-27 19:11:32 -0500
++++ ./tools/build/src/engine/build.sh	2020-04-27 19:14:13 -0500
+@@ -79,7 +79,7 @@
+ {
+     if ! test $NO_CXX11_CHECK ; then
+         case $1 in
+-            gcc) ( ${CXX:=g++} -x c++ -std=c++11 check_cxx11.cpp && rm -f a.out ) 1>/dev/null 2>/dev/null ;;
++            gcc) ( ${CXX:=g++} -x c++ -std=c++11 -pthread check_cxx11.cpp && rm -f a.out ) 1>/dev/null 2>/dev/null ;;
+             intel-darwin) ( ${CXX:=icc} -xc++ check_cxx11.cpp && rm -f a.out ) 1>/dev/null 2>/dev/null ;;
+             intel-linux) ( ${CXX:=icc} -xc++ check_cxx11.cpp && rm -f a.out ) 1>/dev/null 2>/dev/null ;;
+             vacpp) ( ${CXX:=xlC_r} check_cxx11.cpp && rm -f a.out ) 1>/dev/null 2>/dev/null ;;
+@@ -492,5 +492,5 @@
+ if check_debug_build "$@" ; then B2_CXXFLAGS="${B2_CXXFLAGS_DEBUG}"
+ else B2_CXXFLAGS="${B2_CXXFLAGS_RELEASE} -DNDEBUG"
+ fi
+-echo_run ${B2_CXX} ${CXXFLAGS} ${B2_CXXFLAGS} ${B2_SOURCES} -o b2
++echo_run ${B2_CXX} ${CXXFLAGS} ${B2_CXXFLAGS} ${B2_SOURCES} -pthread -o b2
+ echo_run cp b2 bjam

@@ -1,0 +1,24 @@
+--- vim70/src/syntax.c.syn1	2006-04-26 14:49:45.000000000 +0200
++++ vim70/src/syntax.c	2006-09-19 13:15:41.000000000 +0200
+@@ -6176,8 +6176,8 @@
+ 	     "Visual term=reverse guibg=LightGrey"),
+ #endif
+ #ifdef FEAT_DIFF
+-	CENT("DiffAdd term=bold ctermbg=LightBlue",
+-	     "DiffAdd term=bold ctermbg=LightBlue guibg=LightBlue"),
++	CENT("DiffAdd term=bold ctermbg=LightRed",
++	     "DiffAdd term=bold ctermbg=LightRed guibg=LightBlue"),
+ 	CENT("DiffChange term=bold ctermbg=LightMagenta",
+ 	     "DiffChange term=bold ctermbg=LightMagenta guibg=LightMagenta"),
+ 	CENT("DiffDelete term=bold ctermfg=Blue ctermbg=LightCyan",
+@@ -6256,8 +6256,8 @@
+ 	     "Visual term=reverse guibg=DarkGrey"),
+ #endif
+ #ifdef FEAT_DIFF
+-	CENT("DiffAdd term=bold ctermbg=DarkBlue",
+-	     "DiffAdd term=bold ctermbg=DarkBlue guibg=DarkBlue"),
++	CENT("DiffAdd term=bold ctermbg=DarkRed",
++	     "DiffAdd term=bold ctermbg=DarkRed guibg=DarkBlue"),
+ 	CENT("DiffChange term=bold ctermbg=DarkMagenta",
+ 	     "DiffChange term=bold ctermbg=DarkMagenta guibg=DarkMagenta"),
+ 	CENT("DiffDelete term=bold ctermfg=Blue ctermbg=DarkCyan",

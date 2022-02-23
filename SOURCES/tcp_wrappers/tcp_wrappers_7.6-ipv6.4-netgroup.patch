@@ -1,0 +1,13 @@
+Index: tcp_wrappers_7.6-ipv6.4/Makefile
+===================================================================
+--- tcp_wrappers_7.6-ipv6.4.orig/Makefile	2013-03-18 15:16:15.000000000 +0100
++++ tcp_wrappers_7.6-ipv6.4/Makefile	2013-03-18 15:18:41.000000000 +0100
+@@ -144,7 +144,7 @@
+ linux:
+ 	@make REAL_DAEMON_DIR=$(REAL_DAEMON_DIR) STYLE=$(STYLE) \
+ 	LIBS= RANLIB=ranlib ARFLAGS=rv AUX_OBJ= \
+-	NETGROUP= TLI= EXTRA_CFLAGS="-DBROKEN_SO_LINGER -DUSE_STRERROR" all
++	NETGROUP="-DNETGROUP" TLI= EXTRA_CFLAGS="-DBROKEN_SO_LINGER -DUSE_STRERROR" all
+ 
+ # This is good for many SYSV+BSD hybrids with NIS, probably also for HP-UX 7.x.
+ hpux hpux8 hpux9 hpux10:

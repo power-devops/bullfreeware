@@ -1,0 +1,348 @@
+diff -up libgcrypt-1.8.5/cipher/camellia-aesni-avx2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/camellia-aesni-avx2-amd64.S
+--- libgcrypt-1.8.5/cipher/camellia-aesni-avx2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/camellia-aesni-avx2-amd64.S	2020-01-23 15:36:44.148972045 +0100
+@@ -18,8 +18,9 @@
+  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+  */
+ 
+-#ifdef __x86_64
+ #include <config.h>
++
++#ifdef __x86_64
+ #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
+     defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
+diff -up libgcrypt-1.8.5/cipher/camellia-aesni-avx-amd64.S.intel-cet libgcrypt-1.8.5/cipher/camellia-aesni-avx-amd64.S
+--- libgcrypt-1.8.5/cipher/camellia-aesni-avx-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/camellia-aesni-avx-amd64.S	2020-01-23 15:36:44.145972088 +0100
+@@ -18,8 +18,9 @@
+  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+  */
+ 
+-#ifdef __x86_64
+ #include <config.h>
++
++#ifdef __x86_64
+ #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
+     defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
+diff -up libgcrypt-1.8.5/cipher/chacha20-avx2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/chacha20-avx2-amd64.S
+--- libgcrypt-1.8.5/cipher/chacha20-avx2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/chacha20-avx2-amd64.S	2020-01-23 15:36:16.780250066 +0100
+@@ -48,6 +48,9 @@
+ .globl _gcry_chacha20_amd64_avx2_blocks
+ ELF(.type  _gcry_chacha20_amd64_avx2_blocks,@function;)
+ _gcry_chacha20_amd64_avx2_blocks:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lchacha_blocks_avx2_local:
+ 	vzeroupper
+ 	pushq %rbx
+diff -up libgcrypt-1.8.5/cipher/chacha20-sse2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/chacha20-sse2-amd64.S
+--- libgcrypt-1.8.5/cipher/chacha20-sse2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/chacha20-sse2-amd64.S	2020-01-23 15:36:16.783250095 +0100
+@@ -41,6 +41,9 @@
+ .globl _gcry_chacha20_amd64_sse2_blocks
+ ELF(.type  _gcry_chacha20_amd64_sse2_blocks,@function;)
+ _gcry_chacha20_amd64_sse2_blocks:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lchacha_blocks_sse2_local:
+ 	pushq %rbx
+ 	pushq %rbp
+diff -up libgcrypt-1.8.5/cipher/poly1305-avx2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/poly1305-avx2-amd64.S
+--- libgcrypt-1.8.5/cipher/poly1305-avx2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/poly1305-avx2-amd64.S	2020-01-23 15:36:16.784250105 +0100
+@@ -43,6 +43,9 @@
+ .globl _gcry_poly1305_amd64_avx2_init_ext
+ ELF(.type  _gcry_poly1305_amd64_avx2_init_ext,@function;)
+ _gcry_poly1305_amd64_avx2_init_ext:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_init_ext_avx2_local:
+ 	xor %edx, %edx
+ 	vzeroupper
+@@ -406,6 +409,9 @@ ELF(.size _gcry_poly1305_amd64_avx2_init
+ .globl _gcry_poly1305_amd64_avx2_blocks
+ ELF(.type  _gcry_poly1305_amd64_avx2_blocks,@function;)
+ _gcry_poly1305_amd64_avx2_blocks:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_blocks_avx2_local:
+ 	vzeroupper
+ 	pushq %rbp
+@@ -732,6 +738,9 @@ ELF(.size _gcry_poly1305_amd64_avx2_bloc
+ .globl _gcry_poly1305_amd64_avx2_finish_ext
+ ELF(.type  _gcry_poly1305_amd64_avx2_finish_ext,@function;)
+ _gcry_poly1305_amd64_avx2_finish_ext:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_finish_ext_avx2_local:
+ 	vzeroupper
+ 	pushq %rbp
+diff -up libgcrypt-1.8.5/cipher/poly1305-sse2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/poly1305-sse2-amd64.S
+--- libgcrypt-1.8.5/cipher/poly1305-sse2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/poly1305-sse2-amd64.S	2020-01-23 15:36:16.787250134 +0100
+@@ -42,6 +42,9 @@
+ .globl _gcry_poly1305_amd64_sse2_init_ext
+ ELF(.type  _gcry_poly1305_amd64_sse2_init_ext,@function;)
+ _gcry_poly1305_amd64_sse2_init_ext:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_init_ext_x86_local:
+ 	xor %edx, %edx
+ 	pushq %r12
+@@ -288,6 +291,9 @@ ELF(.size _gcry_poly1305_amd64_sse2_init
+ .globl _gcry_poly1305_amd64_sse2_finish_ext
+ ELF(.type  _gcry_poly1305_amd64_sse2_finish_ext,@function;)
+ _gcry_poly1305_amd64_sse2_finish_ext:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_finish_ext_x86_local:
+ 	pushq %rbp
+ 	movq %rsp, %rbp
+@@ -439,6 +445,9 @@ ELF(.size _gcry_poly1305_amd64_sse2_fini
+ .globl _gcry_poly1305_amd64_sse2_blocks
+ ELF(.type  _gcry_poly1305_amd64_sse2_blocks,@function;)
+ _gcry_poly1305_amd64_sse2_blocks:
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ .Lpoly1305_blocks_x86_local:
+ 	pushq %rbp
+ 	movq %rsp, %rbp
+diff -up libgcrypt-1.8.5/cipher/serpent-avx2-amd64.S.intel-cet libgcrypt-1.8.5/cipher/serpent-avx2-amd64.S
+--- libgcrypt-1.8.5/cipher/serpent-avx2-amd64.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/cipher/serpent-avx2-amd64.S	2020-01-23 15:36:44.151972003 +0100
+@@ -18,8 +18,9 @@
+  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+  */
+ 
+-#ifdef __x86_64
+ #include <config.h>
++
++#ifdef __x86_64
+ #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SERPENT) && \
+     defined(ENABLE_AVX2_SUPPORT)
+diff -up libgcrypt-1.8.5/configure.ac.intel-cet libgcrypt-1.8.5/configure.ac
+--- libgcrypt-1.8.5/configure.ac.intel-cet	2019-08-29 15:00:08.000000000 +0200
++++ libgcrypt-1.8.5/configure.ac	2020-01-23 15:35:28.147774463 +0100
+@@ -95,6 +95,12 @@ AH_TOP([
+ AH_BOTTOM([
+ #define _GCRYPT_IN_LIBGCRYPT 1
+ 
++/* Add .note.gnu.property section for Intel CET in assembler sources
++   when CET is enabled.  */
++#if defined(__ASSEMBLER__) && defined(__CET__)
++# include <cet.h>
++#endif
++
+ /* If the configure check for endianness has been disabled, get it from
+    OS macros.  This is intended for making fat binary builds on OS X.  */
+ #ifdef DISABLED_ENDIAN_CHECK
+diff -up libgcrypt-1.8.5/mpi/config.links.intel-cet libgcrypt-1.8.5/mpi/config.links
+--- libgcrypt-1.8.5/mpi/config.links.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/mpi/config.links	2020-01-23 15:35:46.398952954 +0100
+@@ -382,6 +382,16 @@ if test x"$mpi_cpu_arch" = x ; then
+     mpi_cpu_arch="unknown"
+ fi
+ 
++# Add .note.gnu.property section for Intel CET in assembler sources
++# when CET is enabled.  */
++if test x"$mpi_cpu_arch" = xx86 ; then
++    cat <<EOF >> ./mpi/asm-syntax.h
++
++#if defined(__ASSEMBLER__) && defined(__CET__)
++# include <cet.h>
++#endif
++EOF
++fi
+ 
+ # Make sysdep.h
+ echo '/* created by config.links - do not edit */' >./mpi/sysdep.h
+diff -up libgcrypt-1.8.5/mpi/i386/mpih-add1.S.intel-cet libgcrypt-1.8.5/mpi/i386/mpih-add1.S
+--- libgcrypt-1.8.5/mpi/i386/mpih-add1.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/mpi/i386/mpih-add1.S	2020-01-23 15:37:40.470175379 +0100
+@@ -52,6 +52,10 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
+ 	movl 20(%esp),%edx		/* s2_ptr */
+ 	movl 24(%esp),%ecx		/* size */
+ 
++#if defined __CET__ && (__CET__ & 1) != 0
++	pushl	%ebx
++#endif
++
+ 	movl	%ecx,%eax
+ 	shrl	$3,%ecx 		/* compute count for unrolled loop */
+ 	negl	%eax
+@@ -63,6 +67,9 @@ C_SYMBOL_NAME(_gcry_mpih_add_n:)
+ 	subl	%eax,%esi		/* ... by a constant when we ... */
+ 	subl	%eax,%edx		/* ... enter the loop */
+ 	shrl	$2,%eax 		/* restore previous value */
++#if defined __CET__ && (__CET__ & 1) != 0
++	leal	-4(,%eax,4),%ebx	/* Count for 4-byte endbr32 */
++#endif
+ #ifdef PIC
+ /* Calculate start address in loop for PIC.  Due to limitations in some
+    assemblers, Loop-L0-3 cannot be put into the leal */
+@@ -75,29 +82,53 @@ L0:	leal	(%eax,%eax,8),%eax
+ /* Calculate start address in loop for non-PIC.  */
+ 	leal	(Loop - 3)(%eax,%eax,8),%eax
+ #endif
++#if defined __CET__ && (__CET__ & 1) != 0
++	addl	%ebx,%eax		/* Adjust for endbr32 */
++#endif
+ 	jmp	*%eax			/* jump into loop */
+ 	ALIGN (3)
+ Loop:	movl	(%esi),%eax
+ 	adcl	(%edx),%eax
+ 	movl	%eax,(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	4(%esi),%eax
+ 	adcl	4(%edx),%eax
+ 	movl	%eax,4(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	8(%esi),%eax
+ 	adcl	8(%edx),%eax
+ 	movl	%eax,8(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	12(%esi),%eax
+ 	adcl	12(%edx),%eax
+ 	movl	%eax,12(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	16(%esi),%eax
+ 	adcl	16(%edx),%eax
+ 	movl	%eax,16(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	20(%esi),%eax
+ 	adcl	20(%edx),%eax
+ 	movl	%eax,20(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	24(%esi),%eax
+ 	adcl	24(%edx),%eax
+ 	movl	%eax,24(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	28(%esi),%eax
+ 	adcl	28(%edx),%eax
+ 	movl	%eax,28(%edi)
+@@ -110,6 +141,10 @@ Loop:	movl	(%esi),%eax
+ 	sbbl	%eax,%eax
+ 	negl	%eax
+ 
++#if defined __CET__ && (__CET__ & 1) != 0
++	popl	%ebx
++#endif
++
+ 	popl %esi
+ 	popl %edi
+ 	ret
+diff -up libgcrypt-1.8.5/mpi/i386/mpih-sub1.S.intel-cet libgcrypt-1.8.5/mpi/i386/mpih-sub1.S
+--- libgcrypt-1.8.5/mpi/i386/mpih-sub1.S.intel-cet	2017-11-23 19:16:58.000000000 +0100
++++ libgcrypt-1.8.5/mpi/i386/mpih-sub1.S	2020-01-23 15:37:40.472175351 +0100
+@@ -53,6 +53,10 @@ C_SYMBOL_NAME(_gcry_mpih_sub_n:)
+ 	movl 20(%esp),%edx		/* s2_ptr */
+ 	movl 24(%esp),%ecx		/* size */
+ 
++#if defined __CET__ && (__CET__ & 1) != 0
++	pushl	%ebx
++#endif
++
+ 	movl	%ecx,%eax
+ 	shrl	$3,%ecx 		/* compute count for unrolled loop */
+ 	negl	%eax
+@@ -64,6 +68,9 @@ C_SYMBOL_NAME(_gcry_mpih_sub_n:)
+ 	subl	%eax,%esi		/* ... by a constant when we ... */
+ 	subl	%eax,%edx		/* ... enter the loop */
+ 	shrl	$2,%eax 		/* restore previous value */
++#if defined __CET__ && (__CET__ & 1) != 0
++	leal	-4(,%eax,4),%ebx	/* Count for 4-byte endbr32 */
++#endif
+ #ifdef PIC
+ /* Calculate start address in loop for PIC.  Due to limitations in some
+    assemblers, Loop-L0-3 cannot be put into the leal */
+@@ -76,29 +83,53 @@ L0:	leal	(%eax,%eax,8),%eax
+ /* Calculate start address in loop for non-PIC.  */
+ 	leal	(Loop - 3)(%eax,%eax,8),%eax
+ #endif
++#if defined __CET__ && (__CET__ & 1) != 0
++	addl	%ebx,%eax		/* Adjust for endbr32 */
++#endif
+ 	jmp	*%eax			/* jump into loop */
+ 	ALIGN (3)
+ Loop:	movl	(%esi),%eax
+ 	sbbl	(%edx),%eax
+ 	movl	%eax,(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	4(%esi),%eax
+ 	sbbl	4(%edx),%eax
+ 	movl	%eax,4(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	8(%esi),%eax
+ 	sbbl	8(%edx),%eax
+ 	movl	%eax,8(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	12(%esi),%eax
+ 	sbbl	12(%edx),%eax
+ 	movl	%eax,12(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	16(%esi),%eax
+ 	sbbl	16(%edx),%eax
+ 	movl	%eax,16(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	20(%esi),%eax
+ 	sbbl	20(%edx),%eax
+ 	movl	%eax,20(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	24(%esi),%eax
+ 	sbbl	24(%edx),%eax
+ 	movl	%eax,24(%edi)
++#ifdef _CET_ENDBR
++	_CET_ENDBR
++#endif
+ 	movl	28(%esi),%eax
+ 	sbbl	28(%edx),%eax
+ 	movl	%eax,28(%edi)
+@@ -111,6 +142,10 @@ Loop:	movl	(%esi),%eax
+ 	sbbl	%eax,%eax
+ 	negl	%eax
+ 
++#if defined __CET__ && (__CET__ & 1) != 0
++	popl	%ebx
++#endif
++
+ 	popl %esi
+ 	popl %edi
+ 	ret

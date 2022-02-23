@@ -1,0 +1,116 @@
+From 70eabcedaefc51b57c7cd25bfc36bda5ed01fefb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 31 Jan 2020 11:29:55 +0100
+Subject: [PATCH] auditbeat/module/file_integrity: disable xxhash
+
+---
+ auditbeat/module/file_integrity/config.go      |  4 ++--
+ auditbeat/module/file_integrity/event.go       |  6 +++---
+ auditbeat/module/file_integrity/event_test.go  |  2 +-
+ auditbeat/module/file_integrity/flatbuffers.go | 10 +++++-----
+ auditbeat/module/file_integrity/schema.fbs     |  2 +-
+ 5 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/auditbeat/module/file_integrity/config.go b/auditbeat/module/file_integrity/config.go
+index 6b76deb..409ef46 100644
+--- a/auditbeat/module/file_integrity/config.go
++++ b/auditbeat/module/file_integrity/config.go
+@@ -44,7 +44,7 @@ var validHashes = []HashType{
+ 	SHA1,
+ 	SHA224, SHA256, SHA384, SHA512, SHA512_224, SHA512_256,
+ 	SHA3_224, SHA3_256, SHA3_384, SHA3_512,
+-	XXH64,
++	// XXH64,
+ }
+ 
+ // Enum of hash types.
+@@ -64,7 +64,7 @@ const (
+ 	SHA512      HashType = "sha512"
+ 	SHA512_224  HashType = "sha512_224"
+ 	SHA512_256  HashType = "sha512_256"
+-	XXH64       HashType = "xxh64"
++	// XXH64       HashType = "xxh64"
+ )
+ 
+ // Config contains the configuration parameters for the file integrity
+diff --git a/auditbeat/module/file_integrity/event.go b/auditbeat/module/file_integrity/event.go
+index 27178b1..6eb4103 100644
+--- a/auditbeat/module/file_integrity/event.go
++++ b/auditbeat/module/file_integrity/event.go
+@@ -33,7 +33,7 @@ import (
+ 	"strconv"
+ 	"time"
+ 
+-	"github.com/OneOfOne/xxhash"
++	// "github.com/OneOfOne/xxhash"
+ 	"github.com/pkg/errors"
+ 	"golang.org/x/crypto/blake2b"
+ 	"golang.org/x/crypto/sha3"
+@@ -395,8 +395,8 @@ func hashFile(name string, hashType ...HashType) (map[HashType]Digest, error) {
+ 			hashes = append(hashes, sha512.New512_224())
+ 		case SHA512_256:
+ 			hashes = append(hashes, sha512.New512_256())
+-		case XXH64:
+-			hashes = append(hashes, xxhash.New64())
++		// case XXH64:
++		// 	hashes = append(hashes, xxhash.New64())
+ 		default:
+ 			return nil, errors.Errorf("unknown hash type '%v'", name)
+ 		}
+diff --git a/auditbeat/module/file_integrity/event_test.go b/auditbeat/module/file_integrity/event_test.go
+index 953de92..43526a9 100644
+--- a/auditbeat/module/file_integrity/event_test.go
++++ b/auditbeat/module/file_integrity/event_test.go
+@@ -189,7 +189,7 @@ func TestHashFile(t *testing.T) {
+ 			SHA3_256:    mustDecodeHex("3cb5385a2987ca45888d7877fbcf92b4854f7155ae19c96cecc7ea1300c6f5a4"),
+ 			SHA3_384:    mustDecodeHex("f19539818b4f29fa0ee599db4113fd81b77cd1119682e6d799a052849d2e40ef0dad84bc947ba2dee742d9731f1b9e9b"),
+ 			SHA3_512:    mustDecodeHex("f0a2c0f9090c1fd6dedf211192e36a6668d2b3c7f57a35419acb1c4fc7dfffc267bbcd90f5f38676caddcab652f6aacd1ed4e0ad0a8e1e4b98f890b62b6c7c5c"),
+-			XXH64:       mustDecodeHex("d3e8573b7abf279a"),
++			// XXH64:       mustDecodeHex("d3e8573b7abf279a"),
+ 		}
+ 
+ 		f, err := ioutil.TempFile("", "input.txt")
+diff --git a/auditbeat/module/file_integrity/flatbuffers.go b/auditbeat/module/file_integrity/flatbuffers.go
+index b9291ec..9c14a9a 100644
+--- a/auditbeat/module/file_integrity/flatbuffers.go
++++ b/auditbeat/module/file_integrity/flatbuffers.go
+@@ -112,8 +112,8 @@ func fbWriteHash(b *flatbuffers.Builder, hashes map[HashType]Digest) flatbuffers
+ 			schema.HashAddSha512224(b, offset)
+ 		case SHA512_256:
+ 			schema.HashAddSha512256(b, offset)
+-		case XXH64:
+-			schema.HashAddXx64(b, offset)
++			// case XXH64:
++			// 	schema.HashAddXx64(b, offset)
+ 		}
+ 	}
+ 	return schema.HashEnd(b)
+@@ -328,9 +328,9 @@ func fbDecodeHash(e *schema.Event) map[HashType]Digest {
+ 		case SHA512_256:
+ 			length = hash.Sha512256Length()
+ 			producer = hash.Sha512256
+-		case XXH64:
+-			length = hash.Xx64Length()
+-			producer = hash.Xx64
++		// case XXH64:
++		// 	length = hash.Xx64Length()
++		// 	producer = hash.Xx64
+ 		default:
+ 			panic(errors.Errorf("unhandled hash type: %v", hashType))
+ 		}
+diff --git a/auditbeat/module/file_integrity/schema.fbs b/auditbeat/module/file_integrity/schema.fbs
+index b22efd5..1afbcd0 100644
+--- a/auditbeat/module/file_integrity/schema.fbs
++++ b/auditbeat/module/file_integrity/schema.fbs
+@@ -58,7 +58,7 @@ table Hash {
+   blake2b_384: [byte];
+   blake2b_512: [byte];
+ 
+-  xxh64: [byte];
++  // xxh64: [byte];
+ }
+ 
+ table Event {
+-- 
+2.22.0
+

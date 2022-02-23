@@ -1,0 +1,2950 @@
+From 904a5789da342857a50de5874fe6aae1f96cbc5c Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Mon, 16 Jul 2018 15:35:15 -0400
+Subject: [PATCH] Eliminate preprocessor-disabled dead code
+
+It's been policy for a while now not to create "dead hunks" like
+these.  A great deal of this code simply doesn't work because it
+hasn't been kept up-to-date, and may never have worked.  Eliminate
+these dead hunks along with the complexity to support them.
+
+(cherry picked from commit 2bc951d3c88b460a16249115cbd51d69c3c57e22)
+[rharwood@redhat.com: context skew]
+---
+ src/ccapi/common/win/OldCC/ccutils.c          |  6 --
+ src/ccapi/common/win/OldCC/ccutils.h          |  3 -
+ src/ccapi/common/win/OldCC/opts.cxx           | 39 ----------
+ src/ccapi/common/win/OldCC/secure.hxx         |  6 --
+ src/ccapi/common/win/OldCC/util.h             |  3 -
+ src/ccapi/lib/win/OldCC/client.cxx            | 39 ----------
+ src/ccapi/lib/win/ccapi_os_ipc.cxx            | 15 ----
+ src/ccapi/lib/win/ccs_reply_proc.c            |  8 +-
+ src/ccapi/lib/win/dllmain.cxx                 | 12 +--
+ src/ccapi/server/win/ccs_os_server.cpp        | 23 +-----
+ src/ccapi/server/win/ccs_request_proc.c       | 12 +--
+ src/ccapi/server/win/ccs_win_pipe.c           |  4 +-
+ src/ccapi/test/pingtest.c                     |  6 --
+ src/clients/ksu/authorization.c               | 17 -----
+ src/config/win-post.in                        |  8 --
+ src/include/gssrpc/auth.h                     | 15 ----
+ src/include/gssrpc/rename.h                   | 26 +------
+ src/include/gssrpc/rpc.h                      | 25 -------
+ src/include/gssrpc/types.hin                  |  7 --
+ src/include/k5-platform.h                     | 28 +------
+ src/kadmin/dbutil/kdb5_util.c                 | 38 ----------
+ src/kadmin/server/ipropd_svc.c                | 29 -------
+ src/kdc/kdc_log.c                             |  8 --
+ src/kdc/kdc_preauth.c                         | 13 ----
+ src/lib/apputils/net-server.c                 | 27 -------
+ src/lib/crypto/builtin/des/destest.c          |  4 -
+ src/lib/crypto/builtin/des/t_verify.c         | 24 ------
+ src/lib/crypto/builtin/pbkdf2.c               | 38 +---------
+ src/lib/crypto/builtin/sha1/t_shs.c           | 15 ----
+ src/lib/crypto/crypto_tests/t_cksums.c        |  4 -
+ src/lib/crypto/crypto_tests/t_crc.c           | 45 +----------
+ src/lib/crypto/crypto_tests/t_cts.c           | 27 -------
+ src/lib/crypto/crypto_tests/t_decrypt.c       |  4 -
+ src/lib/crypto/crypto_tests/t_derive.c        |  4 -
+ src/lib/crypto/crypto_tests/t_hmac.c          | 11 ---
+ src/lib/crypto/crypto_tests/t_str2key.c       |  4 -
+ src/lib/crypto/crypto_tests/vectors.c         |  5 --
+ src/lib/crypto/krb/nfold.c                    | 10 ---
+ src/lib/gssapi/generic/util_set.c             | 15 ----
+ src/lib/gssapi/krb5/accept_sec_context.c      | 11 ---
+ src/lib/gssapi/krb5/gssapi_krb5.c             | 28 -------
+ src/lib/gssapi/krb5/naming_exts.c             | 10 ---
+ src/lib/gssapi/mechglue/g_initialize.c        | 25 -------
+ src/lib/gssapi/mechglue/g_inq_cred.c          |  5 --
+ src/lib/gssapi/mechglue/mglueP.h              |  5 --
+ src/lib/kadm5/clnt/client_init.c              | 48 +-----------
+ src/lib/kadm5/srv/server_init.c               | 11 ---
+ src/lib/kadm5/unit-test/setkey-test.c         |  9 ---
+ src/lib/krb5/asn.1/ldap_key_seq.c             |  3 -
+ src/lib/krb5/ccache/ccapi/stdcc.c             | 58 --------------
+ src/lib/krb5/ccache/ccapi/winccld.h           | 36 ---------
+ src/lib/krb5/keytab/t_keytab.c                | 13 ----
+ src/lib/krb5/krb/gc_via_tkt.c                 | 11 ---
+ src/lib/krb5/krb/init_ctx.c                   |  7 --
+ src/lib/krb5/krb/rd_req_dec.c                 | 31 +-------
+ src/lib/krb5/krb/t_ser.c                      | 75 +------------------
+ src/lib/krb5/krb/unparse.c                    |  7 --
+ src/lib/krb5/os/localaddr.c                   | 22 ------
+ src/lib/krb5/rcache/rc_io.c                   |  4 -
+ src/lib/rpc/auth_gssapi.c                     |  8 --
+ src/lib/rpc/svc_auth.c                        |  3 -
+ src/lib/rpc/svc_auth_gssapi.c                 |  4 -
+ src/lib/win_glue.c                            |  9 ---
+ src/plugins/kdb/db2/lockout.c                 |  4 -
+ src/plugins/kdb/ldap/libkdb_ldap/ldap_realm.c |  3 -
+ src/plugins/preauth/pkinit/pkinit_clnt.c      | 18 -----
+ src/plugins/preauth/pkinit/pkinit_matching.c  | 11 ---
+ src/plugins/preauth/pkinit/pkinit_srv.c       | 18 -----
+ src/tests/asn.1/krb5_decode_leak.c            | 12 ---
+ src/tests/dejagnu/config/default.exp          | 20 -----
+ src/tests/shlib/t_loader.c                    | 12 ---
+ src/tests/threads/t_rcache.c                  |  6 --
+ src/util/profile/prof_file.c                  | 43 -----------
+ src/util/support/fake-addrinfo.c              |  6 --
+ src/util/support/utf8.c                       | 22 ------
+ src/windows/include/loadfuncs-krb5.h          | 23 ------
+ src/windows/kfwlogon/kfwlogon.c               | 11 ---
+ src/windows/leash/Leash.cpp                   |  4 -
+ src/windows/leash/Makefile.in                 |  3 -
+ src/windows/leash/VSroutines.c                | 64 ----------------
+ src/windows/leashdll/lsh_pwd.c                | 11 ---
+ src/windows/leashdll/lshfunc.c                | 32 +-------
+ src/windows/leashdll/lshutil.cpp              | 11 ---
+ src/windows/lib/cacheapi.h                    | 15 ----
+ 84 files changed, 23 insertions(+), 1396 deletions(-)
+ delete mode 100644 src/windows/leash/VSroutines.c
+
+diff --git a/src/ccapi/common/win/OldCC/ccutils.c b/src/ccapi/common/win/OldCC/ccutils.c
+index 13f72cbe0..403c67ebe 100644
+--- a/src/ccapi/common/win/OldCC/ccutils.c
++++ b/src/ccapi/common/win/OldCC/ccutils.c
+@@ -101,9 +101,6 @@ HANDLE createThreadEvent(char* uuid, char* suffix) {
+         event_name = allocEventName(uuid, suffix);
+         if (!event_name) status = cci_check_error(ccErrNoMem);
+         }
+-#if 0
+-    cci_debug_printf("%s event_name:%s", __FUNCTION__, event_name);
+-#endif
+     if (!status) {
+         hEvent = CreateEvent(psa, FALSE, FALSE, event_name);
+         if (!hEvent)     status = cci_check_error(GetLastError());
+@@ -125,9 +122,6 @@ HANDLE openThreadEvent(char* uuid, char* suffix) {
+ 
+     event_name = allocEventName(uuid, suffix);
+     if (!event_name) status = cci_check_error(ccErrNoMem);
+-#if 0
+-    cci_debug_printf("%s event_name:%s", __FUNCTION__, event_name);
+-#endif
+     if (!status) {
+         hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, event_name);
+         if (!hEvent) status = cci_check_error(GetLastError());
+diff --git a/src/ccapi/common/win/OldCC/ccutils.h b/src/ccapi/common/win/OldCC/ccutils.h
+index f91c77702..9da3d87fd 100644
+--- a/src/ccapi/common/win/OldCC/ccutils.h
++++ b/src/ccapi/common/win/OldCC/ccutils.h
+@@ -29,9 +29,6 @@
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+-#if 0
+-}
+-#endif
+ 
+ #define REPLY_SUFFIX    (char*)"reply"
+ #define LISTEN_SUFFIX   (char*)"listen"
+diff --git a/src/ccapi/common/win/OldCC/opts.cxx b/src/ccapi/common/win/OldCC/opts.cxx
+index bd5f503ea..c9776638b 100644
+--- a/src/ccapi/common/win/OldCC/opts.cxx
++++ b/src/ccapi/common/win/OldCC/opts.cxx
+@@ -29,45 +29,6 @@
+ #include <stdlib.h>
+ #include <opts.hxx>
+ 
+-#if 0
+-const struct Opts*
+-GetOpts(
+-    )
+-{
+-    bool done = false;
+-    struct Opts* o;
+-    if (!(o = new Opts))
+-        goto cleanup;
+-    if (!(o->pszString = new char[lstrlenA(opts.pszString) + 1]))
+-        goto cleanup;
+-    if (!(o->pszEndpoint = new char[lstrlenA(opts.pszEndpoint) + 1]))
+-        goto cleanup;
+-    strcpy(o->pszString, opts.pszString);
+-    strcpy(o->pszEndpoint, opts.pszEndpoint);
+-    done = true;
+- cleanup:
+-    if (!done) {
+-        FreeOpts(o);
+-        o = 0;
+-    }
+-    return o;
+-}
+-
+-void
+-FreeOpts(
+-    struct Opts* o
+-    )
+-{
+-    if (o) {
+-        if (o->pszString)
+-            delete [] o->pszString;
+-        if (o->pszEndpoint)
+-            delete [] o->pszEndpoint;
+-        delete o;
+-    }
+-}
+-#endif
+-
+ bool
+ ParseOpts::IsValidOpt(
+     char ch
+diff --git a/src/ccapi/common/win/OldCC/secure.hxx b/src/ccapi/common/win/OldCC/secure.hxx
+index 3714c6f84..1b2e7532d 100644
+--- a/src/ccapi/common/win/OldCC/secure.hxx
++++ b/src/ccapi/common/win/OldCC/secure.hxx
+@@ -38,12 +38,6 @@ public:
+     static void Start(SecureClient*& s);
+     static void Stop(SecureClient*& s);
+ 
+-#if 0
+-    static DWORD CheckImpersonation();
+-    static bool IsImp();
+-    static DWORD DuplicateImpAsPrimary(HANDLE& hPrimary);
+-#endif
+-
+     SecureClient();
+     ~SecureClient();
+     DWORD Error();
+diff --git a/src/ccapi/common/win/OldCC/util.h b/src/ccapi/common/win/OldCC/util.h
+index 082f6080b..45e069a71 100644
+--- a/src/ccapi/common/win/OldCC/util.h
++++ b/src/ccapi/common/win/OldCC/util.h
+@@ -29,9 +29,6 @@
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+-#if 0
+-}
+-#endif
+ 
+ BOOL isNT();
+ 
+diff --git a/src/ccapi/lib/win/OldCC/client.cxx b/src/ccapi/lib/win/OldCC/client.cxx
+index 4b2d718cc..0f95dfceb 100644
+--- a/src/ccapi/lib/win/OldCC/client.cxx
++++ b/src/ccapi/lib/win/OldCC/client.cxx
+@@ -118,9 +118,6 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
+     char*               szDir       = 0;
+     BOOL                bRes        = FALSE;
+     char*               cmdline     = NULL;
+-#if 0
+-    HANDLE hToken = 0;
+-#endif
+ 
+     psa = isNT() ? &sa : 0;
+ 
+@@ -156,38 +153,6 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
+             }
+ 
+         if (!status) {
+-
+-#if 0
+-            if (SecureClient::IsImp()) {
+-                cci_debug_printf(STARTUP "Token is impersonation token"));
+-                SecureClient::DuplicateImpAsPrimary(hToken);
+-                } 
+-            else {
+-                cci_debug_printf(STARTUP "Token is NOT impersonation token"));
+-                }
+-#endif
+-
+-#if 0
+-            if (hToken)
+-                bRes = CreateProcessAsUser(hToken,
+-                                       szExe, // app name
+-                                       NULL, // cmd line
+-                                       psa, // SA
+-                                       psa, // SA
+-                                       FALSE, 
+-                                       CREATE_NEW_PROCESS_GROUP | 
+-                                       //CREATE_NEW_CONSOLE |
+-                                       NORMAL_PRIORITY_CLASS |
+-                                       // CREATE_NO_WINDOW |
+-                                       DETACHED_PROCESS |
+-                                       0
+-                                       ,
+-                                       NULL, // environment
+-                                       szDir, // current dir
+-                                       &si,
+-                                       &pi);
+-            else
+-#endif
+                 alloc_cmdline_2_args(szExe, endpoint, "-D", &cmdline);
+                 bRes = CreateProcess(  szExe,       // app name
+                                        NULL, //cmdline,     // cmd line is <server endpoint -[DC]>
+@@ -223,10 +188,6 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
+             cci_debug_printf("  unexpected error while looking for server: 0D%d / 0U%u / 0X%X", status, status, status);
+             } 
+ 
+-#if 0
+-    if (hToken)
+-        CloseHandle(hToken);
+-#endif
+     if (szDir)                      free_alloc_p(&szDir);
+     if (szExe)                      free_alloc_p(&szExe);
+     if (hEvent)                     CloseHandle(hEvent);
+diff --git a/src/ccapi/lib/win/ccapi_os_ipc.cxx b/src/ccapi/lib/win/ccapi_os_ipc.cxx
+index 35589a54f..1b1f874e9 100644
+--- a/src/ccapi/lib/win/ccapi_os_ipc.cxx
++++ b/src/ccapi/lib/win/ccapi_os_ipc.cxx
+@@ -132,9 +132,6 @@ extern "C" cc_int32 cci_os_ipc_thread_init (void) {
+         cci_check_error(err);
+         }
+ 
+-#if 0
+-    cci_debug_printf("%s UUID:<%s>", __FUNCTION__, tspdata_getUUID(ptspdata));
+-#endif
+     // Initialize old CCAPI if necessary:
+     if (!err) if (!Init::  Initialized()) err = Init::  Initialize( );
+     if (!err) if (!Client::Initialized()) err = Client::Initialize(0);
+@@ -243,10 +240,6 @@ extern "C" cc_int32 cci_os_ipc_msg( cc_int32        in_launch_server,
+             if (!GetTspData(GetTlsIndex(), &ptspdata)) {return ccErrBadParam;}
+             uuid    = tspdata_getUUID(ptspdata);
+             lenUUID = 1 + strlen(uuid);     /* 1+ includes terminating \0. */
+-#if 0
+-            cci_debug_printf("%s calling remote ccs_rpc_request tsp*:0x%X", __FUNCTION__, ptspdata);
+-            cci_debug_printf("  rpcmsg:%d; UUID[%d]:<%s> SST:%ld", in_msg, lenUUID, uuid, sst);
+-#endif
+             /* copy ptr into handle; ptr may be 4 or 8 bytes, depending on platform; handle is always 8 */
+             memcpy(tspdata_handle, &ptspdata, sizeof(ptspdata));
+             ccs_rpc_request(                    /* make call with user message: */
+@@ -282,11 +275,6 @@ extern "C" cc_int32 cci_os_ipc_msg( cc_int32        in_launch_server,
+     if (!err && server_died) {
+         err = cci_check_error (ccErrServerUnavailable);
+         }
+-#if 0    
+-    if (err == BOOTSTRAP_UNKNOWN_SERVICE && !in_launch_server) {
+-        err = ccNoError;  /* If the server is not running just return an empty stream. */
+-        }
+-#endif
+ 
+     if (!err) {
+         *out_reply_stream = tspdata_getStream(ptspdata);
+@@ -365,9 +353,6 @@ cc_int32 ccapi_connect(const struct tspdata* tsp) {
+     ReleaseMutex(hCCAPIv2Mutex);       
+ 
+     if (!status) {
+-#if 0
+-        cci_debug_printf("%s Waiting for replyEvent.", __FUNCTION__);
+-#endif
+         status = WaitForSingleObject(replyEvent, INFINITE);//(SECONDS_TO_WAIT)*1000);
+         status = cci_check_error(RpcMgmtIsServerListening(CLIENT_REQUEST_RPC_HANDLE));
+         cci_debug_printf("  Server %sFOUND!", (status) ? "NOT " : "");
+diff --git a/src/ccapi/lib/win/ccs_reply_proc.c b/src/ccapi/lib/win/ccs_reply_proc.c
+index bf8c7f4f4..b4dbc0d19 100644
+--- a/src/ccapi/lib/win/ccs_reply_proc.c
++++ b/src/ccapi/lib/win/ccs_reply_proc.c
+@@ -47,9 +47,7 @@ void ccs_rpc_request_reply(
+     struct tspdata* tsp;
+     k5_ipc_stream    stream;
+     long            status  = 0;
+-#if 0
+-    cci_debug_printf("%s! msg#:%d SST:%ld uuid:%s", __FUNCTION__, rpcmsg, srvStartTime, uuid);
+-#endif
++
+     memcpy(&tsp, tspHandle, sizeof(tsp));
+     if (!status) {
+         status = krb5int_ipc_stream_new (&stream);  /* Create a stream for the request data */
+@@ -77,9 +75,7 @@ void ccs_rpc_connect_reply(
+ 
+     HANDLE  hEvent  = openThreadEvent(uuid, REPLY_SUFFIX);
+     DWORD*  p       = (DWORD*)(tspHandle);
+-#if 0
+-    cci_debug_printf("%s! msg#:%d SST:%ld uuid:%s", __FUNCTION__, rpcmsg, srvStartTime, uuid);
+-#endif
++
+     SetEvent(hEvent);
+     CloseHandle(hEvent);
+     }
+diff --git a/src/ccapi/lib/win/dllmain.cxx b/src/ccapi/lib/win/dllmain.cxx
+index 82cacad9c..aa5d00a65 100644
+--- a/src/ccapi/lib/win/dllmain.cxx
++++ b/src/ccapi/lib/win/dllmain.cxx
+@@ -163,17 +163,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,     // DLL module handle
+             // using multiple DLLs that use this DLL.
+             //
+             WaitForSingleObject( hCCAPIv2Mutex, INFINITE );
+-#if 0
+-            bool process_teardown_workaround = false;
+-            if (lpvReserved) {
+-                Init::InitInfo info;
+-                status = Init::Info(info);
+-                if (status) break;
+-                if (!info.isNT) process_teardown_workaround = true;
+-            }
+-            if (process_teardown_workaround)
+-                break;
+-#endif
++
+             // return value is ignored, so we set status for debugging purposes
+             status = Client::Cleanup();
+             status = Init::Cleanup();
+diff --git a/src/ccapi/server/win/ccs_os_server.cpp b/src/ccapi/server/win/ccs_os_server.cpp
+index f84239491..7c5012039 100644
+--- a/src/ccapi/server/win/ccs_os_server.cpp
++++ b/src/ccapi/server/win/ccs_os_server.cpp
+@@ -245,10 +245,7 @@ cc_int32 ccs_os_server_listen_loop (int argc, const char *argv[]) {
+ 
+             if (worklist_remove(&rpcmsg, &pipe, &buf, &serverStartTime)) {
+                 uuid = ccs_win_pipe_getUuid(pipe);
+-#if 0
+-                cci_debug_printf("%s: processing WorkItem msg:%ld pipeUUID:<%s> pipeHandle:0x%X SST:%ld",
+-                    __FUNCTION__, rpcmsg, uuid, ccs_win_pipe_getHandle(pipe), serverStartTime);
+-#endif
++
+                 if (serverStartTime <= getMySST()) {
+                     switch (rpcmsg) {
+                         case CCMSG_CONNECT: {
+@@ -472,13 +469,6 @@ void    receiveLoop(void* rpcargs) {
+     }   // End receiveLoop
+ 
+ 
+-#if 0
+-
+-    return status;
+-}
+-#endif
+-
+-
+ 
+ /* ------------------------------------------------------------------------ */
+ /* The connection listener thread waits forever for a call to the CCAPI_CLIENT_<UUID>
+@@ -647,17 +637,6 @@ RPC_STATUS send_connection_reply(ccs_pipe_t in_pipe) {
+     return (status);
+     }
+ 
+-#if 0
+-DWORD alloc_name(LPSTR* pname, LPSTR postfix) {
+-    DWORD len = strlen(sessID) + 1 + strlen(postfix) + 1;
+-
+-    *pname = (LPSTR)malloc(len);
+-    if (!*pname) return GetLastError();
+-    _snprintf(*pname, len, "%s.%s", sessID, postfix);
+-    return 0;
+-    }
+-#endif
+-
+ RPC_STATUS GetPeerName( RPC_BINDING_HANDLE hClient,
+                         LPTSTR pszClientName,
+                         int iMaxLen) {
+diff --git a/src/ccapi/server/win/ccs_request_proc.c b/src/ccapi/server/win/ccs_request_proc.c
+index 461c441ed..c0328ea7e 100644
+--- a/src/ccapi/server/win/ccs_request_proc.c
++++ b/src/ccapi/server/win/ccs_request_proc.c
+@@ -45,9 +45,7 @@ void ccs_rpc_request(
+     k5_ipc_stream   stream;
+     UINT64*         p       = (UINT64*)(tspHandle);
+     WIN_PIPE*       pipe    = NULL;
+-#if 0
+-    cci_debug_printf("%s rpcmsg:%d; UUID:<%s> SST:<%s>", __FUNCTION__, rpcmsg, pszUUID, serverStartTime);
+-#endif
++
+     status = (rpcmsg != CCMSG_REQUEST) && (rpcmsg != CCMSG_PING);
+ 
+     if (!status) {
+@@ -72,9 +70,7 @@ void ccs_rpc_connect(
+ 
+     UINT64*     p       = (UINT64*)(tspHandle);
+     WIN_PIPE*   pipe    = ccs_win_pipe_new(pszUUID, *p);
+-#if 0
+-    cci_debug_printf("%s; rpcmsg:%d; UUID: <%s>", __FUNCTION__, rpcmsg, pszUUID);
+-#endif
++
+     worklist_add(   rpcmsg,
+                     pipe,
+                     NULL,               /* No payload with connect request */
+@@ -89,9 +85,7 @@ CC_UINT32 ccs_authenticate(const CC_CHAR* name) {
+     PDWORD      pvalue  = 0;
+     CC_UINT32   result  = 0;
+     DWORD       status  = 0;
+-#if 0
+-    cci_debug_printf("%s ( %s )", __FUNCTION__, name);
+-#endif
++
+     hMap = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, (LPSTR)name);
+     status  = !hMap;
+ 
+diff --git a/src/ccapi/server/win/ccs_win_pipe.c b/src/ccapi/server/win/ccs_win_pipe.c
+index d23e4448e..99c667017 100644
+--- a/src/ccapi/server/win/ccs_win_pipe.c
++++ b/src/ccapi/server/win/ccs_win_pipe.c
+@@ -61,9 +61,7 @@ struct ccs_win_pipe_t* ccs_win_pipe_new (const char* uuid, const UINT64 h) {
+         out_pipe->uuid          = uuidCopy;
+         out_pipe->clientHandle  = h;
+         }
+-#if 0
+-    cci_debug_printf("0x%X = %s(%s, 0x%X)", out_pipe, __FUNCTION__, uuid, h);
+-#endif
++
+     return out_pipe;
+     }
+ 
+diff --git a/src/ccapi/test/pingtest.c b/src/ccapi/test/pingtest.c
+index d44839f71..0ffc15e7a 100644
+--- a/src/ccapi/test/pingtest.c
++++ b/src/ccapi/test/pingtest.c
+@@ -74,12 +74,6 @@ int main(   int argc, char *argv[]) {
+ 
+     if ((dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) return FALSE;
+ 
+-//    send_test("krbcc.229026.0.ep");
+-
+-#if 0
+-    err = cc_initialize(&context, ccapi_version_7, NULL, NULL);
+-#endif
+-
+     if (!err) {
+         err = cci_os_ipc_thread_init();
+         }
+diff --git a/src/clients/ksu/authorization.c b/src/clients/ksu/authorization.c
+index 90aafbd75..891921870 100644
+--- a/src/clients/ksu/authorization.c
++++ b/src/clients/ksu/authorization.c
+@@ -123,23 +123,6 @@ krb5_error_code krb5_authorization(context, principal, luser,
+                 "In krb5_authorization: if auth files exist -> can access\n");
+     }
+ 
+-#if 0
+-    if (cmd){
+-        if(k5users_flag){
+-            return 0; /* if  kusers does not exist -> done */
+-        }else{
+-            if(retval = k5users_lookup(users_fp,princname,
+-                                       cmd,&retbool,out_fcmd)){
+-                auth_cleanup(users_fp, login_fp, princname);
+-                return retval;
+-            }else{
+-                *ok =retbool;
+-                return retval;
+-            }
+-        }
+-    }
+-#endif
+-
+     /* if either file exists,
+        first see if the principal is in the login in file,
+        if it's not there check the k5users file */
+diff --git a/src/config/win-post.in b/src/config/win-post.in
+index 6535c1ba5..3f43bda77 100644
+--- a/src/config/win-post.in
++++ b/src/config/win-post.in
+@@ -121,14 +121,6 @@ clean-windows-files:
+ !else
+ 	@if exist $(OUTPRE3)$(DIRNUL) deltree /y $(OUTPRE3)
+ !endif
+-!if 0
+-	$(RM) .\$(OUTPRE)*.obj .\$(OUTPRE)*.res
+-	$(RM) .\$(OUTPRE)*.exe .\$(OUTPRE)*.dll
+-	$(RM) .\$(OUTPRE)*.lib .\$(OUTPRE)*.pdb
+-	$(RM) .\$(OUTPRE)*.exp .\$(OUTPRE)*.map
+-	$(RM) .\$(OUTPRE)*.idb .\$(OUTPRE)*.ilk
+-	$(RM) .\$(OUTPRE)*.manifest
+-!endif
+ 
+ # Dependencies
+ !if exist($(srcdir)/deps)
+diff --git a/src/include/gssrpc/auth.h b/src/include/gssrpc/auth.h
+index 0f653fcc7..8576c5142 100644
+--- a/src/include/gssrpc/auth.h
++++ b/src/include/gssrpc/auth.h
+@@ -75,12 +75,6 @@ enum auth_stat {
+ };
+ 
+ union des_block {
+-#if 0 /* XXX nothing uses this, anyway */
+-	struct {
+-		uint32_t high;
+-		uint32_t low;
+-	} key;
+-#endif
+ 	char c[8];
+ };
+ typedef union des_block des_block;
+@@ -207,15 +201,6 @@ extern bool_t xdr_opaque_auth(XDR *, struct opaque_auth *);
+ #define AUTH_GSSAPI	300001		/* GSS-API style */
+ #define RPCSEC_GSS	6		/* RPCSEC_GSS */
+ 
+-#if 0
+-/*
+- * BACKWARDS COMPATIBILIY!  OpenV*Secure 1.0 had AUTH_GSSAPI == 4.  We
+- * need to accept this value until 1.0 is dead.
+- */
+-/* This conflicts with AUTH_KERB (Solaris). */
+-#define AUTH_GSSAPI_COMPAT		4
+-#endif
+-
+ GSSRPC__END_DECLS
+ 
+ #endif /* !defined(GSSRPC_AUTH_H) */
+diff --git a/src/include/gssrpc/rename.h b/src/include/gssrpc/rename.h
+index 669a0580c..df37e95b7 100644
+--- a/src/include/gssrpc/rename.h
++++ b/src/include/gssrpc/rename.h
+@@ -50,10 +50,7 @@
+  * External names in the RPC API not beginning with "_" get renamed
+  * with the prefix "gssrpc_" via #define, e.g., "foo" -> "gssrpc_foo".
+  * External names in the RPC API beginning with "_" get textually
+- * rewritten, with "#if 0"-disabled #defines mapping them back to
+- * their original forms, e.g., "_foo" is rewrittten to "gssrpc__foo"
+- * in the original files, with an unused "#define gssrpc__foo _foo"
+- * here.
++ * rewritten.
+  */
+ 
+ #ifndef GSSRPC_RENAME_H
+@@ -72,10 +69,6 @@
+ #define authdes_create		gssrpc_authdes_create
+ #define xdr_opaque_auth		gssrpc_xdr_opaque_auth
+ 
+-#if 0
+-#define gssrpc__null_auth	_null_auth
+-#endif
+-
+ /* auth_gss.c */
+ 
+ #define auth_debug_gss		gssrpc_auth_debug_gss
+@@ -181,10 +174,6 @@
+ #define callrpc			gssrpc_callrpc
+ #define getrpcport		gssrpc_getrpcport
+ 
+-#if 0
+-#define gssrpc__rpc_getdtablesize	_rpc_getdtablesize
+-#endif
+-
+ /* rpc_msg.h */
+ 
+ #define xdr_callmsg		gssrpc_xdr_callmsg
+@@ -193,10 +182,6 @@
+ #define xdr_accepted_reply	gssrpc_xdr_accepted_reply
+ #define xdr_rejected_reply	gssrpc_xdr_rejected_reply
+ 
+-#if 0
+-#define gssrpc__seterr_reply	_seterr_reply
+-#endif
+-
+ /* svc.h */
+ 
+ #define svc_register		gssrpc_svc_register
+@@ -244,15 +229,6 @@
+ #define svcauth_gss_set_svc_name	gssrpc_svcauth_gss_set_svc_name
+ #define svcauth_gss_get_principal	gssrpc_svcauth_gss_get_principal
+ 
+-#if 0
+-#define gssrpc__authenticate	_authenticate
+-#define gssrpc__svcauth_none	_svcauth_none
+-#define gssrpc__svcauth_unix	_svcauth_unix
+-#define gssrpc__svcauth_short	_svcauth_short
+-#define gssrpc__svcauth_gssapi	_svcauth_gssapi
+-#define gssrpc__svcauth_gss	_svcauth_gss
+-#endif
+-
+ /* svc_auth_gss.c */
+ 
+ #define svc_debug_gss		gssrpc_svc_debug_gss
+diff --git a/src/include/gssrpc/rpc.h b/src/include/gssrpc/rpc.h
+index 2d94a7fe9..78727c49d 100644
+--- a/src/include/gssrpc/rpc.h
++++ b/src/include/gssrpc/rpc.h
+@@ -55,36 +55,11 @@
+ #include <gssrpc/rpc_msg.h>	/* protocol for rpc messages */
+ #include <gssrpc/auth_unix.h>	/* protocol for unix style cred */
+ #include <gssrpc/auth_gss.h>	/* RPCSEC_GSS */
+-/*
+- *  Uncomment-out the next line if you are building the rpc library with
+- *  DES Authentication (see the README file in the secure_rpc/ directory).
+- */
+-#if 0
+-#include <gssrpc/auth_des.h>	protocol for des style cred
+-#endif
+ 
+ /* Server side only remote procedure callee */
+ #include <gssrpc/svc_auth.h>	/* service side authenticator */
+ #include <gssrpc/svc.h>		/* service manager and multiplexer */
+ 
+-/*
+- * Punt the rpc/netdb.h everywhere because it just makes things much more
+- * difficult.  We don't use the *rpcent functions anyway.
+- */
+-#if 0
+-/*
+- * COMMENT OUT THE NEXT INCLUDE IF RUNNING ON SUN OS OR ON A VERSION
+- * OF UNIX BASED ON NFSSRC.  These systems will already have the structures
+- * defined by <rpc/netdb.h> included in <netdb.h>.
+- */
+-/* routines for parsing /etc/rpc */
+-#if 0 /* netdb.h already included in rpc/types.h */
+-#include <netdb.h>
+-#endif
+-
+-#include <gssrpc/netdb.h>	/* structures and routines to parse /etc/rpc */
+-#endif
+-
+ /*
+  * get the local host's IP address without consulting
+  * name service library functions
+diff --git a/src/include/gssrpc/types.hin b/src/include/gssrpc/types.hin
+index 022ab4fa9..4c4120c6f 100644
+--- a/src/include/gssrpc/types.hin
++++ b/src/include/gssrpc/types.hin
+@@ -116,13 +116,6 @@ typedef int32_t		rpc_inline_t;
+ #define mem_alloc(bsize)	malloc(bsize)
+ #define mem_free(ptr, bsize)	free(ptr)
+ 
+-#if 0
+-#include <netdb.h> /* XXX This should not have to be here.
+-		    * I got sick of seeing the warnings for MAXHOSTNAMELEN
+-		    * and the two values were different. -- shanzer
+-		    */
+-#endif
+-
+ #ifndef INADDR_LOOPBACK
+ #define       INADDR_LOOPBACK         (uint32_t)0x7F000001
+ #endif
+diff --git a/src/include/k5-platform.h b/src/include/k5-platform.h
+index 763408a09..3368c7193 100644
+--- a/src/include/k5-platform.h
++++ b/src/include/k5-platform.h
+@@ -526,15 +526,11 @@ typedef struct { int error; unsigned char did_run; } k5_init_t;
+ # endif
+ #elif TARGET_OS_MAC
+ # include <architecture/byte_order.h>
+-# if 0 /* This causes compiler warnings.  */
+-#  define SWAP16                OSSwapInt16
+-# else
+-#  define SWAP16                k5_swap16
++# define SWAP16                k5_swap16
+ static inline unsigned int k5_swap16 (unsigned int x) {
+     x &= 0xffff;
+     return (x >> 8) | ((x & 0xff) << 8);
+ }
+-# endif
+ # define SWAP32                 OSSwapInt32
+ # define SWAP64                 OSSwapInt64
+ #elif defined(HAVE_SYS_BSWAP_H)
+@@ -848,25 +844,6 @@ k5_ntohll (uint64_t val)
+    business.  Probably most callers won't check the return status
+    anyways.  */
+ 
+-#if 0
+-static inline void
+-set_cloexec_fd(int fd)
+-{
+-#if defined(F_SETFD)
+-# ifdef FD_CLOEXEC
+-    (void)fcntl(fd, F_SETFD, FD_CLOEXEC);
+-# else
+-    (void)fcntl(fd, F_SETFD, 1);
+-# endif
+-#endif
+-}
+-
+-static inline void
+-set_cloexec_file(FILE *f)
+-{
+-    return set_cloexec_fd(fileno(f));
+-}
+-#else
+ /* Macros make the Sun compiler happier, and all variants of this do a
+    single evaluation of the argument, and fcntl and fileno should
+    produce reasonable error messages on type mismatches, on any system
+@@ -881,9 +858,6 @@ set_cloexec_file(FILE *f)
+ # define set_cloexec_fd(FD)     ((void)(FD))
+ #endif
+ #define set_cloexec_file(F)     set_cloexec_fd(fileno(F))
+-#endif
+-
+-
+ 
+ /* Since the original ANSI C spec left it undefined whether or
+    how you could copy around a va_list, C 99 added va_copy.
+diff --git a/src/kadmin/dbutil/kdb5_util.c b/src/kadmin/dbutil/kdb5_util.c
+index 000b5595c..4ff1cdf38 100644
+--- a/src/kadmin/dbutil/kdb5_util.c
++++ b/src/kadmin/dbutil/kdb5_util.c
+@@ -358,44 +358,6 @@ int main(argc, argv)
+     return exit_status;
+ }
+ 
+-#if 0
+-/*
+- * This function is no longer used in kdb5_util (and it would no
+- * longer work, anyway).
+- */
+-void set_dbname(argc, argv)
+-    int argc;
+-    char *argv[];
+-{
+-    krb5_error_code retval;
+-
+-    if (argc < 3) {
+-        com_err(argv[0], 0, _("Too few arguments"));
+-        com_err(progname, 0, _("Usage: %s dbpathname realmname"), argv[0]);
+-        exit_status++;
+-        return;
+-    }
+-    if (dbactive) {
+-        if ((retval = krb5_db_fini(util_context)) && retval!= KRB5_KDB_DBNOTINITED) {
+-            com_err(progname, retval, _("while closing previous database"));
+-            exit_status++;
+-            return;
+-        }
+-        if (valid_master_key) {
+-            krb5_free_keyblock_contents(util_context, &master_keyblock);
+-            master_keyblock.contents = NULL;
+-            valid_master_key = 0;
+-        }
+-        krb5_free_principal(util_context, master_princ);
+-        free(mkey_fullname);
+-        dbactive = FALSE;
+-    }
+-
+-    (void) set_dbname_help(progname, argv[1]);
+-    return;
+-}
+-#endif
+-
+ /*
+  * open_db_and_mkey: Opens the KDC and policy database, and sets the
+  * global master_* variables.  Sets dbactive to TRUE if the databases
+diff --git a/src/kadmin/server/ipropd_svc.c b/src/kadmin/server/ipropd_svc.c
+index e6e190136..3228687c7 100644
+--- a/src/kadmin/server/ipropd_svc.c
++++ b/src/kadmin/server/ipropd_svc.c
+@@ -621,32 +621,3 @@ krb5_iprop_prog_1(struct svc_req *rqstp,
+     }
+ 
+ }
+-
+-#if 0
+-/*
+- * Get the host base service name for the kiprop principal. Returns
+- * KADM5_OK on success. Caller must free the storage allocated for
+- * host_service_name.
+- */
+-kadm5_ret_t
+-kiprop_get_adm_host_srv_name(krb5_context context,
+-			     const char *realm,
+-			     char **host_service_name)
+-{
+-    kadm5_ret_t ret;
+-    char *name;
+-    char *host;
+-
+-    if (ret = kadm5_get_master(context, realm, &host))
+-	return (ret);
+-
+-    if (asprintf(&name, "%s@%s", KIPROP_SVC_NAME, host) < 0) {
+-	free(host);
+-	return (ENOMEM);
+-    }
+-    free(host);
+-    *host_service_name = name;
+-
+-    return (KADM5_OK);
+-}
+-#endif
+diff --git a/src/kdc/kdc_log.c b/src/kdc/kdc_log.c
+index 7e8733980..4eec50373 100644
+--- a/src/kdc/kdc_log.c
++++ b/src/kdc/kdc_log.c
+@@ -94,14 +94,6 @@ log_as_req(krb5_context context,
+     krb5_db_audit_as_req(context, request,
+                          local_addr->address, remote_addr->address,
+                          client, server, authtime, errcode);
+-#if 0
+-    /* Sun (OpenSolaris) version would probably something like this.
+-       The client and server names passed can be null, unlike in the
+-       logging routines used above.  Note that a struct in_addr is
+-       used, but the real address could be an IPv6 address.  */
+-    audit_krb5kdc_as_req(some in_addr *, (in_port_t)remote_addr->port, 0,
+-                         cname, sname, errcode);
+-#endif
+ }
+ 
+ /*
+diff --git a/src/kdc/kdc_preauth.c b/src/kdc/kdc_preauth.c
+index 86b9e2991..811c16368 100644
+--- a/src/kdc/kdc_preauth.c
++++ b/src/kdc/kdc_preauth.c
+@@ -712,19 +712,6 @@ const char *missing_required_preauth(krb5_db_entry *client,
+                                      krb5_db_entry *server,
+                                      krb5_enc_tkt_part *enc_tkt_reply)
+ {
+-#if 0
+-    /*
+-     * If this is the pwchange service, and the pre-auth bit is set,
+-     * allow it even if the HW preauth would normally be required.
+-     *
+-     * Sandia national labs wanted this for some strange reason... we
+-     * leave it disabled normally.
+-     */
+-    if (isflagset(server->attributes, KRB5_KDB_PWCHANGE_SERVICE) &&
+-        isflagset(enc_tkt_reply->flags, TKT_FLG_PRE_AUTH))
+-        return 0;
+-#endif
+-
+ #ifdef DEBUG
+     krb5_klog_syslog (
+         LOG_DEBUG,
+diff --git a/src/lib/apputils/net-server.c b/src/lib/apputils/net-server.c
+index a40da927e..54ee4c5c5 100644
+--- a/src/lib/apputils/net-server.c
++++ b/src/lib/apputils/net-server.c
+@@ -1060,17 +1060,6 @@ process_packet(verto_ctx *ctx, verto_ev *ev)
+         return;
+     }
+ 
+-#if 0
+-    if (state->daddr_len > 0) {
+-        char addrbuf[100];
+-        if (getnameinfo(ss2sa(&state->daddr), state->daddr_len,
+-                        addrbuf, sizeof(addrbuf),
+-                        0, 0, NI_NUMERICHOST))
+-            strlcpy(addrbuf, "?", sizeof(addrbuf));
+-        com_err(conn->prog, 0, _("pktinfo says local addr is %s"), addrbuf);
+-    }
+-#endif
+-
+     if (state->daddr_len == 0 && conn->type == CONN_UDP) {
+         /*
+          * An address couldn't be obtained, so the PKTINFO option probably
+@@ -1116,11 +1105,6 @@ kill_lru_tcp_or_rpc_connection(void *handle, verto_ev *newev)
+             continue;
+         if (c->type != CONN_TCP && c->type != CONN_RPC)
+             continue;
+-#if 0
+-        krb5_klog_syslog(LOG_INFO, "fd %d started at %ld",
+-                         verto_get_fd(oldest_ev),
+-                         c->start_time);
+-#endif
+         if (oldest_c == NULL
+             || oldest_c->start_time > c->start_time) {
+             oldest_ev = ev;
+@@ -1186,10 +1170,6 @@ accept_tcp_connection(verto_ctx *ctx, verto_ev *ev)
+             strlcpy(p, tmpbuf, end - p);
+         }
+     }
+-#if 0
+-    krb5_klog_syslog(LOG_INFO, "accepted TCP connection on socket %d from %s",
+-                     s, newconn->addrbuf);
+-#endif
+ 
+     newconn->addr_s = addr_s;
+     newconn->addrlen = addrlen;
+@@ -1481,9 +1461,6 @@ accept_rpc_connection(verto_ctx *ctx, verto_ev *ev)
+         newconn = verto_get_private(newev);
+ 
+         set_cloexec_fd(s);
+-#if 0
+-        setnbio(s), setnolinger(s), setkeepalive(s);
+-#endif
+ 
+         if (getpeername(s, addr, &addrlen) ||
+             getnameinfo(addr, addrlen,
+@@ -1503,10 +1480,6 @@ accept_rpc_connection(verto_ctx *ctx, verto_ev *ev)
+                 strlcpy(p, tmpbuf, end - p);
+             }
+         }
+-#if 0
+-        krb5_klog_syslog(LOG_INFO, _("accepted RPC connection on socket %d "
+-                                     "from %s"), s, newconn->addrbuf);
+-#endif
+ 
+         newconn->addr_s = addr_s;
+         newconn->addrlen = addrlen;
+diff --git a/src/lib/crypto/builtin/des/destest.c b/src/lib/crypto/builtin/des/destest.c
+index dd2f68ec4..0d92b365b 100644
+--- a/src/lib/crypto/builtin/des/destest.c
++++ b/src/lib/crypto/builtin/des/destest.c
+@@ -67,9 +67,6 @@ main(argc, argv)
+     char *argv[];
+ {
+     char block1[17], block2[17], block3[17];
+-#if 0
+-    mit_des_cblock key, input, output, output2;
+-#else
+     /* Force tests of unaligned accesses.  */
+     union { unsigned char c[8*4+3]; long l; } u;
+     unsigned char *ioblocks = u.c;
+@@ -77,7 +74,6 @@ main(argc, argv)
+     unsigned char *output = ioblocks+10;
+     unsigned char *output2 = ioblocks+19;
+     unsigned char *key = ioblocks+27;
+-#endif
+     mit_des_key_schedule sched;
+     int num = 0;
+     int retval;
+diff --git a/src/lib/crypto/builtin/des/t_verify.c b/src/lib/crypto/builtin/des/t_verify.c
+index 1f3239fed..f4332f5c0 100644
+--- a/src/lib/crypto/builtin/des/t_verify.c
++++ b/src/lib/crypto/builtin/des/t_verify.c
+@@ -334,30 +334,6 @@ main(argc,argv)
+     exit(0);
+ }
+ 
+-#if 0
+-void
+-flip(array)
+-    char *array;
+-{
+-    register int old,new,i,j;
+-    /* flips the bit order within each byte from 0 lsb to 0 msb */
+-    for (i = 0; i<=7; i++) {
+-        old = *array;
+-        new = 0;
+-        for (j = 0; j<=7; j++) {
+-            if (old & 01)
+-                new = new | 01;
+-            if (j < 7) {
+-                old = old >> 1;
+-                new = new << 1;
+-            }
+-        }
+-        *array = new;
+-        array++;
+-    }
+-}
+-#endif
+-
+ static void
+ do_encrypt(in,out)
+     unsigned char *in;
+diff --git a/src/lib/crypto/builtin/pbkdf2.c b/src/lib/crypto/builtin/pbkdf2.c
+index d36b32e7e..8905f2671 100644
+--- a/src/lib/crypto/builtin/pbkdf2.c
++++ b/src/lib/crypto/builtin/pbkdf2.c
+@@ -102,11 +102,6 @@ F(char *output, char *u_tmp1, char *u_tmp2,
+     krb5_data out;
+     krb5_error_code err;
+ 
+-#if 0
+-    printf("F(i=%d, count=%lu, pass=%d:%s)\n", i, count,
+-           pass->length, pass->data);
+-#endif
+-
+     /* Compute U_1.  */
+     store_32_be(i, ibytes);
+ 
+@@ -114,45 +109,25 @@ F(char *output, char *u_tmp1, char *u_tmp2,
+     memcpy(u_tmp2 + salt->length, ibytes, 4);
+     sdata = make_data(u_tmp2, salt->length + 4);
+ 
+-#if 0
+-    printd("initial salt", &sdata);
+-#endif
+-
+     out = make_data(u_tmp1, hlen);
+ 
+-#if 0
+-    printf("F: computing hmac #1 (U_1) with %s\n", pdata.contents);
+-#endif
+     err = hmac(hash, pass, &sdata, &out);
+     if (err)
+         return err;
+-#if 0
+-    printd("F: prf return value", &out);
+-#endif
++
+     memcpy(output, u_tmp1, hlen);
+ 
+     /* Compute U_2, .. U_c.  */
+     sdata.length = hlen;
+     for (j = 2; j <= count; j++) {
+-#if 0
+-        printf("F: computing hmac #%d (U_%d)\n", j, j);
+-#endif
+         memcpy(u_tmp2, u_tmp1, hlen);
+         err = hmac(hash, pass, &sdata, &out);
+         if (err)
+             return err;
+-#if 0
+-        printd("F: prf return value", &out);
+-#endif
++
+         /* And xor them together.  */
+         for (k = 0; k < hlen; k++)
+             output[k] ^= u_tmp1[k];
+-#if 0
+-        printf("F: xor result:\n");
+-        for (k = 0; k < hlen; k++)
+-            printf(" %02x", 0xff & output[k]);
+-        printf("\n");
+-#endif
+     }
+     return 0;
+ }
+@@ -185,9 +160,6 @@ pbkdf2(const struct krb5_hash_provider *hash, krb5_keyblock *pass,
+ 
+     /* Step 3.  */
+     for (i = 1; i <= l; i++) {
+-#if 0
+-        int j;
+-#endif
+         krb5_error_code err;
+         char *out;
+ 
+@@ -205,12 +177,6 @@ pbkdf2(const struct krb5_hash_provider *hash, krb5_keyblock *pass,
+             memcpy(output->data + (i-1) * hlen, utmp3,
+                    output->length - (i-1) * hlen);
+ 
+-#if 0
+-        printf("after F(%d), @%p:\n", i, output->data);
+-        for (j = (i-1) * hlen; j < i * hlen; j++)
+-            printf(" %02x", 0xff & output->data[j]);
+-        printf ("\n");
+-#endif
+     }
+     free(utmp1);
+     free(utmp2);
+diff --git a/src/lib/crypto/builtin/sha1/t_shs.c b/src/lib/crypto/builtin/sha1/t_shs.c
+index 08157b662..c1d18f557 100644
+--- a/src/lib/crypto/builtin/sha1/t_shs.c
++++ b/src/lib/crypto/builtin/sha1/t_shs.c
+@@ -59,10 +59,6 @@ main()
+ {
+     SHS_INFO shsInfo;
+     unsigned int i;
+-#if 0
+-    time_t secondCount;
+-    SHS_BYTE data[ 200 ];
+-#endif
+ 
+     /* Make sure we've got the endianness set right.  If the machine is
+        big-endian (up to 64 bits) the following value will be signed,
+@@ -120,17 +116,6 @@ main()
+     puts( "passed, result= 3232AFFA48628A26653B5AAA44541FD90D690603" );
+ #endif /* NEW_SHS */
+ 
+-#if 0
+-    printf( "\nTesting speed for 100MB data... " );
+-    shsInit( &shsInfo );
+-    secondCount = time( NULL );
+-    for( i = 0; i < 500000U; i++ )
+-        shsUpdate( &shsInfo, data, 200 );
+-    secondCount = time( NULL ) - secondCount;
+-    printf( "done.  Time = %ld seconds, %ld kbytes/second.\n", \
+-            secondCount, 100500L / secondCount );
+-#endif
+-
+     puts( "\nAll SHS tests passed" );
+     exit( 0 );
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_cksums.c b/src/lib/crypto/crypto_tests/t_cksums.c
+index 4b5406e67..5afc90ed8 100644
+--- a/src/lib/crypto/crypto_tests/t_cksums.c
++++ b/src/lib/crypto/crypto_tests/t_cksums.c
+@@ -175,15 +175,11 @@ printhex(const char *head, void *data, size_t len)
+ 
+     printf("%s", head);
+     for (i = 0; i < len; i++) {
+-#if 0                           /* For convenience when updating test cases. */
+-        printf("\\x%02X", ((unsigned char*)data)[i]);
+-#else
+         printf("%02X", ((unsigned char*)data)[i]);
+         if (i % 16 == 15 && i + 1 < len)
+             printf("\n%*s", (int)strlen(head), "");
+         else if (i + 1 < len)
+             printf(" ");
+-#endif
+     }
+     printf("\n");
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_crc.c b/src/lib/crypto/crypto_tests/t_crc.c
+index 1a35cfba5..8cd1d36cb 100644
+--- a/src/lib/crypto/crypto_tests/t_crc.c
++++ b/src/lib/crypto/crypto_tests/t_crc.c
+@@ -107,41 +107,9 @@ struct crc_trial trials[] = {
+ 
+ #define NTRIALS (sizeof(trials) / sizeof(trials[0]))
+ 
+-#if 0
+-static void
+-timetest(unsigned int nblk, unsigned int blksiz)
+-{
+-    char *block;
+-    unsigned int i;
+-    struct tms before, after;
+-    unsigned long cksum;
+ 
+-    block = malloc(blksiz * nblk);
+-    if (block == NULL)
+-        exit(1);
+-    for (i = 0; i < blksiz * nblk; i++)
+-        block[i] = i % 256;
+-    times(&before);
+-    for (i = 0; i < nblk; i++) {
+-        cksum = 0;
+-        mit_crc32(block + i * blksiz, blksiz, &cksum);
+-    }
+-
+-    times(&after);
+-    printf("shift-8 implementation, %d blocks of %d bytes:\n",
+-           nblk, blksiz);
+-    printf("\tu=%ld s=%ld cu=%ld cs=%ld\n",
+-           (long)(after.tms_utime - before.tms_utime),
+-           (long)(after.tms_stime - before.tms_stime),
+-           (long)(after.tms_cutime - before.tms_cutime),
+-           (long)(after.tms_cstime - before.tms_cstime));
+-
+-    free(block);
+-}
+-#endif
+-
+-static void
+-verify(void)
++int
++main(void)
+ {
+     unsigned int i;
+     struct crc_trial trial;
+@@ -176,14 +144,5 @@ verify(void)
+                (trial.sum == cksum) ? "OK" : "***BAD***",
+                typestr, trial.data, cksum);
+     }
+-}
+-
+-int
+-main(void)
+-{
+-#if 0
+-    timetest(64*1024, 1024);
+-#endif
+-    verify();
+     exit(0);
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_cts.c b/src/lib/crypto/crypto_tests/t_cts.c
+index 2b022b4ac..fe505169f 100644
+--- a/src/lib/crypto/crypto_tests/t_cts.c
++++ b/src/lib/crypto/crypto_tests/t_cts.c
+@@ -44,37 +44,10 @@
+ 
+ const char *whoami;
+ 
+-#if 0
+-static void printhex (size_t len, const char *p)
+-{
+-    while (len--)
+-        printf ("%02x", 0xff & *p++);
+-}
+-
+-static void printstringhex (const char *p) { printhex (strlen (p), p); }
+-
+-static void printdata (krb5_data *d) { printhex (d->length, d->data); }
+-
+-static void printkey (krb5_keyblock *k) { printhex (k->length, k->contents); }
+-#endif
+-
+-
+ #define JURISIC "Juri\305\241i\304\207" /* hi Miro */
+ #define ESZETT "\303\237"
+ #define GCLEF  "\360\235\204\236" /* outside BMP, woo hoo!  */
+ 
+-#if 0
+-static void
+-check_error (int r, int line) {
+-    if (r != 0) {
+-        fprintf (stderr, "%s:%d: %s\n", __FILE__, line,
+-                 error_message (r));
+-        exit (1);
+-    }
+-}
+-#define CHECK check_error(r, __LINE__)
+-#endif
+-
+ static void printd (const char *descr, krb5_data *d) {
+     unsigned int i, j;
+     const int r = 16;
+diff --git a/src/lib/crypto/crypto_tests/t_decrypt.c b/src/lib/crypto/crypto_tests/t_decrypt.c
+index 1dbc4dd1b..4ae0256cc 100644
+--- a/src/lib/crypto/crypto_tests/t_decrypt.c
++++ b/src/lib/crypto/crypto_tests/t_decrypt.c
+@@ -658,15 +658,11 @@ printhex(const char *head, void *data, size_t len)
+ 
+     printf("%s", head);
+     for (i = 0; i < len; i++) {
+-#if 0                           /* For convenience when updating test cases. */
+-        printf("\\x%02X", ((unsigned char*)data)[i]);
+-#else
+         printf("%02X", ((unsigned char*)data)[i]);
+         if (i % 16 == 15 && i + 1 < len)
+             printf("\n%*s", (int)strlen(head), "");
+         else if (i + 1 < len)
+             printf(" ");
+-#endif
+     }
+     printf("\n");
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_derive.c b/src/lib/crypto/crypto_tests/t_derive.c
+index 381ae4393..afbf7477f 100644
+--- a/src/lib/crypto/crypto_tests/t_derive.c
++++ b/src/lib/crypto/crypto_tests/t_derive.c
+@@ -273,15 +273,11 @@ printhex(const char *head, void *data, size_t len)
+ 
+     printf("%s", head);
+     for (i = 0; i < len; i++) {
+-#if 0                           /* For convenience when updating test cases. */
+-        printf("\\x%02X", ((unsigned char*)data)[i]);
+-#else
+         printf("%02X", ((unsigned char*)data)[i]);
+         if (i % 16 == 15 && i + 1 < len)
+             printf("\n%*s", (int)strlen(head), "");
+         else if (i + 1 < len)
+             printf(" ");
+-#endif
+     }
+     printf("\n");
+ }
+diff --git a/src/lib/crypto/crypto_tests/t_hmac.c b/src/lib/crypto/crypto_tests/t_hmac.c
+index 93d54828f..da359cb49 100644
+--- a/src/lib/crypto/crypto_tests/t_hmac.c
++++ b/src/lib/crypto/crypto_tests/t_hmac.c
+@@ -46,17 +46,6 @@ static void keyToData (krb5_keyblock *k, krb5_data *d) {
+     d->data = (char *) k->contents;
+ }
+ 
+-#if 0
+-static void check_error (int r, int line) {
+-    if (r != 0) {
+-        fprintf (stderr, "%s:%d: %s\n", __FILE__, line,
+-                 error_message (r));
+-        exit (1);
+-    }
+-}
+-#define CHECK check_error(r, __LINE__)
+-#endif
+-
+ static void printd (const char *descr, krb5_data *d) {
+     unsigned int i, j;
+     const int r = 16;
+diff --git a/src/lib/crypto/crypto_tests/t_str2key.c b/src/lib/crypto/crypto_tests/t_str2key.c
+index 7a7813874..27896e61e 100644
+--- a/src/lib/crypto/crypto_tests/t_str2key.c
++++ b/src/lib/crypto/crypto_tests/t_str2key.c
+@@ -719,15 +719,11 @@ printhex(const char *head, void *data, size_t len)
+ 
+     printf("%s", head);
+     for (i = 0; i < len; i++) {
+-#if 0                           /* For convenience when updating test cases. */
+-        printf("\\x%02X", ((unsigned char*)data)[i]);
+-#else
+         printf("%02X", ((unsigned char*)data)[i]);
+         if (i % 16 == 15 && i + 1 < len)
+             printf("\n%*s", (int)strlen(head), "");
+         else if (i + 1 < len)
+             printf(" ");
+-#endif
+     }
+     printf("\n");
+ }
+diff --git a/src/lib/crypto/crypto_tests/vectors.c b/src/lib/crypto/crypto_tests/vectors.c
+index 482d2de20..c1a765732 100644
+--- a/src/lib/crypto/crypto_tests/vectors.c
++++ b/src/lib/crypto/crypto_tests/vectors.c
+@@ -448,11 +448,6 @@ int main (int argc, char **argv)
+ {
+     whoami = argv[0];
+     test_nfold ();
+-#if 0
+-    test_mit_des_s2k ();
+-    test_des3_s2k ();
+-    test_dr_dk ();
+-#endif
+     test_pbkdf2();
+     return 0;
+ }
+diff --git a/src/lib/crypto/krb/nfold.c b/src/lib/crypto/krb/nfold.c
+index ea02fddcf..75bceaecd 100644
+--- a/src/lib/crypto/krb/nfold.c
++++ b/src/lib/crypto/krb/nfold.c
+@@ -98,19 +98,9 @@ krb5int_nfold(unsigned int inbits, const unsigned char *in, unsigned int outbits
+         byte += out[i%outbits];
+         out[i%outbits] = byte&0xff;
+ 
+-#if 0
+-        printf("msbit[%d] = %d\tbyte = %02x\tsum = %03x\n", i, msbit,
+-               (((in[((inbits-1)-(msbit>>3))%inbits]<<8)|
+-                 (in[((inbits)-(msbit>>3))%inbits]))
+-                >>((msbit&7)+1))&0xff, byte);
+-#endif
+-
+         /* keep around the carry bit, if any */
+         byte >>= 8;
+ 
+-#if 0
+-        printf("carry=%d\n", byte);
+-#endif
+     }
+ 
+     /* if there's a carry bit left over, add it back in */
+diff --git a/src/lib/gssapi/generic/util_set.c b/src/lib/gssapi/generic/util_set.c
+index 8866f525f..432a9ee0d 100644
+--- a/src/lib/gssapi/generic/util_set.c
++++ b/src/lib/gssapi/generic/util_set.c
+@@ -40,21 +40,6 @@ int g_set_init(g_set_elt *s)
+     return(0);
+ }
+ 
+-#if 0
+-int g_set_destroy(g_set_elt *s)
+-{
+-    g_set next;
+-
+-    while (*s) {
+-        next = (*s)->next;
+-        free(*s);
+-        *s = next;
+-    }
+-
+-    return(0);
+-}
+-#endif
+-
+ int g_set_entry_add(g_set_elt *s, void *key, void *value)
+ {
+     g_set_elt first;
+diff --git a/src/lib/gssapi/krb5/accept_sec_context.c b/src/lib/gssapi/krb5/accept_sec_context.c
+index 06967aa27..5baa6cecf 100644
+--- a/src/lib/gssapi/krb5/accept_sec_context.c
++++ b/src/lib/gssapi/krb5/accept_sec_context.c
+@@ -654,17 +654,6 @@ kg_accept_krb5(minor_status, context_handle,
+ 
+     krb5_auth_con_getauthenticator(context, auth_context, &authdat);
+ 
+-#if 0
+-    /* make sure the necessary parts of the authdat are present */
+-
+-    if ((authdat->authenticator->subkey == NULL) ||
+-        (authdat->ticket->enc_part2 == NULL)) {
+-        code = KG_NO_SUBKEY;
+-        major_status = GSS_S_FAILURE;
+-        goto fail;
+-    }
+-#endif
+-
+     if (authdat->checksum == NULL) {
+         /*
+          * Some SMB client implementations use handcrafted GSSAPI code that
+diff --git a/src/lib/gssapi/krb5/gssapi_krb5.c b/src/lib/gssapi/krb5/gssapi_krb5.c
+index 43930dd61..1eaf2bffb 100644
+--- a/src/lib/gssapi/krb5/gssapi_krb5.c
++++ b/src/lib/gssapi/krb5/gssapi_krb5.c
+@@ -465,28 +465,12 @@ krb5_gss_inquire_cred_by_oid(OM_uint32 *minor_status,
+     return GSS_S_UNAVAILABLE;
+ }
+ 
+-/*
+- * gss_set_sec_context_option() methods
+- * (Disabled until we have something to populate the array.)
+- */
+-#if 0
+-static struct {
+-    gss_OID_desc oid;
+-    OM_uint32 (*func)(OM_uint32 *, gss_ctx_id_t *, const gss_OID, const gss_buffer_t);
+-} krb5_gss_set_sec_context_option_ops[] = {
+-};
+-#endif
+-
+ OM_uint32 KRB5_CALLCONV
+ krb5_gss_set_sec_context_option (OM_uint32 *minor_status,
+                                  gss_ctx_id_t *context_handle,
+                                  const gss_OID desired_object,
+                                  const gss_buffer_t value)
+ {
+-#if 0
+-    size_t i;
+-#endif
+-
+     if (minor_status == NULL)
+         return GSS_S_CALL_INACCESSIBLE_WRITE;
+ 
+@@ -498,18 +482,6 @@ krb5_gss_set_sec_context_option (OM_uint32 *minor_status,
+     if (desired_object == GSS_C_NO_OID)
+         return GSS_S_CALL_INACCESSIBLE_READ;
+ 
+-#if 0
+-    for (i = 0; i < sizeof(krb5_gss_set_sec_context_option_ops)/
+-             sizeof(krb5_gss_set_sec_context_option_ops[0]); i++) {
+-        if (g_OID_prefix_equal(desired_object, &krb5_gss_set_sec_context_option_ops[i].oid)) {
+-            return (*krb5_gss_set_sec_context_option_ops[i].func)(minor_status,
+-                                                                  context_handle,
+-                                                                  desired_object,
+-                                                                  value);
+-        }
+-    }
+-#endif
+-
+     *minor_status = EINVAL;
+ 
+     return GSS_S_UNAVAILABLE;
+diff --git a/src/lib/gssapi/krb5/naming_exts.c b/src/lib/gssapi/krb5/naming_exts.c
+index 5f00efe34..41752d90b 100644
+--- a/src/lib/gssapi/krb5/naming_exts.c
++++ b/src/lib/gssapi/krb5/naming_exts.c
+@@ -664,13 +664,3 @@ cleanup:
+ 
+     return kg_map_name_error(minor_status, code);
+ }
+-
+-#if 0
+-OM_uint32
+-krb5_gss_display_name_ext(OM_uint32 *minor_status,
+-                          gss_name_t name,
+-                          gss_OID display_as_name_type,
+-                          gss_buffer_t display_name)
+-{
+-}
+-#endif
+diff --git a/src/lib/gssapi/mechglue/g_initialize.c b/src/lib/gssapi/mechglue/g_initialize.c
+index 9197666e1..0ad11c0b0 100644
+--- a/src/lib/gssapi/mechglue/g_initialize.c
++++ b/src/lib/gssapi/mechglue/g_initialize.c
+@@ -391,9 +391,6 @@ build_mechSet(void)
+ 		g_mechSet.count = count;
+ 	}
+ 
+-#if 0
+-	g_mechSetTime = fileInfo.st_mtime;
+-#endif
+ 	k5_mutex_unlock(&g_mechSetLock);
+ 	k5_mutex_unlock(&g_mechListLock);
+ 
+@@ -916,10 +913,6 @@ loadInterMech(gss_mech_info minfo)
+ 
+ 	if (krb5int_open_plugin(minfo->uLibName, &dl, &errinfo) != 0 ||
+ 	    errinfo.code != 0) {
+-#if 0
+-		(void) syslog(LOG_INFO, "libgss dlopen(%s): %s\n",
+-				aMech->uLibName, dlerror());
+-#endif
+ 		return;
+ 	}
+ 
+@@ -959,12 +952,6 @@ loadInterMech(gss_mech_info minfo)
+ 	dl = NULL;
+ 
+ cleanup:
+-#if 0
+-	if (aMech->mech == NULL) {
+-		(void) syslog(LOG_INFO, "unable to initialize mechanism"
+-				" library [%s]\n", aMech->uLibName);
+-	}
+-#endif
+ 	if (dl != NULL)
+ 		krb5int_close_plugin(dl);
+ 	k5_clear_error(&errinfo);
+@@ -1161,10 +1148,6 @@ gssint_get_mechanism(gss_const_OID oid)
+ 
+ 	if (krb5int_open_plugin(aMech->uLibName, &dl, &errinfo) != 0 ||
+ 	    errinfo.code != 0) {
+-#if 0
+-		(void) syslog(LOG_INFO, "libgss dlopen(%s): %s\n",
+-				aMech->uLibName, dlerror());
+-#endif
+ 		k5_mutex_unlock(&g_mechListLock);
+ 		return ((gss_mechanism)NULL);
+ 	}
+@@ -1180,10 +1163,6 @@ gssint_get_mechanism(gss_const_OID oid)
+ 	}
+ 	if (aMech->mech == NULL) {
+ 		(void) krb5int_close_plugin(dl);
+-#if 0
+-		(void) syslog(LOG_INFO, "unable to initialize mechanism"
+-				" library [%s]\n", aMech->uLibName);
+-#endif
+ 		k5_mutex_unlock(&g_mechListLock);
+ 		return ((gss_mechanism)NULL);
+ 	}
+@@ -1503,10 +1482,6 @@ addConfigEntry(const char *oidStr, const char *oid, const char *sharedLib,
+ 	oidBuf.length = strlen(oid);
+ 	if (generic_gss_str_to_oid(&minor, &oidBuf, &mechOid)
+ 		!= GSS_S_COMPLETE) {
+-#if 0
+-		(void) syslog(LOG_INFO, "invalid mechanism oid"
+-				" [%s] in configuration file", oid);
+-#endif
+ 		return;
+ 	}
+ 
+diff --git a/src/lib/gssapi/mechglue/g_inq_cred.c b/src/lib/gssapi/mechglue/g_inq_cred.c
+index 911196264..cbe045ab9 100644
+--- a/src/lib/gssapi/mechglue/g_inq_cred.c
++++ b/src/lib/gssapi/mechglue/g_inq_cred.c
+@@ -198,11 +198,6 @@ gss_inquire_cred_by_mech(minor_status, cred_handle, mech_type, name,
+     union_cred = (gss_union_cred_t) cred_handle;
+     mech_cred = gssint_get_mechanism_cred(union_cred, selected_mech);
+ 
+-#if 0
+-    if (mech_cred == NULL)
+-	return (GSS_S_DEFECTIVE_CREDENTIAL);
+-#endif
+-
+     public_mech = gssint_get_public_oid(selected_mech);
+     status = mech->gss_inquire_cred_by_mech(minor_status,
+ 					    mech_cred, public_mech,
+diff --git a/src/lib/gssapi/mechglue/mglueP.h b/src/lib/gssapi/mechglue/mglueP.h
+index 2b5145e07..2b00987e6 100644
+--- a/src/lib/gssapi/mechglue/mglueP.h
++++ b/src/lib/gssapi/mechglue/mglueP.h
+@@ -730,11 +730,6 @@ typedef struct gss_mech_config {
+ /********************************************************/
+ /* Internal mechglue routines */
+ 
+-#if 0
+-int gssint_mechglue_init(void);
+-void gssint_mechglue_fini(void);
+-#endif
+-
+ OM_uint32 gssint_select_mech_type(OM_uint32 *minor, gss_const_OID in_oid,
+ 				  gss_OID *selected_oid);
+ gss_OID gssint_get_public_oid(gss_const_OID internal_oid);
+diff --git a/src/lib/kadm5/clnt/client_init.c b/src/lib/kadm5/clnt/client_init.c
+index 4350a9eb0..6f10db018 100644
+--- a/src/lib/kadm5/clnt/client_init.c
++++ b/src/lib/kadm5/clnt/client_init.c
+@@ -161,7 +161,6 @@ init_any(krb5_context context, char *client_name, enum init_type init_type,
+     generic_ret r = { 0, 0 };
+ 
+     initialize_ovk_error_table();
+-/*      initialize_adb_error_table(); */
+     initialize_ovku_error_table();
+ 
+     if (! server_handle) {
+@@ -612,53 +611,8 @@ setup_gss(kadm5_server_handle_t handle, kadm5_config_params *params_in,
+     gssstat = gss_acquire_cred(&minor_stat, gss_client, 0,
+                                GSS_C_NULL_OID_SET, GSS_C_INITIATE,
+                                &handle->cred, NULL, NULL);
+-    if (gssstat != GSS_S_COMPLETE) {
+-#if 0 /* for debugging only */
+-        {
+-            OM_uint32 maj_status, min_status, message_context = 0;
+-            gss_buffer_desc status_string;
+-            do {
+-                maj_status = gss_display_status(&min_status,
+-                                                gssstat,
+-                                                GSS_C_GSS_CODE,
+-                                                GSS_C_NO_OID,
+-                                                &message_context,
+-                                                &status_string);
+-                if (maj_status == GSS_S_COMPLETE) {
+-                    fprintf(stderr, "MAJ: %.*s\n",
+-                            (int) status_string.length,
+-                            (char *)status_string.value);
+-                    gss_release_buffer(&min_status, &status_string);
+-                } else {
+-                    fprintf(stderr,
+-                            "MAJ? gss_display_status returns 0x%lx?!\n",
+-                            (unsigned long) maj_status);
+-                    message_context = 0;
+-                }
+-            } while (message_context != 0);
+-            do {
+-                maj_status = gss_display_status(&min_status,
+-                                                minor_stat,
+-                                                GSS_C_MECH_CODE,
+-                                                GSS_C_NO_OID,
+-                                                &message_context,
+-                                                &status_string);
+-                if (maj_status == GSS_S_COMPLETE) {
+-                    fprintf(stderr, "MIN: %.*s\n",
+-                            (int) status_string.length,
+-                            (char *)status_string.value);
+-                    gss_release_buffer(&min_status, &status_string);
+-                } else {
+-                    fprintf(stderr,
+-                            "MIN? gss_display_status returns 0x%lx?!\n",
+-                            (unsigned long) maj_status);
+-                    message_context = 0;
+-                }
+-            } while (message_context != 0);
+-        }
+-#endif
++    if (gssstat != GSS_S_COMPLETE)
+         goto error;
+-    }
+ 
+     /*
+      * Do actual creation of RPC auth handle.  Implements auth flavor
+diff --git a/src/lib/kadm5/srv/server_init.c b/src/lib/kadm5/srv/server_init.c
+index b3ae4ff5c..87a732292 100644
+--- a/src/lib/kadm5/srv/server_init.c
++++ b/src/lib/kadm5/srv/server_init.c
+@@ -186,7 +186,6 @@ kadm5_ret_t kadm5_init(krb5_context context, char *client_name, char *pass,
+     handle->context = context;
+ 
+     initialize_ovk_error_table();
+-/*     initialize_adb_error_table(); */
+     initialize_ovku_error_table();
+ 
+     handle->magic_number = KADM5_SERVER_HANDLE_MAGIC;
+@@ -207,16 +206,6 @@ kadm5_ret_t kadm5_init(krb5_context context, char *client_name, char *pass,
+      */
+     memset(&params_local, 0, sizeof(params_local));
+ 
+-#if 0 /* Now that we look at krb5.conf as well as kdc.conf, we can
+-         expect to see admin_server being set sometimes.  */
+-#define ILLEGAL_PARAMS (KADM5_CONFIG_ADMIN_SERVER)
+-    if (params_in && (params_in->mask & ILLEGAL_PARAMS)) {
+-        free_db_args(handle);
+-        free(handle);
+-        return KADM5_BAD_SERVER_PARAMS;
+-    }
+-#endif
+-
+     ret = kadm5_get_config_params(handle->context, 1, params_in,
+                                   &handle->params);
+     if (ret) {
+diff --git a/src/lib/kadm5/unit-test/setkey-test.c b/src/lib/kadm5/unit-test/setkey-test.c
+index 0431653bf..fa2392f81 100644
+--- a/src/lib/kadm5/unit-test/setkey-test.c
++++ b/src/lib/kadm5/unit-test/setkey-test.c
+@@ -35,15 +35,6 @@ krb5_keyblock *tests[] = {
+     test1, test2, test3, NULL
+ };
+ 
+-#if 0
+-int keyblocks_equal(krb5_keyblock *kb1, krb5_keyblock *kb2)
+-{
+-    return (kb1->enctype == kb2->enctype &&
+-            kb1->length == kb2->length &&
+-            memcmp(kb1->contents, kb2->contents, kb1->length) == 0);
+-}
+-#endif
+-
+ krb5_data tgtname = {
+     0,
+     KRB5_TGS_NAME_SIZE,
+diff --git a/src/lib/krb5/asn.1/ldap_key_seq.c b/src/lib/krb5/asn.1/ldap_key_seq.c
+index 74569d9e2..f0be2d6d9 100644
+--- a/src/lib/krb5/asn.1/ldap_key_seq.c
++++ b/src/lib/krb5/asn.1/ldap_key_seq.c
+@@ -96,9 +96,6 @@ no_salt(void *p)
+ DEFOPTIONALTYPE(key_data_salt_if_present, is_salt_present, no_salt, krbsalt);
+ DEFCTAGGEDTYPE(key_data_0, 0, key_data_salt_if_present);
+ DEFCTAGGEDTYPE(key_data_1, 1, encryptionkey);
+-#if 0 /* We don't support this field currently.  */
+-DEFCTAGGEDTYPE(key_data_2, 2, s2kparams),
+-#endif
+ static const struct atype_info *key_data_fields[] = {
+     &k5_atype_key_data_0, &k5_atype_key_data_1
+ };
+diff --git a/src/lib/krb5/ccache/ccapi/stdcc.c b/src/lib/krb5/ccache/ccapi/stdcc.c
+index 0256a0a5d..db69eebb4 100644
+--- a/src/lib/krb5/ccache/ccapi/stdcc.c
++++ b/src/lib/krb5/ccache/ccapi/stdcc.c
+@@ -1300,14 +1300,6 @@ krb5_error_code KRB5_CALLCONV  krb5_stdcc_initialize
+         return cc_err_xlate(err);
+     }
+ 
+-#if 0
+-    /*
+-     * Some implementations don't set the principal name
+-     * correctly, so we force set it to the correct value.
+-     */
+-    err = cc_set_principal(gCntrlBlock, ccapi_data->NamedCache,
+-                           CC_CRED_V5, cName);
+-#endif
+     krb5_free_unparsed_name(context, cName);
+     cache_changed();
+ 
+@@ -1432,54 +1424,6 @@ krb5_error_code KRB5_CALLCONV krb5_stdcc_next_cred
+  *
+  * - try to find a matching credential in the cache
+  */
+-#if 0
+-krb5_error_code KRB5_CALLCONV krb5_stdcc_retrieve
+-(krb5_context context,
+- krb5_ccache id,
+- krb5_flags whichfields,
+- krb5_creds *mcreds,
+- krb5_creds *creds )
+-{
+-    krb5_error_code retval;
+-    krb5_cc_cursor curs = NULL;
+-    krb5_creds *fetchcreds;
+-
+-    if ((retval = stdcc_setup(context, NULL)))
+-        return retval;
+-
+-    fetchcreds = (krb5_creds *)malloc(sizeof(krb5_creds));
+-    if (fetchcreds == NULL) return KRB5_CC_NOMEM;
+-
+-    /* we're going to use the iterators */
+-    krb5_stdcc_start_seq_get(context, id, &curs);
+-
+-    while (!krb5_stdcc_next_cred(context, id, &curs, fetchcreds)) {
+-        /*
+-         * look at each credential for a match
+-         * use this match routine since it takes the
+-         * whichfields and the API doesn't
+-         */
+-        if (stdccCredsMatch(context, fetchcreds,
+-                            mcreds, whichfields)) {
+-            /* we found it, copy and exit */
+-            *creds = *fetchcreds;
+-            krb5_stdcc_end_seq_get(context, id, &curs);
+-            return 0;
+-        }
+-        /* free copy allocated by next_cred */
+-        krb5_free_cred_contents(context, fetchcreds);
+-    }
+-
+-    /* no luck, end get and exit */
+-    krb5_stdcc_end_seq_get(context, id, &curs);
+-
+-    /* we're not using this anymore so we should get rid of it! */
+-    free(fetchcreds);
+-
+-    return KRB5_CC_NOTFOUND;
+-}
+-#else
+-
+ krb5_error_code KRB5_CALLCONV
+ krb5_stdcc_retrieve(context, id, whichfields, mcreds, creds)
+     krb5_context context;
+@@ -1492,8 +1436,6 @@ krb5_stdcc_retrieve(context, id, whichfields, mcreds, creds)
+                                        creds);
+ }
+ 
+-#endif
+-
+ /*
+  *  end seq
+  *
+diff --git a/src/lib/krb5/ccache/ccapi/winccld.h b/src/lib/krb5/ccache/ccapi/winccld.h
+index 85017abbd..df34e3346 100644
+--- a/src/lib/krb5/ccache/ccapi/winccld.h
++++ b/src/lib/krb5/ccache/ccapi/winccld.h
+@@ -85,24 +85,10 @@ DECL_FUNC_PTR(cc_create);
+ DECL_FUNC_PTR(cc_open);
+ DECL_FUNC_PTR(cc_close);
+ DECL_FUNC_PTR(cc_destroy);
+-#if 0 /* Not used */
+-#ifdef CC_API_VER2
+-DECL_FUNC_PTR(cc_seq_fetch_NCs_begin);
+-DECL_FUNC_PTR(cc_seq_fetch_NCs_next);
+-DECL_FUNC_PTR(cc_seq_fetch_NCs_end);
+-#else
+-DECL_FUNC_PTR(cc_seq_fetch_NCs);
+-#endif
+-DECL_FUNC_PTR(cc_get_NC_info);
+-DECL_FUNC_PTR(cc_free_NC_info);
+-#endif
+ DECL_FUNC_PTR(cc_get_name);
+ DECL_FUNC_PTR(cc_set_principal);
+ DECL_FUNC_PTR(cc_get_principal);
+ DECL_FUNC_PTR(cc_get_cred_version);
+-#if 0 /* Not used */
+-DECL_FUNC_PTR(cc_lock_request);
+-#endif
+ DECL_FUNC_PTR(cc_store);
+ DECL_FUNC_PTR(cc_remove_cred);
+ #ifdef CC_API_VER2
+@@ -127,18 +113,10 @@ FUNC_INFO krbcc_fi[] = {
+     MAKE_FUNC_INFO(cc_open),
+     MAKE_FUNC_INFO(cc_close),
+     MAKE_FUNC_INFO(cc_destroy),
+-#if 0 /* Not used */
+-    MAKE_FUNC_INFO(cc_seq_fetch_NCs),
+-    MAKE_FUNC_INFO(cc_get_NC_info),
+-    MAKE_FUNC_INFO(cc_free_NC_info),
+-#endif
+     MAKE_FUNC_INFO(cc_get_name),
+     MAKE_FUNC_INFO(cc_set_principal),
+     MAKE_FUNC_INFO(cc_get_principal),
+     MAKE_FUNC_INFO(cc_get_cred_version),
+-#if 0 /* Not used */
+-    MAKE_FUNC_INFO(cc_lock_request),
+-#endif
+     MAKE_FUNC_INFO(cc_store),
+     MAKE_FUNC_INFO(cc_remove_cred),
+ #ifdef CC_API_VER2
+@@ -166,24 +144,10 @@ FUNC_INFO krbcc_fi[] = {
+ #define cc_open pcc_open
+ #define cc_close pcc_close
+ #define cc_destroy pcc_destroy
+-#if 0 /* Not used */
+-#ifdef CC_API_VER2
+-#define cc_seq_fetch_NCs_begin pcc_seq_fetch_NCs_begin
+-#define cc_seq_fetch_NCs_next pcc_seq_fetch_NCs_next
+-#define cc_seq_fetch_NCs_end pcc_seq_fetch_NCs_end
+-#else
+-#define cc_seq_fetch_NCs pcc_seq_fetch_NCs
+-#endif
+-#define cc_get_NC_info pcc_get_NC_info
+-#define cc_free_NC_info pcc_free_NC_info
+-#endif /* End of Not used */
+ #define cc_get_name pcc_get_name
+ #define cc_set_principal pcc_set_principal
+ #define cc_get_principal pcc_get_principal
+ #define cc_get_cred_version pcc_get_cred_version
+-#if 0 /* Not used */
+-#define cc_lock_request pcc_lock_request
+-#endif
+ #define cc_store pcc_store
+ #define cc_remove_cred pcc_remove_cred
+ #ifdef CC_API_VER2
+diff --git a/src/lib/krb5/keytab/t_keytab.c b/src/lib/krb5/keytab/t_keytab.c
+index 80a94eafe..c845596d6 100644
+--- a/src/lib/krb5/keytab/t_keytab.c
++++ b/src/lib/krb5/keytab/t_keytab.c
+@@ -441,16 +441,3 @@ main(void)
+     return 0;
+ 
+ }
+-
+-
+-#if 0
+-/* remove and add are functions, so that they can return NOWRITE
+-   if not a writable keytab */
+-krb5_error_code KRB5_CALLCONV krb5_kt_remove_entry
+-(krb5_context,
+- krb5_keytab,
+- krb5_keytab_entry * );
+-
+-
+-
+-#endif
+diff --git a/src/lib/krb5/krb/gc_via_tkt.c b/src/lib/krb5/krb/gc_via_tkt.c
+index 5b9bb9573..e7a3b01f8 100644
+--- a/src/lib/krb5/krb/gc_via_tkt.c
++++ b/src/lib/krb5/krb/gc_via_tkt.c
+@@ -131,17 +131,6 @@ check_reply_server(krb5_context context, krb5_flags kdcoptions,
+         /* Canonicalization not requested, and not a TGS referral. */
+         return KRB5_KDCREP_MODIFIED;
+     }
+-#if 0
+-    /*
+-     * Is this check needed?  find_nxt_kdc() in gc_frm_kdc.c already
+-     * effectively checks this.
+-     */
+-    if (krb5_realm_compare(context, in_cred->client, in_cred->server) &&
+-        data_eq(*in_cred->server->data[1], *in_cred->client->realm)) {
+-        /* Attempted to rewrite local TGS. */
+-        return KRB5_KDCREP_MODIFIED;
+-    }
+-#endif
+     return 0;
+ }
+ 
+diff --git a/src/lib/krb5/krb/init_ctx.c b/src/lib/krb5/krb/init_ctx.c
+index 4246c5dd2..c90b2af87 100644
+--- a/src/lib/krb5/krb/init_ctx.c
++++ b/src/lib/krb5/krb/init_ctx.c
+@@ -232,13 +232,6 @@ krb5_init_context_profile(profile_t profile, krb5_flags flags,
+     get_integer(ctx, KRB5_CONF_CLOCKSKEW, DEFAULT_CLOCKSKEW, &tmp);
+     ctx->clockskew = tmp;
+ 
+-#if 0
+-    /* Default ticket lifetime is currently not supported */
+-    profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS, "tkt_lifetime",
+-                        0, 10 * 60 * 60, &tmp);
+-    ctx->tkt_lifetime = tmp;
+-#endif
+-
+     /* DCE 1.1 and below only support CKSUMTYPE_RSA_MD4 (2)  */
+     /* DCE add kdc_req_checksum_type = 2 to krb5.conf */
+     get_integer(ctx, KRB5_CONF_KDC_REQ_CHECKSUM_TYPE, CKSUMTYPE_RSA_MD5,
+diff --git a/src/lib/krb5/krb/rd_req_dec.c b/src/lib/krb5/krb/rd_req_dec.c
+index 6defbdbf0..4cd429a11 100644
+--- a/src/lib/krb5/krb/rd_req_dec.c
++++ b/src/lib/krb5/krb/rd_req_dec.c
+@@ -441,30 +441,6 @@ decrypt_ticket(krb5_context context, const krb5_ap_req *req,
+ #endif /* LEAN_CLIENT */
+ }
+ 
+-#if 0
+-#include <syslog.h>
+-static void
+-debug_log_authz_data(const char *which, krb5_authdata **a)
+-{
+-    if (a) {
+-        syslog(LOG_ERR|LOG_DAEMON, "%s authz data:", which);
+-        while (*a) {
+-            syslog(LOG_ERR|LOG_DAEMON, "  ad_type:%d length:%d '%.*s'",
+-                   (*a)->ad_type, (*a)->length, (*a)->length,
+-                   (char *) (*a)->contents);
+-            a++;
+-        }
+-        syslog(LOG_ERR|LOG_DAEMON, "  [end]");
+-    } else
+-        syslog(LOG_ERR|LOG_DAEMON, "no %s authz data", which);
+-}
+-#else
+-static void
+-debug_log_authz_data(const char *which, krb5_authdata **a)
+-{
+-}
+-#endif
+-
+ static krb5_error_code
+ rd_req_decoded_opt(krb5_context context, krb5_auth_context *auth_context,
+                    const krb5_ap_req *req, krb5_const_principal server,
+@@ -759,8 +735,6 @@ rd_req_decoded_opt(krb5_context context, krb5_auth_context *auth_context,
+                                     &((*auth_context)->key))))
+         goto cleanup;
+ 
+-    debug_log_authz_data("ticket", req->ticket->enc_part2->authorization_data);
+-
+     /*
+      * If not AP_OPTS_MUTUAL_REQUIRED then and sequence numbers are used
+      * then the default sequence number is the one's complement of the
+@@ -855,10 +829,9 @@ decrypt_authenticator(krb5_context context, const krb5_ap_req *request,
+         free(scratch.data);}
+ 
+     /*  now decode the decrypted stuff */
+-    if (!(retval = decode_krb5_authenticator(&scratch, &local_auth))) {
++    if (!(retval = decode_krb5_authenticator(&scratch, &local_auth)))
+         *authpp = local_auth;
+-        debug_log_authz_data("authenticator", local_auth->authorization_data);
+-    }
++
+     clean_scratch();
+     return retval;
+ }
+diff --git a/src/lib/krb5/krb/t_ser.c b/src/lib/krb5/krb/t_ser.c
+index 9cdf5e641..1d6cceaa2 100644
+--- a/src/lib/krb5/krb/t_ser.c
++++ b/src/lib/krb5/krb/t_ser.c
+@@ -151,10 +151,6 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
+                     krb5_encrypt_block *eblock;
+ 
+                     eblock = (krb5_encrypt_block *) nctx;
+-#if 0
+-                    if (eblock->priv && eblock->priv_size)
+-                        free(eblock->priv);
+-#endif
+                     if (eblock->key)
+                         krb5_free_keyblock(ser_ctx, eblock->key);
+                     free(eblock);
+@@ -450,60 +446,6 @@ ser_rcache_test(krb5_context kcontext, int verbose)
+     return(kret);
+ }
+ 
+-#if 0
+-/*
+- * Serialize krb5_encrypt_block.
+- */
+-static krb5_error_code
+-ser_eblock_test(kcontext, verbose)
+-    krb5_context        kcontext;
+-    int                 verbose;
+-{
+-    krb5_error_code     kret;
+-    krb5_encrypt_block  eblock;
+-    krb5_keyblock       ukeyblock;
+-    krb5_octet          keydata[8];
+-
+-    memset(&eblock, 0, sizeof(krb5_encrypt_block));
+-    eblock.magic = KV5M_ENCRYPT_BLOCK;
+-    krb5_use_enctype(kcontext, &eblock, DEFAULT_KDC_ENCTYPE);
+-    if (!(kret = ser_data(verbose, "> NULL eblock",
+-                          (krb5_pointer) &eblock, KV5M_ENCRYPT_BLOCK))) {
+-#if 0
+-        eblock.priv = (krb5_pointer) stuff;
+-        eblock.priv_size = 8;
+-#endif
+-        if (!(kret = ser_data(verbose, "> eblock with private data",
+-                              (krb5_pointer) &eblock,
+-                              KV5M_ENCRYPT_BLOCK))) {
+-            memset(&ukeyblock, 0, sizeof(ukeyblock));
+-            memset(keydata, 0, sizeof(keydata));
+-            ukeyblock.enctype = ENCTYPE_DES_CBC_MD5;
+-            ukeyblock.length = sizeof(keydata);
+-            ukeyblock.contents = keydata;
+-            keydata[0] = 0xde;
+-            keydata[1] = 0xad;
+-            keydata[2] = 0xbe;
+-            keydata[3] = 0xef;
+-            keydata[4] = 0xfe;
+-            keydata[5] = 0xed;
+-            keydata[6] = 0xf0;
+-            keydata[7] = 0xd;
+-            eblock.key = &ukeyblock;
+-            if (!(kret = ser_data(verbose, "> eblock with private key",
+-                                  (krb5_pointer) &eblock,
+-                                  KV5M_ENCRYPT_BLOCK))) {
+-                if (verbose)
+-                    printf("* eblock test succeeded\n");
+-            }
+-        }
+-    }
+-    if (kret)
+-        printf("* eblock test failed\n");
+-    return(kret);
+-}
+-#endif
+-
+ /*
+  * Serialize krb5_principal
+  */
+@@ -584,7 +526,7 @@ main(int argc, char **argv)
+     do_ptest = 1;
+     do_rtest = 1;
+     do_stest = 1;
+-    while ((option = getopt(argc, argv, "acekprsxvACEKPRSX")) != -1) {
++    while ((option = getopt(argc, argv, "acekprsxvACKPRSX")) != -1) {
+         switch (option) {
+         case 'a':
+             do_atest = 0;
+@@ -619,11 +561,6 @@ main(int argc, char **argv)
+         case 'C':
+             do_ctest = 1;
+             break;
+-#if 0
+-        case 'E':
+-            do_etest = 1;
+-            break;
+-#endif
+         case 'K':
+             do_ktest = 1;
+             break;
+@@ -641,7 +578,7 @@ main(int argc, char **argv)
+             break;
+         default:
+             fprintf(stderr,
+-                    "%s: usage is %s [-acekprsxvACEKPRSX]\n",
++                    "%s: usage is %s [-acekprsxvACKPRSX]\n",
+                     argv[0], argv[0]);
+             exit(1);
+             break;
+@@ -682,14 +619,6 @@ main(int argc, char **argv)
+         if (kret)
+             goto fail;
+     }
+-#if 0 /* code to be tested is currently disabled */
+-    if (do_etest) {
+-        ch_err = 'e';
+-        kret = ser_eblock_test(kcontext, verbose);
+-        if (kret)
+-            goto fail;
+-    }
+-#endif
+     if (do_ptest) {
+         ch_err = 'p';
+         kret = ser_princ_test(kcontext, verbose);
+diff --git a/src/lib/krb5/krb/unparse.c b/src/lib/krb5/krb/unparse.c
+index 5bb64d00a..d94aa3cfa 100644
+--- a/src/lib/krb5/krb/unparse.c
++++ b/src/lib/krb5/krb/unparse.c
+@@ -122,13 +122,6 @@ copy_component_quoting(char *dest, const krb5_data *src, int flags)
+             *q++ = '\\';
+             *q++ = 'b';
+             break;
+-#if 0
+-            /* Heimdal escapes spaces in principal names upon unparsing */
+-        case ' ':
+-            *q++ = '\\';
+-            *q++ = ' ';
+-            break;
+-#endif
+         case '\0':
+             *q++ = '\\';
+             *q++ = '0';
+diff --git a/src/lib/krb5/os/localaddr.c b/src/lib/krb5/os/localaddr.c
+index 58443f6e3..92d765f4b 100644
+--- a/src/lib/krb5/os/localaddr.c
++++ b/src/lib/krb5/os/localaddr.c
+@@ -392,20 +392,6 @@ get_linux_ipv6_addrs ()
+                 a6.s6_addr[i] = addrbyte[i];
+             if (scope != 0)
+                 continue;
+-#if 0 /* These symbol names are as used by ifconfig, but none of the
+-         system header files export them.  Dig up the kernel versions
+-         someday and see if they're exported.  */
+-            switch (scope) {
+-            case 0:
+-            default:
+-                break;
+-            case IPV6_ADDR_LINKLOCAL:
+-            case IPV6_ADDR_SITELOCAL:
+-            case IPV6_ADDR_COMPATv4:
+-            case IPV6_ADDR_LOOPBACK:
+-                continue;
+-            }
+-#endif
+             nw = calloc (1, sizeof (struct linux_ipv6_addr_list));
+             if (nw == 0)
+                 continue;
+@@ -1331,14 +1317,6 @@ krb5_os_localaddr(krb5_context context, krb5_address ***addr)
+     return get_localaddrs(context, addr, 1);
+ }
+ 
+-#if 0 /* not actually used anywhere currently */
+-krb5_error_code
+-krb5int_local_addresses(krb5_context context, krb5_address ***addr)
+-{
+-    return get_localaddrs(context, addr, 0);
+-}
+-#endif
+-
+ static krb5_error_code
+ get_localaddrs (krb5_context context, krb5_address ***addr, int use_profile)
+ {
+diff --git a/src/lib/krb5/rcache/rc_io.c b/src/lib/krb5/rcache/rc_io.c
+index b9859fe9f..35fa14a1f 100644
+--- a/src/lib/krb5/rcache/rc_io.c
++++ b/src/lib/krb5/rcache/rc_io.c
+@@ -117,10 +117,6 @@ krb5_rc_io_mkstemp(krb5_context context, krb5_rc_iostuff *d, char *dir)
+     return 0;
+ }
+ 
+-#if 0
+-static krb5_error_code rc_map_errno (int) __attribute__((cold));
+-#endif
+-
+ static krb5_error_code
+ rc_map_errno (krb5_context context, int e, const char *fn,
+               const char *operation)
+diff --git a/src/lib/rpc/auth_gssapi.c b/src/lib/rpc/auth_gssapi.c
+index ace0be925..568ec6d87 100644
+--- a/src/lib/rpc/auth_gssapi.c
++++ b/src/lib/rpc/auth_gssapi.c
+@@ -744,14 +744,6 @@ skip_call:
+      }
+ 
+      free(AUTH_PRIVATE(auth)->client_handle.value);
+-
+-#if 0
+-     PRINTF(("gssapi_destroy: calling GSSAPI_EXIT\n"));
+-     AUTH_PRIVATE(auth)->established = FALSE;
+-     callstat = clnt_call(AUTH_PRIVATE(auth)->clnt, AUTH_GSSAPI_EXIT,
+-			  xdr_void, NULL, xdr_void, NULL, timeout);
+-#endif
+-
+      free(auth->ah_private);
+      free(auth);
+      PRINTF(("gssapi_destroy: done\n"));
+diff --git a/src/lib/rpc/svc_auth.c b/src/lib/rpc/svc_auth.c
+index 5fedef7d7..e0f80af0b 100644
+--- a/src/lib/rpc/svc_auth.c
++++ b/src/lib/rpc/svc_auth.c
+@@ -59,9 +59,6 @@ static struct svcauthsw_type {
+ } svcauthsw[] = {
+      {AUTH_GSSAPI, gssrpc__svcauth_gssapi},	/* AUTH_GSSAPI */
+      {AUTH_NONE, gssrpc__svcauth_none},		/* AUTH_NONE */
+-#if 0
+-     {AUTH_GSSAPI_COMPAT, gssrpc__svcauth_gssapi}, /* AUTH_GSSAPI_COMPAT */
+-#endif
+      {AUTH_UNIX, gssrpc__svcauth_unix},		/* AUTH_UNIX */
+      {AUTH_SHORT, gssrpc__svcauth_short},	/* AUTH_SHORT */
+      {RPCSEC_GSS, gssrpc__svcauth_gss}		/* RPCSEC_GSS */
+diff --git a/src/lib/rpc/svc_auth_gssapi.c b/src/lib/rpc/svc_auth_gssapi.c
+index f3b3e35b8..384bdc336 100644
+--- a/src/lib/rpc/svc_auth_gssapi.c
++++ b/src/lib/rpc/svc_auth_gssapi.c
+@@ -869,10 +869,6 @@ done:
+      L_PRINTF(2, ("destroy_client: client %d destroyed\n", client_data->key));
+ 
+      free(client_data);
+-
+-#if 0 /*ifdef PURIFY*/
+-     purify_watch_n(client_data, sizeof(*client_data), "rw");
+-#endif
+ }
+ 
+ static void dump_db(char *msg)
+diff --git a/src/lib/win_glue.c b/src/lib/win_glue.c
+index 3d6dd7206..e149a1226 100644
+--- a/src/lib/win_glue.c
++++ b/src/lib/win_glue.c
+@@ -111,10 +111,6 @@ void GetCallingAppVerInfo( char *AppTitle, char *AppVer, char *AppIni,
+ 		 * hey , I bet we don't have a version resource, let's
+ 		 * punt
+ 		 */
+-#if 0
+-		/* let's see what we have? (1813 means no resource) */
+-		size = GetLastError(); 		/*  WIN32 only */
+-#endif
+ 		*VSflag = FALSE;
+ 		return;
+ 	}
+@@ -291,11 +287,6 @@ krb5_error_code krb5_vercheck()
+ 		return retval;
+ #endif
+ #ifdef VERSERV
+-#if 0
+-	/* Check library ? */
+-	if (CallVersionServer(APP_TITLE, APP_VER, APP_INI, NULL))
+-		return KRB5_LIB_EXPIRED;
+-#endif
+ 	{
+ #ifdef APP_TITLE
+ 		if (CallVersionServer(APP_TITLE, APP_VER, APP_INI, NULL))
+diff --git a/src/plugins/kdb/db2/lockout.c b/src/plugins/kdb/db2/lockout.c
+index 3a4f41821..30fb554db 100644
+--- a/src/plugins/kdb/db2/lockout.c
++++ b/src/plugins/kdb/db2/lockout.c
+@@ -157,10 +157,6 @@ krb5_db2_lockout_audit(krb5_context context,
+     case KRB5KDC_ERR_PREAUTH_FAILED:
+     case KRB5KRB_AP_ERR_BAD_INTEGRITY:
+         break;
+-#if 0
+-    case KRB5KDC_ERR_CLIENT_REVOKED:
+-        break;
+-#endif
+     default:
+         return 0;
+     }
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/ldap_realm.c b/src/plugins/kdb/ldap/libkdb_ldap/ldap_realm.c
+index 28dffe0c2..f6d00be9f 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/ldap_realm.c
++++ b/src/plugins/kdb/ldap/libkdb_ldap/ldap_realm.c
+@@ -777,9 +777,6 @@ krb5_ldap_read_realm_params(krb5_context context, char *lrealm,
+     ent = ldap_first_entry (ld, result);
+     if (ent == NULL) {
+         ldap_get_option (ld, LDAP_OPT_ERROR_NUMBER, (void *) &st);
+-#if 0
+-        st = translate_ldap_error(st, OP_SEARCH);
+-#endif
+         goto cleanup;
+     }
+ 
+diff --git a/src/plugins/preauth/pkinit/pkinit_clnt.c b/src/plugins/preauth/pkinit/pkinit_clnt.c
+index 77e9e5308..238101762 100644
+--- a/src/plugins/preauth/pkinit/pkinit_clnt.c
++++ b/src/plugins/preauth/pkinit/pkinit_clnt.c
+@@ -507,24 +507,6 @@ verify_kdc_san(krb5_context context,
+         for (hostptr = certhosts; *hostptr != NULL; hostptr++)
+             TRACE_PKINIT_CLIENT_SAN_KDCCERT_DNSNAME(context, *hostptr);
+     }
+-#if 0
+-    retval = call_san_checking_plugins(context, plgctx, reqctx, idctx,
+-                                       princs, hosts, &plugin_decision,
+-                                       need_eku_checking);
+-    pkiDebug("%s: call_san_checking_plugins() returned retval %d\n",
+-             __FUNCTION__);
+-    if (retval) {
+-        retval = KRB5KDC_ERR_KDC_NAME_MISMATCH;
+-        goto out;
+-    }
+-    pkiDebug("%s: call_san_checking_plugins() returned decision %d and "
+-             "need_eku_checking %d\n",
+-             __FUNCTION__, plugin_decision, *need_eku_checking);
+-    if (plugin_decision != NO_DECISION) {
+-        retval = plugin_decision;
+-        goto out;
+-    }
+-#endif
+ 
+     pkiDebug("%s: Checking pkinit sans\n", __FUNCTION__);
+     for (i = 0; princs != NULL && princs[i] != NULL; i++) {
+diff --git a/src/plugins/preauth/pkinit/pkinit_matching.c b/src/plugins/preauth/pkinit/pkinit_matching.c
+index c2a4c084d..afcce3f8b 100644
+--- a/src/plugins/preauth/pkinit/pkinit_matching.c
++++ b/src/plugins/preauth/pkinit/pkinit_matching.c
+@@ -572,17 +572,6 @@ check_all_certs(krb5_context context,
+      */
+     for (i = 0, md = matchdata[i]; md != NULL; md = matchdata[++i]) {
+         pkiDebug("%s: subject: '%s'\n", __FUNCTION__, md->subject_dn);
+-#if 0
+-        pkiDebug("%s: issuer:  '%s'\n", __FUNCTION__, md->subject_dn);
+-        for (j = 0; md->sans != NULL && md->sans[j] != NULL; j++) {
+-            char *san_string;
+-            krb5_unparse_name(context, md->sans[j], &san_string);
+-            pkiDebug("%s: PKINIT san: '%s'\n", __FUNCTION__, san_string);
+-            krb5_free_unparsed_name(context, san_string);
+-        }
+-        for (j = 0; md->upns != NULL && md->upns[j] != NULL; j++)
+-            pkiDebug("%s: UPN san: '%s'\n", __FUNCTION__, md->upns[j]);
+-#endif
+         certs_checked++;
+         for (rc = rs->crs; rc != NULL; rc = rc->next) {
+             comp_match = component_match(context, rc, md);
+diff --git a/src/plugins/preauth/pkinit/pkinit_srv.c b/src/plugins/preauth/pkinit/pkinit_srv.c
+index 76ad5bf19..27e6ef4d2 100644
+--- a/src/plugins/preauth/pkinit/pkinit_srv.c
++++ b/src/plugins/preauth/pkinit/pkinit_srv.c
+@@ -204,24 +204,6 @@ verify_client_san(krb5_context context,
+         goto out;
+     }
+ 
+-    /* XXX Verify this is consistent with client side XXX */
+-#if 0
+-    retval = call_san_checking_plugins(context, plgctx, reqctx, princs,
+-                                       upns, NULL, &plugin_decision, &ignore);
+-    pkiDebug("%s: call_san_checking_plugins() returned retval %d\n",
+-             __FUNCTION__);
+-    if (retval) {
+-        retval = KRB5KDC_ERR_CLIENT_NAME_MISMATCH;
+-        goto cleanup;
+-    }
+-    pkiDebug("%s: call_san_checking_plugins() returned decision %d\n",
+-             __FUNCTION__, plugin_decision);
+-    if (plugin_decision != NO_DECISION) {
+-        retval = plugin_decision;
+-        goto out;
+-    }
+-#endif
+-
+ #ifdef DEBUG_SAN_INFO
+     krb5_unparse_name(context, client, &client_string);
+ #endif
+diff --git a/src/tests/asn.1/krb5_decode_leak.c b/src/tests/asn.1/krb5_decode_leak.c
+index 22601c7bf..77fd3ee40 100644
+--- a/src/tests/asn.1/krb5_decode_leak.c
++++ b/src/tests/asn.1/krb5_decode_leak.c
+@@ -633,18 +633,6 @@ main(int argc, char **argv)
+                   krb5_free_ad_kdcissued);
+         ktest_empty_ad_kdcissued(&kdci);
+     }
+-#if 0
+-    /****************************************************************/
+-    /* encode_krb5_ad_signedpath_data */
+-    {
+-        krb5_ad_signedpath_data spd, *tmp;
+-        ktest_make_sample_ad_signedpath_data(&spd);
+-        leak_test(spd, encode_krb5_ad_signedpath_data,
+-                  decode_krb5_ad_signedpath_data,
+-                  NULL);
+-        ktest_empty_ad_signedpath_data(&spd);
+-    }
+-#endif
+     /****************************************************************/
+     /* encode_krb5_ad_signedpath */
+     {
+diff --git a/src/tests/dejagnu/config/default.exp b/src/tests/dejagnu/config/default.exp
+index 2d1686c56..daf3c7d3b 100644
+--- a/src/tests/dejagnu/config/default.exp
++++ b/src/tests/dejagnu/config/default.exp
+@@ -32,26 +32,6 @@ set tgt_support_desmd5 0
+ # request a des-cbc-md4 session key.  Since only des-cbc-crc is in the
+ # KDC's permitted_enctypes list, the TGT will be unusable.
+ 
+-# KLUDGE for tracking down leaking ptys
+-if 0 {
+-    rename spawn oldspawn
+-    rename wait oldwait
+-    proc spawn { args } {
+-	upvar 1 spawn_id spawn_id
+-	verbose "spawn: args=$args"
+-	set pid [eval oldspawn $args]
+-	verbose "spawn: pid=$pid spawn_id=$spawn_id"
+-	return $pid
+-    }
+-    proc wait { args } {
+-	upvar 1 spawn_id spawn_id
+-	verbose "wait: args=$args"
+-	set ret [eval oldwait $args]
+-	verbose "wait: $ret"
+-	return $ret
+-    }
+-}
+-
+ if { [string length $VALGRIND] } {
+     rename spawn valgrind_aux_spawn
+     proc spawn { args } {
+diff --git a/src/tests/shlib/t_loader.c b/src/tests/shlib/t_loader.c
+index 869be800a..29481a7be 100644
+--- a/src/tests/shlib/t_loader.c
++++ b/src/tests/shlib/t_loader.c
+@@ -186,18 +186,6 @@ int main()
+ 
+     (void) setvbuf(stdout, 0, _IONBF, 0);
+ 
+-#if 0
+-    /* Simplest test: Load, then unload out of order.  */
+-    celib = do_open("com_err", "3.0", 0);
+-    k5lib = do_open("krb5", "3.2", 0);
+-    gsslib = do_open("gssapi_krb5", "2.2", 0);
+-    celib2 = do_open("com_err", "3.0", 0);
+-    do_close(celib);
+-    do_close(k5lib);
+-    do_close(celib2);
+-    do_close(gsslib);
+-#endif
+-
+     celib = do_open("com_err", "3.0", 0);
+     k5lib = do_open("krb5", "3.2", 0);
+     gsslib = do_open("gssapi_krb5", "2.2", 0);
+diff --git a/src/tests/threads/t_rcache.c b/src/tests/threads/t_rcache.c
+index d6187f061..9d9b1acd3 100644
+--- a/src/tests/threads/t_rcache.c
++++ b/src/tests/threads/t_rcache.c
+@@ -106,7 +106,6 @@ static void try_one (struct tinfo *t)
+ static void *run_a_loop (void *x)
+ {
+     struct tinfo t = { 0 };
+-/*    int chr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"[(*(int*)x) % 27]; */
+ 
+     t.now = time(0);
+     t.idx = *(int *)x;
+@@ -117,12 +116,7 @@ static void *run_a_loop (void *x)
+         t.now = time(0);
+         try_one(&t);
+         t.total++;
+-#if 0
+-        printf("%c", chr);
+-        fflush(stdout);
+-#endif
+     }
+-/*    printf("thread %u total %u\n", (unsigned) ((int *)x-ip), t.total);*/
+     *(int*)x = t.total;
+     return 0;
+ }
+diff --git a/src/util/profile/prof_file.c b/src/util/profile/prof_file.c
+index 0f5462aea..64b32dbf1 100644
+--- a/src/util/profile/prof_file.c
++++ b/src/util/profile/prof_file.c
+@@ -79,39 +79,6 @@ void profile_library_finalizer(void)
+ 
+ static void profile_free_file_data(prf_data_t);
+ 
+-#if 0
+-
+-#define scan_shared_trees_locked()                              \
+-    {                                                           \
+-        prf_data_t d;                                           \
+-        k5_mutex_assert_locked(&g_shared_trees_mutex);          \
+-        for (d = g_shared_trees; d; d = d->next) {              \
+-            assert(d->magic == PROF_MAGIC_FILE_DATA);           \
+-            assert((d->flags & PROFILE_FILE_SHARED) != 0);      \
+-            assert(d->filespec[0] != 0);                        \
+-            assert(d->fslen <= 1000); /* XXX */                 \
+-            assert(d->filespec[d->fslen] == 0);                 \
+-            assert(d->fslen = strlen(d->filespec));             \
+-            assert(d->root != NULL);                            \
+-        }                                                       \
+-    }
+-
+-#define scan_shared_trees_unlocked()                    \
+-    {                                                   \
+-        int r;                                          \
+-        r = k5_mutex_lock(&g_shared_trees_mutex);       \
+-        assert (r == 0);                                \
+-        scan_shared_trees_locked();                     \
+-        k5_mutex_unlock(&g_shared_trees_mutex);         \
+-    }
+-
+-#else
+-
+-#define scan_shared_trees_locked()      { ; }
+-#define scan_shared_trees_unlocked()    { ; }
+-
+-#endif
+-
+ static int rw_access(const_profile_filespec_t filespec)
+ {
+ #ifdef HAVE_ACCESS
+@@ -209,8 +176,6 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
+     if (retval)
+         return retval;
+ 
+-    scan_shared_trees_unlocked();
+-
+     prf = malloc(sizeof(struct _prf_file_t));
+     if (!prf)
+         return ENOMEM;
+@@ -244,7 +209,6 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
+     }
+ 
+     k5_mutex_lock(&g_shared_trees_mutex);
+-    scan_shared_trees_locked();
+     for (data = g_shared_trees; data; data = data->next) {
+         if (!strcmp(data->filespec, expanded_filename)
+             /* Check that current uid has read access.  */
+@@ -264,7 +228,6 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
+         }
+         prf->data = data;
+         *ret_prof = prf;
+-        scan_shared_trees_unlocked();
+         return 0;
+     }
+     k5_mutex_unlock(&g_shared_trees_mutex);
+@@ -291,11 +254,9 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
+     }
+ 
+     k5_mutex_lock(&g_shared_trees_mutex);
+-    scan_shared_trees_locked();
+     data->flags |= PROFILE_FILE_SHARED;
+     data->next = g_shared_trees;
+     g_shared_trees = data;
+-    scan_shared_trees_locked();
+     k5_mutex_unlock(&g_shared_trees_mutex);
+ 
+     *ret_prof = prf;
+@@ -537,11 +498,9 @@ void profile_dereference_data(prf_data_t data)
+ }
+ void profile_dereference_data_locked(prf_data_t data)
+ {
+-    scan_shared_trees_locked();
+     data->refcount--;
+     if (data->refcount == 0)
+         profile_free_file_data(data);
+-    scan_shared_trees_locked();
+ }
+ 
+ void profile_lock_global()
+@@ -562,7 +521,6 @@ void profile_free_file(prf_file_t prf)
+ /* Call with mutex locked!  */
+ static void profile_free_file_data(prf_data_t data)
+ {
+-    scan_shared_trees_locked();
+     if (data->flags & PROFILE_FILE_SHARED) {
+         /* Remove from linked list.  */
+         if (g_shared_trees == data)
+@@ -586,7 +544,6 @@ static void profile_free_file_data(prf_data_t data)
+     data->magic = 0;
+     k5_mutex_destroy(&data->lock);
+     free(data);
+-    scan_shared_trees_locked();
+ }
+ 
+ errcode_t profile_close_file(prf_file_t prf)
+diff --git a/src/util/support/fake-addrinfo.c b/src/util/support/fake-addrinfo.c
+index 3ee162e0d..0fb35cf15 100644
+--- a/src/util/support/fake-addrinfo.c
++++ b/src/util/support/fake-addrinfo.c
+@@ -888,16 +888,10 @@ fake_getaddrinfo (const char *name, const char *serv,
+        If it's not set, don't accept such names.  */
+     if (flags & AI_NUMERICHOST) {
+         struct in_addr addr4;
+-#if 0
+-        ret = inet_aton (name, &addr4);
+-        if (ret)
+-            return EAI_NONAME;
+-#else
+         addr4.s_addr = inet_addr (name);
+         if (addr4.s_addr == 0xffffffff || addr4.s_addr == -1)
+             /* 255.255.255.255 or parse error, both bad */
+             return EAI_NONAME;
+-#endif
+         ret = fai_add_entry (&res, &addr4, port, &template);
+     } else {
+         ret = fai_add_hosts_by_name (name, &template, port, flags,
+diff --git a/src/util/support/utf8.c b/src/util/support/utf8.c
+index 34e2b6adb..ea8818116 100644
+--- a/src/util/support/utf8.c
++++ b/src/util/support/utf8.c
+@@ -404,28 +404,6 @@ int krb5int_utf8_isalnum(const char * p)
+ 
+     return KRB5_ALNUM(c);
+ }
+-
+-#if 0
+-int krb5int_utf8_islower(const char * p)
+-{
+-    unsigned c = * (const unsigned char *) p;
+-
+-    if (!KRB5_ASCII(c))
+-        return 0;
+-
+-    return KRB5_LOWER(c);
+-}
+-
+-int krb5int_utf8_isupper(const char * p)
+-{
+-    unsigned c = * (const unsigned char *) p;
+-
+-    if (!KRB5_ASCII(c))
+-        return 0;
+-
+-    return KRB5_UPPER(c);
+-}
+-#endif
+ #endif
+ 
+ 
+diff --git a/src/windows/include/loadfuncs-krb5.h b/src/windows/include/loadfuncs-krb5.h
+index a90678878..39a3504f6 100644
+--- a/src/windows/include/loadfuncs-krb5.h
++++ b/src/windows/include/loadfuncs-krb5.h
+@@ -106,29 +106,6 @@ TYPEDEF_FUNC(
+     krb5_free_ap_rep,
+     (krb5_context, krb5_ap_rep * )
+     );
+-
+-/* Removed around the time of krb5_rc_* change... */
+-#if 0
+-TYPEDEF_FUNC(
+-    void,
+-    KRB5_CALLCONV,
+-    krb5_free_safe,
+-    (krb5_context, krb5_safe * )
+-    );
+-TYPEDEF_FUNC(
+-    void,
+-    KRB5_CALLCONV,
+-    krb5_free_priv,
+-    (krb5_context, krb5_priv * )
+-    );
+-TYPEDEF_FUNC(
+-    void,
+-    KRB5_CALLCONV,
+-    krb5_free_priv_enc_part,
+-    (krb5_context, krb5_priv_enc_part * )
+-    );
+-#endif
+-
+ TYPEDEF_FUNC(
+     void,
+     KRB5_CALLCONV,
+diff --git a/src/windows/kfwlogon/kfwlogon.c b/src/windows/kfwlogon/kfwlogon.c
+index d851c4685..c388fffcd 100644
+--- a/src/windows/kfwlogon/kfwlogon.c
++++ b/src/windows/kfwlogon/kfwlogon.c
+@@ -434,9 +434,6 @@ static BOOL
+ GetSecurityLogonSessionData(HANDLE hToken, PSECURITY_LOGON_SESSION_DATA * ppSessionData)
+ {
+     NTSTATUS Status = 0;
+-#if 0
+-    HANDLE  TokenHandle;
+-#endif
+     TOKEN_STATISTICS Stats;
+     DWORD   ReqLen;
+     BOOL    Success;
+@@ -445,16 +442,8 @@ GetSecurityLogonSessionData(HANDLE hToken, PSECURITY_LOGON_SESSION_DATA * ppSess
+         return FALSE;
+     *ppSessionData = NULL;
+ 
+-#if 0
+-    Success = OpenProcessToken( HANDLE GetCurrentProcess(), TOKEN_QUERY, &TokenHandle );
+-    if ( !Success )
+-        return FALSE;
+-#endif
+ 
+     Success = GetTokenInformation( hToken, TokenStatistics, &Stats, sizeof(TOKEN_STATISTICS), &ReqLen );
+-#if 0
+-    CloseHandle( TokenHandle );
+-#endif
+     if ( !Success )
+         return FALSE;
+ 
+diff --git a/src/windows/leash/Leash.cpp b/src/windows/leash/Leash.cpp
+index f4e749350..cafcda7ce 100644
+--- a/src/windows/leash/Leash.cpp
++++ b/src/windows/leash/Leash.cpp
+@@ -46,8 +46,6 @@
+ static char THIS_FILE[] = __FILE__;
+ #endif
+ 
+-extern "C" int VScheckVersion(HWND hWnd, HANDLE hThisInstance);
+-
+ TicketInfoWrapper ticketinfo;
+ 
+ HWND CLeashApp::m_hProgram = 0;
+@@ -479,8 +477,6 @@ BOOL CLeashApp::InitInstance()
+         }
+     }
+ 
+-    VScheckVersion(m_pMainWnd->m_hWnd, AfxGetInstanceHandle());
+-
+     // The one and only window has been initialized, so show and update it.
+     m_pMainWnd->SetWindowText("MIT Kerberos");
+     m_pMainWnd->UpdateWindow();
+diff --git a/src/windows/leash/Makefile.in b/src/windows/leash/Makefile.in
+index 1b124e90f..57f93a418 100644
+--- a/src/windows/leash/Makefile.in
++++ b/src/windows/leash/Makefile.in
+@@ -61,9 +61,6 @@ OBJS=   \
+ 	$(OUTPRE)MainFrm.obj \
+ 	$(OUTPRE)out2con.obj \
+ 	$(OUTPRE)StdAfx.obj \
+-	$(OUTPRE)AfsProperties.obj \
+-	$(OUTPRE)VSroutines.obj \
+-	$(OUTPRE)KrbMiscConfigOpt.obj \
+ 	$(OUTPRE)KrbListTickets.obj
+ 
+ RESFILE = $(OUTPRE)Leash.res
+diff --git a/src/windows/leash/VSroutines.c b/src/windows/leash/VSroutines.c
+deleted file mode 100644
+index 63f0b4ae1..000000000
+--- a/src/windows/leash/VSroutines.c
++++ /dev/null
+@@ -1,64 +0,0 @@
+-#include <windows.h>
+-#include <winver.h>
+-
+-#if 0
+-//#ifdef USE_VS
+-#include <vs.h>
+-
+-#define ININAME	"leash.ini"
+-
+-int VScheckVersion(HWND hWnd, HANDLE hThisInstance)
+-{
+-    VS_Request		vrequest;
+-    VS_Status		status;
+-    BOOL		ok_to_continue;
+-    HCURSOR		hcursor;
+-    char		szFilename[255];
+-    char		szVerQ[90];
+-    char		*cp;
+-    LPSTR		lpAppVersion;
+-    LPSTR		lpAppName;
+-    LONG FAR		*lpLangInfo;
+-    DWORD		hVersionInfoID;
+-    DWORD		size;
+-    GLOBALHANDLE	hVersionInfo;
+-    LPSTR		lpVersionInfo;
+-    int			dumint;
+-    int			retval;
+-
+-    GetModuleFileName(hThisInstance, (LPSTR)szFilename, 255);
+-    size = GetFileVersionInfoSize((LPSTR) szFilename, &hVersionInfoID);
+-    hVersionInfo = GlobalAlloc(GHND, size);
+-    lpVersionInfo = GlobalLock(hVersionInfo);
+-    retval = GetFileVersionInfo(szFilename, hVersionInfoID, size,
+-                                lpVersionInfo);
+-    retval = VerQueryValue(lpVersionInfo, "\\VarFileInfo\\Translation",
+-                           (LPSTR FAR *)&lpLangInfo, &dumint);
+-    wsprintf(szVerQ, "\\StringFileInfo\\%04x%04x\\",
+-             LOWORD(*lpLangInfo), HIWORD(*lpLangInfo));
+-    cp = szVerQ + lstrlen(szVerQ);
+-    lstrcpy(cp, "ProductName");
+-    retval = VerQueryValue(lpVersionInfo, szVerQ, &lpAppName, &dumint);
+-    lstrcpy(cp, "ProductVersion");
+-
+-    retval = VerQueryValue(lpVersionInfo, szVerQ, &lpAppVersion, &dumint);
+-    hcursor = SetCursor(LoadCursor((HINSTANCE)NULL, IDC_WAIT));
+-    vrequest = VSFormRequest(lpAppName, lpAppVersion, ININAME, NULL, hWnd,
+-                             V_CHECK_AND_LOG);
+-    if ((ok_to_continue = (ReqStatus(vrequest) != V_E_CANCEL))
+-        && v_complain((status = VSProcessRequest(vrequest)), ININAME))
+-        WinVSReportRequest(vrequest, hWnd, "Version Server Status Report");
+-    if (ok_to_continue && status == V_REQUIRED)
+-        ok_to_continue = FALSE;
+-    VSDestroyRequest(vrequest);
+-    SetCursor(hcursor);
+-    GlobalUnlock(hVersionInfo);
+-    GlobalFree(hVersionInfo);
+-    return(ok_to_continue);
+-}
+-#else
+-int VScheckVersion(HWND hWnd, HANDLE hThisInstance)
+-{
+-    return(1);
+-}
+-#endif
+diff --git a/src/windows/leashdll/lsh_pwd.c b/src/windows/leashdll/lsh_pwd.c
+index ac85625a0..7cbe3d7e4 100644
+--- a/src/windows/leashdll/lsh_pwd.c
++++ b/src/windows/leashdll/lsh_pwd.c
+@@ -1426,11 +1426,6 @@ AuthenticateProc(
+         CSetDlgItemText(hDialog, IDC_EDIT_PRINCIPAL, principal);
+         CSetDlgItemText(hDialog, IDC_EDIT_PASSWORD, "");
+ 
+-#if 0  /* 20030619 - mjv wishes to return to the default character */
+-        /* echo spaces */
+-	CSendDlgItemMessage(hDialog, IDC_EDIT_PASSWORD, EM_SETPASSWORDCHAR, 32, 0);
+-#endif
+-
+ 	/* Set Lifetime Slider
+ 	*   min value = 5
+ 	*   max value = 1440
+@@ -1817,12 +1812,6 @@ NewPasswordProc(
+         if (hEditCtrl)
+             pAutoComplete = Leash_pec_create(hEditCtrl);
+ 
+-#if 0  /* 20030619 - mjv wishes to return to the default character */
+-	/* echo spaces */
+-	CSendDlgItemMessage(hDialog, IDC_EDIT_PASSWORD, EM_SETPASSWORDCHAR, 32, 0);
+-	CSendDlgItemMessage(hDialog, IDC_EDIT_PASSWORD2, EM_SETPASSWORDCHAR, 32, 0);
+-	CSendDlgItemMessage(hDialog, IDC_EDIT_PASSWORD3, EM_SETPASSWORDCHAR, 32, 0);
+-#endif
+         /* setup text of stuff. */
+ 
+         if (Position.x > 0 && Position.y > 0 &&
+diff --git a/src/windows/leashdll/lshfunc.c b/src/windows/leashdll/lshfunc.c
+index 8dafb7bed..47337de5d 100644
+--- a/src/windows/leashdll/lshfunc.c
++++ b/src/windows/leashdll/lshfunc.c
+@@ -279,19 +279,11 @@ Leash_changepwd_v5(
+     if ( !pkrb5_init_context )
+         goto cleanup;
+ 
+-   if (rc = pkrb5_init_context(&context)) {
+-#if 0
+-       com_err(argv[0], ret, "initializing kerberos library");
+-#endif
++   if (rc = pkrb5_init_context(&context))
+        goto cleanup;
+-   }
+ 
+-   if (rc = pkrb5_parse_name(context, principal, &princ)) {
+-#if 0
+-       com_err(argv[0], ret, "parsing client name");
+-#endif
++   if (rc = pkrb5_parse_name(context, principal, &princ))
+        goto cleanup;
+-   }
+ 
+    pkrb5_get_init_creds_opt_init(&opts);
+    pkrb5_get_init_creds_opt_set_tkt_life(&opts, 5*60);
+@@ -305,29 +297,13 @@ Leash_changepwd_v5(
+ 
+ 
+    if (rc = pkrb5_get_init_creds_password(context, &creds, princ, password,
+-                                          0, 0, 0, "kadmin/changepw", &opts)) {
+-       if (rc == KRB5KRB_AP_ERR_BAD_INTEGRITY) {
+-#if 0
+-           com_err(argv[0], 0,
+-                   "Password incorrect while getting initial ticket");
+-#endif
+-       }
+-       else {
+-#if 0
+-           com_err(argv[0], ret, "getting initial ticket");
+-#endif
+-       }
++                                          0, 0, 0, "kadmin/changepw", &opts))
+        goto cleanup;
+-   }
+ 
+    if (rc = pkrb5_change_password(context, &creds, newpassword,
+                                   &result_code, &result_code_string,
+-                                  &result_string)) {
+-#if 0
+-       com_err(argv[0], ret, "changing password");
+-#endif
++                                  &result_string))
+        goto cleanup;
+-   }
+ 
+    if (result_code) {
+        int len = result_code_string.length +
+diff --git a/src/windows/leashdll/lshutil.cpp b/src/windows/leashdll/lshutil.cpp
+index 37c0723f3..a90e7e92e 100644
+--- a/src/windows/leashdll/lshutil.cpp
++++ b/src/windows/leashdll/lshutil.cpp
+@@ -531,17 +531,6 @@ protected:
+             IAutoCompleteDropDown* pacdd = NULL;
+             hRes = pac->QueryInterface(IID_IAutoCompleteDropDown, (LPVOID*)&pacdd);
+             pac->Release();
+-
+-        // @TODO: auto-suggest; other advanced options?
+-#if 0
+-            IAutoComplete2 *pac2;
+-
+-            if (SUCCEEDED(pac->QueryInterface(IID_IAutoComplete2,
+-                                              (LPVOID*)&pac2))) {
+-                pac2->SetOptions(ACO_AUTOSUGGEST);
+-                pac2->Release();
+-            }
+-#endif
+             m_acdd = pacdd;
+         }
+     }
+diff --git a/src/windows/lib/cacheapi.h b/src/windows/lib/cacheapi.h
+index c485080c1..b30857810 100644
+--- a/src/windows/lib/cacheapi.h
++++ b/src/windows/lib/cacheapi.h
+@@ -102,21 +102,6 @@ typedef struct opaque_dll_control_block_type* apiCB;
+ typedef struct opaque_ccache_pointer_type* ccache_p;
+ typedef struct opaque_credential_iterator_type* ccache_cit;
+ 
+-#if 0
+-enum _cc_data_type {
+-    type_ticket = 0,                /* 0 for ticket, second_ticket */
+-    /* Ted's draft spec says these are to be
+-       "as defined in the Kerberos V5 protocol"
+-       all I can find are typdefs,
+-       can't find an enumerated type or #define
+-    */
+-    type_address,           /* =  <"as defined in the Kerberos V5 protocol"> */
+-    type_authdata,          /* = <"as defined in the Kerberos V5 protocol"> */
+-    type_encryption,        /* = <"as defined in the Kerberos V5 protocol"> */
+-    cc_data_type_max        /* for validation */
+-};
+-#endif
+-
+ typedef struct _cc_data
+ {
+     cc_uint32       type;		// should be one of _cc_data_type

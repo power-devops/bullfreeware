@@ -1,0 +1,253 @@
+From 17964eb3a054c634b743aae9d1d9414e1bf21885 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Tue, 23 Jun 2020 10:03:40 -0400
+Subject: [PATCH] build: Change conditional include and empty.mk to -include in
+ Makefiles
+
+GNU Make supports "-include" keyword to prevent warnings and errors due to
+inclusion of non-existent files.  This patch changes gcc/ and libgcc/ to use
+"-include" in place of the historical conditional inclusion and use of
+empty.mk work-arounds.
+
+gcc/ChangeLog
+
+2020-06-23  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.in (LANG_MAKEFRAGS): Same.
+	(tmake_file): Use -include.
+	(xmake_file): Same.
+
+libgcc/ChangeLog
+
+2020-06-23  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.in: Remove uses of empty.mk. Use -include.
+	* config/avr/t-avr: Use -include.
+	* empty.mk: Delete.
+
+libgcc/config/avr/libf7/ChangeLog
+
+2020-06-23  David Edelsohn  <dje.gcc@gmail.com>
+
+	* t-libf7: Same.
+---
+ gcc/Makefile.in                 | 12 +++---------
+ libgcc/Makefile.in              | 22 +++++++++++-----------
+ libgcc/config/avr/libf7/t-libf7 |  4 ++--
+ libgcc/config/avr/t-avr         | 10 +++++-----
+ libgcc/empty.mk                 |  2 --
+ 5 files changed, 21 insertions(+), 29 deletions(-)
+ delete mode 100644 libgcc/empty.mk
+
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+index 238b529f373..d5dcc03d59b 100644
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1763,22 +1763,16 @@ SELFTEST_DEPS = $(GCC_PASSES) stmp-int-hdrs $(srcdir)/testsuite/selftests
+ gnat_install_lib = @gnat_install_lib@
+ 
+ # per-language makefile fragments
+-ifneq ($(LANG_MAKEFRAGS),)
+-include $(LANG_MAKEFRAGS)
+-endif
++-include $(LANG_MAKEFRAGS)
+ 
+ # target and host overrides must follow the per-language makefile fragments
+ # so they can override or augment language-specific variables
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ # host overrides
+-ifneq ($(xmake_file),)
+-include $(xmake_file)
+-endif
++-include $(xmake_file)
+ 
+ # all-tree.def includes all the tree.def files.
+ all-tree.def: s-alltree; @true
+diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
+index 5c50f9fe4df..d6075d32bd4 100644
+--- a/libgcc/Makefile.in
++++ b/libgcc/Makefile.in
+@@ -373,7 +373,7 @@ gthr-default.h: $(srcdir)/$(thread_header)
+ 	-$(LN_S) $< $@
+ 
+ tmake_file = @tmake_file@
+-include $(srcdir)/empty.mk $(tmake_file)
++-include $(tmake_file)
+ 
+ # Collect target defines and headers from config.host.
+ libgcc_tm_defines = @tm_defines@
+@@ -393,7 +393,7 @@ ifeq ($(SHLIB_LINK),)
+ endif
+ 
+ ifeq ($(enable_shared),yes)
+-  iterator = $(srcdir)/empty.mk $(patsubst %,$(srcdir)/shared-object.mk,$(iter-items))
++  iterator = $(patsubst %,$(srcdir)/shared-object.mk,$(iter-items))
+ 
+   install-shared = install-shared
+ 
+@@ -425,7 +425,7 @@ gen-hide-list = echo > $@
+ endif
+ 
+ ifneq ($(enable_shared),yes)
+-iterator = $(srcdir)/empty.mk $(patsubst %,$(srcdir)/static-object.mk,$(iter-items))
++iterator = $(patsubst %,$(srcdir)/static-object.mk,$(iter-items))
+ endif
+ 
+ LIB2ADD += enable-execute-stack.c
+@@ -522,7 +522,7 @@ iter-items := $(sifuncs) $(difuncs) $(tifuncs)
+ iter-labels := $(sifuncs) $(difuncs) $(difuncs)
+ iter-sizes := $(patsubst %,4,$(sifuncs) $(difuncs)) $(patsubst %,8,$(tifuncs))
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/siditi-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/siditi-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,%$(objext),$(sifuncs) $(difuncs) $(tifuncs))
+ ifeq ($(enable_shared),yes)
+@@ -805,7 +805,7 @@ iter-items := $(fixed-funcs)
+ iter-labels := $(fixed-labels)
+ iter-from := $(fixed-modes)
+ iter-to := $(fixed-modes)
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/fixed-obj.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/fixed-obj.mk,$(iter-items))
+ 
+ # Add arithmetic functions to list of objects to be built
+ libgcc-objects += $(patsubst %,%$(objext),$(filter-out $(LIB2FUNCS_EXCLUDE),$(fixed-funcs)))
+@@ -824,7 +824,7 @@ iter-items := $(fixed-conv-funcs)
+ iter-labels := $(fixed-conv-labels)
+ iter-from := $(fixed-conv-from)
+ iter-to := $(fixed-conv-to)
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/fixed-obj.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/fixed-obj.mk,$(iter-items))
+ 
+ # Add conversion functions to list of objects to be built
+ libgcc-objects += $(patsubst %,%$(objext),$(filter-out $(LIB2FUNCS_EXCLUDE),$(fixed-conv-funcs)))
+@@ -844,7 +844,7 @@ libgcc-objects += $(addsuffix $(objext),$(basename $(notdir $(LIB2ADD_ST))))
+ 
+ c_flags :=
+ iter-items := $(LIB2ADD) $(LIB2ADD_ST)
+-include $(iterator)
++-include $(iterator)
+ 
+ ifeq ($(enable_shared),yes)
+ libgcc-s-objects += $(addsuffix _s$(objext),$(basename $(notdir $(LIB2ADD))))
+@@ -862,7 +862,7 @@ libgcc-eh-objects += $(addsuffix $(objext),$(basename $(notdir $(LIB2ADDEHSTATIC
+ libgcc-s-objects += $(addsuffix _s$(objext),$(basename $(notdir $(LIB2ADDEHSHARED))))
+ 
+ iter-items := $(sort $(LIB2ADDEHSTATIC) $(LIB2ADDEHSHARED))
+-include $(iterator)
++-include $(iterator)
+ 
+ else
+ # Not shared.  LIB2ADDEH are added to libgcc.a.
+@@ -870,7 +870,7 @@ else
+ libgcc-objects += $(addsuffix $(objext),$(basename $(notdir $(LIB2ADDEH))))
+ 
+ iter-items := $(LIB2ADDEH)
+-include $(iterator)
++-include $(iterator)
+ 
+ endif
+ 
+@@ -886,7 +886,7 @@ libunwind-s-objects += $(addsuffix _s$(objext),$(basename $(notdir $(LIBUNWIND))
+ endif
+ 
+ iter-items := $(LIBUNWIND)
+-include $(iterator)
++-include $(iterator)
+ 
+ # Build libgcov components.
+ 
+@@ -1203,4 +1203,4 @@ install-strip: install
+ # configure.
+ .NOEXPORT:
+ 
+-include $(srcdir)/empty.mk $(wildcard *.dep)
++-include $(wildcard *.dep)
+diff --git a/libgcc/config/avr/libf7/t-libf7 b/libgcc/config/avr/libf7/t-libf7
+index 92a27eb7125..30aa280d11e 100644
+--- a/libgcc/config/avr/libf7/t-libf7
++++ b/libgcc/config/avr/libf7/t-libf7
+@@ -125,7 +125,7 @@ f7_parts := $(F7_C_PARTS)
+ iter-items  := $(f7_parts)
+ iter-labels := $(f7_parts)
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(libf7)/libf7-c-object.mk,$(iter-items))
++-include $(patsubst %,$(libf7)/libf7-c-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,f7_c_%$(objext),$(F7_C_PARTS))
+ 
+@@ -136,7 +136,7 @@ f7_parts := $(F7_ASM_PARTS)
+ iter-items  := $(f7_parts)
+ iter-labels := $(f7_parts)
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(libf7)/libf7-asm-object.mk,$(iter-items))
++-include $(patsubst %,$(libf7)/libf7-asm-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,f7_asm_%$(objext),$(F7_ASM_PARTS))
+ 
+diff --git a/libgcc/config/avr/t-avr b/libgcc/config/avr/t-avr
+index e4f867be3d8..ed84b3f342e 100644
+--- a/libgcc/config/avr/t-avr
++++ b/libgcc/config/avr/t-avr
+@@ -132,7 +132,7 @@ iter-labels := $(siintfuncs16)
+ iter-sizes := $(patsubst %,2,$(siintfuncs16)) $(patsubst %,2,$(hiintfuncs16))
+ 
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/siditi-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/siditi-object.mk,$(iter-items))
+ libgcc-objects += $(patsubst %,%$(objext),$(hiintfuncs16))
+ 
+ ifeq ($(enable_shared),yes)
+@@ -167,7 +167,7 @@ iter-items  := $(round_funcs)
+ iter-labels := $(round_suffix)
+ iter-flags  := $(patsubst %,-DL_round,$(iter-items))
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,%$(objext),$(round_funcs))
+ 
+@@ -181,7 +181,7 @@ iter-items  := $(clrsb_funcs)
+ iter-labels := $(clrsb_funcs)
+ iter-flags  := $(patsubst %,-DL_clrsb,$(iter-items))
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,%$(objext),$(clrsb_funcs))
+ 
+@@ -195,7 +195,7 @@ iter-items  := $(countls_funcs)
+ iter-labels := $(countls_modes)
+ iter-flags  := $(patsubst %,-DL_countls,$(iter-items))
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,%$(objext),$(countls_funcs))
+ 
+@@ -209,7 +209,7 @@ iter-items  := $(countlsu_funcs)
+ iter-labels := $(countlsu_modes)
+ iter-flags  := $(patsubst %,-DL_countlsu,$(iter-items))
+ 
+-include $(srcdir)/empty.mk $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
++-include $(patsubst %,$(srcdir)/config/avr/lib2-object.mk,$(iter-items))
+ 
+ libgcc-objects += $(patsubst %,%$(objext),$(countlsu_funcs))
+ 
+diff --git a/libgcc/empty.mk b/libgcc/empty.mk
+deleted file mode 100644
+index 7b1d97b8b04..00000000000
+--- a/libgcc/empty.mk
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# Empty.  This file exists to suppress errors in the parent Makefile
+-# when a variable (e.g. LIB2ADD) is empty.
+-- 
+2.25.0
+

@@ -1,0 +1,16 @@
+*** pth.h.in.ORIG	Tue Oct  9 12:55:13 2007
+--- pth.h.in	Tue Oct  9 12:55:57 2007
+***************
+*** 90,96 ****
+--- 90,100 ----
+      /* check if the user requests a bigger FD_SETSIZE than we can handle */
+  #if defined(FD_SETSIZE)
+  #if FD_SETSIZE > @PTH_FDSETSIZE@
++ #ifdef _AIX
++ #define FD_SETSIZE 1024
++ #else
+  #error "FD_SETSIZE is larger than what GNU Pth can handle."
++ #endif
+  #endif
+  #endif
+  

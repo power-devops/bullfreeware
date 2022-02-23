@@ -1,0 +1,43 @@
+FILE1=$1
+FILE2=$2
+
+DIFF=0
+if [ "$3" != "" ]
+then
+	DIFF=1
+fi
+
+FTMP=/tmp/boost-res-$$
+cat  $FILE1   > $FTMP
+echo "@"     >> $FTMP
+cat  $FILE2  >> $FTMP
+
+cat $FTMP | awk -v DIFF=$DIFF 'BEGIN{N=0;}{
+	if($0=="@"){N++; next;}
+	L[$1]=1;
+	LT[$1,N]=$2;
+	LP[$1,N]=$3;
+	LF[$1,N]=$4;
+	LS[$1,N]=$5;
+	}END{
+	for(l in L)
+	{
+		printf(" %-20s ", l);
+		for(n=0;n<=N;n++)
+		{
+			if(DIFF==0)
+			       		 printf(" | %5d %5d %4d %4d ", LT[l,n], LP[l,n], LF[l,n], LS[l,n]);
+			else
+			{
+				if(n==0) printf(" | %5d %5d %4d %4d ", LT[l,n], LP[l,n], LF[l,n], LS[l,n]);
+				if(n>=1)
+				{
+					if(LT[l,n]!=0)
+						printf(" | %5d %5d %4d %4d ", LT[l,n]-LT[l,n-1], LP[l,n]-LP[l,n-1], LF[l,n]-LF[l,n-1], LS[l,n]-LS[l,n-1]);
+				}
+			}
+		}
+		printf("\n");
+	}
+	}' | sort
+#rm -f $FTMP

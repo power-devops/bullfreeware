@@ -1,0 +1,109 @@
+--- ./configure_orig	2021-03-21 07:28:50 +0000
++++ ./configure	2021-03-21 06:56:56 +0000
+@@ -19835,7 +19835,7 @@
+ # Check for zlib library.
+ 
+ WITH_ZLIB_INCLUDE=
+-WITH_ZLIB_LIB=
++WITH_ZLIB_LIB=/usr/opt/rpm/lib/libz.a
+ 
+ for ac_header in zlib.h
+ do :
+@@ -19887,7 +19887,7 @@
+ 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+ $as_echo "$ac_res" >&6; }
+ if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+-  WITH_ZLIB_LIB="-l${zlib}"; break
++  WITH_ZLIB_LIB="/usr/opt/rpm/lib/libz.a"; break
+ fi
+ 
+     done
+@@ -19999,7 +19999,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_bz2_BZ2_bzread" >&5
+ $as_echo "$ac_cv_lib_bz2_BZ2_bzread" >&6; }
+ if test "x$ac_cv_lib_bz2_BZ2_bzread" = xyes; then :
+-  WITH_BZ2_LIB=-lbz2
++  WITH_BZ2_LIB=/usr/opt/rpm/lib/libbz2.a
+ fi
+ 
+ 
+@@ -21488,7 +21488,7 @@
+ # have a header named nss.h... so make extra check for NSS's sechash.h
+ # which we use too and hopefully is slightly more unique to NSS.
+ WITH_NSS_INCLUDE=
+-WITH_NSS_LIB=
++WITH_NSS_LIB=/usr/opt/rpm/lib/libnss3.a
+ if test "$with_crypto" = nss; then
+ # If we have pkgconfig make sure CPPFLAGS are setup correctly for the nss
+ # -I include path. Otherwise the below checks will fail because nspr.h
+@@ -21651,7 +21651,7 @@
+ $as_echo "$ac_cv_lib_nss3_VFY_VerifyDigestDirect" >&6; }
+ if test "x$ac_cv_lib_nss3_VFY_VerifyDigestDirect" = xyes; then :
+ 
+-  WITH_NSS_LIB=-lnss3
++  WITH_NSS_LIB=/usr/opt/rpm/lib/libnss3.a
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS_InitContext in -lnss3" >&5
+ $as_echo_n "checking for NSS_InitContext in -lnss3... " >&6; }
+ if ${ac_cv_lib_nss3_NSS_InitContext+:} false; then :
+@@ -21712,7 +21712,7 @@
+ #=================
+ # Check for magic library.
+ WITH_MAGIC_INCLUDE=
+-WITH_MAGIC_LIB=
++WITH_MAGIC_LIB=/usr/opt/rpm/lib/libmagic.a
+ 
+ ac_fn_c_check_header_mongrel "$LINENO" "magic.h" "ac_cv_header_magic_h" "$ac_includes_default"
+ if test "x$ac_cv_header_magic_h" = xyes; then :
+@@ -21756,7 +21756,7 @@
+ if test "x$ac_cv_lib_magic_magic_open" = xyes; then :
+ 
+       WITH_MAGIC_INCLUDE=
+-      WITH_MAGIC_LIB="-lmagic"
++      WITH_MAGIC_LIB="/usr/opt/rpm/lib/libmagic.a"
+ 
+ else
+ 
+@@ -21779,7 +21779,7 @@
+ #=================
+ # Check for popt library.
+ WITH_POPT_INCLUDE=
+-WITH_POPT_LIB=
++WITH_POPT_LIB=/usr/opt/rpm/lib/libpopt.a
+ 
+ ac_fn_c_check_header_mongrel "$LINENO" "popt.h" "ac_cv_header_popt_h" "$ac_includes_default"
+ if test "x$ac_cv_header_popt_h" = xyes; then :
+@@ -21823,7 +21823,7 @@
+ if test "x$ac_cv_lib_popt_poptGetContext" = xyes; then :
+ 
+       WITH_POPT_INCLUDE=
+-      WITH_POPT_LIB="-lpopt"
++      WITH_POPT_LIB="/usr/opt/rpm/lib/libpopt.a"
+ 
+ else
+ 
+@@ -22160,7 +22160,7 @@
+ 
+ $as_echo "#define WITH_BDB 1" >>confdefs.h
+ 
+-    WITH_DB_LIB=-ldb
++    WITH_DB_LIB=/usr/opt/rpm/lib/libdb-4.8.a
+ 
+ 
+ fi
+@@ -23640,6 +23640,7 @@
+           fi
+           if test "X$found_dir" != "X"; then
+                         LTLIBINTL="${LTLIBINTL}${LTLIBINTL:+ }-L$found_dir -l$name"
++						LTLIBINTL=/usr/opt/rpm/lib/libintl.a
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/$acl_libdirstem"; then
+                                 LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
+@@ -26353,7 +26354,7 @@
+ 	as_fn_error $? "lua not present (--without-lua to disable)" "$LINENO" 5
+ else
+ 	LUA_CFLAGS=$pkg_cv_LUA_CFLAGS
+-	LUA_LIBS=$pkg_cv_LUA_LIBS
++	LUA_LIBS=/usr/opt/rpm/lib/liblua.a
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+ $as_echo "yes" >&6; }
+ 

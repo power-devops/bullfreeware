@@ -1,0 +1,40 @@
+--- ./mysql-test/unstable-tests.orig	2019-10-09 12:27:13.757814204 +0200
++++ ./mysql-test/unstable-tests	2019-10-09 12:27:22.603813798 +0200
+@@ -1205,3 +1205,37 @@
+ 
+ wsrep_info.*      : suite.pm modified in 10.4.7
+ wsrep_info.plugin : MDEV-13569 - No nodes coming from prim view
++
++
++## From Fedora
++# The SSL test are failing correctly. Fro more explanation, see:
++# https://jira.mariadb.org/browse/MDEV-8404?focusedCommentId=84275&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-84275
++main.ssl_7937                                : #1399847 From Fedora
++#  main.ssl_crl_clients                         : #1399847 OK on AIX for now
++main.ssl_8k_key                              : From Fedora
++
++#
++perfschema.nesting                           : #1399847 From Fedora
++
++# ------------------------------
++# Tests that fails because of 'Self Signed Certificate in the Certificate Chain'
++perfschema.cnf_option                        : From Fedora
++sys_vars.slave_parallel_threads_basic        : From Fedora
++
++# ------------------------------
++# Fails since 10.1.12
++innodb.innodb_defrag_binlog                  : From Fedora
++
++# Fails on ppc and arm since 10.2.15
++parts.partition_alter4_innodb                : From Fedora
++
++# For AIX
++## Need threadpool
++sys_vars.sysvars_server_notembedded   : Needs threadpool
++sys_vars.thread_pool_*                : Needs threadpool
++
++main.connect-abstract                 : abstract socket is not available on AIX
++
++## Too long and space consuming test.
++#innodb_gis.rtree_debug                : Not the right errorcode, but OK. 5 hours, 30 Go
++#main.sum_distinct-big                 : OK. 4 hours, 60 Go

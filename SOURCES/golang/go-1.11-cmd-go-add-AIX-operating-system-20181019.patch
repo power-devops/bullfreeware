@@ -1,0 +1,53 @@
+From a21bc6ed0da54981495b0a6e5b3c2d1e2314a6d9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 17:21:57 +0200
+Subject: [PATCH] cmd/go: add AIX operating system
+
+This commit adds AIX operating system to cmd/go package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: I2605d10a7833fa2eb197f6db4a52d5919cf93614
+---
+ src/cmd/go/internal/base/signal_unix.go | 2 +-
+ src/cmd/go/internal/work/exec.go        | 3 +++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/cmd/go/internal/base/signal_unix.go b/src/cmd/go/internal/base/signal_unix.go
+index 38490b571b..c109eecadb 100644
+--- a/src/cmd/go/internal/base/signal_unix.go
++++ b/src/cmd/go/internal/base/signal_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js linux nacl netbsd openbsd solaris
+ 
+ package base
+ 
+diff --git a/src/cmd/go/internal/work/exec.go b/src/cmd/go/internal/work/exec.go
+index 158f5f3b17..6ae263431c 100644
+--- a/src/cmd/go/internal/work/exec.go
++++ b/src/cmd/go/internal/work/exec.go
+@@ -1648,6 +1648,7 @@ func (b *Builder) cover(a *Action, dst, src string, varName string) error {
+ 
+ var objectMagic = [][]byte{
+ 	{'!', '<', 'a', 'r', 'c', 'h', '>', '\n'}, // Package archive
++	{'<', 'b', 'i', 'g', 'a', 'f', '>', '\n'}, // Package AIX big archive
+ 	{'\x7F', 'E', 'L', 'F'},                   // ELF
+ 	{0xFE, 0xED, 0xFA, 0xCE},                  // Mach-O big-endian 32-bit
+ 	{0xFE, 0xED, 0xFA, 0xCF},                  // Mach-O big-endian 64-bit
+@@ -1658,6 +1659,8 @@ var objectMagic = [][]byte{
+ 	{0x00, 0x00, 0x8a, 0x97},                  // Plan 9 amd64
+ 	{0x00, 0x00, 0x06, 0x47},                  // Plan 9 arm
+ 	{0x00, 0x61, 0x73, 0x6D},                  // WASM
++	{0x01, 0xDF},                              // XCOFF 32bit
++	{0x01, 0xF7},                              // XCOFF 64bit
+ }
+ 
+ func isObject(s string) bool {
+-- 
+2.17.1
+

@@ -1,0 +1,45 @@
+--- a/configure	2019-12-04 13:36:03 +0100
++++ b/configure	2019-12-04 13:37:37 +0100
+@@ -9268,6 +9268,7 @@
+ 
+       archive_cmds=''
+       hardcode_direct=yes
++      hardcode_direct_absolute=yes
+       hardcode_libdir_separator=':'
+       link_all_deplibs=yes
+ 
+@@ -11420,6 +11421,12 @@
+ # resulting binary.
+ hardcode_direct=$hardcode_direct
+ 
++# Set to "yes" if using DIR/libNAME\$shared_ext during linking hardcodes
++# DIR into the resulting binary and the resulting library dependency is
++# "absolute",i.e impossible to change by setting \$shlibpath_var if the
++# library is relocated.
++hardcode_direct_absolute=$hardcode_direct_absolute
++
+ # Set to yes if using the -LDIR flag during linking hardcodes DIR into the
+ # resulting binary.
+ hardcode_minus_L=$hardcode_minus_L
+--- a/build/ltmain.sh	2019-12-04 13:31:51 +0100
++++ b/build/ltmain.sh	2019-12-04 13:35:38 +0100
+@@ -2753,7 +2753,8 @@
+ 	      fi
+ 	      ;;
+ 	    relink)
+-	      if test "$hardcode_direct" = yes; then
++	      if test "$hardcode_direct" = yes &&
++	         test no = "$hardcode_direct_absolute"; then
+ 		add="$dir/$linklib"
+ 	      elif test "$hardcode_minus_L" = yes; then
+ 		add_dir="-L$dir"
+@@ -2809,7 +2810,8 @@
+ 	    add_dir=
+ 	    add=
+ 	    # Finalize command for both is simple: just hardcode it.
+-	    if test "$hardcode_direct" = yes; then
++	    if test yes = "$hardcode_direct" &&
++	       test no = "$hardcode_direct_absolute"; then
+ 	      add="$libdir/$linklib"
+ 	    elif test "$hardcode_minus_L" = yes; then
+ 	      add_dir="-L$libdir"

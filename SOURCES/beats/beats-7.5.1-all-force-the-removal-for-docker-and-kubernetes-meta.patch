@@ -1,0 +1,30 @@
+From 60f8e473866c2287a0ad2dffb6e4b2f8ecf0bd7e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 13 Jan 2020 10:30:42 +0100
+Subject: [PATCH] all: force the removal for docker and kubernetes metadata
+ processors
+
+---
+ dev-tools/mage/config.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/dev-tools/mage/config.go b/dev-tools/mage/config.go
+index 724970d..faedf96 100644
+--- a/dev-tools/mage/config.go
++++ b/dev-tools/mage/config.go
+@@ -123,6 +123,12 @@ func Config(types ConfigFileType, args ConfigFileParams, targetDir string) error
+ 		params[k] = v
+ 	}
+ 
++	if params["GOOS"] == "aix" {
++		// Force the removal for docekrand kubernetes parts for AIX.
++		params["UseDockerMetadataProcessor"] = false
++		params["UseKubernetesMetadataProcessor"] = false
++	}
++
+ 	// Short
+ 	if types.IsShort() {
+ 		file := filepath.Join(targetDir, BeatName+".yml")
+-- 
+2.22.0
+

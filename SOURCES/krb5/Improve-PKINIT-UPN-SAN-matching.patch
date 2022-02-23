@@ -1,0 +1,151 @@
+From a489d1309112af9fd6f5ecf3e6e93ec87c06e319 Mon Sep 17 00:00:00 2001
+From: Matt Rogers <mrogers@redhat.com>
+Date: Mon, 5 Dec 2016 12:17:59 -0500
+Subject: [PATCH] Improve PKINIT UPN SAN matching
+
+Add the match_client() kdcpreauth callback and use it in
+verify_client_san().  match_client() preserves the direct UPN to
+request principal comparison and adds a direct comparison to the
+client principal, falling back to an alias DB search and comparison
+against the client principal.  Change crypto_retreive_X509_sans() to
+parse UPN values as enterprise principals.
+
+[ghudson@mit.edu: use match_client for both kinds of SANs]
+
+ticket: 8528 (new)
+(cherry picked from commit 46ff765e1fb8cbec2bb602b43311269e695dbedc)
+---
+ src/include/krb5/kdcpreauth_plugin.h               | 13 ++++++++++
+ src/kdc/kdc_preauth.c                              | 28 ++++++++++++++++++++--
+ src/plugins/preauth/pkinit/pkinit_crypto_openssl.c |  4 +++-
+ src/plugins/preauth/pkinit/pkinit_srv.c            | 10 ++++----
+ 4 files changed, 48 insertions(+), 7 deletions(-)
+
+diff --git a/src/include/krb5/kdcpreauth_plugin.h b/src/include/krb5/kdcpreauth_plugin.h
+index f455effae..92aa5a5a5 100644
+--- a/src/include/krb5/kdcpreauth_plugin.h
++++ b/src/include/krb5/kdcpreauth_plugin.h
+@@ -221,6 +221,19 @@ typedef struct krb5_kdcpreauth_callbacks_st {
+ 
+     /* End of version 3 kdcpreauth callbacks. */
+ 
++    /*
++     * Return true if princ matches the principal named in the request or the
++     * client principal (possibly canonicalized).  If princ does not match,
++     * attempt a database lookup of princ with aliases allowed and compare the
++     * result to the client principal, returning true if it matches.
++     * Otherwise, return false.
++     */
++    krb5_boolean (*match_client)(krb5_context context,
++                                 krb5_kdcpreauth_rock rock,
++                                 krb5_principal princ);
++
++    /* End of version 4 kdcpreauth callbacks. */
++
+ } *krb5_kdcpreauth_callbacks;
+ 
+ /* Optional: preauth plugin initialization function. */
+diff --git a/src/kdc/kdc_preauth.c b/src/kdc/kdc_preauth.c
+index 605fcb7ad..0ce79c667 100644
+--- a/src/kdc/kdc_preauth.c
++++ b/src/kdc/kdc_preauth.c
+@@ -568,8 +568,31 @@ set_cookie(krb5_context context, krb5_kdcpreauth_rock rock,
+     return kdc_fast_set_cookie(rock->rstate, pa_type, data);
+ }
+ 
++static krb5_boolean
++match_client(krb5_context context, krb5_kdcpreauth_rock rock,
++             krb5_principal princ)
++{
++    krb5_db_entry *ent;
++    krb5_boolean match = FALSE;
++    krb5_principal req_client = rock->request->client;
++    krb5_principal client = rock->client->princ;
++
++    /* Check for a direct match against the request principal or
++     * the post-canon client principal. */
++    if (krb5_principal_compare_flags(context, princ, req_client,
++                                     KRB5_PRINCIPAL_COMPARE_ENTERPRISE) ||
++        krb5_principal_compare(context, princ, client))
++        return TRUE;
++
++    if (krb5_db_get_principal(context, princ, KRB5_KDB_FLAG_ALIAS_OK, &ent))
++        return FALSE;
++    match = krb5_principal_compare(context, ent->princ, client);
++    krb5_db_free_principal(context, ent);
++    return match;
++}
++
+ static struct krb5_kdcpreauth_callbacks_st callbacks = {
+-    3,
++    4,
+     max_time_skew,
+     client_keys,
+     free_keys,
+@@ -583,7 +606,8 @@ static struct krb5_kdcpreauth_callbacks_st callbacks = {
+     client_keyblock,
+     add_auth_indicator,
+     get_cookie,
+-    set_cookie
++    set_cookie,
++    match_client
+ };
+ 
+ static krb5_error_code
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index 74fffbf32..bc6e7662e 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -2190,7 +2190,9 @@ crypto_retrieve_X509_sans(krb5_context context,
+                     /* Prevent abuse of embedded null characters. */
+                     if (memchr(name.data, '\0', name.length))
+                         break;
+-                    ret = krb5_parse_name(context, name.data, &upns[u]);
++                    ret = krb5_parse_name_flags(context, name.data,
++                                                KRB5_PRINCIPAL_PARSE_ENTERPRISE,
++                                                &upns[u]);
+                     if (ret) {
+                         pkiDebug("%s: failed parsing ms-upn san value\n",
+                                  __FUNCTION__);
+diff --git a/src/plugins/preauth/pkinit/pkinit_srv.c b/src/plugins/preauth/pkinit/pkinit_srv.c
+index 295be25e1..b5638a367 100644
+--- a/src/plugins/preauth/pkinit/pkinit_srv.c
++++ b/src/plugins/preauth/pkinit/pkinit_srv.c
+@@ -121,6 +121,8 @@ static krb5_error_code
+ verify_client_san(krb5_context context,
+                   pkinit_kdc_context plgctx,
+                   pkinit_kdc_req_context reqctx,
++                  krb5_kdcpreauth_callbacks cb,
++                  krb5_kdcpreauth_rock rock,
+                   krb5_principal client,
+                   int *valid_san)
+ {
+@@ -171,7 +173,7 @@ verify_client_san(krb5_context context,
+                  __FUNCTION__, client_string, san_string);
+         krb5_free_unparsed_name(context, san_string);
+ #endif
+-        if (krb5_principal_compare(context, princs[i], client)) {
++        if (cb->match_client(context, rock, princs[i])) {
+             pkiDebug("%s: pkinit san match found\n", __FUNCTION__);
+             *valid_san = 1;
+             retval = 0;
+@@ -199,7 +201,7 @@ verify_client_san(krb5_context context,
+                  __FUNCTION__, client_string, san_string);
+         krb5_free_unparsed_name(context, san_string);
+ #endif
+-        if (krb5_principal_compare(context, upns[i], client)) {
++        if (cb->match_client(context, rock, upns[i])) {
+             pkiDebug("%s: upn san match found\n", __FUNCTION__);
+             *valid_san = 1;
+             retval = 0;
+@@ -387,8 +389,8 @@ pkinit_server_verify_padata(krb5_context context,
+     }
+     if (is_signed) {
+ 
+-        retval = verify_client_san(context, plgctx, reqctx, request->client,
+-                                   &valid_san);
++        retval = verify_client_san(context, plgctx, reqctx, cb, rock,
++                                   request->client, &valid_san);
+         if (retval)
+             goto cleanup;
+         if (!valid_san) {

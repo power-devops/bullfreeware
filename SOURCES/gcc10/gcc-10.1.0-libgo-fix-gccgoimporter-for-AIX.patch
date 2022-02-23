@@ -1,0 +1,25 @@
+From 0bf77ab025ea0339d82c9eba4a1de1ce8f74702f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 16 Sep 2020 13:36:13 +0200
+Subject: [PATCH] libgo: fix gccgoimporter for AIX
+
+---
+ libgo/go/go/internal/gccgoimporter/importer.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libgo/go/go/internal/gccgoimporter/importer.go b/libgo/go/go/internal/gccgoimporter/importer.go
+index ff484a72fc9..391477d5a73 100644
+--- a/libgo/go/go/internal/gccgoimporter/importer.go
++++ b/libgo/go/go/internal/gccgoimporter/importer.go
+@@ -198,7 +198,7 @@ func GetImporter(searchpaths []string, initmap map[*types.Package]InitData) Impo
+ 			return
+ 		}
+ 
+-		if magics == archiveMagic {
++		if magics == archiveMagic || magics == aixbigafMagic {
+ 			reader, err = arExportData(reader)
+ 			if err != nil {
+ 				return
+-- 
+2.25.0
+

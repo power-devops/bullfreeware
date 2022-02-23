@@ -1,0 +1,82 @@
+From 9cf3f026e281f5eb978a78055d8949a3295b7f10 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Tue, 24 Aug 2021 16:48:57 -0400
+Subject: [PATCH] aix: SYSTEM_IMPLICIT_EXTERN_C
+
+AIX 7.3 system headers are C++ safe and GCC no longer needs to define
+SYSTEM_IMPLICIT_EXTERN_C for AIX 7.3.  This patch moves the definition
+from aix.h to the individual OS-level configuration files and does not
+define the macro for AIX 7.3.
+
+The patch also corrects the definition of TARGET_AIX_VERSION to 73.
+
+gcc/ChangeLog:
+	* config/rs6000/aix.h (SYSTEM_IMPLICIT_EXTERN_C): Delete.
+	* config/rs6000/aix71.h (SYSTEM_IMPLICIT_EXTERN_C): Define.
+	* config/rs6000/aix72.h (SYSTEM_IMPLICIT_EXTERN_C): Define.
+	* config/rs6000/aix73.h (TARGET_AIX_VERSION): Increase to 73.
+---
+ gcc/config/rs6000/aix.h   | 4 +---
+ gcc/config/rs6000/aix71.h | 4 ++++
+ gcc/config/rs6000/aix72.h | 3 +++
+ gcc/config/rs6000/aix73.h | 2 +-
+ 4 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/gcc/config/rs6000/aix.h b/gcc/config/rs6000/aix.h
+index 662785cc7db..0f4d8cb2dc8 100644
+--- a/gcc/config/rs6000/aix.h
++++ b/gcc/config/rs6000/aix.h
+@@ -23,9 +24,6 @@
+ #undef  TARGET_AIX
+ #define TARGET_AIX 1
+ 
+-/* System headers are not C++-aware.  */
+-#define SYSTEM_IMPLICIT_EXTERN_C 1
+-
+ /* Linux64.h wants to redefine TARGET_AIX based on -m64, but it can't be used
+    in the #if conditional in options-default.h, so provide another macro.  */
+ #undef  TARGET_AIX_OS
+diff --git a/gcc/config/rs6000/aix71.h b/gcc/config/rs6000/aix71.h
+index 38cfa9e158a..1bc1560c496 100644
+--- a/gcc/config/rs6000/aix71.h
++++ b/gcc/config/rs6000/aix71.h
+@@ -268,6 +269,9 @@ extern long long int    atoll(const char *);
+ #define SET_CMODEL(opt) do {} while (0)
+ #endif
+ 
++/* System headers are not C++-aware.  */
++#define SYSTEM_IMPLICIT_EXTERN_C 1
++
+ /* This target defines SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
+    but does not have crtbegin/end.  */
+ 
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index a497a7d8541..cca64f14f3a 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -270,6 +270,9 @@ extern long long int    atoll(const char *);
+ #define SET_CMODEL(opt) do {} while (0)
+ #endif
+ 
++/* System headers are not C++-aware.  */
++#define SYSTEM_IMPLICIT_EXTERN_C 1
++
+ /* This target defines SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
+    but does not have crtbegin/end.  */
+ 
+diff --git a/gcc/config/rs6000/aix73.h b/gcc/config/rs6000/aix73.h
+index c707c7e76b6..f0ca1a55e5d 100644
+--- a/gcc/config/rs6000/aix73.h
++++ b/gcc/config/rs6000/aix73.h
+@@ -274,7 +274,7 @@ extern long long int    atoll(const char *);
+ /* This target defines SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
+    but does not have crtbegin/end.  */
+ 
+-#define TARGET_AIX_VERSION 72
++#define TARGET_AIX_VERSION 73
+ 
+ /* AIX 7.2 supports DWARF3+ debugging.  */
+ #define DWARF2_DEBUGGING_INFO 1
+-- 
+2.31.1
+

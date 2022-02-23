@@ -1,0 +1,10 @@
+--- ./libgo/go/runtime/traceback_gccgo.go.ORIG	2018-01-24 09:49:01 -0600
++++ ./libgo/go/runtime/traceback_gccgo.go	2018-01-24 09:49:22 -0600
+@@ -52,6 +52,7 @@
+ 
+ // callers returns a stack trace of the current goroutine.
+ // The gc version of callers takes []uintptr, but we take []location.
++//go:noinline
+ func callers(skip int, locbuf []location) int {
+ 	n := c_callers(int32(skip)+1, &locbuf[0], int32(len(locbuf)), false)
+ 	return int(n)

@@ -1,0 +1,40 @@
+From 513521e5e4d66759fcc87464e51dcc4af6a02354 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 30 Sep 2021 13:42:20 +0200
+Subject: [PATCH] support: disable plugin creation
+
+Plugins needs either an export list or -btrl.
+As bash is no longer built with -brtl or -G anymore, simply disable
+it for now.
+---
+ support/shobj-conf | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/support/shobj-conf b/support/shobj-conf
+index 5a3f977..a200dc6 100755
+--- a/support/shobj-conf
++++ b/support/shobj-conf
+@@ -240,14 +240,12 @@ osf*)
+ 	;;
+ 
+ aix4.[2-9]*-*gcc*|aix[5-9].*-*gcc*)		# lightly tested by jik@cisco.com
+-	SHOBJ_CFLAGS=-fpic
+-	SHOBJ_LD='ld'
+-	SHOBJ_LDFLAGS='-bdynamic -bnoentry -bexpall'
+-	SHOBJ_XLDFLAGS='-G'
+-
+-	SHLIB_XLDFLAGS='-bM:SRE'
+-	SHLIB_LIBS='-lcurses -lc'
+-	SHLIB_LIBVERSION='$(SHLIB_LIBSUFF).$(SHLIB_MAJOR)'
++	# It doesn't work anymore, becuase bash is no longer built with -G.
++	# The solution would be to create an export list for bash functions
++	# and use it with -Wl,-bE for bash and -Wl,-bI for the plugins.
++	# TODO: repair
++	SHOBJ_STATUS=unsupported
++	SHLIB_STATUS=unsupported
+ 	;;
+ 
+ aix4.[2-9]*|aix[5-9].*)
+-- 
+2.33.0
+

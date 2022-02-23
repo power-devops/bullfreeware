@@ -1,0 +1,38 @@
+--- ./tests/Makefile.ORIGIN	2019-11-27 09:57:09 +0100
++++ ./tests/Makefile	2019-11-27 10:35:06 +0100
+@@ -32,6 +32,7 @@
+ PRGDIR  := ../programs
+ TESTDIR := versionsTest
+ PYTHON  ?= python3
++SHELL    = /bin/bash
+ 
+ DEBUGLEVEL?= 1
+ DEBUGFLAGS = -g -DLZ4_DEBUG=$(DEBUGLEVEL)
+@@ -319,11 +320,14 @@
+ 
+ test-lz4-dict: lz4 datagen
+ 	@echo "\n ---- test lz4 compression/decompression with dictionary ----"
++	ulimit -d unlimited
++	ulimit -m unlimited
++	type diff
+ 	./datagen -g16KB > tmp-dict
+ 	./datagen -g32KB > tmp-dict-sample-32k
+-	< tmp-dict-sample-32k $(LZ4) -D tmp-dict | $(LZ4) -dD tmp-dict | diff - tmp-dict-sample-32k
++	< tmp-dict-sample-32k $(LZ4) -D tmp-dict | $(LZ4) -dD tmp-dict | /usr/bin/diff - tmp-dict-sample-32k
+ 	./datagen -g128MB > tmp-dict-sample-128m
+-	< tmp-dict-sample-128m $(LZ4) -D tmp-dict | $(LZ4) -dD tmp-dict | diff - tmp-dict-sample-128m
++	< tmp-dict-sample-128m $(LZ4) -D tmp-dict | $(LZ4) -dD tmp-dict | /usr/bin/diff - tmp-dict-sample-128m
+ 	touch tmp-dict-sample-0
+ 	< tmp-dict-sample-0 $(LZ4) -D tmp-dict | $(LZ4) -dD tmp-dict | diff - tmp-dict-sample-0
+ 
+--- ./tests/Makefile.ORIGIN	2019-11-27 10:53:04 +0100
++++ ./tests/Makefile	2019-11-27 10:53:27 +0100
+@@ -162,7 +162,7 @@
+ 	cat $(LZ4DIR)/lz4.c > lz4_all.c
+ 	cat $(LZ4DIR)/lz4hc.c >> lz4_all.c
+ 	cat $(LZ4DIR)/lz4frame.c >> lz4_all.c
+-	$(CC) -I$(LZ4DIR) -c lz4_all.c
++	$(CC) $(CFLAGS) -I$(LZ4DIR) -c lz4_all.c
+ 	$(RM) lz4_all.c
+ 
+ test-install: lz4 lib liblz4.pc

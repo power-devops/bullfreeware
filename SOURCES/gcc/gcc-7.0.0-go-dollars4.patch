@@ -1,0 +1,59 @@
+--- ./gcc/go/gofrontend/go-encode-id.cc.origin	2017-02-14 14:31:08 +0100
++++ ./gcc/go/gofrontend/go-encode-id.cc	2017-02-14 14:34:03 +0100
+@@ -8,6 +8,15 @@
+ #include "go-linemap.h"
+ #include "go-encode-id.h"
+ 
++
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR__U               "_U"
++#define DOLLAR_DOLLAR_STRING    "_"
++#else
++#define DOLLAR__U               "$U"
++#define DOLLAR_DOLLAR_STRING    "$"
++#endif
++
+ // Return whether the character c is OK to use in the assembler.
+ 
+ static bool
+@@ -93,11 +102,11 @@
+         ret += c;
+       else
+         {
+-          ret += "$U";
++          ret += DOLLAR__U;
+           char buf[30];
+           snprintf(buf, sizeof buf, "%x", c);
+           ret += buf;
+-          ret += "$";
++          ret += DOLLAR_DOLLAR_STRING;
+         }
+       p += len;
+     }
+--- ./gcc/go/gofrontend/types.cc.origin	2017-02-14 14:35:41 +0100
++++ ./gcc/go/gofrontend/types.cc	2017-02-14 14:38:01 +0100
+@@ -28,6 +28,7 @@
+ #define DOLLAR_THIS_U		"_this%u"
+ #define DOLLAR_P_U		"_p%u"
+ #define DOLLAR_STUB		"_stub"
++#define DOLLAR_GO_ZEROVALUE	"go_zerovalue"
+ #else
+ #define DOLLAR_DOLLAR_CHAR	'$'
+ #define DOLLAR_HASH		"$hash"
+@@ -36,6 +37,7 @@
+ #define DOLLAR_THIS_U		"$this%u"
+ #define DOLLAR_P_U		"$p%u"
+ #define DOLLAR_STUB		"$stub"
++#define DOLLAR_GO_ZEROVALUE	"go$zerovalue"
+ #endif
+ 
+ // Forward declarations so that we don't have to make types.h #include
+@@ -7277,7 +7279,7 @@
+       Array_type* array_type = Type::make_array_type(uint8_type, size);
+       array_type->set_is_array_incomparable();
+       Variable* var = new Variable(array_type, NULL, true, false, false, bloc);
+-      Map_type::zero_value = Named_object::make_variable("go$zerovalue", NULL,
++      Map_type::zero_value = Named_object::make_variable(DOLLAR_GO_ZEROVALUE, NULL,
+ 							 var);
+     }
+ 

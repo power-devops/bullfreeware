@@ -1,0 +1,15 @@
+*** WARNING: mangling shebang in /usr/bin/myrocks_hotbackup from #!/usr/bin/env python to #!/usr/bin/python2. This will become an ERROR, fix it manually!
+
+Maintainer's note:
+This script is not python3 compatible:
+ModuleNotFoundError: No module named 'commands'
+
+diff -Naurp mariadb-10.3.10/storage/rocksdb/myrocks_hotbackup mariadb-10.3.10/storage/rocksdb/myrocks_hotbackup_patched
+--- mariadb-10.3.10/storage/rocksdb/myrocks_hotbackup	2018-10-02 11:45:43.000000000 +0200
++++ mariadb-10.3.10/storage/rocksdb/myrocks_hotbackup_patched	2018-10-05 14:27:02.960060700 +0200
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python2
+ 
+ from __future__ import division
+ from optparse import OptionParser

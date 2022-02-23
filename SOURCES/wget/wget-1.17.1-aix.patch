@@ -1,0 +1,35 @@
+*** ./src/Makefile.in.ORIG	Fri Dec 11 18:41 2015
+--- ./src/Makefile.in	Wed Jan 13 14:44 2016
+***************
+*** 301,307 ****
+  	build_info.$(OBJEXT) $(am__objects_4) $(am__objects_5)
+  nodist_wget_OBJECTS = version.$(OBJEXT)
+  wget_OBJECTS = $(am_wget_OBJECTS) $(nodist_wget_OBJECTS)
+! wget_LDADD = $(LDADD)
+  wget_DEPENDENCIES = $(LIBOBJS) ../lib/libgnu.a
+  AM_V_P = $(am__v_P_@AM_V@)
+  am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
+--- 301,307 ----
+  	build_info.$(OBJEXT) $(am__objects_4) $(am__objects_5)
+  nodist_wget_OBJECTS = version.$(OBJEXT)
+  wget_OBJECTS = $(am_wget_OBJECTS) $(nodist_wget_OBJECTS)
+! wget_LDADD = $(LDADD) -liconv
+  wget_DEPENDENCIES = $(LIBOBJS) ../lib/libgnu.a
+  AM_V_P = $(am__v_P_@AM_V@)
+  am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
+*** ./src/gnutls.c.ORIG	Wed Dec 02 14:15 2015
+--- ./src/gnutls.c	Wed Jan 13 14:44 2016
+***************
+*** 48,54 ****
+--- 48,58 ----
+  #include "hash.h"
+  #include "ssl.h"
+  
++ #ifdef _AIX
++ #include <fcntl.h>
++ #else
+  #include <sys/fcntl.h>
++ #endif
+  
+  #ifdef WIN32
+  # include "w32sock.h"

@@ -1,0 +1,181 @@
+From 9f5fbf191d74cae9b28d318fff4c80d3d3e49c86 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Fri, 9 Nov 2018 15:12:21 -0500
+Subject: [PATCH] Become FIPS-aware (with 3DES)
+
+A lot of the FIPS error conditions from OpenSSL are incredibly
+mysterious (at best, things return NULL unexpectedly; at worst,
+internal assertions are tripped; most of the time, you just get
+ENOMEM).  In order to cope with this, we need to have some level of
+awareness of what we can and can't safely call.
+
+This will slow down some calls slightly (FIPS_mode() takes multiple
+locks), but not for any crypto we care about - which is to say that
+AES is fine.
+---
+ src/lib/crypto/openssl/enc_provider/camellia.c  |  6 ++++++
+ src/lib/crypto/openssl/enc_provider/des.c       |  9 +++++++++
+ src/lib/crypto/openssl/enc_provider/des3.c      |  6 ++++++
+ src/lib/crypto/openssl/enc_provider/rc4.c       | 13 ++++++++++++-
+ src/lib/crypto/openssl/hash_provider/hash_evp.c |  4 ++++
+ src/lib/crypto/openssl/hmac.c                   |  6 +++++-
+ 6 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/src/lib/crypto/openssl/enc_provider/camellia.c b/src/lib/crypto/openssl/enc_provider/camellia.c
+index 2da691329..f79679a0b 100644
+--- a/src/lib/crypto/openssl/enc_provider/camellia.c
++++ b/src/lib/crypto/openssl/enc_provider/camellia.c
+@@ -304,6 +304,9 @@ krb5int_camellia_cbc_mac(krb5_key key, const krb5_crypto_iov *data,
+     unsigned char blockY[CAMELLIA_BLOCK_SIZE], blockB[CAMELLIA_BLOCK_SIZE];
+     struct iov_cursor cursor;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     if (output->length < CAMELLIA_BLOCK_SIZE)
+         return KRB5_BAD_MSIZE;
+ 
+@@ -331,6 +334,9 @@ static krb5_error_code
+ krb5int_camellia_init_state (const krb5_keyblock *key, krb5_keyusage usage,
+                              krb5_data *state)
+ {
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     state->length = 16;
+     state->data = (void *) malloc(16);
+     if (state->data == NULL)
+diff --git a/src/lib/crypto/openssl/enc_provider/des.c b/src/lib/crypto/openssl/enc_provider/des.c
+index a662db512..7d17d287e 100644
+--- a/src/lib/crypto/openssl/enc_provider/des.c
++++ b/src/lib/crypto/openssl/enc_provider/des.c
+@@ -85,6 +85,9 @@ k5_des_encrypt(krb5_key key, const krb5_data *ivec, krb5_crypto_iov *data,
+     EVP_CIPHER_CTX *ctx;
+     krb5_boolean empty;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     ret = validate(key, ivec, data, num_data, &empty);
+     if (ret != 0 || empty)
+         return ret;
+@@ -133,6 +136,9 @@ k5_des_decrypt(krb5_key key, const krb5_data *ivec, krb5_crypto_iov *data,
+     EVP_CIPHER_CTX *ctx;
+     krb5_boolean empty;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     ret = validate(key, ivec, data, num_data, &empty);
+     if (ret != 0 || empty)
+         return ret;
+@@ -182,6 +188,9 @@ k5_des_cbc_mac(krb5_key key, const krb5_crypto_iov *data, size_t num_data,
+     DES_key_schedule sched;
+     krb5_boolean empty;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     ret = validate(key, ivec, data, num_data, &empty);
+     if (ret != 0)
+         return ret;
+diff --git a/src/lib/crypto/openssl/enc_provider/des3.c b/src/lib/crypto/openssl/enc_provider/des3.c
+index 1c439c2cd..8be555a8d 100644
+--- a/src/lib/crypto/openssl/enc_provider/des3.c
++++ b/src/lib/crypto/openssl/enc_provider/des3.c
+@@ -84,6 +84,9 @@ k5_des3_encrypt(krb5_key key, const krb5_data *ivec, krb5_crypto_iov *data,
+     EVP_CIPHER_CTX *ctx;
+     krb5_boolean empty;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     ret = validate(key, ivec, data, num_data, &empty);
+     if (ret != 0 || empty)
+         return ret;
+@@ -133,6 +136,9 @@ k5_des3_decrypt(krb5_key key, const krb5_data *ivec, krb5_crypto_iov *data,
+     EVP_CIPHER_CTX *ctx;
+     krb5_boolean empty;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     ret = validate(key, ivec, data, num_data, &empty);
+     if (ret != 0 || empty)
+         return ret;
+diff --git a/src/lib/crypto/openssl/enc_provider/rc4.c b/src/lib/crypto/openssl/enc_provider/rc4.c
+index 7f3c086ed..a3f2a7442 100644
+--- a/src/lib/crypto/openssl/enc_provider/rc4.c
++++ b/src/lib/crypto/openssl/enc_provider/rc4.c
+@@ -66,6 +66,9 @@ k5_arcfour_docrypt(krb5_key key,const krb5_data *state, krb5_crypto_iov *data,
+     EVP_CIPHER_CTX *ctx = NULL;
+     struct arcfour_state *arcstate;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     arcstate = (state != NULL) ? (struct arcfour_state *) state->data : NULL;
+     if (arcstate != NULL) {
+         ctx = arcstate->ctx;
+@@ -113,7 +116,12 @@ k5_arcfour_docrypt(krb5_key key,const krb5_data *state, krb5_crypto_iov *data,
+ static void
+ k5_arcfour_free_state(krb5_data *state)
+ {
+-    struct arcfour_state *arcstate = (struct arcfour_state *) state->data;
++    struct arcfour_state *arcstate;
++
++    if (FIPS_mode())
++        return;
++
++    arcstate = (struct arcfour_state *) state->data;
+ 
+     EVP_CIPHER_CTX_free(arcstate->ctx);
+     free(arcstate);
+@@ -125,6 +133,9 @@ k5_arcfour_init_state(const krb5_keyblock *key,
+ {
+     struct arcfour_state *arcstate;
+ 
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
++
+     /* Create a state structure with an uninitialized context. */
+     arcstate = calloc(1, sizeof(*arcstate));
+     if (arcstate == NULL)
+diff --git a/src/lib/crypto/openssl/hash_provider/hash_evp.c b/src/lib/crypto/openssl/hash_provider/hash_evp.c
+index 957ed8d9c..8c1fd7f59 100644
+--- a/src/lib/crypto/openssl/hash_provider/hash_evp.c
++++ b/src/lib/crypto/openssl/hash_provider/hash_evp.c
+@@ -64,12 +64,16 @@ hash_evp(const EVP_MD *type, const krb5_crypto_iov *data, size_t num_data,
+ static krb5_error_code
+ hash_md4(const krb5_crypto_iov *data, size_t num_data, krb5_data *output)
+ {
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
+     return hash_evp(EVP_md4(), data, num_data, output);
+ }
+ 
+ static krb5_error_code
+ hash_md5(const krb5_crypto_iov *data, size_t num_data, krb5_data *output)
+ {
++    if (FIPS_mode())
++        return KRB5_CRYPTO_INTERNAL;
+     return hash_evp(EVP_md5(), data, num_data, output);
+ }
+ 
+diff --git a/src/lib/crypto/openssl/hmac.c b/src/lib/crypto/openssl/hmac.c
+index b2db6ec02..d94d9ac94 100644
+--- a/src/lib/crypto/openssl/hmac.c
++++ b/src/lib/crypto/openssl/hmac.c
+@@ -103,7 +103,11 @@ map_digest(const struct krb5_hash_provider *hash)
+         return EVP_sha256();
+     else if (!strncmp(hash->hash_name, "SHA-384",7))
+         return EVP_sha384();
+-    else if (!strncmp(hash->hash_name, "MD5", 3))
++
++    if (FIPS_mode())
++        return NULL;
++
++    if (!strncmp(hash->hash_name, "MD5", 3))
+         return EVP_md5();
+     else if (!strncmp(hash->hash_name, "MD4", 3))
+         return EVP_md4();

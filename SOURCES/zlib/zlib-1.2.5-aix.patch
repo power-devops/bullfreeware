@@ -1,0 +1,67 @@
+*** ./Makefile.in.ORIG	Mon Jun 14 11:49:46 2010
+--- ./Makefile.in	Mon Jun 14 11:50:35 2010
+***************
+*** 49,55 ****
+  libdir = ${exec_prefix}/lib
+  sharedlibdir = ${libdir}
+  includedir = ${prefix}/include
+! mandir = ${prefix}/share/man
+  man3dir = ${mandir}/man3
+  pkgconfigdir = ${libdir}/pkgconfig
+  
+--- 49,55 ----
+  libdir = ${exec_prefix}/lib
+  sharedlibdir = ${libdir}
+  includedir = ${prefix}/include
+! mandir = ${prefix}/man
+  man3dir = ${mandir}/man3
+  pkgconfigdir = ${libdir}/pkgconfig
+  
+***************
+*** 168,174 ****
+  	-@if [ ! -d $(DESTDIR)$(man3dir)      ]; then mkdir -p $(DESTDIR)$(man3dir); fi
+  	-@if [ ! -d $(DESTDIR)$(pkgconfigdir) ]; then mkdir -p $(DESTDIR)$(pkgconfigdir); fi
+  	cp $(STATICLIB) $(DESTDIR)$(libdir)
+- 	cp $(SHAREDLIBV) $(DESTDIR)$(sharedlibdir)
+  	cd $(DESTDIR)$(libdir); chmod u=rw,go=r $(STATICLIB)
+  	-@(cd $(DESTDIR)$(libdir); $(RANLIB) libz.a || true) >/dev/null 2>&1
+  	-@cd $(DESTDIR)$(sharedlibdir); if test "$(SHAREDLIBV)" -a -f $(SHAREDLIBV); then \
+--- 168,173 ----
+*** ./configure.ORIG	Mon Jun 14 11:50:41 2010
+--- ./configure	Mon Jun 14 11:51:24 2010
+***************
+*** 51,57 ****
+  libdir=${libdir-'${exec_prefix}/lib'}
+  sharedlibdir=${sharedlibdir-'${libdir}'}
+  includedir=${includedir-'${prefix}/include'}
+! mandir=${mandir-'${prefix}/share/man'}
+  shared_ext='.so'
+  shared=1
+  zprefix=0
+--- 51,57 ----
+  libdir=${libdir-'${exec_prefix}/lib'}
+  sharedlibdir=${sharedlibdir-'${libdir}'}
+  includedir=${includedir-'${prefix}/include'}
+! mandir=${mandir-'${prefix}/man'}
+  shared_ext='.so'
+  shared=1
+  zprefix=0
+***************
+*** 215,222 ****
+               CFLAGS=${CFLAGS-"-O"}
+               LDSHARED=${LDSHARED-"cc -G"} ;;
+    AIX*)  # Courtesy of dbakker@arrayasolutions.com
+!              SFLAGS=${CFLAGS-"-O -qmaxmem=8192"}
+!              CFLAGS=${CFLAGS-"-O -qmaxmem=8192"}
+               LDSHARED=${LDSHARED-"xlc -G"} ;;
+    # send working options for other systems to zlib@gzip.org
+    *)         SFLAGS=${CFLAGS-"-O"}
+--- 215,222 ----
+               CFLAGS=${CFLAGS-"-O"}
+               LDSHARED=${LDSHARED-"cc -G"} ;;
+    AIX*)  # Courtesy of dbakker@arrayasolutions.com
+!              SFLAGS=${CFLAGS-"-O3 -qmaxmem=8192"}
+!              CFLAGS=${CFLAGS-"-O3 -qmaxmem=8192"}
+               LDSHARED=${LDSHARED-"xlc -G"} ;;
+    # send working options for other systems to zlib@gzip.org
+    *)         SFLAGS=${CFLAGS-"-O"}

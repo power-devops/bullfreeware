@@ -1,0 +1,16 @@
+Index: libxcb-1.7/src/xcbint.h
+===================================================================
+--- libxcb-1.7.orig/src/xcbint.h	2010-08-13 13:43:31.000000000 +0200
++++ libxcb-1.7/src/xcbint.h	2011-09-01 13:33:26.000000000 +0200
+@@ -126,7 +126,11 @@
+     struct reply_list **current_reply_tail;
+ 
+     _xcb_map *replies;
++#ifdef __64BIT__
+     struct event_list *events;
++#else
++    struct event_list *reqevents;
++#endif
+     struct event_list **events_tail;
+     struct reader_list *readers;
+ 

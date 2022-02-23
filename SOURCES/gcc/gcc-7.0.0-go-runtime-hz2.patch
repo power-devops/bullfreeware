@@ -1,0 +1,16 @@
+--- gcc-7-20170203/libgo/runtime/proc.c.ORIGIN  2017-02-16 18:08:26 +0100
++++ gcc-7-20170203/libgo/runtime/proc.c 2017-02-16 18:18:07 +0100
+@@ -9,6 +9,12 @@
+ #include <pthread.h>
+ #include <unistd.h>
+
++#ifdef _AIX
++#ifdef _H_M_PARAM
++#undef hz
++#endif
++#endif
++
+ #include "config.h"
+
+ #ifdef HAVE_DL_ITERATE_PHDR
+

@@ -1,0 +1,26 @@
+--- a/make/configure	2020-07-20 16:36:22 -0500
++++ b/make/configure	2020-07-20 16:39:27 -0500
+@@ -5819,7 +5819,8 @@
+ 		fi
+ 	;;
+ 	aix*|os400*)
+-		DED_LDFLAGS="-G -bnoentry -bexpall"
++		DED_LD="$CC"
++		DED_LDFLAGS="-Wl,-G -Wl,-bnoentry -Wl,-bexpall"
+ 	;;
+ 	freebsd2*)
+ 		# Non-ELF GNU linker
+
+--- a/erts/aclocal.m4.orig	2020-07-21 13:44:11 -0500
++++ b/erts/aclocal.m4	2020-07-21 13:44:15 -0500
+@@ -3013,7 +3013,9 @@
+ 		fi
+ 	;;
+ 	aix*|os400*)
+-		DED_LDFLAGS="-G -bnoentry -bexpall"
++                DED_LD="$CC"
++                DED_LDFLAGS="-Wl,-G -Wl,-bnoentry -Wl,-bexpall"
++
+ 	;;
+ 	freebsd2*)
+ 		# Non-ELF GNU linker

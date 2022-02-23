@@ -1,0 +1,47 @@
+Index: glib-2.22.5/configure
+===================================================================
+--- glib-2.22.5.orig/configure	2010-03-16 03:52:21.000000000 +0100
++++ glib-2.22.5/configure	2010-10-29 16:09:34.000000000 +0200
+@@ -25543,6 +25543,10 @@
+       *-*-cygwin*|*-*-darwin*)
+          # skip cygwin and darwin -pthread or -pthreads test
+          ;;
++      *-aix*)
++	 G_THREAD_CFLAGS="-qthreaded -D_THREAD_SAFE"
++	 G_THREAD_LIBS="-lpthread"
++         ;;
+       *-solaris*)
+         # These compiler/linker flags work with both Sun Studio and gcc
+ 	# Sun Studio expands -mt to -D_REENTRANT and -lthread
+Index: glib-2.22.5/gio/gsocket.c
+===================================================================
+--- glib-2.22.5.orig/gio/gsocket.c	2010-03-16 03:38:58.000000000 +0100
++++ glib-2.22.5/gio/gsocket.c	2010-10-29 16:09:34.000000000 +0200
+@@ -55,6 +55,10 @@
+ 
+ #include "gioalias.h"
+ 
++#if (defined(_AIX51) || defined(_AIX52)) && !(defined(_AIX53) || defined(_AIX61))
++#define ss_family __ss_family
++#endif
++
+ /**
+  * SECTION:gsocket
+  * @short_description: Low-level socket object
+Index: glib-2.22.5/gio/libasyncns/asyncns.c
+===================================================================
+--- glib-2.22.5.orig/gio/libasyncns/asyncns.c	2010-10-29 16:16:12.000000000 +0200
++++ glib-2.22.5/gio/libasyncns/asyncns.c	2010-10-29 16:16:41.000000000 +0200
+@@ -41,9 +41,12 @@
+ #include <resolv.h>
+ #include <dirent.h>
+ 
++/* skip this include because it redefines macro that are already defined in
++ * <arpa/nameser.h>
+ #if HAVE_ARPA_NAMESER_COMPAT_H
+ #include <arpa/nameser_compat.h>
+ #endif
++ */
+ 
+ #ifdef HAVE_SYS_PRCTL_H
+ #include <sys/prctl.h>

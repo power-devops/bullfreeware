@@ -1,0 +1,36 @@
+--- main.c.org	Tue Feb 11 17:35:35 2003
++++ main.c	Tue Feb 11 18:09:22 2003
+@@ -39,6 +39,7 @@
+ 
+ 
+ #include "lsof.h"
++#include <sys/systemcfg.h>
+ 
+ 
+ /*
+@@ -89,6 +90,25 @@
+ 	    Pn++;
+ 	else
+ 	    Pn = argv[0];
++
++/*
++ * Only use this if we know this has been built for 32bit kernel,
++ * and we are potentially executing this with a 64bit kernel.
++ * Assumes a 64-bit version is available as "lsof64" to execute in
++ * place of this 32-bit default.
++ * This is pretty specific to the AIX Toolbox build.
++ */
++#if     defined(CHECK_KERN64)
++	if ( (strcmp(Pn, "lsof64")) && (__KERNEL_64()) ) {
++	  /* This is a not lsof64, but it is a 64-bit kernel.  The current
++	   * lsof will not work.  Attempt to exec "lsof64" instead.
++	   */
++	  execvp ("/opt/freeware/sbin/lsof64", argv); 
++	  perror(Pn);
++	  (void) fprintf(stderr, "Could not exec /opt/freeware/sbin/lsof64\n");
++	  Exit(1);
++	}
++#endif
+ 
+ #if	defined(HASSETLOCALE)
+ /*

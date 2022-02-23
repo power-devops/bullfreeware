@@ -1,0 +1,45 @@
+From 5a3bf28119c7a8d2d43d26b5eee588ee0e4472e5 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Thu, 20 May 2021 14:07:18 -0400
+Subject: [PATCH] aix: collect2 text files in archive
+
+Rust places text files in archives.  AIX ld ignores such files with a
+warning.  The collect2 wrapper for ld had been exiting with a fatal
+error if it scanned an archive that contained a non-COFF file.
+
+This patch updates collect2.c to issue a warning and ignore the file
+member, matching the behavior of AIX ld.  GCC can encounter archives
+created by Rust and should not issue a fatal error.  This changes
+fatal_error to warning, with an implicit location and no associated
+optimization flag.
+
+gcc/ChangeLog:
+
+2021-05-20  Clement Chigot  <clement.chigot@atos.net>
+	    David Edelsohn  <dje.gcc@gmail.com>
+
+	* collect2.c (scan_prog_file): Issue non-fatal warning for
+	non-COFF files.
+---
+ gcc/collect2.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/collect2.c b/gcc/collect2.c
+index 0ddb1693b67..b08c6e7afae 100644
+--- a/gcc/collect2.c
++++ b/gcc/collect2.c
+@@ -2779,7 +2779,10 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
+       if ((ldptr = ldopen (CONST_CAST (char *, prog_name), ldptr)) != NULL)
+ 	{
+ 	  if (! MY_ISCOFF (HEADER (ldptr).f_magic))
+-	    fatal_error (input_location, "%s: not a COFF file", prog_name);
++	    {
++	      warning (0, "%s: not a COFF file", prog_name);
++	      continue;
++	    }
+ 
+ 	  if (GCC_CHECK_HDR (ldptr))
+ 	    {
+-- 
+2.31.1
+

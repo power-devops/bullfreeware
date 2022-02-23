@@ -1,0 +1,11 @@
+--- old/autoopts/test/defs.in	2016-09-16 15:09:44 +0200
++++ new/autoopts/test/defs.in	2016-09-16 15:37:30 +0200
+@@ -283,7 +283,7 @@
+   test "X${Dnam}"  = "X" && Dnam="${testname}"
+ 
+   d=`echo TEST_TEST_${Dnam}_OPTS | ${TR} '[a-z]-' '[A-Z]_'`
+-  cc_cmd="${CC} ${CFLAGS} -D$d ${INC} -o ${Cexe} ${Csrc}.c ${LIB}"
++  cc_cmd="${CC} ${CFLAGS} -D$d ${INC} -L/opt/freeware/lib -lintl -o ${Cexe} ${Csrc}.c ${LIB}"
+   eval ${cc_cmd} || \
+     failure cannot compile ${Csrc}.c
+   if test $# -gt 0

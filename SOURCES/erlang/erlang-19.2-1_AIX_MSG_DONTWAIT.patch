@@ -1,0 +1,12 @@
+--- ./erts/emulator/sys/unix/erl_child_setup.c.origin	2017-01-13 16:28:06 +0100
++++ ./erts/emulator/sys/unix/erl_child_setup.c	2017-01-13 16:29:17 +0100
+@@ -462,6 +462,9 @@
+             int pipes[3], res, os_pid;
+             ErtsSysForkerProto proto;
+             errno = 0;
++#ifdef _AIX
++#define MSG_DONTWAIT	MSG_NONBLOCK
++#endif
+             if ((res = sys_uds_read(uds_fd, (char*)&proto, sizeof(proto),
+                                     pipes, 3, MSG_DONTWAIT)) < 0) {
+                 if (errno == EINTR)

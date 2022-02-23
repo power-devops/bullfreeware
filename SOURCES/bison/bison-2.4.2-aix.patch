@@ -1,0 +1,14 @@
+Index: bison-2.4.2/configure
+===================================================================
+--- bison-2.4.2.orig/configure	2010-03-20 18:14:04.000000000 +0100
++++ bison-2.4.2/configure	2010-06-01 18:42:42.000000000 +0200
+@@ -19435,7 +19435,8 @@
+                 fi
+               fi
+             else
+-              if test "X$found_a" != "X"; then
++              if test "X$found_a" != "X" -a `uname -o` != "AIX"; then
++                                #On AIX, libs ending in .a are still linked using -Ldir -llib.
+                                 LIBINTL="${LIBINTL}${LIBINTL:+ }$found_a"
+               else
+                                                 LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name"

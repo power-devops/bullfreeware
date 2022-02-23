@@ -1,0 +1,12 @@
+--- src/backend/parser/gram.c.ORIGIN	2018-02-12 16:56:39 -0600
++++ src/backend/parser/gram.c	2018-02-12 16:56:13 -0600
+@@ -1,5 +1,9 @@
+ /* A Bison parser, made by GNU Bison 3.0.4.  */
+ 
++// That works !
++// Useful for tests: create_aggregate and aggregates with XLC v13 and -O2 in 32bit
++#pragma option_override(makeOrderedSetArgs, "OPT(LEVEL,0)")
++
+ /* Bison implementation for Yacc-like parsers in C
+ 
+    Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.

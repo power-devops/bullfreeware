@@ -1,0 +1,1308 @@
+From 49be65eeba37a3d29a8a33379794e7a84df6cca1 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:24:32 +0200
+Subject: [PATCH] syscall: change solaris files to libc files
+
+AIX and Solaris both requires libc to make any syscalls and their
+implementation is really similar.
+Therefore, Solaris files reused by AIX have their name changed to *_libc.
+
+exec_libc.go is also adapted to AIX.
+
+Updates: #25893
+
+Change-Id: I50d1d7b964831637013d5e64799187cd9565c42b
+Reviewed-on: https://go-review.googlesource.com/c/138719
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/syscall_solaris.go b/src/runtime/syscall_solaris.go
+index 9f05a47..94e018d 100644
+--- a/src/runtime/syscall_solaris.go
++++ b/src/runtime/syscall_solaris.go
+@@ -83,6 +83,13 @@
+ 	return int32(sysvicall1(&libc_close, uintptr(fd)))
+ }
+ 
++const _F_DUP2FD = 0x9
++
++//go:nosplit
++func syscall_dup2(oldfd, newfd uintptr) (val, err uintptr) {
++	return syscall_fcntl(oldfd, _F_DUP2FD, newfd)
++}
++
+ //go:nosplit
+ func syscall_execve(path, argv, envp uintptr) (err uintptr) {
+ 	call := libcall{
+diff --git a/src/syscall/asm_solaris_amd64.s b/src/syscall/asm_solaris_amd64.s
+index 6fa0418..c61e04a 100644
+--- a/src/syscall/asm_solaris_amd64.s
++++ b/src/syscall/asm_solaris_amd64.s
+@@ -23,6 +23,10 @@
+ TEXT ·close(SB),NOSPLIT,$0
+ 	JMP	runtime·syscall_close(SB)
+ 
++TEXT ·dup2child(SB),NOSPLIT,$0
++	JMP	runtime·syscall_dup2(SB)
++	RET
++
+ TEXT ·execve(SB),NOSPLIT,$0
+ 	JMP	runtime·syscall_execve(SB)
+ 
+diff --git a/src/syscall/exec_libc.go b/src/syscall/exec_libc.go
+new file mode 100644
+index 0000000..d6d34c0
+--- /dev/null
++++ b/src/syscall/exec_libc.go
+@@ -0,0 +1,276 @@
++// Copyright 2011 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix solaris
++
++// This file handles forkAndExecInChild function for OS using libc syscall like AIX or Solaris.
++
++package syscall
++
++import (
++	"unsafe"
++)
++
++type SysProcAttr struct {
++	Chroot     string      // Chroot.
++	Credential *Credential // Credential.
++	Setsid     bool        // Create session.
++	Setpgid    bool        // Set process group ID to Pgid, or, if Pgid == 0, to new pid.
++	Setctty    bool        // Set controlling terminal to fd Ctty
++	Noctty     bool        // Detach fd 0 from controlling terminal
++	Ctty       int         // Controlling TTY fd
++	Foreground bool        // Place child's process group in foreground. (Implies Setpgid. Uses Ctty as fd of controlling TTY)
++	Pgid       int         // Child's process group ID if Setpgid.
++}
++
++// Implemented in runtime package.
++func runtime_BeforeFork()
++func runtime_AfterFork()
++func runtime_AfterForkInChild()
++
++func chdir(path uintptr) (err Errno)
++func chroot1(path uintptr) (err Errno)
++func close(fd uintptr) (err Errno)
++func dup2child(old uintptr, new uintptr) (val uintptr, err Errno)
++func execve(path uintptr, argv uintptr, envp uintptr) (err Errno)
++func exit(code uintptr)
++func fcntl1(fd uintptr, cmd uintptr, arg uintptr) (val uintptr, err Errno)
++func forkx(flags uintptr) (pid uintptr, err Errno)
++func getpid() (pid uintptr, err Errno)
++func ioctl(fd uintptr, req uintptr, arg uintptr) (err Errno)
++func setgid(gid uintptr) (err Errno)
++func setgroups1(ngid uintptr, gid uintptr) (err Errno)
++func setsid() (pid uintptr, err Errno)
++func setuid(uid uintptr) (err Errno)
++func setpgid(pid uintptr, pgid uintptr) (err Errno)
++func write1(fd uintptr, buf uintptr, nbyte uintptr) (n uintptr, err Errno)
++
++// syscall defines this global on our behalf to avoid a build dependency on other platforms
++func init() {
++	execveLibc = execve
++}
++
++// Fork, dup fd onto 0..len(fd), and exec(argv0, argvv, envv) in child.
++// If a dup or exec fails, write the errno error to pipe.
++// (Pipe is close-on-exec so if exec succeeds, it will be closed.)
++// In the child, this function must not acquire any locks, because
++// they might have been locked at the time of the fork. This means
++// no rescheduling, no malloc calls, and no new stack segments.
++//
++// We call hand-crafted syscalls, implemented in
++// ../runtime/syscall_solaris.go, rather than generated libc wrappers
++// because we need to avoid lazy-loading the functions (might malloc,
++// split the stack, or acquire mutexes). We can't call RawSyscall
++// because it's not safe even for BSD-subsystem calls.
++//go:norace
++func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr *ProcAttr, sys *SysProcAttr, pipe int) (pid int, err Errno) {
++	// Declare all variables at top in case any
++	// declarations require heap allocation (e.g., err1).
++	var (
++		r1     uintptr
++		err1   Errno
++		nextfd int
++		i      int
++	)
++
++	// guard against side effects of shuffling fds below.
++	// Make sure that nextfd is beyond any currently open files so
++	// that we can't run the risk of overwriting any of them.
++	fd := make([]int, len(attr.Files))
++	nextfd = len(attr.Files)
++	for i, ufd := range attr.Files {
++		if nextfd < int(ufd) {
++			nextfd = int(ufd)
++		}
++		fd[i] = int(ufd)
++	}
++	nextfd++
++
++	// About to call fork.
++	// No more allocation or calls of non-assembly functions.
++	runtime_BeforeFork()
++	r1, err1 = forkx(0x1) // FORK_NOSIGCHLD
++	if err1 != 0 {
++		runtime_AfterFork()
++		return 0, err1
++	}
++
++	if r1 != 0 {
++		// parent; return PID
++		runtime_AfterFork()
++		return int(r1), 0
++	}
++
++	// Fork succeeded, now in child.
++
++	runtime_AfterForkInChild()
++
++	// Session ID
++	if sys.Setsid {
++		_, err1 = setsid()
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Set process group
++	if sys.Setpgid || sys.Foreground {
++		// Place child in process group.
++		err1 = setpgid(0, uintptr(sys.Pgid))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	if sys.Foreground {
++		pgrp := sys.Pgid
++		if pgrp == 0 {
++			r1, err1 = getpid()
++			if err1 != 0 {
++				goto childerror
++			}
++
++			pgrp = int(r1)
++		}
++
++		// Place process group in foreground.
++		err1 = ioctl(uintptr(sys.Ctty), uintptr(TIOCSPGRP), uintptr(unsafe.Pointer(&pgrp)))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Chroot
++	if chroot != nil {
++		err1 = chroot1(uintptr(unsafe.Pointer(chroot)))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// User and groups
++	if cred := sys.Credential; cred != nil {
++		ngroups := uintptr(len(cred.Groups))
++		groups := uintptr(0)
++		if ngroups > 0 {
++			groups = uintptr(unsafe.Pointer(&cred.Groups[0]))
++		}
++		if !cred.NoSetGroups {
++			err1 = setgroups1(ngroups, groups)
++			if err1 != 0 {
++				goto childerror
++			}
++		}
++		err1 = setgid(uintptr(cred.Gid))
++		if err1 != 0 {
++			goto childerror
++		}
++		err1 = setuid(uintptr(cred.Uid))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Chdir
++	if dir != nil {
++		err1 = chdir(uintptr(unsafe.Pointer(dir)))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Pass 1: look for fd[i] < i and move those up above len(fd)
++	// so that pass 2 won't stomp on an fd it needs later.
++	if pipe < nextfd {
++		_, err1 = dup2child(uintptr(pipe), uintptr(nextfd))
++		if err1 != 0 {
++			goto childerror
++		}
++		fcntl1(uintptr(nextfd), F_SETFD, FD_CLOEXEC)
++		pipe = nextfd
++		nextfd++
++	}
++	for i = 0; i < len(fd); i++ {
++		if fd[i] >= 0 && fd[i] < int(i) {
++			if nextfd == pipe { // don't stomp on pipe
++				nextfd++
++			}
++			_, err1 = dup2child(uintptr(fd[i]), uintptr(nextfd))
++			if err1 != 0 {
++				goto childerror
++			}
++			_, err1 = fcntl1(uintptr(nextfd), F_SETFD, FD_CLOEXEC)
++			if err1 != 0 {
++				goto childerror
++			}
++			fd[i] = nextfd
++			nextfd++
++		}
++	}
++
++	// Pass 2: dup fd[i] down onto i.
++	for i = 0; i < len(fd); i++ {
++		if fd[i] == -1 {
++			close(uintptr(i))
++			continue
++		}
++		if fd[i] == int(i) {
++			// dup2(i, i) won't clear close-on-exec flag on Linux,
++			// probably not elsewhere either.
++			_, err1 = fcntl1(uintptr(fd[i]), F_SETFD, 0)
++			if err1 != 0 {
++				goto childerror
++			}
++			continue
++		}
++		// The new fd is created NOT close-on-exec,
++		// which is exactly what we want.
++		_, err1 = dup2child(uintptr(fd[i]), uintptr(i))
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// By convention, we don't close-on-exec the fds we are
++	// started with, so if len(fd) < 3, close 0, 1, 2 as needed.
++	// Programs that know they inherit fds >= 3 will need
++	// to set them close-on-exec.
++	for i = len(fd); i < 3; i++ {
++		close(uintptr(i))
++	}
++
++	// Detach fd 0 from tty
++	if sys.Noctty {
++		err1 = ioctl(0, uintptr(TIOCNOTTY), 0)
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Set the controlling TTY to Ctty
++	if sys.Setctty {
++		// On AIX, TIOCSCTTY is undefined
++		if TIOCSCTTY == 0 {
++			err1 = ENOSYS
++			goto childerror
++		}
++		err1 = ioctl(uintptr(sys.Ctty), uintptr(TIOCSCTTY), 0)
++		if err1 != 0 {
++			goto childerror
++		}
++	}
++
++	// Time to exec.
++	err1 = execve(
++		uintptr(unsafe.Pointer(argv0)),
++		uintptr(unsafe.Pointer(&argv[0])),
++		uintptr(unsafe.Pointer(&envv[0])))
++
++childerror:
++	// send error code on pipe
++	write1(uintptr(pipe), uintptr(unsafe.Pointer(&err1)), unsafe.Sizeof(err1))
++	for {
++		exit(253)
++	}
++}
+diff --git a/src/syscall/exec_solaris.go b/src/syscall/exec_solaris.go
+deleted file mode 100644
+index 9735ae5..0000000
+--- a/src/syscall/exec_solaris.go
++++ /dev/null
+@@ -1,263 +0,0 @@
+-// Copyright 2011 The Go Authors. All rights reserved.
+-// Use of this source code is governed by a BSD-style
+-// license that can be found in the LICENSE file.
+-
+-package syscall
+-
+-import (
+-	"unsafe"
+-)
+-
+-type SysProcAttr struct {
+-	Chroot     string      // Chroot.
+-	Credential *Credential // Credential.
+-	Setsid     bool        // Create session.
+-	Setpgid    bool        // Set process group ID to Pgid, or, if Pgid == 0, to new pid.
+-	Setctty    bool        // Set controlling terminal to fd Ctty
+-	Noctty     bool        // Detach fd 0 from controlling terminal
+-	Ctty       int         // Controlling TTY fd
+-	Foreground bool        // Place child's process group in foreground. (Implies Setpgid. Uses Ctty as fd of controlling TTY)
+-	Pgid       int         // Child's process group ID if Setpgid.
+-}
+-
+-// Implemented in runtime package.
+-func runtime_BeforeFork()
+-func runtime_AfterFork()
+-func runtime_AfterForkInChild()
+-
+-func chdir(path uintptr) (err Errno)
+-func chroot1(path uintptr) (err Errno)
+-func close(fd uintptr) (err Errno)
+-func execve(path uintptr, argv uintptr, envp uintptr) (err Errno)
+-func exit(code uintptr)
+-func fcntl1(fd uintptr, cmd uintptr, arg uintptr) (val uintptr, err Errno)
+-func forkx(flags uintptr) (pid uintptr, err Errno)
+-func getpid() (pid uintptr, err Errno)
+-func ioctl(fd uintptr, req uintptr, arg uintptr) (err Errno)
+-func setgid(gid uintptr) (err Errno)
+-func setgroups1(ngid uintptr, gid uintptr) (err Errno)
+-func setsid() (pid uintptr, err Errno)
+-func setuid(uid uintptr) (err Errno)
+-func setpgid(pid uintptr, pgid uintptr) (err Errno)
+-func write1(fd uintptr, buf uintptr, nbyte uintptr) (n uintptr, err Errno)
+-
+-// syscall defines this global on our behalf to avoid a build dependency on other platforms
+-func init() {
+-	execveSolaris = execve
+-}
+-
+-// Fork, dup fd onto 0..len(fd), and exec(argv0, argvv, envv) in child.
+-// If a dup or exec fails, write the errno error to pipe.
+-// (Pipe is close-on-exec so if exec succeeds, it will be closed.)
+-// In the child, this function must not acquire any locks, because
+-// they might have been locked at the time of the fork. This means
+-// no rescheduling, no malloc calls, and no new stack segments.
+-//
+-// We call hand-crafted syscalls, implemented in
+-// ../runtime/syscall_solaris.go, rather than generated libc wrappers
+-// because we need to avoid lazy-loading the functions (might malloc,
+-// split the stack, or acquire mutexes). We can't call RawSyscall
+-// because it's not safe even for BSD-subsystem calls.
+-//go:norace
+-func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr *ProcAttr, sys *SysProcAttr, pipe int) (pid int, err Errno) {
+-	// Declare all variables at top in case any
+-	// declarations require heap allocation (e.g., err1).
+-	var (
+-		r1     uintptr
+-		err1   Errno
+-		nextfd int
+-		i      int
+-	)
+-
+-	// guard against side effects of shuffling fds below.
+-	// Make sure that nextfd is beyond any currently open files so
+-	// that we can't run the risk of overwriting any of them.
+-	fd := make([]int, len(attr.Files))
+-	nextfd = len(attr.Files)
+-	for i, ufd := range attr.Files {
+-		if nextfd < int(ufd) {
+-			nextfd = int(ufd)
+-		}
+-		fd[i] = int(ufd)
+-	}
+-	nextfd++
+-
+-	// About to call fork.
+-	// No more allocation or calls of non-assembly functions.
+-	runtime_BeforeFork()
+-	r1, err1 = forkx(0x1) // FORK_NOSIGCHLD
+-	if err1 != 0 {
+-		runtime_AfterFork()
+-		return 0, err1
+-	}
+-
+-	if r1 != 0 {
+-		// parent; return PID
+-		runtime_AfterFork()
+-		return int(r1), 0
+-	}
+-
+-	// Fork succeeded, now in child.
+-
+-	runtime_AfterForkInChild()
+-
+-	// Session ID
+-	if sys.Setsid {
+-		_, err1 = setsid()
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Set process group
+-	if sys.Setpgid || sys.Foreground {
+-		// Place child in process group.
+-		err1 = setpgid(0, uintptr(sys.Pgid))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	if sys.Foreground {
+-		pgrp := sys.Pgid
+-		if pgrp == 0 {
+-			r1, err1 = getpid()
+-			if err1 != 0 {
+-				goto childerror
+-			}
+-
+-			pgrp = int(r1)
+-		}
+-
+-		// Place process group in foreground.
+-		err1 = ioctl(uintptr(sys.Ctty), uintptr(TIOCSPGRP), uintptr(unsafe.Pointer(&pgrp)))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Chroot
+-	if chroot != nil {
+-		err1 = chroot1(uintptr(unsafe.Pointer(chroot)))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// User and groups
+-	if cred := sys.Credential; cred != nil {
+-		ngroups := uintptr(len(cred.Groups))
+-		groups := uintptr(0)
+-		if ngroups > 0 {
+-			groups = uintptr(unsafe.Pointer(&cred.Groups[0]))
+-		}
+-		if !cred.NoSetGroups {
+-			err1 = setgroups1(ngroups, groups)
+-			if err1 != 0 {
+-				goto childerror
+-			}
+-		}
+-		err1 = setgid(uintptr(cred.Gid))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-		err1 = setuid(uintptr(cred.Uid))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Chdir
+-	if dir != nil {
+-		err1 = chdir(uintptr(unsafe.Pointer(dir)))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Pass 1: look for fd[i] < i and move those up above len(fd)
+-	// so that pass 2 won't stomp on an fd it needs later.
+-	if pipe < nextfd {
+-		_, err1 = fcntl1(uintptr(pipe), F_DUP2FD, uintptr(nextfd))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-		fcntl1(uintptr(nextfd), F_SETFD, FD_CLOEXEC)
+-		pipe = nextfd
+-		nextfd++
+-	}
+-	for i = 0; i < len(fd); i++ {
+-		if fd[i] >= 0 && fd[i] < int(i) {
+-			if nextfd == pipe { // don't stomp on pipe
+-				nextfd++
+-			}
+-			_, err1 = fcntl1(uintptr(fd[i]), F_DUP2FD, uintptr(nextfd))
+-			if err1 != 0 {
+-				goto childerror
+-			}
+-			fcntl1(uintptr(nextfd), F_SETFD, FD_CLOEXEC)
+-			fd[i] = nextfd
+-			nextfd++
+-		}
+-	}
+-
+-	// Pass 2: dup fd[i] down onto i.
+-	for i = 0; i < len(fd); i++ {
+-		if fd[i] == -1 {
+-			close(uintptr(i))
+-			continue
+-		}
+-		if fd[i] == int(i) {
+-			// dup2(i, i) won't clear close-on-exec flag on Linux,
+-			// probably not elsewhere either.
+-			_, err1 = fcntl1(uintptr(fd[i]), F_SETFD, 0)
+-			if err1 != 0 {
+-				goto childerror
+-			}
+-			continue
+-		}
+-		// The new fd is created NOT close-on-exec,
+-		// which is exactly what we want.
+-		_, err1 = fcntl1(uintptr(fd[i]), F_DUP2FD, uintptr(i))
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// By convention, we don't close-on-exec the fds we are
+-	// started with, so if len(fd) < 3, close 0, 1, 2 as needed.
+-	// Programs that know they inherit fds >= 3 will need
+-	// to set them close-on-exec.
+-	for i = len(fd); i < 3; i++ {
+-		close(uintptr(i))
+-	}
+-
+-	// Detach fd 0 from tty
+-	if sys.Noctty {
+-		err1 = ioctl(0, uintptr(TIOCNOTTY), 0)
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Set the controlling TTY to Ctty
+-	if sys.Setctty {
+-		err1 = ioctl(uintptr(sys.Ctty), uintptr(TIOCSCTTY), 0)
+-		if err1 != 0 {
+-			goto childerror
+-		}
+-	}
+-
+-	// Time to exec.
+-	err1 = execve(
+-		uintptr(unsafe.Pointer(argv0)),
+-		uintptr(unsafe.Pointer(&argv[0])),
+-		uintptr(unsafe.Pointer(&envv[0])))
+-
+-childerror:
+-	// send error code on pipe
+-	write1(uintptr(pipe), uintptr(unsafe.Pointer(&err1)), unsafe.Sizeof(err1))
+-	for {
+-		exit(253)
+-	}
+-}
+diff --git a/src/syscall/exec_unix.go b/src/syscall/exec_unix.go
+index 9a950ac..3b84256 100644
+--- a/src/syscall/exec_unix.go
++++ b/src/syscall/exec_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Fork, exec, wait, etc.
+ 
+@@ -246,9 +246,9 @@
+ func runtime_BeforeExec()
+ func runtime_AfterExec()
+ 
+-// execveSolaris is non-nil on Solaris, set to execve in exec_solaris.go; this
++// execveLibc is non-nil on OS using libc syscall, set to execve in exec_libc.go; this
+ // avoids a build dependency for other platforms.
+-var execveSolaris func(path uintptr, argv uintptr, envp uintptr) (err Errno)
++var execveLibc func(path uintptr, argv uintptr, envp uintptr) (err Errno)
+ 
+ // Exec invokes the execve(2) system call.
+ func Exec(argv0 string, argv []string, envv []string) (err error) {
+@@ -267,9 +267,9 @@
+ 	runtime_BeforeExec()
+ 
+ 	var err1 Errno
+-	if runtime.GOOS == "solaris" {
+-		// RawSyscall should never be used on Solaris.
+-		err1 = execveSolaris(
++	if runtime.GOOS == "solaris" || runtime.GOOS == "aix" {
++		// RawSyscall should never be used on Solaris or AIX.
++		err1 = execveLibc(
+ 			uintptr(unsafe.Pointer(argv0p)),
+ 			uintptr(unsafe.Pointer(&argvp[0])),
+ 			uintptr(unsafe.Pointer(&envvp[0])))
+diff --git a/src/syscall/mkall.sh b/src/syscall/mkall.sh
+index b381b93..b783921 100755
+--- a/src/syscall/mkall.sh
++++ b/src/syscall/mkall.sh
+@@ -115,6 +115,11 @@
+ 	echo 'undefined $GOOS_$GOARCH:' "$GOOSARCH" 1>&2
+ 	exit 1
+ 	;;
++aix_ppc64)
++	mkerrors="$mkerrors -maix64"
++	mksyscall="./mksyscall_libc.pl -aix"
++	mktypes="GOARCH=$GOARCH go tool cgo -godefs"
++	;;
+ darwin_386)
+ 	mkerrors="$mkerrors -m32"
+ 	mksyscall="./mksyscall.pl -l32"
+@@ -301,7 +306,7 @@
+ 	mktypes="XXX"
+ 	;;
+ solaris_amd64)
+-	mksyscall="./mksyscall_solaris.pl"
++	mksyscall="./mksyscall_libc.pl -solaris"
+ 	mkerrors="$mkerrors -m64"
+ 	mksysnum=
+ 	mktypes="GOARCH=$GOARCH go tool cgo -godefs"
+@@ -327,5 +332,9 @@
+ 	if [ -n "$mksyscall" ]; then echo "$mksyscall -tags $GOOS,$GOARCH $syscall_goos $GOOSARCH_in |gofmt >zsyscall_$GOOSARCH.go"; fi
+ 	if [ -n "$mksysctl" ]; then echo "$mksysctl |gofmt >$zsysctl"; fi
+ 	if [ -n "$mksysnum" ]; then echo "$mksysnum |gofmt >zsysnum_$GOOSARCH.go"; fi
+-	if [ -n "$mktypes" ]; then echo "$mktypes types_$GOOS.go |go run mkpost.go >ztypes_$GOOSARCH.go"; fi
++	if [ -n "$mktypes" ]; then
++		# ztypes_$GOOSARCH.go could be erased before "go run mkpost.go" is called.
++		# Therefore, "go run" tries to recompile syscall package but ztypes is empty and it fails.
++		echo "$mktypes types_$GOOS.go |go run mkpost.go >ztypes_$GOOSARCH.go.NEW && mv ztypes_$GOOSARCH.go.NEW ztypes_$GOOSARCH.go";
++	fi
+ ) | $run
+diff --git a/src/syscall/mksyscall_libc.pl b/src/syscall/mksyscall_libc.pl
+new file mode 100755
+index 0000000..6f57bee
+--- /dev/null
++++ b/src/syscall/mksyscall_libc.pl
+@@ -0,0 +1,327 @@
++#!/usr/bin/env perl
++# Copyright 2009 The Go Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style
++# license that can be found in the LICENSE file.
++
++# This program reads a file containing function prototypes
++# (like syscall_solaris.go) and generates system call bodies.
++# The prototypes are marked by lines beginning with "//sys"
++# and read like func declarations if //sys is replaced by func, but:
++#	* The parameter lists must give a name for each argument.
++#	  This includes return parameters.
++#	* The parameter lists must give a type for each argument:
++#	  the (x, y, z int) shorthand is not allowed.
++#	* If the return parameter is an error number, it must be named err.
++#	* If go func name needs to be different than its libc name,
++#	* or the function is not in libc, name could be specified
++#	* at the end, after "=" sign, like
++#	  //sys getsockopt(s int, level int, name int, val uintptr, vallen *_Socklen) (err error) = libsocket.getsockopt
++
++use strict;
++
++my $cmdline = "mksyscall_libc.pl " . join(' ', @ARGV);
++my $errors = 0;
++my $_32bit = "";
++my $tags = "";  # build tags
++my $aix = 0;
++my $solaris = 0;
++
++binmode STDOUT;
++
++if($ARGV[0] eq "-b32") {
++	$_32bit = "big-endian";
++	shift;
++} elsif($ARGV[0] eq "-l32") {
++	$_32bit = "little-endian";
++	shift;
++}
++if($ARGV[0] eq "-aix") {
++	$aix = 1;
++	shift;
++}
++if($ARGV[0] eq "-solaris") {
++	$solaris = 1;
++	shift;
++}
++if($ARGV[0] eq "-tags") {
++	shift;
++	$tags = $ARGV[0];
++	shift;
++}
++
++
++if($ARGV[0] =~ /^-/) {
++	print STDERR "usage: mksyscall_libc.pl [-b32 | -l32] [-aix | -solaris] [-tags x,y] [file ...]\n";
++	exit 1;
++}
++
++sub parseparamlist($) {
++	my ($list) = @_;
++	$list =~ s/^\s*//;
++	$list =~ s/\s*$//;
++	if($list eq "") {
++		return ();
++	}
++	return split(/\s*,\s*/, $list);
++}
++
++sub parseparam($) {
++	my ($p) = @_;
++	if($p !~ /^(\S*) (\S*)$/) {
++		print STDERR "$ARGV:$.: malformed parameter: $p\n";
++		$errors = 1;
++		return ("xx", "int");
++	}
++	return ($1, $2);
++}
++
++my $package = "";
++my $text = "";
++my $dynimports = "";
++my $linknames = "";
++my @vars = ();
++while(<>) {
++	chomp;
++	s/\s+/ /g;
++	s/^\s+//;
++	s/\s+$//;
++	$package = $1 if !$package && /^package (\S+)$/;
++	my $nonblock = /^\/\/sysnb /;
++	next if !/^\/\/sys / && !$nonblock;
++
++	my $syscalldot = "";
++	$syscalldot = "syscall." if $package ne "syscall";
++
++	# Line must be of the form
++	#	func Open(path string, mode int, perm int) (fd int, err error)
++	# Split into name, in params, out params.
++	if(!/^\/\/sys(nb)? (\w+)\(([^()]*)\)\s*(?:\(([^()]+)\))?\s*(?:=\s*(?:(\w*)\.)?(\w*))?$/) {
++		print STDERR "$ARGV:$.: malformed //sys declaration\n";
++		$errors = 1;
++		next;
++	}
++	my ($nb, $func, $in, $out, $modname, $sysname) = ($1, $2, $3, $4, $5, $6);
++
++	# Split argument lists on comma.
++	my @in = parseparamlist($in);
++	my @out = parseparamlist($out);
++
++	# So file name.
++	if($aix) {
++		if($modname eq "") {
++			$modname = "libc.a/shr_64.o";
++		} else {
++			print STDERR "$func: only syscall using libc are available\n";
++			$errors = 1;
++			next;
++		}
++
++	}
++	if($solaris) {
++		if($modname eq "") {
++			$modname = "libc";
++		}
++		$modname .= ".so";
++
++	}
++
++	# System call name.
++	if($sysname eq "") {
++		$sysname = "$func";
++	}
++
++	# System call pointer variable name.
++	my $sysvarname = "libc_${sysname}";
++
++	my $strconvfunc = "BytePtrFromString";
++	my $strconvtype = "*byte";
++
++	$sysname =~ y/A-Z/a-z/; # All libc functions are lowercase.
++
++	# Runtime import of function to allow cross-platform builds.
++	$dynimports .= "//go:cgo_import_dynamic ${sysvarname} ${sysname} \"$modname\"\n";
++	# Link symbol to proc address variable.
++	$linknames .= "//go:linkname ${sysvarname} ${sysvarname}\n";
++	# Library proc address variable.
++	push @vars, $sysvarname;
++
++	# Go function header.
++	$out = join(', ', @out);
++	if($out ne "") {
++		$out = " ($out)";
++	}
++	if($text ne "") {
++		$text .= "\n"
++	}
++	$text .= sprintf "func %s(%s)%s {\n", $func, join(', ', @in), $out;
++
++	# Check if err return available
++	my $errvar = "";
++	foreach my $p (@out) {
++		my ($name, $type) = parseparam($p);
++		if($type eq "error") {
++			$errvar = $name;
++			last;
++		}
++	}
++
++	# Prepare arguments to Syscall.
++	my @args = ();
++	my $n = 0;
++	foreach my $p (@in) {
++		my ($name, $type) = parseparam($p);
++		if($type =~ /^\*/) {
++			push @args, "uintptr(unsafe.Pointer($name))";
++		} elsif($type eq "string" && $errvar ne "") {
++			$text .= "\tvar _p$n $strconvtype\n";
++			$text .= "\t_p$n, $errvar = $strconvfunc($name)\n";
++			$text .= "\tif $errvar != nil {\n\t\treturn\n\t}\n";
++			push @args, "uintptr(unsafe.Pointer(_p$n))";
++			$n++;
++		} elsif($type eq "string") {
++			print STDERR "$ARGV:$.: $func uses string arguments, but has no error return\n";
++			$text .= "\tvar _p$n $strconvtype\n";
++			$text .= "\t_p$n, _ = $strconvfunc($name)\n";
++			push @args, "uintptr(unsafe.Pointer(_p$n))";
++			$n++;
++		} elsif($type =~ /^\[\](.*)/) {
++			# Convert slice into pointer, length.
++			# Have to be careful not to take address of &a[0] if len == 0:
++			# pass nil in that case.
++			$text .= "\tvar _p$n *$1\n";
++			$text .= "\tif len($name) > 0 {\n\t\t_p$n = \&$name\[0]\n\t}\n";
++			push @args, "uintptr(unsafe.Pointer(_p$n))", "uintptr(len($name))";
++			$n++;
++		} elsif($type eq "int64" && $_32bit ne "") {
++			if($_32bit eq "big-endian") {
++				push @args, "uintptr($name >> 32)", "uintptr($name)";
++			} else {
++				push @args, "uintptr($name)", "uintptr($name >> 32)";
++			}
++		} elsif($type eq "bool") {
++ 			$text .= "\tvar _p$n uint32\n";
++			$text .= "\tif $name {\n\t\t_p$n = 1\n\t} else {\n\t\t_p$n = 0\n\t}\n";
++			push @args, "uintptr(_p$n)";
++			$n++;
++		} else {
++			push @args, "uintptr($name)";
++		}
++	}
++	my $nargs = @args;
++
++	my $asmfuncname="";
++	my $asmrawfuncname="";
++
++	if($aix){
++		$asmfuncname="syscall6";
++		$asmrawfuncname="rawSyscall6";
++	} else {
++		$asmfuncname="sysvicall6";
++		$asmrawfuncname="rawSysvicall6";
++	}
++
++	# Determine which form to use; pad args with zeros.
++	my $asm = "${syscalldot}${asmfuncname}";
++	if ($nonblock) {
++		$asm = "${syscalldot}${asmrawfuncname}";
++	}
++	if(@args <= 6) {
++		while(@args < 6) {
++			push @args, "0";
++		}
++	} else {
++		print STDERR "$ARGV:$.: too many arguments to system call\n";
++	}
++
++	# Actual call.
++	my $args = join(', ', @args);
++	my $call = "$asm(uintptr(unsafe.Pointer(&$sysvarname)), $nargs, $args)";
++
++	# Assign return values.
++	my $body = "";
++	my $failexpr = "";
++	my @ret = ("_", "_", "_");
++	my @pout= ();
++	my $do_errno = 0;
++	for(my $i=0; $i<@out; $i++) {
++		my $p = $out[$i];
++		my ($name, $type) = parseparam($p);
++		my $reg = "";
++		if($name eq "err") {
++			$reg = "e1";
++			$ret[2] = $reg;
++			$do_errno = 1;
++		} else {
++			$reg = sprintf("r%d", $i);
++			$ret[$i] = $reg;
++		}
++		if($type eq "bool") {
++			$reg = "$reg != 0";
++		}
++		if($type eq "int64" && $_32bit ne "") {
++			# 64-bit number in r1:r0 or r0:r1.
++			if($i+2 > @out) {
++				print STDERR "$ARGV:$.: not enough registers for int64 return\n";
++			}
++			if($_32bit eq "big-endian") {
++				$reg = sprintf("int64(r%d)<<32 | int64(r%d)", $i, $i+1);
++			} else {
++				$reg = sprintf("int64(r%d)<<32 | int64(r%d)", $i+1, $i);
++			}
++			$ret[$i] = sprintf("r%d", $i);
++			$ret[$i+1] = sprintf("r%d", $i+1);
++		}
++		if($reg ne "e1") {
++			$body .= "\t$name = $type($reg)\n";
++		}
++	}
++	if ($ret[0] eq "_" && $ret[1] eq "_" && $ret[2] eq "_") {
++		$text .= "\t$call\n";
++	} else {
++		$text .= "\t$ret[0], $ret[1], $ret[2] := $call\n";
++	}
++	$text .= $body;
++
++	if ($do_errno) {
++		$text .= "\tif e1 != 0 {\n";
++		$text .= "\t\terr = errnoErr(e1)\n";
++		$text .= "\t}\n";
++	}
++	$text .= "\treturn\n";
++	$text .= "}\n";
++}
++
++if($errors) {
++	exit 1;
++}
++
++print <<EOF;
++// $cmdline
++// Code generated by the command above; DO NOT EDIT.
++
++// +build $tags
++
++package $package
++
++import "unsafe"
++EOF
++
++print "import \"syscall\"\n" if $package ne "syscall";
++
++my $vardecls = "\t" . join(",\n\t", @vars);
++$vardecls .= " libcFunc";
++
++chomp($_=<<EOF);
++
++$dynimports
++$linknames
++type libcFunc uintptr
++
++var (
++$vardecls
++)
++
++$text
++EOF
++print $_;
++exit 0;
+diff --git a/src/syscall/mksyscall_solaris.pl b/src/syscall/mksyscall_solaris.pl
+deleted file mode 100755
+index 9172975..0000000
+--- a/src/syscall/mksyscall_solaris.pl
++++ /dev/null
+@@ -1,291 +0,0 @@
+-#!/usr/bin/env perl
+-# Copyright 2009 The Go Authors. All rights reserved.
+-# Use of this source code is governed by a BSD-style
+-# license that can be found in the LICENSE file.
+-
+-# This program reads a file containing function prototypes
+-# (like syscall_solaris.go) and generates system call bodies.
+-# The prototypes are marked by lines beginning with "//sys"
+-# and read like func declarations if //sys is replaced by func, but:
+-#	* The parameter lists must give a name for each argument.
+-#	  This includes return parameters.
+-#	* The parameter lists must give a type for each argument:
+-#	  the (x, y, z int) shorthand is not allowed.
+-#	* If the return parameter is an error number, it must be named err.
+-#	* If go func name needs to be different than its libc name,
+-#	* or the function is not in libc, name could be specified
+-#	* at the end, after "=" sign, like
+-#	  //sys getsockopt(s int, level int, name int, val uintptr, vallen *_Socklen) (err error) = libsocket.getsockopt
+-
+-use strict;
+-
+-my $cmdline = "mksyscall_solaris.pl " . join(' ', @ARGV);
+-my $errors = 0;
+-my $_32bit = "";
+-my $tags = "";  # build tags
+-
+-binmode STDOUT;
+-
+-if($ARGV[0] eq "-b32") {
+-	$_32bit = "big-endian";
+-	shift;
+-} elsif($ARGV[0] eq "-l32") {
+-	$_32bit = "little-endian";
+-	shift;
+-}
+-if($ARGV[0] eq "-tags") {
+-	shift;
+-	$tags = $ARGV[0];
+-	shift;
+-}
+-
+-if($ARGV[0] =~ /^-/) {
+-	print STDERR "usage: mksyscall_solaris.pl [-b32 | -l32] [-tags x,y] [file ...]\n";
+-	exit 1;
+-}
+-
+-sub parseparamlist($) {
+-	my ($list) = @_;
+-	$list =~ s/^\s*//;
+-	$list =~ s/\s*$//;
+-	if($list eq "") {
+-		return ();
+-	}
+-	return split(/\s*,\s*/, $list);
+-}
+-
+-sub parseparam($) {
+-	my ($p) = @_;
+-	if($p !~ /^(\S*) (\S*)$/) {
+-		print STDERR "$ARGV:$.: malformed parameter: $p\n";
+-		$errors = 1;
+-		return ("xx", "int");
+-	}
+-	return ($1, $2);
+-}
+-
+-my $package = "";
+-my $text = "";
+-my $dynimports = "";
+-my $linknames = "";
+-my @vars = ();
+-while(<>) {
+-	chomp;
+-	s/\s+/ /g;
+-	s/^\s+//;
+-	s/\s+$//;
+-	$package = $1 if !$package && /^package (\S+)$/;
+-	my $nonblock = /^\/\/sysnb /;
+-	next if !/^\/\/sys / && !$nonblock;
+-
+-	my $syscalldot = "";
+-	$syscalldot = "syscall." if $package ne "syscall";
+-
+-	# Line must be of the form
+-	#	func Open(path string, mode int, perm int) (fd int, err error)
+-	# Split into name, in params, out params.
+-	if(!/^\/\/sys(nb)? (\w+)\(([^()]*)\)\s*(?:\(([^()]+)\))?\s*(?:=\s*(?:(\w*)\.)?(\w*))?$/) {
+-		print STDERR "$ARGV:$.: malformed //sys declaration\n";
+-		$errors = 1;
+-		next;
+-	}
+-	my ($nb, $func, $in, $out, $modname, $sysname) = ($1, $2, $3, $4, $5, $6);
+-
+-	# Split argument lists on comma.
+-	my @in = parseparamlist($in);
+-	my @out = parseparamlist($out);
+-
+-	# So file name.
+-	if($modname eq "") {
+-		$modname = "libc";
+-	}
+-
+-	# System call name.
+-	if($sysname eq "") {
+-		$sysname = "$func";
+-	}
+-
+-	# System call pointer variable name.
+-	my $sysvarname = "libc_${sysname}";
+-
+-	my $strconvfunc = "BytePtrFromString";
+-	my $strconvtype = "*byte";
+-
+-	$sysname =~ y/A-Z/a-z/; # All libc functions are lowercase.
+-
+-	# Runtime import of function to allow cross-platform builds.
+-	$dynimports .= "//go:cgo_import_dynamic ${sysvarname} ${sysname} \"$modname.so\"\n";
+-	# Link symbol to proc address variable.
+-	$linknames .= "//go:linkname ${sysvarname} ${sysvarname}\n";
+-	# Library proc address variable.
+-	push @vars, $sysvarname;
+-
+-	# Go function header.
+-	$out = join(', ', @out);
+-	if($out ne "") {
+-		$out = " ($out)";
+-	}
+-	if($text ne "") {
+-		$text .= "\n"
+-	}
+-	$text .= sprintf "func %s(%s)%s {\n", $func, join(', ', @in), $out;
+-
+-	# Check if err return available
+-	my $errvar = "";
+-	foreach my $p (@out) {
+-		my ($name, $type) = parseparam($p);
+-		if($type eq "error") {
+-			$errvar = $name;
+-			last;
+-		}
+-	}
+-
+-	# Prepare arguments to Syscall.
+-	my @args = ();
+-	my $n = 0;
+-	foreach my $p (@in) {
+-		my ($name, $type) = parseparam($p);
+-		if($type =~ /^\*/) {
+-			push @args, "uintptr(unsafe.Pointer($name))";
+-		} elsif($type eq "string" && $errvar ne "") {
+-			$text .= "\tvar _p$n $strconvtype\n";
+-			$text .= "\t_p$n, $errvar = $strconvfunc($name)\n";
+-			$text .= "\tif $errvar != nil {\n\t\treturn\n\t}\n";
+-			push @args, "uintptr(unsafe.Pointer(_p$n))";
+-			$n++;
+-		} elsif($type eq "string") {
+-			print STDERR "$ARGV:$.: $func uses string arguments, but has no error return\n";
+-			$text .= "\tvar _p$n $strconvtype\n";
+-			$text .= "\t_p$n, _ = $strconvfunc($name)\n";
+-			push @args, "uintptr(unsafe.Pointer(_p$n))";
+-			$n++;
+-		} elsif($type =~ /^\[\](.*)/) {
+-			# Convert slice into pointer, length.
+-			# Have to be careful not to take address of &a[0] if len == 0:
+-			# pass nil in that case.
+-			$text .= "\tvar _p$n *$1\n";
+-			$text .= "\tif len($name) > 0 {\n\t\t_p$n = \&$name\[0]\n\t}\n";
+-			push @args, "uintptr(unsafe.Pointer(_p$n))", "uintptr(len($name))";
+-			$n++;
+-		} elsif($type eq "int64" && $_32bit ne "") {
+-			if($_32bit eq "big-endian") {
+-				push @args, "uintptr($name >> 32)", "uintptr($name)";
+-			} else {
+-				push @args, "uintptr($name)", "uintptr($name >> 32)";
+-			}
+-		} elsif($type eq "bool") {
+- 			$text .= "\tvar _p$n uint32\n";
+-			$text .= "\tif $name {\n\t\t_p$n = 1\n\t} else {\n\t\t_p$n = 0\n\t}\n";
+-			push @args, "uintptr(_p$n)";
+-			$n++;
+-		} else {
+-			push @args, "uintptr($name)";
+-		}
+-	}
+-	my $nargs = @args;
+-
+-	# Determine which form to use; pad args with zeros.
+-	my $asm = "${syscalldot}sysvicall6";
+-	if ($nonblock) {
+-		$asm = "${syscalldot}rawSysvicall6";
+-	}
+-	if(@args <= 6) {
+-		while(@args < 6) {
+-			push @args, "0";
+-		}
+-	} else {
+-		print STDERR "$ARGV:$.: too many arguments to system call\n";
+-	}
+-
+-	# Actual call.
+-	my $args = join(', ', @args);
+-	my $call = "$asm(uintptr(unsafe.Pointer(&$sysvarname)), $nargs, $args)";
+-
+-	# Assign return values.
+-	my $body = "";
+-	my $failexpr = "";
+-	my @ret = ("_", "_", "_");
+-	my @pout= ();
+-	my $do_errno = 0;
+-	for(my $i=0; $i<@out; $i++) {
+-		my $p = $out[$i];
+-		my ($name, $type) = parseparam($p);
+-		my $reg = "";
+-		if($name eq "err") {
+-			$reg = "e1";
+-			$ret[2] = $reg;
+-			$do_errno = 1;
+-		} else {
+-			$reg = sprintf("r%d", $i);
+-			$ret[$i] = $reg;
+-		}
+-		if($type eq "bool") {
+-			$reg = "$reg != 0";
+-		}
+-		if($type eq "int64" && $_32bit ne "") {
+-			# 64-bit number in r1:r0 or r0:r1.
+-			if($i+2 > @out) {
+-				print STDERR "$ARGV:$.: not enough registers for int64 return\n";
+-			}
+-			if($_32bit eq "big-endian") {
+-				$reg = sprintf("int64(r%d)<<32 | int64(r%d)", $i, $i+1);
+-			} else {
+-				$reg = sprintf("int64(r%d)<<32 | int64(r%d)", $i+1, $i);
+-			}
+-			$ret[$i] = sprintf("r%d", $i);
+-			$ret[$i+1] = sprintf("r%d", $i+1);
+-		}
+-		if($reg ne "e1") {
+-			$body .= "\t$name = $type($reg)\n";
+-		}
+-	}
+-	if ($ret[0] eq "_" && $ret[1] eq "_" && $ret[2] eq "_") {
+-		$text .= "\t$call\n";
+-	} else {
+-		$text .= "\t$ret[0], $ret[1], $ret[2] := $call\n";
+-	}
+-	$text .= $body;
+-
+-	if ($do_errno) {
+-		$text .= "\tif e1 != 0 {\n";
+-		$text .= "\t\terr = errnoErr(e1)\n";
+-		$text .= "\t}\n";
+-	}
+-	$text .= "\treturn\n";
+-	$text .= "}\n";
+-}
+-
+-if($errors) {
+-	exit 1;
+-}
+-
+-print <<EOF;
+-// $cmdline
+-// Code generated by the command above; DO NOT EDIT.
+-
+-// +build $tags
+-
+-package $package
+-
+-import "unsafe"
+-EOF
+-
+-print "import \"syscall\"\n" if $package ne "syscall";
+-
+-my $vardecls = "\t" . join(",\n\t", @vars);
+-$vardecls .= " libcFunc";
+-
+-chomp($_=<<EOF);
+-
+-$dynimports
+-$linknames
+-type libcFunc uintptr
+-
+-var (
+-$vardecls
+-)
+-
+-$text
+-EOF
+-print $_;
+-exit 0;

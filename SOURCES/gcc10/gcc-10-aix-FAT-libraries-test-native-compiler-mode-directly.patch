@@ -1,0 +1,101 @@
+From 4f97bed9a7989e14cbb53e405fbd8b3c08aa75ec Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Mon, 13 Jul 2020 14:43:39 -0400
+Subject: [PATCH] aix: FAT libraries: test native compiler mode directly
+
+The FAT libraries config fragments need to know which library is native
+and which is a multilib to choose the correct multilib from which to
+append the additional object file or shared object file.  Testing the
+top-level archive is fragile because it will fail if rebuilding.  This
+patch tests the compiler preprocessing macros for the 64 bit AIX specific
+__64BIT__ to determine the native mode of the compiler in MULTILIBTOP.
+
+2020-07-14  David Edelsohn  <dje.gcc@gmail.com>
+
+libatomic/ChangeLog
+
+	* config/t-aix: Set BITS from compiler cpp macro.
+
+libgcc/ChangeLog
+
+	* config/rs6000/t-slibgcc-aix: Set BITS from compiler cpp macro.
+
+libgfortran/ChangeLog
+
+	* config/t-aix: Set BITS from compiler cpp macro.
+
+libgomp/ChangeLog
+
+	* config/t-aix: Set BITS from compiler cpp macro.
+
+libstdc++-v3/ChangeLog
+
+	* config/os/aix/t-aix: Set BITS from compiler cpp macro.
+---
+ libatomic/config/t-aix             | 2 +-
+ libgcc/config/rs6000/t-slibgcc-aix | 2 +-
+ libgfortran/config/t-aix           | 2 +-
+ libgomp/config/t-aix               | 2 +-
+ libstdc++-v3/config/os/aix/t-aix   | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/libatomic/config/t-aix b/libatomic/config/t-aix
+index 53c2d83242f..0f37aaa15f3 100644
+--- a/libatomic/config/t-aix
++++ b/libatomic/config/t-aix
+@@ -1,5 +1,5 @@
+ ifeq ($(MULTIBUILDTOP),)
+-BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ #MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ MAJOR=1
+diff --git a/libgcc/config/rs6000/t-slibgcc-aix b/libgcc/config/rs6000/t-slibgcc-aix
+index e5f8a029ff8..b3bdda6f9a8 100644
+--- a/libgcc/config/rs6000/t-slibgcc-aix
++++ b/libgcc/config/rs6000/t-slibgcc-aix
+@@ -90,7 +90,7 @@ AR_FLAGS_FOR_TARGET = -X32_64
+ 
+ # Build and install AIX-style FAT libraries
+ ifeq ($(MULTIBUILDTOP),)
+-BITS=$(shell if test -z "`ar -X64 t libgcc_s.a`" ; then \
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ all: all-multi
+ ifeq ($(enable_shared),yes)
+diff --git a/libgfortran/config/t-aix b/libgfortran/config/t-aix
+index 7046aeeacc3..e661286da12 100644
+--- a/libgfortran/config/t-aix
++++ b/libgfortran/config/t-aix
+@@ -1,5 +1,5 @@
+ ifeq ($(MULTIBUILDTOP),)
+-BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ #MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ MAJOR=5
+diff --git a/libgomp/config/t-aix b/libgomp/config/t-aix
+index 5d0b7e0f9ae..c3bb6c0bce0 100644
+--- a/libgomp/config/t-aix
++++ b/libgomp/config/t-aix
+@@ -1,5 +1,5 @@
+ ifeq ($(MULTIBUILDTOP),)
+-BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ all-local:
+diff --git a/libstdc++-v3/config/os/aix/t-aix b/libstdc++-v3/config/os/aix/t-aix
+index a588746dd99..a5d58fab474 100644
+--- a/libstdc++-v3/config/os/aix/t-aix
++++ b/libstdc++-v3/config/os/aix/t-aix
+@@ -1,5 +1,5 @@
+ ifeq ($(MULTIBUILDTOP),)
+-BITS=$(shell if test -z "`ar -X64 t src/.libs/$(PACKAGE).a`" ; then \
++BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ all-local:
+-- 
+2.25.0
+

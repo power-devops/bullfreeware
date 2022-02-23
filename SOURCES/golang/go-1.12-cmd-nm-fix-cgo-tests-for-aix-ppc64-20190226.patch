@@ -1,0 +1,68 @@
+From a9b9c2cb17678cbf3f00b577870ab2982e8dcc3f Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Thu, 14 Feb 2019 10:33:52 -0600
+Subject: [PATCH 22/24] cmd/nm: fix cgo tests for aix/ppc64
+
+---
+ src/cmd/nm/nm_cgo_test.go |  2 ++
+ src/cmd/nm/nm_test.go     | 17 ++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/src/cmd/nm/nm_cgo_test.go b/src/cmd/nm/nm_cgo_test.go
+index 1dfdf7f21a..143a297e05 100644
+--- a/src/cmd/nm/nm_cgo_test.go
++++ b/src/cmd/nm/nm_cgo_test.go
+@@ -20,6 +20,8 @@ func canInternalLink() bool {
+ 		case "arm64", "mips64", "mips64le", "mips", "mipsle", "ppc64", "ppc64le":
+ 			return false
+ 		}
++	case "aix":
++		return false
+ 	}
+ 	return true
+ }
+diff --git a/src/cmd/nm/nm_test.go b/src/cmd/nm/nm_test.go
+index 8176ddd7f4..f78434c6b1 100644
+--- a/src/cmd/nm/nm_test.go
++++ b/src/cmd/nm/nm_test.go
+@@ -124,7 +124,14 @@ func testGoExec(t *testing.T, iscgo, isexternallinker bool) {
+ 		if len(f) != 2 {
+ 			t.Fatalf("unexpected output line: %q", line)
+ 		}
+-		names["main."+f[0]] = f[1]
++		addr := f[1]
++		if runtime.GOOS == "aix" && iscgo {
++			// ld will move .text symbols to 0x1000xxxx while cmd/link
++			// creates symbols at 0x10000xxxx.
++			// Instead of skipping these symbols, we remove the first 0.
++			addr = f[1][:3] + f[1][4:]
++		}
++		names["main."+f[0]] = addr
+ 	}
+ 
+ 	runtimeSyms := map[string]string{
+@@ -136,6 +143,11 @@ func testGoExec(t *testing.T, iscgo, isexternallinker bool) {
+ 		"runtime.noptrdata": "D",
+ 	}
+ 
++	if runtime.GOOS == "aix" && iscgo {
++		// pclntab is moved to .data section on AIX.
++		runtimeSyms["runtime.epclntab"] = "D"
++	}
++
+ 	out, err = exec.Command(testnmpath, exe).CombinedOutput()
+ 	if err != nil {
+ 		t.Fatalf("go tool nm: %v\n%s", err, string(out))
+@@ -267,6 +279,9 @@ func testGoLib(t *testing.T, iscgo bool) {
+ 		if runtime.GOOS == "darwin" || (runtime.GOOS == "windows" && runtime.GOARCH == "386") {
+ 			syms = append(syms, symType{"D", "_cgodata", true, false})
+ 			syms = append(syms, symType{"T", "_cgofunc", true, false})
++		} else if runtime.GOOS == "aix" {
++			syms = append(syms, symType{"D", "cgodata", true, false})
++			syms = append(syms, symType{"T", ".cgofunc", true, false})
+ 		} else {
+ 			syms = append(syms, symType{"D", "cgodata", true, false})
+ 			syms = append(syms, symType{"T", "cgofunc", true, false})
+-- 
+2.15.1
+

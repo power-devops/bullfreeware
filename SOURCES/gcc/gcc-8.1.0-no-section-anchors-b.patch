@@ -1,0 +1,10 @@
+--- ./libgo/testsuite/gotest.ORIGIN	2017-03-17 10:57:38 -0500
++++ ./libgo/testsuite/gotest	2017-03-17 10:54:16 -0500
+@@ -19,6 +19,7 @@
+ GL=${GL:-${GC-gccgo}}
+ GOLIBS=${GOLIBS:-}
+ export GC GL GOLIBS
++GL="${GL} -Wl,-bernotok"
+ 
+ NM=${NM:-nm}
+ 

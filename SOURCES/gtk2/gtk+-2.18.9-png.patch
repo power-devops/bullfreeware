@@ -1,0 +1,75 @@
+Index: gtk+-2.18.9/gdk-pixbuf/io-png.c
+===================================================================
+--- gtk+-2.18.9.orig/gdk-pixbuf/io-png.c	2010-03-17 14:31:41.000000000 +0100
++++ gtk+-2.18.9/gdk-pixbuf/io-png.c	2012-03-05 11:26:30.000000000 +0100
+@@ -184,7 +184,11 @@
+                              error_msg);
+         }
+ 
+-        longjmp (png_save_ptr->jmpbuf, 1);
++       /* TBD: libpng doesn't provide a way to directly invoke the
++       * stored 'longjmp', so do it by hand:
++       */
++       longjmp (png_jmpbuf(png_save_ptr), 1);
++
+ }
+ 
+ static void
+@@ -282,7 +286,7 @@
+ 		return NULL;
+ 	}
+ 
+-	if (setjmp (png_ptr->jmpbuf)) {
++	if (setjmp (png_jmpbuf(png_ptr))) {
+ 	    	g_free (rows);
+ 
+ 		if (pixbuf)
+@@ -442,7 +446,7 @@
+                 return NULL;
+         }
+         
+-	if (setjmp (lc->png_read_ptr->jmpbuf)) {
++	if (setjmp (png_jmpbuf(lc->png_read_ptr))) {
+ 		if (lc->png_info_ptr)
+ 			png_destroy_read_struct(&lc->png_read_ptr, NULL, NULL);
+                 g_free(lc);
+@@ -514,7 +518,7 @@
+         lc->error = error;
+         
+         /* Invokes our callbacks as needed */
+-	if (setjmp (lc->png_read_ptr->jmpbuf)) {
++	if (setjmp (png_jmpbuf(lc->png_read_ptr))) {
+                 lc->error = NULL;
+ 		return FALSE;
+ 	} else {
+@@ -630,7 +634,7 @@
+                         g_set_error (lc->error,
+                                      GDK_PIXBUF_ERROR,
+                                      GDK_PIXBUF_ERROR_INSUFFICIENT_MEMORY,
+-                                     _("Insufficient memory to store a %ld by %ld image; try exiting some applications to reduce memory usage"),
++				     _("Insufficient memory to store a %u by %u image; try exiting some applications to reduce memory usage"),
+                                      width, height);
+                 }
+                 return;
+@@ -734,7 +738,11 @@
+                              error_msg);
+         }
+ 
+-        longjmp (png_read_ptr->jmpbuf, 1);
++	/* TBD: libpng doesn't provide a way to directly invoke the
++	* stored 'longjmp', so do it by hand:
++	*/
++	longjmp (png_jmpbuf(png_read_ptr), 1);
++
+ }
+ 
+ static void
+@@ -924,7 +932,7 @@
+ 	       success = FALSE;
+ 	       goto cleanup;
+        }
+-       if (setjmp (png_ptr->jmpbuf)) {
++       if (setjmp (png_jmpbuf(png_ptr))) {
+ 	       success = FALSE;
+ 	       goto cleanup;
+        }

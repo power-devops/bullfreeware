@@ -1,0 +1,30 @@
+Upstream PR: https://github.com/MariaDB/server/pull/1081
+
+From d2cbf56d36e422802aa7e53ec0f4e6be8fd53cf5 Mon Sep 17 00:00:00 2001
+From: Honza Horak <hhorak@redhat.com>
+Date: Wed, 9 Jan 2019 20:17:29 +0100
+Subject: [PATCH] Make the PYTHON_SHEBANG value configurable
+
+In Fedora 30 it is required to specify either /usr/bin/python2 or /usr/bin/python3 in the shebang, so we need a way to say explicit shebang, ideally in the cmake call.
+---
+ CMakeLists.txt | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a139c9e5fa4..ccccb08bef1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -342,7 +342,9 @@ MYSQL_CHECK_SSL()
+ MYSQL_CHECK_READLINE()
+ 
+ SET(MALLOC_LIBRARY "system")
+-SET(PYTHON_SHEBANG "/usr/bin/env python" CACHE STRING "python shebang")
++IF(NOT DEFINED PYTHON_SHEBANG)
++  SET(PYTHON_SHEBANG "/usr/bin/env python" CACHE STRING "python shebang")
++ENDIF()
+ MARK_AS_ADVANCED(PYTHON_SHEBANG)
+
+ CHECK_PCRE()
+-- 
+2.17.2
+

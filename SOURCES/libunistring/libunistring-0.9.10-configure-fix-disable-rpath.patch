@@ -1,0 +1,28 @@
+diff --git a/configure b/configure
+index 6de4ee2..3bc33da 100755
+--- a/configure
++++ b/configure
+@@ -18434,7 +18434,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -21291,7 +21294,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name" ;;
++                  *) LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do

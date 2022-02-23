@@ -1,0 +1,33 @@
+*** vncserver.ORIG	Wed Mar 11 21:31:14 2009
+--- vncserver	Wed Mar 11 21:32:15 2009
+***************
+*** 32,40 ****
+  $geometry = "1024x768";
+  $depth = 24;
+  $desktopName = "X";
+! $vncClasses = "/usr/local/vnc/classes";
+  $vncUserDir = "$ENV{HOME}/.vnc";
+! $fontPath = "unix/:7100";
+  $authType = "-rfbauth $vncUserDir/passwd";
+  
+  # Read configuration from the system-wide and user files if present.
+--- 32,40 ----
+  $geometry = "1024x768";
+  $depth = 24;
+  $desktopName = "X";
+! $vncClasses = "/opt/freeware/vnc/classes";
+  $vncUserDir = "$ENV{HOME}/.vnc";
+! $fontPath = "/usr/lib/X11/fonts/,/usr/lib/X11/fonts/misc/,/usr/lib/X11/fonts/75dpi/,/usr/lib/X11/fonts/100dpi/,/usr/lib/X11/fonts/ibm850/,/usr/lib/X11/fonts/Type1/";
+  $authType = "-rfbauth $vncUserDir/passwd";
+  
+  # Read configuration from the system-wide and user files if present.
+***************
+*** 169,174 ****
+--- 169,175 ----
+  $cmd .= " -rfbwait 120000";
+  $cmd .= " $authType";
+  $cmd .= " -rfbport $vncPort";
++ $cmd .= " -nolisten local";
+  $cmd .= " -fp $fontPath" if ($fontPath);
+  $cmd .= " -co $colorPath" if ($colorPath);
+  

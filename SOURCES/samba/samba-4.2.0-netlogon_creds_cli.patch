@@ -1,0 +1,15 @@
+Index: samba-4.2.0/libcli/auth/netlogon_creds_cli.c
+===================================================================
+--- samba-4.2.0.orig/libcli/auth/netlogon_creds_cli.c	2014-10-01 11:16:21.000000000 +0200
++++ samba-4.2.0/libcli/auth/netlogon_creds_cli.c	2015-05-21 13:43:57.000000000 +0200
+@@ -446,9 +446,9 @@
+ NTSTATUS netlogon_creds_cli_context_tmp(const char *client_computer,
+ 				const char *client_account,
+ 				enum netr_SchannelType type,
++				enum dcerpc_AuthLevel auth_level,
+ 				uint32_t proposed_flags,
+ 				uint32_t required_flags,
+-				enum dcerpc_AuthLevel auth_level,
+ 				const char *server_computer,
+ 				const char *server_netbios_domain,
+ 				TALLOC_CTX *mem_ctx,

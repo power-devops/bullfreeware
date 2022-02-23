@@ -1,0 +1,222 @@
+From 9010a0dbf59771cb0a9c1e6fd5a18a92a1200ca7 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 5 Jun 2018 14:01:05 -0400
+Subject: [PATCH] Add k5_dir_filenames() to libkrb5support
+
+Add a support function to get a list of filenames from a directory in
+sorted order.
+
+(cherry picked from commit 27534121eb39089ff4335d8b465027e9ba783682)
+---
+ src/include/k5-platform.h                     |   7 +
+ src/util/support/Makefile.in                  |   3 +
+ src/util/support/dir_filenames.c              | 135 ++++++++++++++++++
+ src/util/support/libkrb5support-fixed.exports |   2 +
+ 4 files changed, 147 insertions(+)
+ create mode 100644 src/util/support/dir_filenames.c
+
+diff --git a/src/include/k5-platform.h b/src/include/k5-platform.h
+index 07ef6a4ca..763408a09 100644
+--- a/src/include/k5-platform.h
++++ b/src/include/k5-platform.h
+@@ -44,6 +44,8 @@
+  * + constant time memory comparison
+  * + path manipulation
+  * + _, N_, dgettext, bindtextdomain (for localization)
++ * + getopt_long
++ * + fetching filenames from a directory
+  */
+ 
+ #ifndef K5_PLATFORM_H
+@@ -1148,4 +1150,9 @@ extern int k5_getopt_long(int nargc, char **nargv, char *options,
+ #define getopt_long k5_getopt_long
+ #endif /* HAVE_GETOPT_LONG */
+ 
++/* Set *fnames_out to a null-terminated list of filenames within dirname,
++ * sorted according to strcmp().  Return 0 on success, or ENOENT/ENOMEM. */
++int k5_dir_filenames(const char *dirname, char ***fnames_out);
++void k5_free_filenames(char **fnames);
++
+ #endif /* K5_PLATFORM_H */
+diff --git a/src/util/support/Makefile.in b/src/util/support/Makefile.in
+index caaf15822..4715e0391 100644
+--- a/src/util/support/Makefile.in
++++ b/src/util/support/Makefile.in
+@@ -85,6 +85,7 @@ STLIBOBJS= \
+ 	hex.o \
+ 	bcmp.o \
+ 	strerror_r.o \
++	dir_filenames.o \
+ 	$(GETTIMEOFDAY_ST_OBJ) \
+ 	$(IPC_ST_OBJ) \
+ 	$(STRLCPY_ST_OBJ) \
+@@ -111,6 +112,7 @@ LIBOBJS= \
+ 	$(OUTPRE)hex.$(OBJEXT) \
+ 	$(OUTPRE)bcmp.$(OBJEXT) \
+ 	$(OUTPRE)strerror_r.$(OBJEXT) \
++	$(OUTPRE)dir_filenames.$(OBJEXT) \
+ 	$(GETTIMEOFDAY_OBJ) \
+ 	$(IPC_OBJ) \
+ 	$(STRLCPY_OBJ) \
+@@ -147,6 +149,7 @@ SRCS=\
+ 	$(srcdir)/hex.c \
+ 	$(srcdir)/bcmp.c \
+ 	$(srcdir)/strerror_r.c \
++	$(srcdir)/dir_filenames.c \
+ 	$(srcdir)/t_utf8.c \
+ 	$(srcdir)/t_utf16.c \
+ 	$(srcdir)/getopt.c \
+diff --git a/src/util/support/dir_filenames.c b/src/util/support/dir_filenames.c
+new file mode 100644
+index 000000000..9312b0238
+--- /dev/null
++++ b/src/util/support/dir_filenames.c
+@@ -0,0 +1,135 @@
++/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
++/* util/support/dir_filenames.c - fetch filenames in a directory */
++/*
++ * Copyright (C) 2018 by the Massachusetts Institute of Technology.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ * * Redistributions of source code must retain the above copyright
++ *   notice, this list of conditions and the following disclaimer.
++ *
++ * * Redistributions in binary form must reproduce the above copyright
++ *   notice, this list of conditions and the following disclaimer in
++ *   the documentation and/or other materials provided with the
++ *   distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
++ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
++ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "k5-platform.h"
++
++void
++k5_free_filenames(char **fnames)
++{
++    char **fn;
++
++    for (fn = fnames; fn != NULL && *fn != NULL; fn++)
++        free(*fn);
++    free(fnames);
++}
++
++/* Resize the filename list and add a name. */
++static int
++add_filename(char ***fnames, int *n_fnames, const char *name)
++{
++    char **newlist;
++
++    newlist = realloc(*fnames, (*n_fnames + 2) * sizeof(*newlist));
++    if (newlist == NULL)
++        return ENOMEM;
++    *fnames = newlist;
++    newlist[*n_fnames] = strdup(name);
++    if (newlist[*n_fnames] == NULL)
++        return ENOMEM;
++    (*n_fnames)++;
++    newlist[*n_fnames] = NULL;
++    return 0;
++}
++
++static int
++compare_with_strcmp(const void *a, const void *b)
++{
++    return strcmp(*(char **)a, *(char **)b);
++}
++
++#ifdef _WIN32
++
++int
++k5_dir_filenames(const char *dirname, char ***fnames_out)
++{
++    char *wildcard;
++    WIN32_FIND_DATA ffd;
++    HANDLE handle;
++    char **fnames = NULL;
++    int n_fnames = 0;
++
++    *fnames_out = NULL;
++
++    if (asprintf(&wildcard, "%s\\*", dirname) < 0)
++        return ENOMEM;
++    handle = FindFirstFile(wildcard, &ffd);
++    free(wildcard);
++    if (handle == INVALID_HANDLE_VALUE)
++        return ENOENT;
++
++    do {
++        if (add_filename(&fnames, &n_fnames, &ffd.cFileName) != 0) {
++            k5_free_filenames(fnames);
++            FindClose(handle);
++            return ENOMEM;
++        }
++    } while (FindNextFile(handle, &ffd) != 0);
++
++    FindClose(handle);
++    qsort(fnames, n_fnames, sizeof(*fnames), compare_with_strcmp);
++    *fnames_out = fnames;
++    return 0;
++}
++
++#else /* _WIN32 */
++
++#include <dirent.h>
++
++int
++k5_dir_filenames(const char *dirname, char ***fnames_out)
++{
++    DIR *dir;
++    struct dirent *ent;
++    char **fnames = NULL;
++    int n_fnames = 0;
++
++    *fnames_out = NULL;
++
++    dir = opendir(dirname);
++    if (dir == NULL)
++        return ENOENT;
++
++    while ((ent = readdir(dir)) != NULL) {
++        if (add_filename(&fnames, &n_fnames, ent->d_name) != 0) {
++            k5_free_filenames(fnames);
++            closedir(dir);
++            return ENOMEM;
++        }
++    }
++
++    closedir(dir);
++    qsort(fnames, n_fnames, sizeof(*fnames), compare_with_strcmp);
++    *fnames_out = fnames;
++    return 0;
++}
++
++#endif /* not _WIN32 */
+diff --git a/src/util/support/libkrb5support-fixed.exports b/src/util/support/libkrb5support-fixed.exports
+index a5e2ade04..16ed5a6c1 100644
+--- a/src/util/support/libkrb5support-fixed.exports
++++ b/src/util/support/libkrb5support-fixed.exports
+@@ -58,6 +58,8 @@ k5_path_split
+ k5_strerror_r
+ k5_utf8_to_utf16le
+ k5_utf16le_to_utf8
++k5_dir_filenames
++k5_free_filenames
+ krb5int_key_register
+ krb5int_key_delete
+ krb5int_getspecific

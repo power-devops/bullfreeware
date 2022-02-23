@@ -1,0 +1,11 @@
+--- old/libguile/read.c	2016-08-05 15:19:02 +0200
++++ new/libguile/read.c	2016-08-05 15:19:14 +0200
+@@ -253,6 +253,8 @@
+    result in the pre-allocated buffer BUF.  Return zero if the whole token has
+    fewer than BUF_SIZE bytes, non-zero otherwise. READ will be set the number of
+    bytes actually read.  */
++
++#pragma alloca
+ static int
+ read_token (SCM port, scm_t_read_opts *opts,
+             char *buf, size_t buf_size, size_t *read)

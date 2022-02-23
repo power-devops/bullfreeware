@@ -1,0 +1,20 @@
+--- ./source3/modules/vfs_aixacl2.c.orig	2017-07-04 12:05:25 +0200
++++ ./source3/modules/vfs_aixacl2.c	2018-03-20 13:41:22 +0100
+@@ -476,7 +476,7 @@
+ 	acl_type_t	acl_type_info;
+ 	int	rc;
+ 
+-	DEBUG(10, ("aixjfs2_sys_acl_set_file invoked for %s", name));
++	DEBUG(10, ("aixjfs2_sys_acl_set_file invoked for %s", smb_fname->base_name));
+ 
+ 	rc = aixjfs2_query_acl_support((char *)smb_fname->base_name,
+ 			ACL_AIXC, &acl_type_info);
+@@ -490,7 +490,7 @@
+ 		return -1;
+ 
+ 	rc = aclx_put(
+-		(char *)name,
++		(char *)smb_fname->base_name,
+ 		SET_ACL, /* set only the ACL, not mode bits */
+ 		acl_type_info,
+ 		acl_aixc,

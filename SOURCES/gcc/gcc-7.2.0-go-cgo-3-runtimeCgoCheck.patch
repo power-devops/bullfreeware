@@ -1,0 +1,22 @@
+--- ./libgo/go/cmd/cgo/out.go.ORIGIN	2017-09-29 10:47:06 -0500
++++ ./libgo/go/cmd/cgo/out.go	2017-09-29 10:50:53 -0500
+@@ -1592,9 +1592,6 @@
+ 	__asm__("GCCGOSYMBOLPREF._cgoCheckPointer");
+ 
+ void localCgoCheckPointer(Eface ptr, Slice args) {
+-	if(runtimeCgoCheckPointer) {
+-		runtimeCgoCheckPointer(ptr, args);
+-	}
+ }
+ 
+ extern void runtimeCgoCheckResult(Eface)
+@@ -1605,9 +1602,6 @@
+ 	__asm__("GCCGOSYMBOLPREF._cgoCheckResult");
+ 
+ void localCgoCheckResult(Eface val) {
+-	if(runtimeCgoCheckResult) {
+-		runtimeCgoCheckResult(val);
+-	}
+ }
+ `
+ 

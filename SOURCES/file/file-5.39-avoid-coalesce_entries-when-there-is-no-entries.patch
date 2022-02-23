@@ -1,0 +1,14 @@
+--- a/src/apprentice.c	2020-11-13 11:14:12 +0100
++++ b/src/apprentice.c	2020-11-13 11:14:21 +0100
+@@ -1461,7 +1461,10 @@
+ 		 */
+ 		set_last_default(ms, mset[j].me, mset[j].count);
+ 
+-		/* coalesce per file arrays into a single one */
++		/* coalesce per file arrays into a single one, if needed */
++		if (mset[j].count == 0)
++		  continue;
++
+ 		if (coalesce_entries(ms, mset[j].me, mset[j].count,
+ 		    &map->magic[j], &map->nmagic[j]) == -1) {
+ 			errs++;

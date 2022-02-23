@@ -1,0 +1,15 @@
+--- ./src/config/shlib.conf_orig	2018-06-21 11:18:54 +0000
++++ ./src/config/shlib.conf	2018-06-21 11:20:14 +0000
+@@ -489,9 +489,10 @@
+ 	  LDCOMBINE='/bin/ld -o $@ $$objlist -H512 -T512 -bnoentry -bgcbypass:1 -bnodelcsect -bfilelist -bM:SRE -bE:$(SHLIB_EXPORT_FILE) -bernotok -brtl $(SHLIB_EXPFLAGS) $(LDFLAGS) -lc $$initfini'
+ 	fi
+ 	# Assume initialization always delayed.
+-	INIT_FINI_PREP="wl=${wl_prefix}; "'i=1; initfini=; for f in . $(LIBFINIFUNC); do if test $$f != .; then initfini="$$initfini $${wl}-binitfini::$$f:$$i"; else :; fi; i=`expr $$i + 1`; done'
++#	INIT_FINI_PREP="wl=${wl_prefix}; "'i=1; initfini=; for f in . $(LIBFINIFUNC); do if test $$f != .; then initfini="$$initfini $${wl}-binitfini::$$f:$$i"; else :; fi; i=`expr $$i + 1`; done'
+ 	use_linker_fini_option=yes
+-	MAKE_SHLIB_COMMAND="${INIT_FINI_PREP} && ${LDCOMBINE}"
++#	MAKE_SHLIB_COMMAND="${INIT_FINI_PREP} && ${LDCOMBINE}"
++	MAKE_SHLIB_COMMAND=${LDCOMBINE}
+ 	RPATH_TAIL=:/usr/lib:/lib
+ 	PROG_RPATH_FLAGS='$(RPATH_FLAG)$(PROG_RPATH):'"$RPATH_TAIL"
+ 	CC_LINK_SHARED='$(CC) $(PROG_LIBPATH) $(PROG_RPATH_FLAGS) $(CFLAGS) $(LDFLAGS)'

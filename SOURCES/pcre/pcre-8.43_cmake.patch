@@ -1,0 +1,69 @@
+--- ./CMakeLists.txt.orig	2019-10-07 16:43:15 +0200
++++ ./CMakeLists.txt	2019-10-07 16:55:38 +0200
+@@ -190,6 +190,12 @@
+          OFF)
+ ENDIF(MINGW)
+ 
++IF(AIX)
++  OPTION(NON_STANDARD_LIB_SUFFIX
++         "ON=Shared libraries built will be named libpcre-0.so, etc., instead of libpcre.so, etc."
++         OFF)
++ENDIF()
++
+ IF(MSVC)
+   OPTION(PCRE_STATIC_RUNTIME
+        "ON=Compile against the static runtime (/MT)."
+@@ -627,6 +633,14 @@
+ SET(targets ${targets} pcreposix)
+ TARGET_LINK_LIBRARIES(pcreposix pcre)
+ 
++IF(AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre
++                        PROPERTIES SOVERSION 1
++    )
++    SET_TARGET_PROPERTIES(pcreposix
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre pcreposix
+@@ -647,6 +661,12 @@
+ ADD_LIBRARY(pcre16 ${PCRE_HEADERS} ${PCRE16_SOURCES} ${PROJECT_BINARY_DIR}/config.h)
+ SET(targets ${targets} pcre16)
+
++IF(AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre16
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre16
+@@ -667,6 +687,12 @@
+ ADD_LIBRARY(pcre32 ${PCRE_HEADERS} ${PCRE32_SOURCES} ${PROJECT_BINARY_DIR}/config.h)
+ SET(targets ${targets} pcre32)
+
++IF(AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcre32
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+ IF(MINGW AND NOT PCRE_STATIC)
+   IF(NON_STANDARD_LIB_PREFIX)
+     SET_TARGET_PROPERTIES(pcre32
+@@ -689,6 +715,12 @@
+ SET(targets ${targets} pcrecpp)
+ TARGET_LINK_LIBRARIES(pcrecpp pcre)
+
++IF(AIX AND NOT PCRE_STATIC AND NON_STANDARD_LIB_SUFFIX)
++    SET_TARGET_PROPERTIES(pcrecpp
++                        PROPERTIES SOVERSION 0
++    )
++ENDIF()
++
+   IF(MINGW AND NOT PCRE_STATIC)
+     IF(NON_STANDARD_LIB_PREFIX)
+       SET_TARGET_PROPERTIES(pcrecpp

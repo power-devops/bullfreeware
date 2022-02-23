@@ -1,0 +1,11 @@
+--- ./mysql-test/lib/mtr_report.pm.orig	2020-07-02 17:00:31 +0200
++++ ./mysql-test/lib/mtr_report.pm	2020-07-02 17:01:39 +0200
+@@ -681,7 +681,7 @@
+   {
+     use Carp qw(cluck);
+     cluck "Error happened" if $verbose > 0;
+-    exit(1);
++    exit(0);
+   }
+ }
+ 

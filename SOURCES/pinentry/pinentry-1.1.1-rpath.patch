@@ -1,0 +1,38 @@
+commit 6e8ad3150566d16a20cb3b54267191bcb0c14208
+Author: Damien Goutte-Gattat <dgouttegattat@incenp.org>
+Date:   Tue Feb 23 22:05:37 2021 +0000
+
+    qt: Honor the --disable-rpath option.
+    
+    * m4/qt.m4: Do not set rpath if --disable-rpath has been specified
+    at configure time.
+    --
+    
+    GnuPG-bug-id: 5307
+    Signed-off-by: Damien Goutte-Gattat <dgouttegattat@incenp.org>
+
+--- ./m4/qt.m4
++++ ./m4/qt.m4
+@@ -59,7 +59,9 @@ AC_DEFUN([FIND_QT],
+ 
+     qtlibdir=`"$PKG_CONFIG" --variable libdir Qt5Core`
+     if test -n "$qtlibdir"; then
++      if test "$enable_rpath" != "no"; then
+         PINENTRY_QT_LDFLAGS="$PINENTRY_QT_LDFLAGS -Wl,-rpath \"$qtlibdir\""
++      fi
+     fi
+ 
+     AC_CHECK_TOOL(MOC, moc)
+
+--- ./configure.rpath	2021-04-16 09:08:48.306479991 +0200
++++ ./configure	2021-04-16 09:09:29.365068549 +0200
+@@ -10765,7 +10776,9 @@ fi
+ 
+     qtlibdir=`"$PKG_CONFIG" --variable libdir Qt5Core`
+     if test -n "$qtlibdir"; then
++      if test "$enable_rpath" != "no"; then
+         PINENTRY_QT_LDFLAGS="$PINENTRY_QT_LDFLAGS -Wl,-rpath \"$qtlibdir\""
++      fi
+     fi
+ 
+     if test -n "$ac_tool_prefix"; then

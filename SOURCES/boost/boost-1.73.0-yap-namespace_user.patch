@@ -1,0 +1,1373 @@
+--- ./libs/yap/perf/arithmetic_perf.cpp.ORIGIN	2020-05-05 14:34:55 +0200
++++ ./libs/yap/perf/arithmetic_perf.cpp	2020-05-05 14:36:40 +0200
+@@ -19,7 +19,7 @@
+ 
+ 
+ //[ arithmetic_perf_decls
+-namespace user {
++namespace b_user {
+ 
+     struct number
+     {
+@@ -47,16 +47,16 @@
+ }
+ 
+ 
+-user::number g_a{get_noise()};
+-user::number g_x{get_noise()};
+-user::number g_y{get_noise()};
++b_user::number g_a{get_noise()};
++b_user::number g_x{get_noise()};
++b_user::number g_y{get_noise()};
+ 
+ //[ arithmetic_perf_eval_as_yap_expr
+-user::number eval_as_yap_expr(user::number a_, user::number x_, user::number y_)
++b_user::number eval_as_yap_expr(b_user::number a_, b_user::number x_, b_user::number y_)
+ {
+-    term<user::number> a{{a_}};
+-    term<user::number> x{{x_}};
+-    term<user::number> y{{y_}};
++    term<b_user::number> a{{a_}};
++    term<b_user::number> x{{x_}};
++    term<b_user::number> y{{y_}};
+     auto expr = (a * x + y) * (a * x + y) + (a * x + y);
+     return yap::evaluate(expr);
+ }
+@@ -66,19 +66,19 @@
+ {
+     double d = 0;
+     while (state.KeepRunning()) {
+-        user::number const n = eval_as_yap_expr(g_a, g_x, g_y);
++        b_user::number const n = eval_as_yap_expr(g_a, g_x, g_y);
+         d += n.value;
+     }
+     std::cout << "Sum of doubles=" << d << "\n";
+ }
+ 
+ //[ arithmetic_perf_eval_as_yap_expr_4x
+-user::number
+-eval_as_yap_expr_4x(user::number a_, user::number x_, user::number y_)
++b_user::number
++eval_as_yap_expr_4x(b_user::number a_, b_user::number x_, b_user::number y_)
+ {
+-    term<user::number> a{{a_}};
+-    term<user::number> x{{x_}};
+-    term<user::number> y{{y_}};
++    term<b_user::number> a{{a_}};
++    term<b_user::number> x{{x_}};
++    term<b_user::number> y{{y_}};
+     auto expr = (a * x + y) * (a * x + y) + (a * x + y) +
+                 (a * x + y) * (a * x + y) + (a * x + y) +
+                 (a * x + y) * (a * x + y) + (a * x + y) +
+@@ -91,14 +91,14 @@
+ {
+     double d = 0;
+     while (state.KeepRunning()) {
+-        user::number const n = eval_as_yap_expr_4x(g_a, g_x, g_y);
++        b_user::number const n = eval_as_yap_expr_4x(g_a, g_x, g_y);
+         d += n.value;
+     }
+     std::cout << "Sum of doubles=" << d << "\n";
+ }
+ 
+ //[ arithmetic_perf_eval_as_cpp_expr
+-user::number eval_as_cpp_expr(user::number a, user::number x, user::number y)
++b_user::number eval_as_cpp_expr(b_user::number a, b_user::number x, b_user::number y)
+ {
+     return (a * x + y) * (a * x + y) + (a * x + y);
+ }
+@@ -108,14 +108,14 @@
+ {
+     double d = 0;
+     while (state.KeepRunning()) {
+-        user::number const n = eval_as_cpp_expr(g_a, g_x, g_y);
++        b_user::number const n = eval_as_cpp_expr(g_a, g_x, g_y);
+         d += n.value;
+     }
+     std::cout << "Sum of doubles=" << d << "\n";
+ }
+ 
+ //[ arithmetic_perf_eval_as_cpp_expr_4x
+-user::number eval_as_cpp_expr_4x(user::number a, user::number x, user::number y)
++b_user::number eval_as_cpp_expr_4x(b_user::number a, b_user::number x, b_user::number y)
+ {
+     return (a * x + y) * (a * x + y) + (a * x + y) + (a * x + y) * (a * x + y) +
+            (a * x + y) + (a * x + y) * (a * x + y) + (a * x + y) +
+@@ -127,7 +127,7 @@
+ {
+     double d = 0;
+     while (state.KeepRunning()) {
+-        user::number const n = eval_as_cpp_expr_4x(g_a, g_x, g_y);
++        b_user::number const n = eval_as_cpp_expr_4x(g_a, g_x, g_y);
+         d += n.value;
+     }
+     std::cout << "Sum of doubles=" << d << "\n";
+--- ./libs/yap/perf/code_gen_samples.cpp.ORIGIN	2020-05-05 14:35:16 +0200
++++ ./libs/yap/perf/code_gen_samples.cpp	2020-05-05 14:37:00 +0200
+@@ -13,7 +13,7 @@
+ namespace bh = boost::hana;
+ 
+ 
+-namespace user {
++namespace b_user {
+ 
+     struct number
+     {
+@@ -54,17 +54,17 @@
+     }
+ }
+ 
+-term<user::number> a{{1.0}};
+-term<user::number> x{{42.0}};
+-term<user::number> y{{3.0}};
++term<b_user::number> a{{1.0}};
++term<b_user::number> x{{42.0}};
++term<b_user::number> y{{3.0}};
+ 
+-user::number
++b_user::number
+ eval_as_yap_expr(decltype((a * x + y) * (a * x + y) + (a * x + y)) & expr)
+ {
+     return yap::evaluate(expr);
+ }
+ 
+-user::number eval_as_yap_expr_4x(decltype(
++b_user::number eval_as_yap_expr_4x(decltype(
+     (a * x + y) * (a * x + y) + (a * x + y) + (a * x + y) * (a * x + y) +
+     (a * x + y) + (a * x + y) * (a * x + y) + (a * x + y) +
+     (a * x + y) * (a * x + y) + (a * x + y)) & expr)
+@@ -72,12 +72,12 @@
+     return yap::evaluate(expr);
+ }
+ 
+-user::number eval_as_cpp_expr(user::number a, user::number x, user::number y)
++b_user::number eval_as_cpp_expr(b_user::number a, b_user::number x, b_user::number y)
+ {
+     return (a * x + y) * (a * x + y) + (a * x + y);
+ }
+ 
+-user::number eval_as_cpp_expr_4x(user::number a, user::number x, user::number y)
++b_user::number eval_as_cpp_expr_4x(b_user::number a, b_user::number x, b_user::number y)
+ {
+     return (a * x + y) * (a * x + y) + (a * x + y) + (a * x + y) * (a * x + y) +
+            (a * x + y) + (a * x + y) * (a * x + y) + (a * x + y) +
+@@ -88,8 +88,8 @@
+ int main()
+ {
+     auto expr = (a * x + y) * (a * x + y) + (a * x + y);
+-    user::number result_1 = eval_as_yap_expr(expr);
+-    user::number result_2 =
++    b_user::number result_1 = eval_as_yap_expr(expr);
++    b_user::number result_2 =
+         eval_as_cpp_expr(yap::value(a), yap::value(x), yap::value(y));
+ 
+     (void)result_1;
+--- ./libs/yap/test/user_expression_transform_1.cpp.ORIGIN	2020-05-05 14:35:24 +0200
++++ ./libs/yap/test/user_expression_transform_1.cpp	2020-05-05 14:39:05 +0200
+@@ -18,7 +18,7 @@
+ namespace bh = boost::hana;
+ 
+ 
+-namespace user {
++namespace b_user {
+ 
+     struct number
+     {
+@@ -63,7 +63,7 @@
+     struct eval_xform_tag
+     {
+         decltype(auto) operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+             return n;
+         }
+@@ -71,7 +71,7 @@
+ 
+     struct eval_xform_expr
+     {
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+             return ::boost::yap::value(expr);
+         }
+@@ -80,12 +80,12 @@
+     struct eval_xform_both
+     {
+         decltype(auto) operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+             return n;
+         }
+ 
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+             throw std::logic_error("Oops!  Picked the wrong overload!");
+             return ::boost::yap::value(expr);
+@@ -96,11 +96,11 @@
+     {
+         decltype(auto) operator()(
+             yap::expr_tag<yap::expr_kind::plus>,
+-            user::number const & lhs,
+-            user::number const & rhs)
++            b_user::number const & lhs,
++            b_user::number const & rhs)
+         {
+             return yap::make_expression<yap::expr_kind::minus>(
+-                term<user::number>{lhs}, term<user::number>{rhs});
++                term<b_user::number>{lhs}, term<b_user::number>{rhs});
+         }
+     };
+ 
+@@ -120,11 +120,11 @@
+     {
+         decltype(auto) operator()(
+             yap::expr_tag<yap::expr_kind::plus>,
+-            user::number const & lhs,
+-            user::number const & rhs)
++            b_user::number const & lhs,
++            b_user::number const & rhs)
+         {
+             return yap::make_expression<yap::expr_kind::minus>(
+-                term<user::number>{lhs}, term<user::number>{rhs});
++                term<b_user::number>{lhs}, term<b_user::number>{rhs});
+         }
+ 
+         template<typename Expr1, typename Expr2>
+@@ -141,15 +141,15 @@
+     struct term_nonterm_xform_tag
+     {
+         auto operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+-            return yap::make_terminal(n * user::number{2.0});
++            return yap::make_terminal(n * b_user::number{2.0});
+         }
+ 
+         auto operator()(
+             yap::expr_tag<yap::expr_kind::plus>,
+-            user::number const & lhs,
+-            user::number const & rhs)
++            b_user::number const & lhs,
++            b_user::number const & rhs)
+         {
+             return yap::make_expression<yap::expr_kind::minus>(
+                 yap::transform(::boost::yap::make_terminal(lhs), *this),
+@@ -159,10 +159,10 @@
+ 
+     struct term_nonterm_xform_expr
+     {
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+             return yap::make_terminal(
+-                ::boost::yap::value(expr) * user::number{2.0});
++                ::boost::yap::value(expr) * b_user::number{2.0});
+         }
+ 
+         template<typename Expr1, typename Expr2>
+@@ -179,21 +179,21 @@
+     struct term_nonterm_xform_both
+     {
+         decltype(auto) operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+-            return yap::make_terminal(n * user::number{2.0});
++            return yap::make_terminal(n * b_user::number{2.0});
+         }
+ 
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+             return yap::make_terminal(
+-                ::boost::yap::value(expr) * user::number{2.0});
++                ::boost::yap::value(expr) * b_user::number{2.0});
+         }
+ 
+         decltype(auto) operator()(
+             yap::expr_tag<yap::expr_kind::plus>,
+-            user::number const & lhs,
+-            user::number const & rhs)
++            b_user::number const & lhs,
++            b_user::number const & rhs)
+         {
+             return yap::make_expression<yap::expr_kind::minus>(
+                 yap::transform(::boost::yap::make_terminal(lhs), *this),
+@@ -214,9 +214,9 @@
+     struct eval_term_nonterm_xform_tag
+     {
+         decltype(auto) operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+-            return n * user::number{2.0};
++            return n * b_user::number{2.0};
+         }
+ 
+         template<typename Expr1, typename Expr2>
+@@ -232,9 +232,9 @@
+ 
+     struct eval_term_nonterm_xform_expr
+     {
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+-            return ::boost::yap::value(expr) * user::number{2.0};
++            return ::boost::yap::value(expr) * b_user::number{2.0};
+         }
+ 
+         template<typename Expr1, typename Expr2>
+@@ -250,14 +250,14 @@
+     struct eval_term_nonterm_xform_both
+     {
+         decltype(auto) operator()(
+-            yap::expr_tag<yap::expr_kind::terminal>, user::number const & n)
++            yap::expr_tag<yap::expr_kind::terminal>, b_user::number const & n)
+         {
+-            return n * user::number{2.0};
++            return n * b_user::number{2.0};
+         }
+ 
+-        decltype(auto) operator()(term<user::number> const & expr)
++        decltype(auto) operator()(term<b_user::number> const & expr)
+         {
+-            return ::boost::yap::value(expr) * user::number{2.0};
++            return ::boost::yap::value(expr) * b_user::number{2.0};
+         }
+ 
+         template<typename Expr1, typename Expr2>
+@@ -287,9 +287,9 @@
+                                       yap::expression<
+                                           yap::expr_kind::multiplies,
+                                           bh::tuple<
+-                                              ref<term<user::number> &>,
+-                                              ref<term<user::number> &>>>,
+-                                      ref<term<user::number> &>>> const & expr)
++                                              ref<term<b_user::number> &>,
++                                              ref<term<b_user::number> &>>>,
++                                      ref<term<b_user::number> &>>> const & expr)
+     {
+         auto a = evaluate(expr.left().left());
+         auto x = evaluate(expr.left().right());
+@@ -304,9 +304,9 @@
+                                      yap::expression<
+                                          yap::expr_kind::multiplies,
+                                          bh::tuple<
+-                                             ref<term<user::number> &>,
+-                                             ref<term<user::number> &>>>,
+-                                     ref<term<user::number> &>>> const & expr)
++                                             ref<term<b_user::number> &>,
++                                             ref<term<b_user::number> &>>>,
++                                     ref<term<b_user::number> &>>> const & expr)
+     {
+         decltype(auto) a = expr.left().left().value();
+         decltype(auto) x = expr.left().right().value();
+@@ -338,7 +338,7 @@
+     struct disable_negate_xform_tag
+     {
+         auto
+-        operator()(yap::expr_tag<yap::expr_kind::negate>, user::number value)
++        operator()(yap::expr_tag<yap::expr_kind::negate>, b_user::number value)
+         {
+             return yap::make_terminal(std::move(value));
+         }
+@@ -365,7 +365,7 @@
+     struct disable_negate_xform_both
+     {
+         decltype(auto)
+-        operator()(yap::expr_tag<yap::expr_kind::negate>, user::number value)
++        operator()(yap::expr_tag<yap::expr_kind::negate>, b_user::number value)
+         {
+             return yap::make_terminal(std::move(value));
+         }
+@@ -397,8 +397,8 @@
+         decltype(auto) operator()(
+             boost::yap::expr_tag<yap::expr_kind::if_else>,
+             Expr const & cond,
+-            user::number then,
+-            user::number else_)
++            b_user::number then,
++            b_user::number else_)
+         {
+             return boost::yap::make_terminal(std::move(else_));
+         }
+@@ -425,8 +425,8 @@
+         decltype(auto) operator()(
+             yap::expr_tag<yap::expr_kind::if_else>,
+             Expr const & cond,
+-            user::number then,
+-            user::number else_)
++            b_user::number then,
++            b_user::number else_)
+         {
+             return yap::make_terminal(std::move(else_));
+         }
+@@ -457,37 +457,37 @@
+ int test_main(int, char * [])
+ {
+     {
+-        term<user::number> a{{1.0}};
+-        term<user::number> x{{42.0}};
+-        term<user::number> y{{3.0}};
++        term<b_user::number> a{{1.0}};
++        term<b_user::number> x{{42.0}};
++        term<b_user::number> y{{3.0}};
+ 
+         {
+             auto expr = a;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 1);
+             }
+ 
+             {
+-                auto transformed_expr = transform(expr, user::empty_xform{});
+-                user::number result = evaluate(transformed_expr);
++                auto transformed_expr = transform(expr, b_user::empty_xform{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 1);
+             }
+ 
+             {
+-                auto transformed_expr = transform(expr, user::eval_xform_tag{});
++                auto transformed_expr = transform(expr, b_user::eval_xform_tag{});
+                 BOOST_CHECK(transformed_expr.value == 1);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::eval_xform_expr{});
++                    transform(expr, b_user::eval_xform_expr{});
+                 BOOST_CHECK(transformed_expr.value == 1);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::eval_xform_both{});
++                    transform(expr, b_user::eval_xform_both{});
+                 BOOST_CHECK(transformed_expr.value == 1);
+             }
+         }
+@@ -495,57 +495,57 @@
+         {
+             auto expr = x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::plus_to_minus_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::plus_to_minus_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::plus_to_minus_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::plus_to_minus_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::plus_to_minus_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::plus_to_minus_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39);
+             }
+         }
+ 
+         {
+-            auto expr = x + user::number{3.0};
++            auto expr = x + b_user::number{3.0};
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+         }
+@@ -553,36 +553,36 @@
+         {
+             auto expr = x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+         }
+ 
+         {
+-            auto expr = (x + y) + user::number{1.0};
++            auto expr = (x + y) + b_user::number{1.0};
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 46);
+             }
+ 
+@@ -590,48 +590,48 @@
+                 // Differs from those below, because it matches terminals, not
+                 // expressions.
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 40 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 38 * 2);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::term_nonterm_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::term_nonterm_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 38 * 2);
+             }
+         }
+ 
+         {
+-            auto expr = x + user::number{3.0};
++            auto expr = x + b_user::number{3.0};
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_tag{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_tag{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_expr{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_expr{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_both{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_both{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+         }
+@@ -639,51 +639,51 @@
+         {
+             auto expr = x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_tag{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_tag{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_expr{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_expr{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_both{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_both{});
+                 BOOST_CHECK(result.value == 39 * 2);
+             }
+         }
+ 
+         {
+-            auto expr = (x + y) + user::number{1.0};
++            auto expr = (x + y) + b_user::number{1.0};
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 46);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_tag{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_tag{});
+                 BOOST_CHECK(result.value == 38 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_expr{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_expr{});
+                 BOOST_CHECK(result.value == 38 * 2);
+             }
+ 
+             {
+-                user::number result =
+-                    transform(expr, user::eval_term_nonterm_xform_both{});
++                b_user::number result =
++                    transform(expr, b_user::eval_term_nonterm_xform_both{});
+                 BOOST_CHECK(result.value == 38 * 2);
+             }
+         }
+@@ -691,14 +691,14 @@
+         {
+             auto expr = a * x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             auto transformed_expr =
+-                transform(expr, user::naxpy_eager_nontemplate_xform);
++                transform(expr, b_user::naxpy_eager_nontemplate_xform);
+             {
+-                user::number result = evaluate(transformed_expr);
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 55);
+             }
+         }
+@@ -706,14 +706,14 @@
+         {
+             auto expr = a + (a * x + y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 46);
+             }
+ 
+             auto transformed_expr =
+-                transform(expr, user::naxpy_eager_nontemplate_xform);
++                transform(expr, b_user::naxpy_eager_nontemplate_xform);
+             {
+-                user::number result = evaluate(transformed_expr);
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 56);
+             }
+         }
+@@ -721,14 +721,14 @@
+         {
+             auto expr = a * x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             auto transformed_expr =
+-                transform(expr, user::naxpy_lazy_nontemplate_xform);
++                transform(expr, b_user::naxpy_lazy_nontemplate_xform);
+             {
+-                user::number result = evaluate(transformed_expr);
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 55);
+             }
+         }
+@@ -736,14 +736,14 @@
+         {
+             auto expr = a + (a * x + y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 46);
+             }
+ 
+             auto transformed_expr =
+-                transform(expr, user::naxpy_lazy_nontemplate_xform);
++                transform(expr, b_user::naxpy_lazy_nontemplate_xform);
+             {
+-                user::number result = evaluate(transformed_expr);
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 56);
+             }
+         }
+@@ -751,13 +751,13 @@
+         {
+             auto expr = (a * x + y) * (a * x + y) + (a * x + y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 45 * 45 + 45);
+             }
+ 
+-            auto transformed_expr = transform(expr, user::naxpy_xform{});
++            auto transformed_expr = transform(expr, b_user::naxpy_xform{});
+             {
+-                user::number result = evaluate(transformed_expr);
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 55 * 55 + 55 + 10);
+             }
+         }
+@@ -788,35 +788,35 @@
+     }
+ 
+     {
+-        term<user::number> a{{1.0}};
+-        term<user::number> x{{42.0}};
+-        term<user::number> y{{3.0}};
++        term<b_user::number> a{{1.0}};
++        term<b_user::number> x{{42.0}};
++        term<b_user::number> y{{3.0}};
+ 
+         {
+             auto expr = -x;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == -42);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 42);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 42);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 42);
+             }
+         }
+@@ -824,28 +824,28 @@
+         {
+             auto expr = a * -x + y;
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == -39);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+         }
+@@ -853,92 +853,92 @@
+         {
+             auto expr = -(x + y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == -45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::disable_negate_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::disable_negate_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 45);
+             }
+         }
+     }
+ 
+     {
+-        term<user::number> a{{1.0}};
+-        term<user::number> x{{42.0}};
+-        term<user::number> y{{3.0}};
++        term<b_user::number> a{{1.0}};
++        term<b_user::number> x{{42.0}};
++        term<b_user::number> y{{3.0}};
+ 
+         {
+             auto expr = if_else(0 < a, x, y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 42);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 3);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 3);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 3);
+             }
+         }
+ 
+         {
+-            auto expr = y * if_else(0 < a, x, y) + user::number{0.0};
++            auto expr = y * if_else(0 < a, x, y) + b_user::number{0.0};
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 126);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_tag{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_tag{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 9);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_expr{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_expr{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 9);
+             }
+ 
+             {
+                 auto transformed_expr =
+-                    transform(expr, user::ternary_to_else_xform_both{});
+-                user::number result = evaluate(transformed_expr);
++                    transform(expr, b_user::ternary_to_else_xform_both{});
++                b_user::number result = evaluate(transformed_expr);
+                 BOOST_CHECK(result.value == 9);
+             }
+         }
+--- ./libs/yap/test/user_expression_transform_2.cpp.ORIGIN	2020-05-05 14:35:32 +0200
++++ ./libs/yap/test/user_expression_transform_2.cpp	2020-05-05 14:39:14 +0200
+@@ -18,7 +18,7 @@
+ namespace bh = boost::hana;
+ 
+ 
+-namespace user {
++namespace b_user {
+ 
+     struct number
+     {
+@@ -65,53 +65,53 @@
+ {
+ {
+     {
+-        term<user::number> a{{1.0}};
++        term<b_user::number> a{{1.0}};
+ 
+         {
+-            user::number result = transform(a, user::eval_xform{});
++            b_user::number result = transform(a, b_user::eval_xform{});
+             BOOST_CHECK(result.value == 1);
+         }
+ 
+         {
+-            user::number result = transform(make_ref(a), user::eval_xform{});
++            b_user::number result = transform(make_ref(a), b_user::eval_xform{});
+             BOOST_CHECK(result.value == 1);
+         }
+ 
+         {
+-            user::number result = transform(-a, user::eval_xform{});
++            b_user::number result = transform(-a, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+         {
+             auto expr = make_ref(a);
+-            user::number result = transform(-expr, user::eval_xform{});
++            b_user::number result = transform(-expr, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+         {
+             auto expr = -a;
+-            user::number result = transform(expr, user::eval_xform{});
++            b_user::number result = transform(expr, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+         {
+             auto expr1 = make_ref(a);
+             auto expr2 = make_ref(expr1);
+-            user::number result = transform(expr2, user::eval_xform{});
++            b_user::number result = transform(expr2, b_user::eval_xform{});
+             BOOST_CHECK(result.value == 1);
+         }
+ 
+         {
+             auto expr1 = -a;
+             auto expr2 = make_ref(expr1);
+-            user::number result = transform(expr2, user::eval_xform{});
++            b_user::number result = transform(expr2, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+         {
+             auto expr1 = make_ref(a);
+             auto expr2 = -expr1;
+-            user::number result = transform(expr2, user::eval_xform{});
++            b_user::number result = transform(expr2, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+@@ -119,7 +119,7 @@
+             auto expr1 = a;
+             auto expr2 = make_ref(expr1);
+             auto expr3 = make_ref(expr2);
+-            user::number result = transform(expr3, user::eval_xform{});
++            b_user::number result = transform(expr3, b_user::eval_xform{});
+             BOOST_CHECK(result.value == 1);
+         }
+ 
+@@ -127,7 +127,7 @@
+             auto expr1 = -a;
+             auto expr2 = make_ref(expr1);
+             auto expr3 = make_ref(expr2);
+-            user::number result = transform(expr3, user::eval_xform{});
++            b_user::number result = transform(expr3, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+@@ -135,7 +135,7 @@
+             auto expr1 = make_ref(a);
+             auto expr2 = -expr1;
+             auto expr3 = make_ref(expr2);
+-            user::number result = transform(expr3, user::eval_xform{});
++            b_user::number result = transform(expr3, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+ 
+@@ -143,112 +143,112 @@
+             auto expr1 = make_ref(a);
+             auto expr2 = make_ref(expr1);
+             auto expr3 = -expr2;
+-            user::number result = transform(expr3, user::eval_xform{});
++            b_user::number result = transform(expr3, b_user::eval_xform{});
+             BOOST_CHECK(result.value == -1);
+         }
+     }
+ 
+     {
+-        user::number result =
+-            transform(-term<user::number>{{1.0}}, user::eval_xform{});
++        b_user::number result =
++            transform(-term<b_user::number>{{1.0}}, b_user::eval_xform{});
+         BOOST_CHECK(result.value == -1);
+     }
+ }
+ 
+ {
+-    term<user::number> a{{1.0}};
+-    term<user::number> x{{41.0}};
++    term<b_user::number> a{{1.0}};
++    term<b_user::number> x{{41.0}};
+ 
+     {
+-        user::number result = transform(a + x, user::eval_xform{});
++        b_user::number result = transform(a + x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == 42);
+     }
+ 
+ 
+     {
+-        user::number result =
+-            transform(make_ref(a) + make_ref(x), user::eval_xform{});
++        b_user::number result =
++            transform(make_ref(a) + make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == 42);
+     }
+ 
+     {
+-        user::number result = transform(make_ref(a) + x, user::eval_xform{});
++        b_user::number result = transform(make_ref(a) + x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == 42);
+     }
+ 
+     {
+-        user::number result = transform(a + make_ref(x), user::eval_xform{});
++        b_user::number result = transform(a + make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == 42);
+     }
+ 
+     {
+-        user::number result = transform(a + x, user::eval_xform{});
++        b_user::number result = transform(a + x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == 42);
+     }
+ 
+ 
+     {
+-        user::number result =
+-            transform(-make_ref(a) + make_ref(x), user::eval_xform{});
++        b_user::number result =
++            transform(-make_ref(a) + make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == 40);
+     }
+ 
+     {
+-        user::number result = transform(-make_ref(a) + x, user::eval_xform{});
++        b_user::number result = transform(-make_ref(a) + x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == 40);
+     }
+ 
+     {
+-        user::number result = transform(-a + make_ref(x), user::eval_xform{});
++        b_user::number result = transform(-a + make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == 40);
+     }
+ 
+     {
+-        user::number result = transform(-a + x, user::eval_xform{});
++        b_user::number result = transform(-a + x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == 40);
+     }
+ 
+ 
+     {
+-        user::number result =
+-            transform(make_ref(a) + -make_ref(x), user::eval_xform{});
++        b_user::number result =
++            transform(make_ref(a) + -make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == -40);
+     }
+ 
+     {
+-        user::number result = transform(make_ref(a) + -x, user::eval_xform{});
++        b_user::number result = transform(make_ref(a) + -x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == -40);
+     }
+ 
+     {
+-        user::number result = transform(a + -make_ref(x), user::eval_xform{});
++        b_user::number result = transform(a + -make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == -40);
+     }
+ 
+     {
+-        user::number result = transform(a + -x, user::eval_xform{});
++        b_user::number result = transform(a + -x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == -40);
+     }
+ 
+ 
+     {
+-        user::number result =
+-            transform(-make_ref(a) + -make_ref(x), user::eval_xform{});
++        b_user::number result =
++            transform(-make_ref(a) + -make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == -42);
+     }
+ 
+     {
+-        user::number result = transform(-make_ref(a) + -x, user::eval_xform{});
++        b_user::number result = transform(-make_ref(a) + -x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == -42);
+     }
+ 
+     {
+-        user::number result = transform(-a + -make_ref(x), user::eval_xform{});
++        b_user::number result = transform(-a + -make_ref(x), b_user::eval_xform{});
+         BOOST_CHECK(result.value == -42);
+     }
+ 
+     {
+-        user::number result = transform(-a + -x, user::eval_xform{});
++        b_user::number result = transform(-a + -x, b_user::eval_xform{});
+         BOOST_CHECK(result.value == -42);
+     }
+ }
+--- ./libs/yap/test/call_expr.cpp.ORIGIN	2020-05-05 14:47:46 +0200
++++ ./libs/yap/test/call_expr.cpp	2020-05-05 14:47:59 +0200
+@@ -20,7 +20,7 @@
+ namespace bh = boost::hana;
+ 
+ 
+-namespace user {
++namespace b_user {
+ 
+     struct number
+     {
+@@ -64,8 +64,8 @@
+         decltype(auto) operator()(yap::expression<
+                                   yap::expr_kind::call,
+                                   bh::tuple<
+-                                      ref<term<user::tag_type>>,
+-                                      term<user::number>,
++                                      ref<term<b_user::tag_type>>,
++                                      term<b_user::number>,
+                                       term<int>>> const & expr)
+         {
+             using namespace boost::hana::literals;
+@@ -77,8 +77,8 @@
+         decltype(auto) operator()(yap::expression<
+                                   yap::expr_kind::call,
+                                   bh::tuple<
+-                                      ref<term<user::tag_type>>,
+-                                      ref<term<user::number>>,
++                                      ref<term<b_user::tag_type>>,
++                                      ref<term<b_user::number>>,
+                                       term<int>>> const & expr)
+         {
+             using namespace boost::hana::literals;
+@@ -93,7 +93,7 @@
+         decltype(auto) operator()(
+             yap::expr_tag<yap::expr_kind::call>,
+             tag_type,
+-            user::number a,
++            b_user::number a,
+             double b)
+         {
+             return tag_function(a.value, b);
+@@ -102,8 +102,8 @@
+         decltype(auto) operator()(yap::expression<
+                                   yap::expr_kind::call,
+                                   bh::tuple<
+-                                      ref<term<user::tag_type>>,
+-                                      term<user::number>,
++                                      ref<term<b_user::tag_type>>,
++                                      term<b_user::number>,
+                                       term<int>>> const & expr)
+         {
+             using namespace boost::hana::literals;
+@@ -116,8 +116,8 @@
+         decltype(auto) operator()(yap::expression<
+                                   yap::expr_kind::call,
+                                   bh::tuple<
+-                                      ref<term<user::tag_type>>,
+-                                      ref<term<user::number>>,
++                                      ref<term<b_user::tag_type>>,
++                                      ref<term<b_user::number>>,
+                                       term<int>>> const & expr)
+         {
+             using namespace boost::hana::literals;
+@@ -136,59 +136,59 @@
+         using namespace boost::yap::literals;
+ 
+         {
+-            auto plus = yap::make_terminal(user::tag_type{});
+-            auto expr = plus(user::number{13}, 1);
++            auto plus = yap::make_terminal(b_user::tag_type{});
++            auto expr = plus(b_user::number{13}, 1);
+ 
+             {
+-                transform(expr, user::empty_xform{});
++                transform(expr, b_user::empty_xform{});
+             }
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_tag{});
++                b_user::number result = transform(expr, b_user::eval_xform_tag{});
+                 BOOST_CHECK(result.value == 14);
+             }
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_expr{});
++                b_user::number result = transform(expr, b_user::eval_xform_expr{});
+                 BOOST_CHECK(result.value == 14);
+             }
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_both{});
++                b_user::number result = transform(expr, b_user::eval_xform_both{});
+                 BOOST_CHECK(result.value == 14);
+             }
+         }
+ 
+         {
+-            auto plus = yap::make_terminal(user::tag_type{});
+-            auto thirteen = yap::make_terminal(user::number{13});
++            auto plus = yap::make_terminal(b_user::tag_type{});
++            auto thirteen = yap::make_terminal(b_user::number{13});
+             auto expr = plus(thirteen, 1);
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_tag{});
++                b_user::number result = transform(expr, b_user::eval_xform_tag{});
+                 BOOST_CHECK(result.value == 14);
+             }
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_expr{});
++                b_user::number result = transform(expr, b_user::eval_xform_expr{});
+                 BOOST_CHECK(result.value == 14);
+             }
+ 
+             {
+-                user::number result = transform(expr, user::eval_xform_both{});
++                b_user::number result = transform(expr, b_user::eval_xform_both{});
+                 BOOST_CHECK(result.value == 14);
+             }
+         }
+ 
+         {
+-            term<user::number> a{{1.0}};
+-            term<user::number> x{{42.0}};
+-            term<user::number> y{{3.0}};
+-            auto n = yap::make_terminal(user::naxpy);
++            term<b_user::number> a{{1.0}};
++            term<b_user::number> x{{42.0}};
++            term<b_user::number> y{{3.0}};
++            auto n = yap::make_terminal(b_user::naxpy);
+ 
+             auto expr = n(a, x, y);
+             {
+-                user::number result = evaluate(expr);
++                b_user::number result = evaluate(expr);
+                 BOOST_CHECK(result.value == 55);
+             }
+         }

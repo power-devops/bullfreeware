@@ -1,0 +1,22 @@
+Index: file-5.00/magic/Makefile.am
+===================================================================
+--- file-5.00.orig/magic/Makefile.am	2009-03-13 17:13:34.000000000 +0100
++++ file-5.00/magic/Makefile.am	2009-03-13 17:24:52.000000000 +0100
+@@ -234,4 +234,5 @@
+ 
+ ${MAGIC}: $(EXTRA_DIST) $(FILE_COMPILE_DEP)
+ 	$(FILE_COMPILE) -C -m $(MAGIC_FRAGMENT_DIR)
++	@mv \(null\)\(null\) $(MAGIC_FRAGMENT_BASE).mgc
+ 	@mv $(MAGIC_FRAGMENT_BASE).mgc $@
+Index: file-5.00/magic/Makefile.in
+===================================================================
+--- file-5.00.orig/magic/Makefile.in	2009-03-10 18:02:07.000000000 +0100
++++ file-5.00/magic/Makefile.in	2009-03-13 17:25:09.000000000 +0100
+@@ -581,6 +581,7 @@
+ 
+ ${MAGIC}: $(EXTRA_DIST) $(FILE_COMPILE_DEP)
+ 	$(FILE_COMPILE) -C -m $(MAGIC_FRAGMENT_DIR)
++	@mv \(null\)\(null\) $(MAGIC_FRAGMENT_BASE).mgc
+ 	@mv $(MAGIC_FRAGMENT_BASE).mgc $@
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.

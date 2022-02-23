@@ -1,0 +1,20 @@
+--- ./src/test/perl/TestLib.pm.tmp	2016-10-24 22:08:51 +0200
++++ ./src/test/perl/TestLib.pm	2017-03-10 10:28:47 +0100
+@@ -13,7 +13,7 @@
+ use Config;
+ use Exporter 'import';
+ use File::Basename;
+-use File::Spec;
++use File::Path qw(make_path remove_tree);use File::Spec;
+ use File::Temp ();
+ use IPC::Run;
+ use SimpleTee;
+@@ -73,7 +73,7 @@
+ 	$tmp_check = $ENV{TESTDIR} ? "$ENV{TESTDIR}/tmp_check" : "tmp_check";
+ 	$log_path = "$tmp_check/log";
+ 
+-	mkdir $tmp_check;
++	make_path $tmp_check;mkdir $tmp_check;
+ 	mkdir $log_path;
+ 
+ 	# Open the test log file, whose name depends on the test name.

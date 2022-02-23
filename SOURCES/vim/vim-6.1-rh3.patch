@@ -1,0 +1,11 @@
+--- vim61/runtime/scripts.vim.rh3	2003-02-12 13:00:49.000000000 +0100
++++ vim61/runtime/scripts.vim	2003-02-12 13:01:37.000000000 +0100
+@@ -22,6 +22,8 @@
+   endif
+ endif
+ 
++set formatoptions=tcql nocindent comments&
++
+ " Line continuation is used here, remove 'C' from 'cpoptions'
+ let s:cpo_save = &cpo
+ set cpo&vim

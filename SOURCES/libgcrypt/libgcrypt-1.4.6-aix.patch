@@ -1,0 +1,60 @@
+*** ./src/Makefile.in.ORIG	Wed Dec 23 17:28:55 2009
+--- ./src/Makefile.in	Wed Dec 23 17:29:59 2009
+***************
+*** 91,97 ****
+  	libgcrypt_la-stdmem.lo libgcrypt_la-secmem.lo \
+  	libgcrypt_la-missing-string.lo libgcrypt_la-module.lo \
+  	libgcrypt_la-fips.lo libgcrypt_la-hmac256.lo \
+! 	libgcrypt_la-ath.lo
+  libgcrypt_la_OBJECTS = $(am_libgcrypt_la_OBJECTS)
+  libgcrypt_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+  	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libgcrypt_la_CFLAGS) \
+--- 91,98 ----
+  	libgcrypt_la-stdmem.lo libgcrypt_la-secmem.lo \
+  	libgcrypt_la-missing-string.lo libgcrypt_la-module.lo \
+  	libgcrypt_la-fips.lo libgcrypt_la-hmac256.lo \
+! 	libgcrypt_la-ath.lo \
+! 	../cipher/*.lo ../mpi/*.lo
+  libgcrypt_la_OBJECTS = $(am_libgcrypt_la_OBJECTS)
+  libgcrypt_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+  	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libgcrypt_la_CFLAGS) \
+***************
+*** 336,344 ****
+  	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
+  
+  libgcrypt_la_LIBADD = \
+! 	../cipher/libcipher.la \
+! 	../random/librandom.la \
+! 	../mpi/libmpi.la \
+  	@LTLIBOBJS@ @GPG_ERROR_LIBS@
+  
+  dumpsexp_SOURCES = dumpsexp.c
+--- 337,345 ----
+  	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
+  
+  libgcrypt_la_LIBADD = \
+! 	../cipher/.libs/libcipher.a \
+! 	../random/.libs/librandom.a \
+! 	../mpi/.libs/libmpi.a \
+  	@LTLIBOBJS@ @GPG_ERROR_LIBS@
+  
+  dumpsexp_SOURCES = dumpsexp.c
+*** ./cipher/Makefile.in.ORIG	Fri Jul 23 09:45:04 2010
+--- ./cipher/Makefile.in	Fri Jul 23 09:45:35 2010
+***************
+*** 274,280 ****
+  camellia.c camellia.h camellia-glue.c
+  
+  @ENABLE_O_FLAG_MUNGING_FALSE@o_flag_munging = cat
+! @ENABLE_O_FLAG_MUNGING_TRUE@o_flag_munging = sed -e 's/-O[2-9s]*/-O1/g'
+  all: all-am
+  
+  .SUFFIXES:
+--- 274,280 ----
+  camellia.c camellia.h camellia-glue.c
+  
+  @ENABLE_O_FLAG_MUNGING_FALSE@o_flag_munging = cat
+! @ENABLE_O_FLAG_MUNGING_TRUE@o_flag_munging = cat
+  all: all-am
+  
+  .SUFFIXES:

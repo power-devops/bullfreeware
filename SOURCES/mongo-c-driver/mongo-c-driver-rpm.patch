@@ -1,0 +1,36 @@
+diff -up ./build/autotools/Libbson.m4.rpm ./build/autotools/Libbson.m4
+--- ./build/autotools/Libbson.m4.rpm	2017-03-08 07:12:55.174477528 +0100
++++ ./build/autotools/Libbson.m4	2017-03-08 07:13:06.275528419 +0100
+@@ -1,14 +1,14 @@
+ # If --with-libbson=auto, determine if there is a system installed libbson
+ # greater than our required version.
+ AS_IF([test "x${with_libbson}" = xauto],
+-      [PKG_CHECK_MODULES(BSON, [libbson-1.0 >= libbson_required_version],
++      [PKG_CHECK_MODULES(BSON, [libbson-1.0 >= 1.9],
+                          [with_libbson=system],
+                          [with_libbson=bundled])])
+ 
+ # If we are to use the system, check for libbson enforcing success.
+ AS_IF([test "x${with_libbson}" = xsystem],
+       [PKG_CHECK_MODULES(BSON,
+-                         [libbson-1.0 >= libbson_required_version],
++                         [libbson-1.0 >= 1.9],
+                          [],
+                          [AC_MSG_ERROR([
+ 
+diff -up ./Makefile.am.rpm ./Makefile.am
+--- ./Makefile.am.rpm	2017-03-07 14:33:43.000000000 +0100
++++ ./Makefile.am	2017-03-08 07:00:37.848097367 +0100
+@@ -42,10 +42,10 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-sil
+ 
+ mongocdocdir = ${docdir}
+ mongocdoc_DATA = \
+-	COPYING \
+ 	NEWS \
+ 	README.rst \
+-	THIRD_PARTY_NOTICES
++	ChangeLog \
++	CONTRIBUTING.md
+ 
+ EXTRA_DIST += $(mongocdoc_DATA)
+ 

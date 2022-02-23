@@ -1,0 +1,151 @@
+Index: tcsh-6.14.00/sh.func.c
+===================================================================
+--- tcsh-6.14.00.orig/sh.func.c	2010-12-03 17:12:14.000000000 +0100
++++ tcsh-6.14.00/sh.func.c	2010-12-03 17:13:32.000000000 +0100
+@@ -411,7 +411,7 @@
+     Char **vv;
+ 
+     v++;
+-    i = expr(&v);
++    i = noexec ? 1 : expr(&v);
+     vv = v;
+     if (*vv == NULL)
+ 	stderror(ERR_NAME | ERR_EMPTYIF);
+@@ -464,7 +464,8 @@
+ {
+     USE(c);
+     USE(v);
+-    search(TC_ELSE, 0, NULL);
++    if (!noexec)
++	search(TC_ELSE, 0, NULL);
+ }
+ 
+ /*ARGSUSED*/
+@@ -476,7 +477,9 @@
+     Char   *lp;
+ 
+     USE(c);
+-    gotolab(lp = globone(v[1], G_ERROR));
++    lp = globone(v[1], G_ERROR);
++    if (!noexec)
++	gotolab(lp);
+     xfree((ptr_t) lp);
+ }
+ 
+@@ -522,7 +525,9 @@
+ 	v--;
+     if (*v)
+ 	stderror(ERR_SYNTAX);
+-    search(TC_SWITCH, 0, lp = globone(cp, G_ERROR));
++    lp = globone(cp, G_ERROR);
++    if (!noexec)
++	search(TC_SWITCH, 0, lp);
+     xfree((ptr_t) lp);
+ }
+ 
+@@ -534,10 +539,10 @@
+ {
+     USE(v);
+     USE(c);
+-    if (whyles)
+-	toend();
+-    else
++    if (whyles == NULL)
+ 	stderror(ERR_NAME | ERR_NOTWHILE);
++    if (!noexec)
++	toend();
+ }
+ 
+ /*ARGSUSED*/
+@@ -594,7 +599,7 @@
+     gflag = 0, tglob(v);
+     if (gflag) {
+ 	v = globall(v);
+-	if (v == 0)
++	if (v == 0 && !noexec)
+ 	    stderror(ERR_NAME | ERR_NOMATCH);
+     }
+     else {
+@@ -615,7 +620,8 @@
+     zlast = TC_FOREACH;
+     if (intty)
+ 	preread();
+-    doagain();
++    if (!noexec)
++	doagain();
+ }
+ 
+ /*ARGSUSED*/
+@@ -635,11 +641,13 @@
+      * Implement prereading here also, taking care not to evaluate the
+      * expression before the loop has been read up from a terminal.
+      */
+-    if (intty && !again)
++    if (noexec)
++	status = 0;
++    else if (intty && !again)
+ 	status = !exp0(&v, 1);
+     else
+ 	status = !expr(&v);
+-    if (*v)
++    if (*v && !noexec)
+ 	stderror(ERR_NAME | ERR_EXPRESSION);
+     if (!again) {
+ 	struct whyle *nwp =
+@@ -696,7 +704,8 @@
+     if (!whyles)
+ 	stderror(ERR_NAME | ERR_NOTWHILE);
+     btell(&whyles->w_end);
+-    doagain();
++    if (!noexec)
++	doagain();
+ }
+ 
+ /*ARGSUSED*/
+@@ -709,7 +718,8 @@
+     USE(c);
+     if (!whyles)
+ 	stderror(ERR_NAME | ERR_NOTWHILE);
+-    doagain();
++    if (!noexec)
++	doagain();
+ }
+ 
+ static void
+@@ -748,6 +758,8 @@
+ 	i *= getn(v[1]);
+ 	lshift(v, 2);
+     } while (v[0] != NULL && Strcmp(v[0], STRrepeat) == 0);
++    if (noexec)
++	i = 1;
+ 
+     if (setintr)
+ #ifdef BSDSIGS
+@@ -782,7 +794,8 @@
+ {
+     USE(v);
+     USE(c);
+-    search(TC_BRKSW, 0, NULL);
++    if (!noexec)
++	search(TC_BRKSW, 0, NULL);
+ }
+ 
+ int
+Index: tcsh-6.14.00/sh.sem.c
+===================================================================
+--- tcsh-6.14.00.orig/sh.sem.c	2010-12-03 17:12:14.000000000 +0100
++++ tcsh-6.14.00/sh.sem.c	2010-12-03 17:13:32.000000000 +0100
+@@ -287,10 +287,12 @@
+ 	     * Check if we have a builtin function and remember which one.
+ 	     */
+ 	    bifunc = isbfunc(t);
+- 	    if (noexec && bifunc) {
++ 	    if (noexec) {
+ 		/*
+ 		 * Continue for builtins that are part of the scripting language
+ 		 */
++		if (bifunc == NULL)
++		    break;
+ 		if (bifunc->bfunct != (bfunc_t)dobreak	&&
+ 		    bifunc->bfunct != (bfunc_t)docontin	&&
+ 		    bifunc->bfunct != (bfunc_t)doelse	&&

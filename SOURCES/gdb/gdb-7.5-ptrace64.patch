@@ -1,0 +1,45 @@
+--- ./gdb/rs6000-nat.c_orig     2012-11-26 15:20:20 +0600
++++ ./gdb/rs6000-nat.c  2012-11-26 15:23:48 +0600
+@@ -66,7 +66,7 @@
+ /* In 32-bit compilation mode (which is the only mode from which ptrace()
+    works on 4.3), __ld_info32 is #defined as equivalent to ld_info.  */
+
+-#ifdef __ld_info32
++#if defined (__ld_info32) || defined (__ld_info64)
+ # define ARCH3264
+ #endif
+
+@@ -181,7 +181,11 @@
+ static int
+ rs6000_ptrace32 (int req, int id, int *addr, int data, int *buf)
+ {
++  #ifdef BFD64
++  int ret = ptrace64 (req, (long long) id, (long long) addr, data, buf);
++  #else
+   int ret = ptrace (req, id, (int *)addr, data, buf);
++  #endif
+ #if 0
+   printf ("rs6000_ptrace32 (%d, %d, 0x%x, %08x, 0x%x) = 0x%x\n",
+          req, id, (unsigned int)addr, data, (unsigned int)buf, ret);
+@@ -195,7 +199,11 @@
+ rs6000_ptrace64 (int req, int id, long long addr, int data, void *buf)
+ {
+ #ifdef ARCH3264
++  #ifdef BFD64
++  int ret = ptrace64 (req, (long long) id, addr, data, (int *)buf);
++  #else
+   int ret = ptracex (req, id, addr, data, buf);
++  #endif
+ #else
+   int ret = 0;
+ #endif
+--- ./gdb/gdb_ptrace.h_orig	2013-04-29 18:01:37 +0600
++++ ./gdb/gdb_ptrace.h	2013-04-29 18:01:49 +0600
+@@ -136,6 +136,7 @@ extern PTRACE_TYPE_RET ptrace();
+ 
+ #ifdef PTRACE_TYPE_ARG5
+ # define ptrace(request, pid, addr, data) ptrace (request, pid, addr, data, 0)
++# define ptrace64(request, pid, addr, data) ptrace64 (request, pid, addr, data, 0)
+ #endif
+ 
+ #endif /* gdb_ptrace.h */

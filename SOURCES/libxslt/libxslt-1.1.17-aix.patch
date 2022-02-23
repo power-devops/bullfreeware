@@ -1,0 +1,155 @@
+diff -crN ./libxslt/configure.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/configure.in
+*** ./libxslt/configure.in	Tue Jun  6 16:59:36 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/configure.in	Thu Oct 12 15:47:00 2006
+***************
+*** 525,531 ****
+  
+  XSLT_LIBDIR='-L${libdir}'
+  XSLT_INCLUDEDIR='-I${includedir}'
+! XSLT_LIBS="-lxslt $LIBXML_LIBS $M_LIBS"
+  AC_SUBST(XSLT_LIBDIR)
+  AC_SUBST(XSLT_INCLUDEDIR)
+  AC_SUBST(XSLT_LIBS)
+--- 525,531 ----
+  
+  XSLT_LIBDIR='-L${libdir}'
+  XSLT_INCLUDEDIR='-I${includedir}'
+! XSLT_LIBS="-lxslt $M_LIBS"
+  AC_SUBST(XSLT_LIBDIR)
+  AC_SUBST(XSLT_INCLUDEDIR)
+  AC_SUBST(XSLT_LIBS)
+diff -crN ./libxslt/libexslt/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libexslt/Makefile.am
+*** ./libxslt/libexslt/Makefile.am	Sun Mar 13 20:38:02 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libexslt/Makefile.am	Fri Oct 29 15:33:11 2004
+***************
+*** 1,3 ****
+--- 1,4 ----
++ 
+  INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/libxslt -I$(top_srcdir)/libexslt \
+  	   -I$(top_builddir) -I$(top_builddir)/libxslt \
+  	   -I$(top_builddir)/libexslt $(LIBXML_CFLAGS) $(CFLAGS)
+diff -crN ./libxslt/libexslt/date.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libexslt/date.c
+*** ./libxslt/libexslt/date.c	Fri Mar 10 11:57:24 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libexslt/date.c	Thu Oct 12 15:47:06 2006
+***************
+*** 32,37 ****
+--- 32,41 ----
+  #define _POSIX_SOURCE
+  #endif
+  
++ #ifdef LIBXML_ICONV_ENABLED
++ #define _XOPEN_SOURCE
++ #endif
++ 
+  #include <libxml/tree.h>
+  #include <libxml/xpath.h>
+  #include <libxml/xpathInternals.h>
+diff -crN ./libxslt/libxslt/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libxslt/Makefile.am
+*** ./libxslt/libxslt/Makefile.am	Sun Oct  2 11:25:21 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/libxslt/Makefile.am	Tue Nov  7 16:11:02 2006
+***************
+*** 61,64 ****
+  	@(cd ../xsltproc ; $(MAKE))
+  
+  install-exec-hook:
+! 	$(mkinstalldirs) "$(libdir)/libxslt-plugins"
+--- 61,64 ----
+  	@(cd ../xsltproc ; $(MAKE))
+  
+  install-exec-hook:
+! 	$(mkinstalldirs) "$(DESTDIR)$(libdir)/libxslt-plugins"
+diff -crN ./libxslt/tests/docbook/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/tests/docbook/Makefile.am
+*** ./libxslt/tests/docbook/Makefile.am	Mon Mar 22 15:17:20 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/tests/docbook/Makefile.am	Mon Apr 26 09:25:24 2004
+***************
+*** 44,50 ****
+  		echo $$log ; \
+  	  fi ; \
+  	  rm -f $$out ; \
+! 	  echo -n "fo " ; \
+  	  out=$(srcdir)/result/fo/`basename $$i .xml`.tst; \
+  	  fo=$(srcdir)/result/fo/`basename $$i .xml`.fo; \
+  	  msg=$(srcdir)/result/fo/`basename $$i .xml`.msg; \
+--- 44,50 ----
+  		echo $$log ; \
+  	  fi ; \
+  	  rm -f $$out ; \
+! 	  printf "fo " ; \
+  	  out=$(srcdir)/result/fo/`basename $$i .xml`.tst; \
+  	  fo=$(srcdir)/result/fo/`basename $$i .xml`.fo; \
+  	  msg=$(srcdir)/result/fo/`basename $$i .xml`.msg; \
+***************
+*** 52,58 ****
+  		$(srcdir)/fo/docbook.xsl $$i > $$out 2> $$msg ; \
+  	  if [ -f $$fo ] ; then \
+  	      grep -v id < $$fo > $$fo.noid ; \
+! 	      grep -v id < $$out > $$out.noid ; \
+  	      diff $$fo.noid $$out.noid ; \
+  	      rm -f $$fo.noid $$out.noid ; \
+  	  else \
+--- 52,58 ----
+  		$(srcdir)/fo/docbook.xsl $$i > $$out 2> $$msg ; \
+  	  if [ -f $$fo ] ; then \
+  	      grep -v id < $$fo > $$fo.noid ; \
+! 	      grep -v id < $$out | sed 's, xmlns:fo="http://www.w3.org/1999/XSL/Format",,' > $$out.noid ; \
+  	      diff $$fo.noid $$out.noid ; \
+  	      rm -f $$fo.noid $$out.noid ; \
+  	  else \
+***************
+*** 65,71 ****
+  		echo $$log ; \
+  	  fi ; \
+  	  rm -f $$out $$msg ; \
+! 	  echo -n "xhtml " ; \
+  	  out=$(srcdir)/result/xhtml/`basename $$i .xml`.tst; \
+  	  xhtml=$(srcdir)/result/xhtml/`basename $$i .xml`.xhtml; \
+  	  log=`$(CHECKER) $(top_builddir)/xsltproc/xsltproc --nonet \
+--- 65,71 ----
+  		echo $$log ; \
+  	  fi ; \
+  	  rm -f $$out $$msg ; \
+! 	  printf "xhtml " ; \
+  	  out=$(srcdir)/result/xhtml/`basename $$i .xml`.tst; \
+  	  xhtml=$(srcdir)/result/xhtml/`basename $$i .xml`.xhtml; \
+  	  log=`$(CHECKER) $(top_builddir)/xsltproc/xsltproc --nonet \
+***************
+*** 157,164 ****
+  	  msg=$(srcdir)/result/fo/`basename $$i .xml`.msg; \
+  	  $(CHECKER) $(top_builddir)/xsltproc/xsltproc --nonet $(srcdir)/fo/docbook.xsl $$i > $$out  2> $$msg ; \
+  	  if [ -f $$fo ] ; then \
+! 	      grep -v id < $$fo > $$fo.noid ; \
+! 	      grep -v id < $$out > $$out.noid ; \
+  	      diff $$fo.noid $$out.noid ; \
+  	      rm -f $$fo.noid $$out.noid ; \
+  	  else mv $$out $$fo ; fi ; \
+--- 157,164 ----
+  	  msg=$(srcdir)/result/fo/`basename $$i .xml`.msg; \
+  	  $(CHECKER) $(top_builddir)/xsltproc/xsltproc --nonet $(srcdir)/fo/docbook.xsl $$i > $$out  2> $$msg ; \
+  	  if [ -f $$fo ] ; then \
+! 	      grep -v id < $$fo | sed 's, xmlns:fo="http://www.w3.org/1999/XSL/Format",,' > $$fo.noid ; \
+! 	      grep -v id < $$out | sed 's, xmlns:fo="http://www.w3.org/1999/XSL/Format",,' > $$out.noid ; \
+  	      diff $$fo.noid $$out.noid ; \
+  	      rm -f $$fo.noid $$out.noid ; \
+  	  else mv $$out $$fo ; fi ; \
+diff -crN ./libxslt/tests/multiple/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/tests/multiple/Makefile.am
+*** ./libxslt/tests/multiple/Makefile.am	Mon Mar 22 15:17:21 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./libxslt/tests/multiple/Makefile.am	Mon Apr 26 09:25:24 2004
+***************
+*** 37,42 ****
+--- 37,43 ----
+  test tests: $(top_builddir)/xsltproc/xsltproc
+  	@echo '## Running multiple tests'
+  	@(echo > .memdump)
++ 	-@mkdir $(blddir)/out
+  	@($(CHECKER) $(top_builddir)/xsltproc/xsltproc $(srcdir)/dict.xsl $(srcdir)/dict.xml > dict.res ; \
+  	diff $(srcdir)/result.xml dict.res; \
+  	for i in out/letter*.html out/titlepage.html ; do \
+***************
+*** 48,52 ****
+--- 49,54 ----
+  	  fi ; done ; \
+  	grep "MORY ALLO" .memdump  | grep -v "MEMORY ALLOCATED : 0" || true;\
+  	rm -f dict.res $(GENERATED))
++ 	-@rmdir  $(blddir)/out
+  
+  

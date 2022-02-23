@@ -1,0 +1,24 @@
+--- ./src/m4.h.orig	2020-02-25 11:56:11 +0100
++++ ./src/m4.h	2020-02-25 12:12:01 +0100
+@@ -23,6 +23,8 @@
+    using -I. -I$srcdir will use ./config.h rather than $srcdir/config.h
+    (which it would do because it found this file in $srcdir).  */
+ 
++#pragma GCC diagnostic ignored "-Wimplicit-fallthrough="
++
+ #include <config.h>
+ 
+ #include <assert.h>
+@@ -119,7 +121,12 @@
+ #define M4_GNUC_PRINTF(fmt, arg)                        \
+   M4_GNUC_ATTRIBUTE ((__format__ (__printf__, fmt, arg)))
+ #define M4_GNUC_NORETURN        M4_GNUC_ATTRIBUTE ((__noreturn__))
++#ifndef _AIX
+ #define M4_GNUC_PURE            M4_GNUC_ATTRIBUTE ((__pure__))
++#else
++#pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
++#define M4_GNUC_PURE
++#endif
+ 
+ /* File: m4.c  --- global definitions.  */
+ 

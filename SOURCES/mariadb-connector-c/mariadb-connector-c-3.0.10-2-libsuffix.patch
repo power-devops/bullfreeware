@@ -1,0 +1,24 @@
+--- ./libmariadb/CMakeLists.txt.orig	2019-04-16 11:28:54.000000000 +0200
++++ ./libmariadb/CMakeLists.txt	2019-06-18 13:36:43.643443780 +0200
+@@ -303,7 +303,9 @@
+   IF(ICONV_INCLUDE_DIR)
+      INCLUDE_DIRECTORIES(BEFORE ${ICONV_INCLUDE_DIR}) 
+   ENDIF()
+-  ADD_DEFINITIONS(-DLIBICONV_PLUG)
++  IF(NOT AIX)
++    ADD_DEFINITIONS(-DLIBICONV_PLUG)
++  ENDIF()
+ ENDIF()
+ 
+ IF(ZLIB_FOUND AND WITH_EXTERNAL_ZLIB)
+@@ -427,8 +429,10 @@
+ IF(WITH_MYSQLCOMPAT)
+   create_symlink(libmysqlclient${CMAKE_SHARED_LIBRARY_SUFFIX} libmariadb ${INSTALL_LIBDIR})
+   create_symlink(libmysqlclient_r${CMAKE_SHARED_LIBRARY_SUFFIX} libmariadb ${INSTALL_LIBDIR})
++  if (NOT AIX) 
+   create_symlink(libmysqlclient${CMAKE_STATIC_LIBRARY_SUFFIX} mariadbclient ${INSTALL_LIBDIR})
+   create_symlink(libmysqlclient_r${CMAKE_STATIC_LIBRARY_SUFFIX} mariadbclient ${INSTALL_LIBDIR})
++  endif()
+ ENDIF()
+ 
+ 

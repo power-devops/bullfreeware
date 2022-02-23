@@ -1,0 +1,91 @@
+--- ./plugin/sql_errlog/CMakeLists.txt.orig	2019-07-24 09:51:12.000000000 +0200
++++ ./plugin/sql_errlog/CMakeLists.txt	2019-07-30 10:59:18.605585411 +0200
+@@ -14,3 +14,4 @@
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1335 USA
+ 
+ MYSQL_ADD_PLUGIN(sql_errlog sql_errlog.c MODULE_ONLY)
++ TARGET_LINK_OPTIONS(sql_errlog  PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
+--- ./plugin/simple_password_check/CMakeLists.txt.orig	2019-07-30 10:58:41.371583719 +0200
++++ ./plugin/simple_password_check/CMakeLists.txt	2019-07-30 10:57:49.895581380 +0200
+@@ -1 +1,3 @@
+ MYSQL_ADD_PLUGIN(simple_password_check simple_password_check.c MODULE_ONLY)
++TARGET_LINK_OPTIONS(simple_password_check PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
++
+--- ./plugin/server_audit/CMakeLists.txt.orig	2019-07-05 12:21:52.000000000 +0200
++++ ./plugin/server_audit/CMakeLists.txt	2019-07-30 11:03:07.549595816 +0200
+@@ -16,3 +16,4 @@
+ SET(SOURCES server_audit.c test_audit_v4.c plugin_audit_v4.h)
+ 
+ MYSQL_ADD_PLUGIN(server_audit ${SOURCES} MODULE_ONLY RECOMPILE_FOR_EMBEDDED)
++TARGET_LINK_OPTIONS(server_audit  PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
+--- ./plugin/example_key_management/CMakeLists.txt.orig	2019-07-05 12:25:26.000000000 +0200
++++ ./plugin/example_key_management/CMakeLists.txt	2019-07-30 11:02:35.778594372 +0200
+@@ -1,2 +1,3 @@
+ MYSQL_ADD_PLUGIN(EXAMPLE_KEY_MANAGEMENT example_key_management_plugin.cc
+                  MODULE_ONLY COMPONENT Test)
++TARGET_LINK_OPTIONS(example_key_management  PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
+--- ./plugin/auth_ed25519/CMakeLists.txt.orig	2019-07-05 12:12:45.000000000 +0200
++++ ./plugin/auth_ed25519/CMakeLists.txt	2019-07-30 11:45:51.127712325 +0200
+@@ -30,3 +30,4 @@
+ IF(WITH_UNIT_TESTS)
+   MY_ADD_TESTS(ed25519 LINK_LIBRARIES ref10 mysys_ssl)
+ ENDIF()
++TARGET_LINK_OPTIONS(auth_ed25519 PRIVATE "-Wl,-bE:../../extra/AIX/ed25519.exp")
+--- ./extra/AIX/export.exp.orig	2019-07-08 16:00:32.000000000 +0200
++++ ./extra/AIX/export.exp	2019-07-30 11:00:08.019587657 +0200
+@@ -0,0 +1,25 @@
++#!
++_maria_plugin_interface_version_
++_maria_plugin_declarations_
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service
+--- ./extra/AIX/ed25519.exp.orig	2019-07-08 16:00:32.000000000 +0200
++++ ./extra/AIX/ed25519.exp	2019-07-30 11:36:52.874687862 +0200
+@@ -0,0 +1,27 @@
++#!
++_maria_plugin_interface_version_
++_maria_plugin_declarations_
++ed25519_password
++ed25519_password_init
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service

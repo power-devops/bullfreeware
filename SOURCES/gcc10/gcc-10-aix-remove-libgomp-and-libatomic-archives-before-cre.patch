@@ -1,0 +1,61 @@
+From 4eaf96c56c1c97b11af42a4caaa12b37870308d7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 1 Sep 2020 11:32:09 +0200
+Subject: [PATCH] aix: remove libgomp and libatomic archives before creating
+ FAT archives
+
+AIX caches shared objects in archives with read-other permission.
+libgomp and libatomic might be in use during the build or testing, which
+may cause archiver operations on them to fail.  This patch adjusts the
+Makefile fragments to delete the library archives before creating fresh
+archives containing both the 32 bit and 64 bit shared objects.
+
+libatomic/ChangeLog:
+
+2020-10-11  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Delete and recreate libatomic before creating
+	FAT library.
+
+libgomp/ChangeLog:
+
+2020-10-11  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/t-aix: Delete and recreate libgomp before creating
+	FAT library.
+---
+ libatomic/config/t-aix | 3 +++
+ libgomp/config/t-aix   | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/libatomic/config/t-aix b/libatomic/config/t-aix
+index 08607727574..0e76b9739d7 100644
+--- a/libatomic/config/t-aix
++++ b/libatomic/config/t-aix
+@@ -5,6 +5,9 @@ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
+ MAJOR=1
+ ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ all-local:
++	-rm -f .libs/$(PACKAGE).a ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a
++	$(AR) rc .libs/$(PACKAGE).a .libs/$(PACKAGE).so.$(MAJOR)
++	$(AR) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ 	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ 	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ endif
+diff --git a/libgomp/config/t-aix b/libgomp/config/t-aix
+index 35bff8bb019..f85382f962d 100644
+--- a/libgomp/config/t-aix
++++ b/libgomp/config/t-aix
+@@ -4,6 +4,9 @@ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
+ ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ all-local:
++	-rm -f .libs/$(PACKAGE).a ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a
++	$(AR) rc .libs/$(PACKAGE).a .libs/$(PACKAGE).so.$(MAJOR)
++	$(AR) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ 	$(ARX) -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ 	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
+ endif
+-- 
+2.25.0
+

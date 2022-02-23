@@ -1,0 +1,23 @@
+Index: Python-2.7.4/Lib/glob.py
+===================================================================
+--- Python-2.7.4.orig/Lib/glob.py	2013-04-06 16:02:26.000000000 +0200
++++ Python-2.7.4/Lib/glob.py	2013-05-02 13:55:11.000000000 +0200
+@@ -35,11 +35,16 @@
+     patterns.
+ 
+     """
++    dirname, basename = os.path.split(pathname)
+     if not has_magic(pathname):
++        # 'ZZZ/' must only match directory
+         if os.path.lexists(pathname):
+-            yield pathname
++            if basename:
++                yield pathname
++            else:
++                if os.path.isdir(dirname):
++                    yield pathname
+         return
+-    dirname, basename = os.path.split(pathname)
+     if not dirname:
+         for name in glob1(os.curdir, basename):
+             yield name

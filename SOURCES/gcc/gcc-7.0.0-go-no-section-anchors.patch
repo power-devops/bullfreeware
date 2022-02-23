@@ -1,0 +1,49 @@
+TODO : voir si BOOT_CFLAGS vraiment nécessaire... à priori non.
+       + voir si GOCFLAGS_FOR_TARGET peut être surchargé par le Makefile de libgo
+
+--- old/Makefile.in	2016-10-04 10:30:56 +0200
++++ new/Makefile.in	2016-10-04 10:31:55 +0200
+@@ -364,7 +364,8 @@
+ 
+ # Flags to pass to stage2 and later makes.  They are defined
+ # here so that they can be overridden by Makefile fragments.
+-BOOT_CFLAGS= -g -O2
++# TODO : fno-section-anchors only required for AIX
++BOOT_CFLAGS= -g -O2 -DNO_DOLLAR_IN_LABEL_FOR_GO -fno-section-anchors
+ BOOT_LDFLAGS=
+ BOOT_ADAFLAGS= -gnatpg
+ 
+@@ -553,7 +553,8 @@
+ LIBCFLAGS_FOR_TARGET = $(CFLAGS_FOR_TARGET)
+ LIBCXXFLAGS_FOR_TARGET = $(CXXFLAGS_FOR_TARGET) -fno-implicit-templates
+ LDFLAGS_FOR_TARGET = @LDFLAGS_FOR_TARGET@
+-GOCFLAGS_FOR_TARGET = -O2 -g
++# TODO : fno-section-anchors only required for AIX
++GOCFLAGS_FOR_TARGET = -O2 -g -DNO_DOLLAR_IN_LABEL_FOR_GO -fno-section-anchors
+ 
+ FLAGS_FOR_TARGET = @FLAGS_FOR_TARGET@
+ SYSROOT_CFLAGS_FOR_TARGET = @SYSROOT_CFLAGS_FOR_TARGET@
+
+
+--- ./libgo/testsuite/gotest.ORIGIN	2017-03-17 10:57:38 -0500
++++ ./libgo/testsuite/gotest	2017-03-17 10:54:16 -0500
+@@ -19,6 +19,7 @@
+ GL=${GL:-${GC-gccgo}}
+ GOLIBS=${GOLIBS:-}
+ export GC GL GOLIBS
++GL="${GL} -fno-section-anchors -Wl,-bernotok"
+ 
+ NM=${NM:-nm}
+ 
+@@ -408,9 +409,9 @@
+ #   // gotest: $GC foo.go
+ # to build any test-only dependencies.
+ holdGC="$GC"
+-GC="$GC -g -c -I ."
++GC="$GC -g -c -I . -fno-section-anchors"
+ sed -n 's/^\/\/ gotest: //p' $gofiles | sh
+-GC="$holdGC"
++GC="$holdGC -fno-section-anchors"
+ 
+ case "x$pkgfiles" in
+ x)

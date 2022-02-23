@@ -1,0 +1,45 @@
+From bf6ffd35be7325db3447fec9bf95b626f43b6734 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Thu, 3 May 2018 14:40:45 -0400
+Subject: [PATCH] Remove "-nodes" option from make-certs scripts
+
+The openssl command does not recognize options after positional
+arguments, so in "openssl genrsa $KEYSIZE -nodes", the "-nodes" was
+ignored as a excess positional argument prior to OpenSSL 1.1.0h, and
+now causes an error.  "-nodes" is an option to the openssl req and
+pkcs12 subcommands, but genrsa creates unencrypted keys by default.
+
+[ghudson@mit.edu: edited commit message]
+
+(cherry picked from commit 928a36aae326d496c9a73f2cd41b4da45eef577c)
+---
+ src/tests/dejagnu/pkinit-certs/make-certs.sh | 2 +-
+ src/tests/dejagnu/proxy-certs/make-certs.sh  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/tests/dejagnu/pkinit-certs/make-certs.sh b/src/tests/dejagnu/pkinit-certs/make-certs.sh
+index 63f0c6f75..387311aed 100755
+--- a/src/tests/dejagnu/pkinit-certs/make-certs.sh
++++ b/src/tests/dejagnu/pkinit-certs/make-certs.sh
+@@ -114,7 +114,7 @@ extendedKeyUsage = $CLIENT_EKU_LIST
+ EOF
+ 
+ # Generate a private key.
+-openssl genrsa $KEYSIZE -nodes > privkey.pem
++openssl genrsa $KEYSIZE > privkey.pem
+ openssl rsa -in privkey.pem -out privkey-enc.pem -des3 -passout pass:encrypted
+ 
+ # Generate a "CA" certificate.
+diff --git a/src/tests/dejagnu/proxy-certs/make-certs.sh b/src/tests/dejagnu/proxy-certs/make-certs.sh
+index 1191bf05e..24ef91bde 100755
+--- a/src/tests/dejagnu/proxy-certs/make-certs.sh
++++ b/src/tests/dejagnu/proxy-certs/make-certs.sh
+@@ -79,7 +79,7 @@ extendedKeyUsage = $PROXY_EKU_LIST
+ EOF
+ 
+ # Generate a private key.
+-openssl genrsa $KEYSIZE -nodes > privkey.pem
++openssl genrsa $KEYSIZE > privkey.pem
+ 
+ # Generate a "CA" certificate.
+ SUBJECT=signer openssl req -config openssl.cnf -new -x509 -extensions exts_ca \

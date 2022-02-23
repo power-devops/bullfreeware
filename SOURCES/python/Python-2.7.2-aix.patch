@@ -1,0 +1,38 @@
+Index: Python-2.7.2/Modules/_multiprocessing/multiprocessing.c
+===================================================================
+--- Python-2.7.2.orig/Modules/_multiprocessing/multiprocessing.c	2011-06-11 17:46:27.000000000 +0200
++++ Python-2.7.2/Modules/_multiprocessing/multiprocessing.c	2011-06-24 16:29:57.000000000 +0200
+@@ -8,6 +8,14 @@
+ 
+ #include "multiprocessing.h"
+ 
++#ifndef CMSG_SPACE
++#define CMSG_SPACE(len) (_CMSG_ALIGN(sizeof(struct cmsghdr)) + _CMSG_ALIGN(len))
++#endif
++#ifndef CMSG_LEN
++#define CMSG_LEN(len) (_CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
++#endif
++
++
+ #ifdef SCM_RIGHTS
+     #define HAVE_FD_TRANSFER 1
+ #else
+Index: Python-2.7.2/setup.py
+===================================================================
+--- Python-2.7.2.orig/setup.py	2011-06-24 16:23:59.000000000 +0200
++++ Python-2.7.2/setup.py	2011-06-24 16:36:16.000000000 +0200
+@@ -1446,6 +1446,14 @@
+             macros = dict()
+             libraries = []
+ 
++        elif platform.startswith('aix'):
++            macros = dict(                  # AIX5L V5.1 and higher
++                HAVE_SEM_OPEN=1,
++                HAVE_SEM_TIMEDWAIT=0,
++                HAVE_FD_TRANSFER=1
++                )
++            libraries = ['rt']
++
+         else:                                   # Linux and other unices
+             macros = dict()
+             libraries = ['rt']

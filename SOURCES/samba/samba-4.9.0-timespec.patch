@@ -1,0 +1,14 @@
+--- ./source3/include/libsmbclient.h.orig	2018-07-12 10:23:36 +0200
++++ ./source3/include/libsmbclient.h	2019-01-16 18:49:41 +0100
+@@ -80,6 +80,11 @@
+ #include <fcntl.h>
+ #include <utime.h>
+ 
++#ifdef _AIX
++/* Structure timespec is not declared in sys/stat.h before AIX 7.1 */
++#include <sys/time.h>
++#endif
++
+ #define SMBC_BASE_FD        10000 /* smallest file descriptor returned */
+ 
+ #define SMBC_WORKGROUP      1

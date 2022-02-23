@@ -1,0 +1,258 @@
+From 63dafbd4638673c8785abdd3fe9d06e29e91ee8a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 27 Jan 2020 11:23:29 +0100
+Subject: [PATCH 1/2] net: move netstat parsing functions to net.go
+
+As AIX is also using "netstat -an" in order to get connections,
+move netstat functions to net.go to make it available for both
+OpenBSD and AIX.
+Also rename lsof parsing functions to have Lsof in their name.
+---
+ net/net.go         | 91 ++++++++++++++++++++++++++++++++++++++++++++--
+ net/net_openbsd.go | 82 +----------------------------------------
+ net/net_unix.go    |  2 +-
+ 3 files changed, 90 insertions(+), 85 deletions(-)
+
+diff --git a/net/net.go b/net/net.go
+index c9a4baf..34a9f8d 100644
+--- a/net/net.go
++++ b/net/net.go
+@@ -5,6 +5,7 @@ import (
+ 	"encoding/json"
+ 	"fmt"
+ 	"net"
++	"regexp"
+ 	"strconv"
+ 	"strings"
+ 	"syscall"
+@@ -274,7 +275,7 @@ func getIOCountersAll(n []IOCountersStat) ([]IOCountersStat, error) {
+ 	return []IOCountersStat{r}, nil
+ }
+ 
+-func parseNetLine(line string) (ConnectionStat, error) {
++func parseLsofNetLine(line string) (ConnectionStat, error) {
+ 	f := strings.Fields(line)
+ 	if len(f) < 8 {
+ 		return ConnectionStat{}, fmt.Errorf("wrong line,%s", line)
+@@ -306,7 +307,7 @@ func parseNetLine(line string) (ConnectionStat, error) {
+ 	if f[7] == "unix" {
+ 		laddr.IP = f[8]
+ 	} else {
+-		laddr, raddr, err = parseNetAddr(f[8])
++		laddr, raddr, err = parseLsofNetAddr(f[8])
+ 		if err != nil {
+ 			return ConnectionStat{}, fmt.Errorf("failed to parse netaddr, %s", f[8])
+ 		}
+@@ -327,7 +328,7 @@ func parseNetLine(line string) (ConnectionStat, error) {
+ 	return n, nil
+ }
+ 
+-func parseNetAddr(line string) (laddr Addr, raddr Addr, err error) {
++func parseLsofNetAddr(line string) (laddr Addr, raddr Addr, err error) {
+ 	parse := func(l string) (Addr, error) {
+ 		host, port, err := net.SplitHostPort(l)
+ 		if err != nil {
+@@ -354,3 +355,87 @@ func parseNetAddr(line string) (laddr Addr, raddr Addr, err error) {
+ 
+ 	return laddr, raddr, err
+ }
++
++func parseNetstatNetLine(line string) (ConnectionStat, error) {
++	f := strings.Fields(line)
++	if len(f) < 5 {
++		return ConnectionStat{}, fmt.Errorf("wrong line,%s", line)
++	}
++
++	var netType, netFamily uint32
++	switch f[0] {
++	case "tcp", "tcp4":
++		netType = syscall.SOCK_STREAM
++		netFamily = syscall.AF_INET
++	case "udp", "udp4":
++		netType = syscall.SOCK_DGRAM
++		netFamily = syscall.AF_INET
++	case "tcp6":
++		netType = syscall.SOCK_STREAM
++		netFamily = syscall.AF_INET6
++	case "udp6":
++		netType = syscall.SOCK_DGRAM
++		netFamily = syscall.AF_INET6
++	default:
++		return ConnectionStat{}, fmt.Errorf("unknown type, %s", f[0])
++	}
++
++	laddr, raddr, err := parseNetstatAddr(f[3], f[4], netFamily)
++	if err != nil {
++		return ConnectionStat{}, fmt.Errorf("failed to parse netaddr, %s %s", f[3], f[4])
++	}
++
++	n := ConnectionStat{
++		Fd:     uint32(0), // not supported
++		Family: uint32(netFamily),
++		Type:   uint32(netType),
++		Laddr:  laddr,
++		Raddr:  raddr,
++		Pid:    int32(0), // not supported
++	}
++	if len(f) == 6 {
++		n.Status = f[5]
++	}
++
++	return n, nil
++}
++
++var portMatch = regexp.MustCompile(`(.*)\.(\d+)$`)
++
++// This function only works for netstat returning addresses with a "."
++// before the port (0.0.0.0.22 instead of 0.0.0.0:22).
++func parseNetstatAddr(local string, remote string, family uint32) (laddr Addr, raddr Addr, err error) {
++	parse := func(l string) (Addr, error) {
++		matches := portMatch.FindStringSubmatch(l)
++		if matches == nil {
++			return Addr{}, fmt.Errorf("wrong addr, %s", l)
++		}
++		host := matches[1]
++		port := matches[2]
++		if host == "*" {
++			switch family {
++			case syscall.AF_INET:
++				host = "0.0.0.0"
++			case syscall.AF_INET6:
++				host = "::"
++			default:
++				return Addr{}, fmt.Errorf("unknown family, %d", family)
++			}
++		}
++		lport, err := strconv.Atoi(port)
++		if err != nil {
++			return Addr{}, err
++		}
++		return Addr{IP: host, Port: uint32(lport)}, nil
++	}
++
++	laddr, err = parse(local)
++	if remote != "*.*" { // remote addr exists
++		raddr, err = parse(remote)
++		if err != nil {
++			return laddr, raddr, err
++		}
++	}
++
++	return laddr, raddr, err
++}
+diff --git a/net/net_openbsd.go b/net/net_openbsd.go
+index 3cf0a89..e2ba94a 100644
+--- a/net/net_openbsd.go
++++ b/net/net_openbsd.go
+@@ -176,86 +176,6 @@ func ProtoCountersWithContext(ctx context.Context, protocols []string) ([]ProtoC
+ 	return nil, errors.New("NetProtoCounters not implemented for openbsd")
+ }
+ 
+-func parseNetstatLine(line string) (ConnectionStat, error) {
+-	f := strings.Fields(line)
+-	if len(f) < 5 {
+-		return ConnectionStat{}, fmt.Errorf("wrong line,%s", line)
+-	}
+-
+-	var netType, netFamily uint32
+-	switch f[0] {
+-	case "tcp":
+-		netType = syscall.SOCK_STREAM
+-		netFamily = syscall.AF_INET
+-	case "udp":
+-		netType = syscall.SOCK_DGRAM
+-		netFamily = syscall.AF_INET
+-	case "tcp6":
+-		netType = syscall.SOCK_STREAM
+-		netFamily = syscall.AF_INET6
+-	case "udp6":
+-		netType = syscall.SOCK_DGRAM
+-		netFamily = syscall.AF_INET6
+-	default:
+-		return ConnectionStat{}, fmt.Errorf("unknown type, %s", f[0])
+-	}
+-
+-	laddr, raddr, err := parseNetstatAddr(f[3], f[4], netFamily)
+-	if err != nil {
+-		return ConnectionStat{}, fmt.Errorf("failed to parse netaddr, %s %s", f[3], f[4])
+-	}
+-
+-	n := ConnectionStat{
+-		Fd:     uint32(0), // not supported
+-		Family: uint32(netFamily),
+-		Type:   uint32(netType),
+-		Laddr:  laddr,
+-		Raddr:  raddr,
+-		Pid:    int32(0), // not supported
+-	}
+-	if len(f) == 6 {
+-		n.Status = f[5]
+-	}
+-
+-	return n, nil
+-}
+-
+-func parseNetstatAddr(local string, remote string, family uint32) (laddr Addr, raddr Addr, err error) {
+-	parse := func(l string) (Addr, error) {
+-		matches := portMatch.FindStringSubmatch(l)
+-		if matches == nil {
+-			return Addr{}, fmt.Errorf("wrong addr, %s", l)
+-		}
+-		host := matches[1]
+-		port := matches[2]
+-		if host == "*" {
+-			switch family {
+-			case syscall.AF_INET:
+-				host = "0.0.0.0"
+-			case syscall.AF_INET6:
+-				host = "::"
+-			default:
+-				return Addr{}, fmt.Errorf("unknown family, %d", family)
+-			}
+-		}
+-		lport, err := strconv.Atoi(port)
+-		if err != nil {
+-			return Addr{}, err
+-		}
+-		return Addr{IP: host, Port: uint32(lport)}, nil
+-	}
+-
+-	laddr, err = parse(local)
+-	if remote != "*.*" { // remote addr exists
+-		raddr, err = parse(remote)
+-		if err != nil {
+-			return laddr, raddr, err
+-		}
+-	}
+-
+-	return laddr, raddr, err
+-}
+-
+ // Return a list of network connections opened.
+ func Connections(kind string) ([]ConnectionStat, error) {
+ 	return ConnectionsWithContext(context.Background(), kind)
+@@ -308,7 +228,7 @@ func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat,
+ 		if !(strings.HasPrefix(line, "tcp") || strings.HasPrefix(line, "udp")) {
+ 			continue
+ 		}
+-		n, err := parseNetstatLine(line)
++		n, err := parseNetstatNetLine(line)
+ 		if err != nil {
+ 			continue
+ 		}
+diff --git a/net/net_unix.go b/net/net_unix.go
+index d11fceb..dd8b698 100644
+--- a/net/net_unix.go
++++ b/net/net_unix.go
+@@ -74,7 +74,7 @@ func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]C
+ 		if strings.HasPrefix(rr, "COMMAND") {
+ 			continue
+ 		}
+-		n, err := parseNetLine(rr)
++		n, err := parseLsofNetLine(rr)
+ 		if err != nil {
+ 
+ 			continue
+-- 
+2.22.0
+

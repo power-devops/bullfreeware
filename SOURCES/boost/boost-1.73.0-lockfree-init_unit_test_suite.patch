@@ -1,0 +1,10 @@
+--- ./libs/lockfree/test/Jamfile.v2.ORIGIN	2020-06-30 17:18:38 -0500
++++ ./libs/lockfree/test/Jamfile.v2	2020-06-30 17:19:01 -0500
+@@ -37,6 +37,7 @@
+ 	   <library>../../thread/build//boost_thread/
+ 	   <threading>multi
+ 	   <link>static
++	   <target-os>aix:<linkflags>-Wl,-berok
+ 	 ] ;
+       }
+    }

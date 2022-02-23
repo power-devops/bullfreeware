@@ -1,0 +1,62 @@
+--- ./configure.ac.ORIGIN	2021-01-14 15:28:05 +0100
++++ ./configure.ac	2021-01-14 15:27:09 +0100
+@@ -981,7 +981,7 @@
+ if test "x$PERLBIN" = xyes; then
+ AC_CHECK_PROGS(PERL, perl perl5.6.1 perl5.6.0 perl5.004 perl5.003 perl5.002 perl5.001 perl5 perl)
+ else
+-PERL="$PERLBIN"
++PERL=perl_32
+ fi
+ 
+ 
+@@ -1006,14 +1006,14 @@
+ 		fi
+ 
+ 		AC_MSG_CHECKING(for Perl5 library)
+-		PERL5LIB=`($PERL -e 'use Config; $_=$Config{libperl}; s/^lib//; s/$Config{_a}$//; s/\.$Config{so}.*//; print $_, "\n"') 2>/dev/null`
++		PERL5LIB=`(perl_32 -e 'use Config; $_=$Config{libperl}; s/^lib//; s/$Config{_a}$//; s/\.$Config{so}.*//; print $_, "\n"') 2>/dev/null`
+ 		if test -z "$PERL5LIB" ; then
+ 			AC_MSG_RESULT(not found)
+ 		else
+ 			AC_MSG_RESULT($PERL5LIB)
+ 		fi
+     AC_MSG_CHECKING(for Perl5 ccflags)
+- 		PERL5CCFLAGS=`($PERL -e 'use Config; print $Config{ccflags}, "\n"' | sed "s/-Wdeclaration-after-statement//") 2>/dev/null`
++ 		PERL5CCFLAGS=`(perl_32 -e 'use Config; print $Config{ccflags}, "\n"' | sed "s/-Wdeclaration-after-statement//") 2>/dev/null`
+  		if test -z "$PERL5CCFLAGS" ; then
+  			AC_MSG_RESULT(not found)
+  		else
+@@ -1022,7 +1022,7 @@
+     AC_MSG_CHECKING(for Perl5 ccdlflags)
+     case $host in
+ 	*-*-aix*) PERL5CCDLFLAGS="-Xlinker -bE:./perl.exp";;
+-	*)	  PERL5CCDLFLAGS=`($PERL -e 'use Config; print $Config{ccdlflags}, "\n"') 2>/dev/null`;;
++	*)	  PERL5CCDLFLAGS=`(perl_32 -e 'use Config; print $Config{ccdlflags}, "\n"') 2>/dev/null`;;
+ 	esac
+     if test -z "$PERL5CCDLFLAGS" ; then
+       AC_MSG_RESULT(not found)
+@@ -1030,21 +1030,21 @@
+       AC_MSG_RESULT($PERL5CCDLFLAGS)
+     fi
+     AC_MSG_CHECKING(for Perl5 cccdlflags)
+-    PERL5CCCDLFLAGS=`($PERL -e 'use Config; print $Config{cccdlflags}, "\n"') 2>/dev/null`
++    PERL5CCCDLFLAGS=`(perl_32 -e 'use Config; print $Config{cccdlflags}, "\n"') 2>/dev/null`
+     if test -z "$PERL5CCCDLFLAGS" ; then
+       AC_MSG_RESULT(not found)
+       else
+       AC_MSG_RESULT($PERL5CCCDLFLAGS)
+     fi
+     AC_MSG_CHECKING(for Perl5 ldflags)
+-    PERL5LDFLAGS=`($PERL -e 'use Config; print $Config{ldflags}, "\n"') 2>/dev/null`
++    PERL5LDFLAGS=`(perl_32 -e 'use Config; print $Config{ldflags}, "\n"') 2>/dev/null`
+     if test -z "$PERL5LDFLAGS" ; then
+       AC_MSG_RESULT(not found)
+       else
+       AC_MSG_RESULT($PERL5LDFLAGS)
+     fi
+     AC_MSG_CHECKING(for Perl5 Test::More module) # For test-suite
+-    PERL5TESTMORE=`($PERL -e 'use Test::More; print "good";') 2>/dev/null`
++    PERL5TESTMORE=`(perl_32 -e 'use Test::More; print "good";') 2>/dev/null`
+     if test -z "$PERL5TESTMORE" ; then
+       AC_MSG_RESULT(not found)
+       else

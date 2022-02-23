@@ -1,0 +1,20 @@
+There are no differences between the files.
+*** ./src/pcre2.h.in.ORIG	Tue Jul  5 15:03:52 2016
+--- ./src/pcre2.h.in	Tue Jul  5 15:04:25 2016
+***************
+*** 303,308 ****
+--- 303,316 ----
+  define special values to indicate zero-terminated strings and unset offsets in
+  the offset vector (ovector). */
+  
++ #ifndef SIZE_MAX
++ #if (__64BIT__)
++ #define SIZE_MAX	UINT64_MAX
++ #else
++ #define SIZE_MAX	UINT32_MAX
++ #endif
++ #endif
++ 
+  #define PCRE2_SIZE            size_t
+  #define PCRE2_SIZE_MAX        SIZE_MAX
+  #define PCRE2_ZERO_TERMINATED (~(PCRE2_SIZE)0)

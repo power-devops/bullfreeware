@@ -1,0 +1,10 @@
+--- ./crypto/chacha/asm/chacha-ppc.pl.ORIG	2016-09-06 16:26:55 +0200
++++ ./crypto/chacha/asm/chacha-ppc.pl	2016-09-06 16:27:49 +0200
+@@ -133,6 +133,7 @@
+ 
+ $code.=<<___;
+ .machine	"any"
++.text
+ 
+ .globl	.ChaCha20_ctr32_int
+ .align	5

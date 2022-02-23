@@ -1,0 +1,15 @@
+--- ./libarchive/archive_read_disk_posix.c.orig	2018-09-02 08:05:18 +0200
++++ ./libarchive/archive_read_disk_posix.c	2019-01-03 16:22:27 +0100
+@@ -2364,8 +2364,12 @@
+ 		if (tree_enter_working_dir(t) == 0) {
+ 			t->d = opendir(".");
+ #if HAVE_DIRFD || defined(dirfd)
++#if (_XOPEN_SOURCE < 700)
++			__archive_ensure_cloexec_flag(t->d->dd_fd);
++#else
+ 			__archive_ensure_cloexec_flag(dirfd(t->d));
+ #endif
++#endif
+ 		}
+ #endif /* HAVE_FDOPENDIR */
+ 		if (t->d == NULL) {

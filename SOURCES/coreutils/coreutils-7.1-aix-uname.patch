@@ -1,0 +1,36 @@
+Index: coreutils-7.1/src/uname.c
+===================================================================
+--- coreutils-7.1.orig/src/uname.c	2008-09-18 09:06:57.000000000 +0200
++++ coreutils-7.1/src/uname.c	2009-03-12 11:49:18.000000000 +0100
+@@ -50,6 +50,10 @@
+ # include <mach-o/arch.h>
+ #endif
+ 
++#ifdef _AIX
++#include <sys/systemcfg.h>
++#endif
++
+ #include "system.h"
+ #include "error.h"
+ #include "quote.h"
+@@ -309,6 +313,20 @@
+ 	  element = processor;
+       }
+ #endif
++#ifdef _AIX
++      switch (_system_configuration.architecture)
++        {
++          case POWER_RS:
++            element = "power";
++            break;
++          case POWER_PC:
++            element = "powerpc";
++            break;
++          case IA64:
++            element = "ia64";
++            break;
++        }
++#endif
+ #ifdef UNAME_PROCESSOR
+       if (element == unknown)
+ 	{

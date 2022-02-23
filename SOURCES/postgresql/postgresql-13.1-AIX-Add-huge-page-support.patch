@@ -1,0 +1,70 @@
+--- ./src/backend/port/sysv_shmem.c.ORIGIN	2020-12-03 18:05:53 +0100
++++ ./src/backend/port/sysv_shmem.c	2020-12-03 16:58:54 +0100
+@@ -125,6 +125,7 @@
+ 	IpcMemoryId shmid;
+ 	void	   *requestedAddress = NULL;
+ 	void	   *memAddress;
++	int			shmget_extra_flags = 0;
+ 
+ 	/*
+ 	 * Normally we just pass requestedAddress = NULL to shmat(), allowing the
+@@ -145,7 +146,28 @@
+ 	}
+ #endif
+ 
+-	shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection);
++	if (huge_pages == HUGE_PAGES_ON || huge_pages == HUGE_PAGES_TRY)
++	{
++#if defined(SHM_LGPAGE)
++		/* AIX */
++		shmget_extra_flags = SHM_LGPAGE | SHM_PIN | S_IRUSR | S_IWUSR;
++#endif
++	}
++
++	shmid = shmget(memKey, size,
++				   IPC_CREAT | IPC_EXCL | IPCProtection | shmget_extra_flags);
++
++	/*
++	 * If we tried and failed to allocate huge pages, try again without the extra
++	 * flags so that we ask for the default page size.
++	 */
++	if (huge_pages == HUGE_PAGES_TRY && shmget_extra_flags > 0 && shmid < 0 &&
++		errno != EEXIST)
++	{
++		elog(DEBUG1, "shmget(%zu) with huge pages failed, huge pages disabled: %m",
++			 size);
++		shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection);
++	}
+ 
+ 	if (shmid < 0)
+ 	{
+@@ -641,12 +663,25 @@
+ 						DataDir)));
+ 
+ 	/* Complain if hugepages demanded but we can't possibly support them */
+-#if !defined(MAP_HUGETLB)
+ 	if (huge_pages == HUGE_PAGES_ON)
+-		ereport(ERROR,
+-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+-				 errmsg("huge pages not supported on this platform")));
++	{
++		if (shared_memory_type == SHMEM_TYPE_MMAP)
++		{
++#if !defined(MAP_HUGETLB)
++			ereport(ERROR,
++					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
++					 errmsg("huge pages not supported on this platform with this shared_memory_type")));
+ #endif
++		}
++		else if (shared_memory_type == SHMEM_TYPE_SYSV)
++		{
++#if !defined(SHM_LGPAGE)
++			ereport(ERROR,
++					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
++					 errmsg("huge pages not supported on this platform with this shared_memory_type")));
++#endif
++		}
++	}
+ 
+ 	/* Room for a header? */
+ 	Assert(size > MAXALIGN(sizeof(PGShmemHeader)));

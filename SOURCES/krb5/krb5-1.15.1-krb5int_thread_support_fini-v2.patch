@@ -1,0 +1,11 @@
+--- ./src/include/k5-platform.h.ORIGIN	2017-08-23 11:07:08 +0200
++++ ./src/include/k5-platform.h	2017-08-23 11:16:24 +0200
+@@ -354,7 +354,7 @@
+ 
+ 
+ 
+-#if !defined(SHARED) && !defined(_WIN32)
++#if !defined(SHARED) && !defined(_WIN32) && !defined(USE_LINKER_FINI_OPTION)
+ 
+ /*
+  * In this case, we just don't care about finalization.

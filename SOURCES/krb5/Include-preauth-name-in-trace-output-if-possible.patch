@@ -1,0 +1,514 @@
+From 265d00ef6bb5469b2464d7813af8c37581338385 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Thu, 15 Mar 2018 14:37:28 -0400
+Subject: [PATCH] Include preauth name in trace output if possible
+
+Add a {patype} trace format specifier for a single pa-type value.  Add
+a krb5_preauthtype to string conversion function to trace machinery
+and use it when formatting {patype} or {patypes}.
+
+[ghudson@mit.edu: wrote conversion function; edited commit message]
+
+ticket: 8653 (new)
+(cherry picked from commit 9c68fe39b018666eabe033b639c1f35d03ba51c7)
+---
+ src/include/k5-trace.h      |  17 +--
+ src/lib/krb5/os/t_trace.ref |   2 +-
+ src/lib/krb5/os/trace.c     |  61 +++++++++-
+ src/tests/t_pkinit.py       |  43 +++----
+ src/tests/t_preauth.py      | 216 ++++++++++++++++++------------------
+ 5 files changed, 200 insertions(+), 139 deletions(-)
+
+diff --git a/src/include/k5-trace.h b/src/include/k5-trace.h
+index 390a8b7d6..5f7eb9517 100644
+--- a/src/include/k5-trace.h
++++ b/src/include/k5-trace.h
+@@ -75,6 +75,7 @@
+  *   {cksum}       const krb5_checksum *, display cksumtype and hex checksum
+  *   {princ}       krb5_principal, unparse and display
+  *   {ptype}       krb5_int32, krb5_principal type, display name
++ *   {patype}      krb5_preauthtype, a single padata type number
+  *   {patypes}     krb5_pa_data **, display list of padata type numbers
+  *   {etype}       krb5_enctype, display shortest name of enctype
+  *   {etypes}      krb5_enctype *, display list of enctypes
+@@ -232,14 +233,14 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
+ #define TRACE_INIT_CREDS_PREAUTH_DECRYPT_FAIL(c, code)                  \
+     TRACE(c, "Decrypt with preauth AS key failed: {kerr}", code)
+ #define TRACE_INIT_CREDS_PREAUTH_MORE(c, patype)                \
+-    TRACE(c, "Continuing preauth mech {int}", (int)patype)
++    TRACE(c, "Continuing preauth mech {patype}", patype)
+ #define TRACE_INIT_CREDS_PREAUTH_NONE(c)        \
+     TRACE(c, "Sending unauthenticated request")
+ #define TRACE_INIT_CREDS_PREAUTH_OPTIMISTIC(c)  \
+     TRACE(c, "Attempting optimistic preauth")
+ #define TRACE_INIT_CREDS_PREAUTH_TRYAGAIN(c, patype, code)              \
+-    TRACE(c, "Recovering from KDC error {int} using preauth mech {int}", \
+-          (int)patype, (int)code)
++    TRACE(c, "Recovering from KDC error {int} using preauth mech {patype}", \
++          patype, (int)code)
+ #define TRACE_INIT_CREDS_RESTART_FAST(c)        \
+     TRACE(c, "Restarting to upgrade to FAST")
+ #define TRACE_INIT_CREDS_RESTART_PREAUTH_FAILED(c)                      \
+@@ -290,7 +291,7 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
+ 
+ #define TRACE_PREAUTH_CONFLICT(c, name1, name2, patype)                 \
+     TRACE(c, "Preauth module {str} conflicts with module {str} for pa " \
+-          "type {int}", name1, name2, (int) patype)
++          "type {patype}", name1, name2, patype)
+ #define TRACE_PREAUTH_COOKIE(c, len, data)                      \
+     TRACE(c, "Received cookie: {lenstr}", (size_t) len, data)
+ #define TRACE_PREAUTH_ENC_TS_KEY_GAK(c, keyblock)                       \
+@@ -302,8 +303,8 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
+     TRACE(c, "Selected etype info: etype {etype}, salt \"{data}\", " \
+           "params \"{data}\"", etype, salt, s2kparams)
+ #define TRACE_PREAUTH_INFO_FAIL(c, patype, code)                        \
+-    TRACE(c, "Preauth builtin info function failure, type={int}: {kerr}", \
+-          (int) patype, code)
++    TRACE(c, "Preauth builtin info function failure, type={patype}: {kerr}", \
++          patype, code)
+ #define TRACE_PREAUTH_INPUT(c, padata)                          \
+     TRACE(c, "Processing preauth types: {patypes}", padata)
+ #define TRACE_PREAUTH_OUTPUT(c, padata)                                 \
+@@ -314,8 +315,8 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
+ #define TRACE_PREAUTH_SAM_KEY_GAK(c, keyblock)                  \
+     TRACE(c, "AS key obtained for SAM: {keyblock}", keyblock)
+ #define TRACE_PREAUTH_SALT(c, salt, patype)                          \
+-    TRACE(c, "Received salt \"{data}\" via padata type {int}", salt, \
+-          (int) patype)
++    TRACE(c, "Received salt \"{data}\" via padata type {patype}", salt, \
++          patype)
+ #define TRACE_PREAUTH_SKIP(c, name, patype)                           \
+     TRACE(c, "Skipping previously used preauth module {str} ({int})", \
+           name, (int) patype)
+diff --git a/src/lib/krb5/os/t_trace.ref b/src/lib/krb5/os/t_trace.ref
+index ca5818a1e..bd5d9b6b6 100644
+--- a/src/lib/krb5/os/t_trace.ref
++++ b/src/lib/krb5/os/t_trace.ref
+@@ -38,7 +38,7 @@ int, krb5_principal type: Windows 2000 UPN and SID
+ int, krb5_principal type: NT 4 style name
+ int, krb5_principal type: NT 4 style name and SID
+ int, krb5_principal type: ?
+-krb5_pa_data **, display list of padata type numbers: 3, 0
++krb5_pa_data **, display list of padata type numbers: PA-PW-SALT (3), 0
+ krb5_pa_data **, display list of padata type numbers: (empty)
+ krb5_enctype, display shortest name of enctype: des-cbc-crc
+ krb5_enctype *, display list of enctypes: 5, rc4-hmac-exp, 511
+diff --git a/src/lib/krb5/os/trace.c b/src/lib/krb5/os/trace.c
+index 779f184cb..10b4f0c14 100644
+--- a/src/lib/krb5/os/trace.c
++++ b/src/lib/krb5/os/trace.c
+@@ -123,6 +123,50 @@ principal_type_string(krb5_int32 type)
+     }
+ }
+ 
++static char *
++padata_type_string(krb5_preauthtype type)
++{
++    switch (type) {
++    case KRB5_PADATA_TGS_REQ: return "PA-TGS-REQ";
++    case KRB5_PADATA_ENC_TIMESTAMP: return "PA-ENC-TIMESTAMP";
++    case KRB5_PADATA_PW_SALT: return "PA-PW-SALT";
++    case KRB5_PADATA_ENC_UNIX_TIME: return "PA-ENC-UNIX-TIME";
++    case KRB5_PADATA_ENC_SANDIA_SECURID: return "PA-SANDIA-SECUREID";
++    case KRB5_PADATA_SESAME: return "PA-SESAME";
++    case KRB5_PADATA_OSF_DCE: return "PA-OSF-DCE";
++    case KRB5_CYBERSAFE_SECUREID: return "PA-CYBERSAFE-SECUREID";
++    case KRB5_PADATA_AFS3_SALT: return "PA-AFS3-SALT";
++    case KRB5_PADATA_ETYPE_INFO: return "PA-ETYPE-INFO";
++    case KRB5_PADATA_SAM_CHALLENGE: return "PA-SAM-CHALLENGE";
++    case KRB5_PADATA_SAM_RESPONSE: return "PA-SAM-RESPONSE";
++    case KRB5_PADATA_PK_AS_REQ_OLD: return "PA-PK-AS-REQ_OLD";
++    case KRB5_PADATA_PK_AS_REP_OLD: return "PA-PK-AS-REP_OLD";
++    case KRB5_PADATA_PK_AS_REQ: return "PA-PK-AS-REQ";
++    case KRB5_PADATA_PK_AS_REP: return "PA-PK-AS-REP";
++    case KRB5_PADATA_ETYPE_INFO2: return "PA-ETYPE-INFO2";
++    case KRB5_PADATA_SVR_REFERRAL_INFO: return "PA-SVR-REFERRAL-INFO";
++    case KRB5_PADATA_SAM_REDIRECT: return "PA-SAM-REDIRECT";
++    case KRB5_PADATA_GET_FROM_TYPED_DATA: return "PA-GET-FROM-TYPED-DATA";
++    case KRB5_PADATA_SAM_CHALLENGE_2: return "PA-SAM-CHALLENGE2";
++    case KRB5_PADATA_SAM_RESPONSE_2: return "PA-SAM-RESPONSE2";
++    case KRB5_PADATA_PAC_REQUEST: return "PA-PAC-REQUEST";
++    case KRB5_PADATA_FOR_USER: return "PA-FOR_USER";
++    case KRB5_PADATA_S4U_X509_USER: return "PA-FOR-X509-USER";
++    case KRB5_PADATA_AS_CHECKSUM: return "PA-AS-CHECKSUM";
++    case KRB5_PADATA_FX_COOKIE: return "PA-FX-COOKIE";
++    case KRB5_PADATA_FX_FAST: return "PA-FX-FAST";
++    case KRB5_PADATA_FX_ERROR: return "PA-FX-ERROR";
++    case KRB5_PADATA_ENCRYPTED_CHALLENGE: return "PA-ENCRYPTED-CHALLENGE";
++    case KRB5_PADATA_OTP_CHALLENGE: return "PA-OTP-CHALLENGE";
++    case KRB5_PADATA_OTP_REQUEST: return "PA-OTP-REQUEST";
++    case KRB5_PADATA_OTP_PIN_CHANGE: return "PA-OTP-PIN-CHANGE";
++    case KRB5_PADATA_PKINIT_KX: return "PA-PKINIT-KX";
++    case KRB5_ENCPADATA_REQ_ENC_PA_REP: return "PA-REQ-ENC-PA-REP";
++    case KRB5_PADATA_AS_FRESHNESS: return "PA_AS_FRESHNESS";
++    default: return NULL;
++    }
++}
++
+ static char *
+ trace_format(krb5_context context, const char *fmt, va_list ap)
+ {
+@@ -140,6 +184,8 @@ trace_format(krb5_context context, const char *fmt, va_list ap)
+     krb5_key key;
+     const krb5_checksum *cksum;
+     krb5_pa_data **padata;
++    krb5_preauthtype pa_type;
++    const char *name;
+     krb5_ccache ccache;
+     krb5_keytab keytab;
+     krb5_creds *creds;
+@@ -271,10 +317,23 @@ trace_format(krb5_context context, const char *fmt, va_list ap)
+             if (padata == NULL || *padata == NULL)
+                 k5_buf_add(&buf, "(empty)");
+             for (; padata != NULL && *padata != NULL; padata++) {
+-                k5_buf_add_fmt(&buf, "%d", (int)(*padata)->pa_type);
++                pa_type = (*padata)->pa_type;
++                name = padata_type_string(pa_type);
++                if (name != NULL)
++                    k5_buf_add_fmt(&buf, "%s (%d)", name, (int)pa_type);
++                else
++                    k5_buf_add_fmt(&buf, "%d", (int)pa_type);
++
+                 if (*(padata + 1) != NULL)
+                     k5_buf_add(&buf, ", ");
+             }
++        } else if (strcmp(tmpbuf, "patype") == 0) {
++            pa_type = va_arg(ap, krb5_preauthtype);
++            name = padata_type_string(pa_type);
++            if (name != NULL)
++                k5_buf_add_fmt(&buf, "%s (%d)", name, (int)pa_type);
++            else
++                k5_buf_add_fmt(&buf, "%d", (int)pa_type);
+         } else if (strcmp(tmpbuf, "etype") == 0) {
+             etype = va_arg(ap, krb5_enctype);
+             if (krb5_enctype_to_name(etype, TRUE, tmpbuf, sizeof(tmpbuf)) == 0)
+diff --git a/src/tests/t_pkinit.py b/src/tests/t_pkinit.py
+index 5bc60cb1e..0e964c689 100755
+--- a/src/tests/t_pkinit.py
++++ b/src/tests/t_pkinit.py
+@@ -164,18 +164,19 @@ realm.stop_kdc()
+ realm.start_kdc()
+ 
+ # Run the basic test - PKINIT with FILE: identity, with no password on the key.
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'PKINIT client received freshness token from KDC',
++        'PKINIT loading CA certs and CRLs from FILE',
++        'PKINIT client making DH request',
++        ' preauth for next request: PA-FX-COOKIE (133), PA-PK-AS-REQ (16)',
++        'PKINIT client verified DH reply',
++        'PKINIT client found id-pkinit-san in KDC cert',
++        'PKINIT client matched KDC principal krbtgt/')
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % file_identity],
+-            expected_trace=('Sending unauthenticated request',
+-                            '/Additional pre-authentication required',
+-                            'Preauthenticating using KDC method data',
+-                            'PKINIT client received freshness token from KDC',
+-                            'PKINIT loading CA certs and CRLs from FILE',
+-                            'PKINIT client making DH request',
+-                            'Produced preauth for next request: 133, 16',
+-                            'PKINIT client verified DH reply',
+-                            'PKINIT client found id-pkinit-san in KDC cert',
+-                            'PKINIT client matched KDC principal krbtgt/'))
++            expected_trace=msgs)
+ realm.klist(realm.user_princ)
+ realm.run([kvno, realm.host_princ])
+ 
+@@ -194,19 +195,19 @@ minbits_kdc_conf = {'realms': {'$realm': {'pkinit_dh_min_bits': '4096'}}}
+ minbits_env = realm.special_env('restrict', True, kdc_conf=minbits_kdc_conf)
+ realm.stop_kdc()
+ realm.start_kdc(env=minbits_env)
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Preauth module pkinit (16) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, 16',
+-                  '/Key parameters not accepted',
+-                  'Preauth tryagain input types (16): 109, 133',
+-                  'trying again with KDC-provided parameters',
+-                  'Preauth module pkinit (16) tryagain returned: 0/Success',
+-                  'Followup preauth for next request: 16, 133')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Preauth module pkinit (16) (real) returned: 0/Success',
++        ' preauth for next request: PA-FX-COOKIE (133), PA-PK-AS-REQ (16)',
++        '/Key parameters not accepted',
++        'Preauth tryagain input types (16): 109, PA-FX-COOKIE (133)',
++        'trying again with KDC-provided parameters',
++        'Preauth module pkinit (16) tryagain returned: 0/Success',
++        ' preauth for next request: PA-PK-AS-REQ (16), PA-FX-COOKIE (133)')
+ realm.kinit(realm.user_princ,
+             flags=['-X', 'X509_user_identity=%s' % file_identity],
+-            expected_trace=expected_trace)
++            expected_trace=msgs)
+ 
+ # Test enforcement of required freshness tokens.  (We can leave
+ # freshness tokens required after this test.)
+diff --git a/src/tests/t_preauth.py b/src/tests/t_preauth.py
+index fec0bf619..efb3ea20d 100644
+--- a/src/tests/t_preauth.py
++++ b/src/tests/t_preauth.py
+@@ -18,15 +18,15 @@ realm.kinit('nokeyuser', password('user'), expected_code=1,
+ # PA-FX-COOKIE; 2 is encrypted timestamp.
+ 
+ # Test normal preauth flow.
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        'Decrypted AS reply')
+ realm.run(['./icred', realm.user_princ, password('user')],
+-          expected_msg='testval', expected_trace=expected_trace)
++          expected_msg='testval', expected_trace=msgs)
+ 
+ # Test successful optimistic preauth.
+ expected_trace = ('Attempting optimistic preauth',
+@@ -39,136 +39,136 @@ realm.run(['./icred', '-o', '-123', realm.user_princ, password('user')],
+ 
+ # Test optimistic preauth failing on client, followed by successful
+ # preauth using the same module.
+-expected_trace = ('Attempting optimistic preauth',
+-                  'Processing preauth types: -123',
+-                  '/induced optimistic fail',
+-                  'Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  'Decrypted AS reply')
++msgs = ('Attempting optimistic preauth',
++        'Processing preauth types: -123',
++        '/induced optimistic fail',
++        'Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        'Decrypted AS reply')
+ realm.run(['./icred', '-o', '-123', '-X', 'fail_optimistic', realm.user_princ,
+            password('user')], expected_msg='testval',
+-          expected_trace=expected_trace)
++          expected_trace=msgs)
+ 
+ # Test optimistic preauth failing on KDC, followed by successful preauth
+ # using the same module.
+ realm.run([kadminl, 'setstr', realm.user_princ, 'failopt', 'yes'])
+-expected_trace = ('Attempting optimistic preauth',
+-                  'Processing preauth types: -123',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: -123',
+-                  '/Preauthentication failed',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  'Decrypted AS reply')
++msgs = ('Attempting optimistic preauth',
++        'Processing preauth types: -123',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: -123',
++        '/Preauthentication failed',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        'Decrypted AS reply')
+ realm.run(['./icred', '-o', '-123', realm.user_princ, password('user')],
+-          expected_msg='testval', expected_trace=expected_trace)
++          expected_msg='testval', expected_trace=msgs)
+ realm.run([kadminl, 'delstr', realm.user_princ, 'failopt'])
+ 
+ # Test KDC_ERR_MORE_PREAUTH_DATA_REQUIRED and secure cookies.
+ realm.run([kadminl, 'setstr', realm.user_princ, '2rt', 'secondtrip'])
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/More preauthentication data is required',
+-                  'Continuing preauth mech -123',
+-                  'Processing preauth types: -123, 133',
+-                  'Produced preauth for next request: 133, -123',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/More preauthentication data is required',
++        'Continuing preauth mech -123',
++        'Processing preauth types: -123, PA-FX-COOKIE (133)',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        'Decrypted AS reply')
+ realm.run(['./icred', realm.user_princ, password('user')],
+-          expected_msg='2rt: secondtrip', expected_trace=expected_trace)
++          expected_msg='2rt: secondtrip', expected_trace=msgs)
+ 
+ # Test client-side failure after KDC_ERR_MORE_PREAUTH_DATA_REQUIRED,
+ # falling back to encrypted timestamp.
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/More preauthentication data is required',
+-                  'Continuing preauth mech -123',
+-                  'Processing preauth types: -123, 133',
+-                  '/induced 2rt fail',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Encrypted timestamp (for ',
+-                  'module encrypted_timestamp (2) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, 2',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/More preauthentication data is required',
++        'Continuing preauth mech -123',
++        'Processing preauth types: -123, PA-FX-COOKIE (133)',
++        '/induced 2rt fail',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Encrypted timestamp (for ',
++        'module encrypted_timestamp (2) (real) returned: 0/Success',
++        'preauth for next request: PA-FX-COOKIE (133), PA-ENC-TIMESTAMP (2)',
++        'Decrypted AS reply')
+ realm.run(['./icred', '-X', 'fail_2rt', realm.user_princ, password('user')],
+-          expected_msg='2rt: secondtrip', expected_trace=expected_trace)
++          expected_msg='2rt: secondtrip', expected_trace=msgs)
+ 
+ # Test KDC-side failure after KDC_ERR_MORE_PREAUTH_DATA_REQUIRED,
+ # falling back to encrypted timestamp.
+ realm.run([kadminl, 'setstr', realm.user_princ, 'fail2rt', 'yes'])
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/More preauthentication data is required',
+-                  'Continuing preauth mech -123',
+-                  'Processing preauth types: -123, 133',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/Preauthentication failed',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Encrypted timestamp (for ',
+-                  'module encrypted_timestamp (2) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, 2',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/More preauthentication data is required',
++        'Continuing preauth mech -123',
++        'Processing preauth types: -123, PA-FX-COOKIE (133)',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/Preauthentication failed',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Encrypted timestamp (for ',
++        'module encrypted_timestamp (2) (real) returned: 0/Success',
++        'preauth for next request: PA-FX-COOKIE (133), PA-ENC-TIMESTAMP (2)',
++        'Decrypted AS reply')
+ realm.run(['./icred', realm.user_princ, password('user')],
+-          expected_msg='2rt: secondtrip', expected_trace=expected_trace)
++          expected_msg='2rt: secondtrip', expected_trace=msgs)
+ realm.run([kadminl, 'delstr', realm.user_princ, 'fail2rt'])
+ 
+ # Test tryagain flow by inducing a KDC_ERR_ENCTYPE_NOSUPP error on the KDC.
+ realm.run([kadminl, 'setstr', realm.user_princ, 'err', 'testagain'])
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/KDC has no support for encryption type',
+-                  'Recovering from KDC error 14 using preauth mech -123',
+-                  'Preauth tryagain input types (-123): -123, 133',
+-                  'Preauth module test (-123) tryagain returned: 0/Success',
+-                  'Followup preauth for next request: -123, 133',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/KDC has no support for encryption type',
++        'Recovering from KDC error 14 using preauth mech -123',
++        'Preauth tryagain input types (-123): -123, PA-FX-COOKIE (133)',
++        'Preauth module test (-123) tryagain returned: 0/Success',
++        'Followup preauth for next request: -123, PA-FX-COOKIE (133)',
++        'Decrypted AS reply')
+ realm.run(['./icred', realm.user_princ, password('user')],
+-          expected_msg='tryagain: testagain', expected_trace=expected_trace)
++          expected_msg='tryagain: testagain', expected_trace=msgs)
+ 
+ # Test a client-side tryagain failure, falling back to encrypted
+ # timestamp.
+-expected_trace = ('Sending unauthenticated request',
+-                  '/Additional pre-authentication required',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Preauth module test (-123) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, -123',
+-                  '/KDC has no support for encryption type',
+-                  'Recovering from KDC error 14 using preauth mech -123',
+-                  'Preauth tryagain input types (-123): -123, 133',
+-                  '/induced tryagain fail',
+-                  'Preauthenticating using KDC method data',
+-                  'Processing preauth types:',
+-                  'Encrypted timestamp (for ',
+-                  'module encrypted_timestamp (2) (real) returned: 0/Success',
+-                  'Produced preauth for next request: 133, 2',
+-                  'Decrypted AS reply')
++msgs = ('Sending unauthenticated request',
++        '/Additional pre-authentication required',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Preauth module test (-123) (real) returned: 0/Success',
++        'Produced preauth for next request: PA-FX-COOKIE (133), -123',
++        '/KDC has no support for encryption type',
++        'Recovering from KDC error 14 using preauth mech -123',
++        'Preauth tryagain input types (-123): -123, PA-FX-COOKIE (133)',
++        '/induced tryagain fail',
++        'Preauthenticating using KDC method data',
++        'Processing preauth types:',
++        'Encrypted timestamp (for ',
++        'module encrypted_timestamp (2) (real) returned: 0/Success',
++        'preauth for next request: PA-FX-COOKIE (133), PA-ENC-TIMESTAMP (2)',
++        'Decrypted AS reply')
+ realm.run(['./icred', '-X', 'fail_tryagain', realm.user_princ,
+-           password('user')], expected_trace=expected_trace)
++           password('user')], expected_trace=msgs)
+ 
+ # Test that multiple stepwise initial creds operations can be
+ # performed with the same krb5_context, with proper tracking of

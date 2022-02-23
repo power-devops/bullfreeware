@@ -1,0 +1,31 @@
+From dc4228a44d18ee0802adf7686d9fcdde38a20bab Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 17 May 2019 09:58:42 +0200
+Subject: [PATCH] gotest: add -mcmodel=large for net/http tests
+
+Change-Id: Ic3dc89d7a405a75f27058b0324ed355c42b3c5e4
+---
+ libgo/testsuite/gotest | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/libgo/testsuite/gotest b/libgo/testsuite/gotest
+index 7969a493..7e83f7dc 100755
+--- a/libgo/testsuite/gotest
++++ b/libgo/testsuite/gotest
+@@ -178,6 +178,13 @@ if test "$goos" == "aix"; then
+ 		# that's better to unset LD_LIBRARY_PATH.
+ 		unset LD_LIBRARY_PATH
+ 	fi
++
++	if test "$pkgpath" = "net/http"; then
++		# net/http will create a wierd TOC overflow during compilation,
++		# if the default TOC generation is used. 
++		export GC="${GC} -mcmodel=large"
++	fi
++
+ fi
+ 
+ DIR=gotest$$
+-- 
+2.17.1
+

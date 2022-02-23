@@ -1,0 +1,11 @@
+--- ./configure.ac.ORIGIN	2021-01-14 21:20:14 +0100
++++ ./configure.ac	2021-01-14 21:17:27 +0100
+@@ -2342,7 +2342,7 @@
+   else
+     LUA_OK="1"
+     CFLAGS_SAVED=$CFLAGS
+-    CFLAGS= # Use empty CFLAGS to avoid failure: "present but cannot be compiled"
++#    CFLAGS= # Use empty CFLAGS to avoid failure: "present but cannot be compiled"
+     AC_CHECK_HEADER([lua.h],[LUAFLAGS=""],[LUA_OK=""])
+     CFLAGS=$CFLAGS_SAVED
+     # if we didn't get it, going to have to look elsewhere (the hard way)

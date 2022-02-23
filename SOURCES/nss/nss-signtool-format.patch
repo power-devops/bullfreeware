@@ -1,0 +1,94 @@
+diff --git a/nss/cmd/modutil/install.c b/nss/cmd/modutil/install.c
+--- a/nss/cmd/modutil/install.c
++++ b/nss/cmd/modutil/install.c
+@@ -825,17 +825,20 @@ rm_dash_r(char *path)
+ 
+         dir = PR_OpenDir(path);
+         if (!dir) {
+             return -1;
+         }
+ 
+         /* Recursively delete all entries in the directory */
+         while ((entry = PR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
+-            sprintf(filename, "%s/%s", path, entry->name);
++            if (snprintf(filename, sizeof(filename), "%s/%s", path, entry->name) >= sizeof(filename)) {
++                PR_CloseDir(dir);
++                return -1;
++            }
+             if (rm_dash_r(filename)) {
+                 PR_CloseDir(dir);
+                 return -1;
+             }
+         }
+ 
+         if (PR_CloseDir(dir) != PR_SUCCESS) {
+             return -1;
+diff --git a/nss/cmd/signtool/util.c b/nss/cmd/signtool/util.c
+--- a/nss/cmd/signtool/util.c
++++ b/nss/cmd/signtool/util.c
+@@ -132,17 +132,20 @@ rm_dash_r(char *path)
+         if (!dir) {
+             PR_fprintf(errorFD, "Error: Unable to open directory %s.\n", path);
+             errorCount++;
+             return -1;
+         }
+ 
+         /* Recursively delete all entries in the directory */
+         while ((entry = PR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
+-            sprintf(filename, "%s/%s", path, entry->name);
++            if (snprintf(filename, sizeof(filename), "%s/%s", path, entry->name) >= sizeof(filename)) {
++                errorCount++;
++                return -1;
++            }
+             if (rm_dash_r(filename))
+                 return -1;
+         }
+ 
+         if (PR_CloseDir(dir) != PR_SUCCESS) {
+             PR_fprintf(errorFD, "Error: Could not close %s.\n", path);
+             errorCount++;
+             return -1;
+diff --git a/nss/lib/libpkix/pkix/util/pkix_list.c b/nss/lib/libpkix/pkix/util/pkix_list.c
+--- a/nss/lib/libpkix/pkix/util/pkix_list.c
++++ b/nss/lib/libpkix/pkix/util/pkix_list.c
+@@ -1530,17 +1530,17 @@ cleanup:
+  */
+ PKIX_Error *
+ PKIX_List_SetItem(
+         PKIX_List *list,
+         PKIX_UInt32 index,
+         PKIX_PL_Object *item,
+         void *plContext)
+ {
+-        PKIX_List *element;
++        PKIX_List *element = NULL;
+ 
+         PKIX_ENTER(LIST, "PKIX_List_SetItem");
+         PKIX_NULLCHECK_ONE(list);
+ 
+         if (list->immutable){
+                 PKIX_ERROR(PKIX_OPERATIONNOTPERMITTEDONIMMUTABLELIST);
+         }
+ 
+diff --git a/nss/lib/libpkix/pkix_pl_nss/system/pkix_pl_oid.c b/nss/lib/libpkix/pkix_pl_nss/system/pkix_pl_oid.c
+--- a/nss/lib/libpkix/pkix_pl_nss/system/pkix_pl_oid.c
++++ b/nss/lib/libpkix/pkix_pl_nss/system/pkix_pl_oid.c
+@@ -102,17 +102,17 @@ cleanup:
+  */
+ static PKIX_Error *
+ pkix_pl_OID_Equals(
+         PKIX_PL_Object *first,
+         PKIX_PL_Object *second,
+         PKIX_Boolean *pResult,
+         void *plContext)
+ {
+-        PKIX_Int32 cmpResult;
++        PKIX_Int32 cmpResult = 0;
+ 
+         PKIX_ENTER(OID, "pkix_pl_OID_Equals");
+         PKIX_NULLCHECK_THREE(first, second, pResult);
+ 
+         PKIX_CHECK(pkix_pl_OID_Comparator
+                     (first, second, &cmpResult, plContext),
+                     PKIX_OIDCOMPARATORFAILED);
+ 

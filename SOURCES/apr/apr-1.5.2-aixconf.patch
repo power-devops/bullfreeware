@@ -1,0 +1,22 @@
+Index: apr-1.4.6/configure
+===================================================================
+--- apr-1.4.6.orig/configure	2012-02-08 00:17:57.000000000 +0100
++++ apr-1.4.6/configure	2012-07-23 17:11:35.000000000 +0200
+@@ -6140,7 +6140,7 @@
+   fi
+ 
+ 	        ;;
+-            *-ibm-aix5*)
++            *-ibm-aix5*|*-ibm-aix6*)
+ 
+   if test "x$CPPFLAGS" = "x"; then
+     test "x$silent" != "xyes" && echo "  setting CPPFLAGS to \"-D_USE_IRS\""
+@@ -23530,7 +23530,7 @@
+          pid_t_fmt='#define APR_PID_T_FMT "ld"'
+        fi
+        ;;
+-   *aix4*|*aix5*)
++   *aix4*|*aix5*|*aix6*)
+        ssize_t_fmt="ld"
+        size_t_fmt="lu"
+        ;;

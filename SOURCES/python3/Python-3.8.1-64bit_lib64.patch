@@ -1,0 +1,189 @@
+--- ./Lib/sysconfig.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Lib/sysconfig.py	2020-01-13 17:05:30 +0100
+@@ -21,9 +21,9 @@
+ _INSTALL_SCHEMES = {
+     'posix_prefix': {
+         'stdlib': '{installed_base}/lib/python{py_version_short}',
+-        'platstdlib': '{platbase}/lib/python{py_version_short}',
+-        'purelib': '{base}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{platbase}/lib/python{py_version_short}/site-packages',
++        'platstdlib': '{platbase}/lib64/python{py_version_short}',
++        'purelib': '{base}/lib/python3/site-packages',
++        'platlib': '{platbase}/lib64/python{py_version_short}/site-packages',
+         'include':
+             '{installed_base}/include/python{py_version_short}{abiflags}',
+         'platinclude':
+@@ -33,9 +33,9 @@
+         },
+     'posix_home': {
+         'stdlib': '{installed_base}/lib/python',
+-        'platstdlib': '{base}/lib/python',
+-        'purelib': '{base}/lib/python',
+-        'platlib': '{base}/lib/python',
++        'platstdlib': '{base}/lib64/python',
++        'purelib': '{base}/lib/python3',
++        'platlib': '{base}/lib64/python',
+         'include': '{installed_base}/include/python',
+         'platinclude': '{installed_base}/include/python',
+         'scripts': '{base}/bin',
+@@ -63,9 +63,9 @@
+         },
+     'posix_user': {
+         'stdlib': '{userbase}/lib/python{py_version_short}',
+-        'platstdlib': '{userbase}/lib/python{py_version_short}',
+-        'purelib': '{userbase}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{userbase}/lib/python{py_version_short}/site-packages',
++        'platstdlib': '{userbase}/lib64/python{py_version_short}',
++        'purelib': '{userbase}/lib/python3/site-packages',
++        'platlib': '{userbase}/lib64/python{py_version_short}/site-packages',
+         'include': '{userbase}/include/python{py_version_short}',
+         'scripts': '{userbase}/bin',
+         'data': '{userbase}',
+--- ./Lib/test/test_site.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Lib/test/test_site.py	2020-01-06 10:19:42 +0100
+@@ -269,8 +269,8 @@
+         dirs = site.getsitepackages()
+         if os.sep == '/':
+             # OS X, Linux, FreeBSD, etc
+-            self.assertEqual(len(dirs), 1)
+-            wanted = os.path.join('xoxo', 'lib',
++            self.assertEqual(len(dirs), 2)
++            wanted = os.path.join('xoxo', 'lib64',
+                                   'python%d.%d' % sys.version_info[:2],
+                                   'site-packages')
+             self.assertEqual(dirs[0], wanted)
+--- ./Makefile.pre.in.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Makefile.pre.in	2020-01-06 10:19:42 +0100
+@@ -144,7 +144,7 @@
+ MANDIR=		@mandir@
+ INCLUDEDIR=	@includedir@
+ CONFINCLUDEDIR=	$(exec_prefix)/include
+-SCRIPTDIR=	$(prefix)/lib
++SCRIPTDIR=	$(prefix)/lib64
+ ABIFLAGS=	@ABIFLAGS@
+ 
+ # Detailed destination directories
+--- ./Modules/getpath.c.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Modules/getpath.c	2020-01-06 10:19:42 +0100
+@@ -1067,7 +1067,7 @@
+             return PATHLEN_ERR();
+         }
+     }
+-    status = joinpath(zip_path, L"lib/python00.zip", zip_path_len);
++    status = joinpath(zip_path, L"lib64/python00.zip", zip_path_len);
+     if (_PyStatus_EXCEPTION(status)) {
+         return status;
+     }
+@@ -912,7 +912,7 @@
+     if (!calculate->prefix) {
+         return DECODE_LOCALE_ERR("EXEC_PREFIX define", len);
+     }
+-    calculate->lib_python = Py_DecodeLocale("lib/python" VERSION, &len);
++    calculate->lib_python = Py_DecodeLocale("lib64/python" VERSION, &len);
+     if (!calculate->lib_python) {
+         return DECODE_LOCALE_ERR("EXEC_PREFIX define", len);
+     }
+--- ./setup.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./setup.py	2020-01-06 10:19:42 +0100
+@@ -521,7 +521,7 @@
+ 
+         if multiarch_path_component != '':
+             add_dir_to_list(self.compiler.library_dirs,
+-                            '/usr/lib/' + multiarch_path_component)
++                            '/opt/freeware/lib64/' + multiarch_path_component)
+             add_dir_to_list(self.compiler.include_dirs,
+                             '/usr/include/' + multiarch_path_component)
+             return
+@@ -542,7 +542,7 @@
+                 with open(tmpfile) as fp:
+                     multiarch_path_component = fp.readline().strip()
+                 add_dir_to_list(self.compiler.library_dirs,
+-                                '/usr/lib/' + multiarch_path_component)
++                                '/opt/freeware/lib64/' + multiarch_path_component)
+                 add_dir_to_list(self.compiler.include_dirs,
+                                 '/usr/include/' + multiarch_path_component)
+         finally:
+--- ./Lib/distutils/command/install.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Lib/distutils/command/install.py	2020-01-14 13:11:58 +0100
+@@ -29,15 +29,15 @@
+ 
+ INSTALL_SCHEMES = {
+     'unix_prefix': {
+-        'purelib': '$base/lib/python$py_version_short/site-packages',
+-        'platlib': '$platbase/lib/python$py_version_short/site-packages',
++        'purelib': '$base/lib/python3/site-packages',
++        'platlib': '$platbase/lib64/python$py_version_short/site-packages',
+         'headers': '$base/include/python$py_version_short$abiflags/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+         },
+     'unix_home': {
+-        'purelib': '$base/lib/python',
+-        'platlib': '$base/lib/python',
++        'purelib': '$base/lib/python3',
++        'platlib': '$base/lib64/python',
+         'headers': '$base/include/python/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+--- ./Lib/site.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Lib/site.py	2020-01-14 13:10:33 +0100
+@@ -271,7 +271,7 @@
+     if sys.platform == 'darwin' and sys._framework:
+         return f'{userbase}/lib/python/site-packages'
+ 
+-    return f'{userbase}/lib/python{version[0]}.{version[1]}/site-packages'
++    return f'{userbase}/lib/python{version[0]}/site-packages'
+ 
+ 
+ def getuserbase():
+@@ -335,10 +335,14 @@
+ 
+         if os.sep == '/':
+             sitepackages.append(os.path.join(prefix, "lib",
++                                        "python3",
++                                        "site-packages"))
++            sitepackages.append(os.path.join(prefix, "lib64",
+                                         "python%d.%d" % sys.version_info[:2],
+                                         "site-packages"))
+         else:
+             sitepackages.append(prefix)
++            sitepackages.append(os.path.join(prefix, "lib64", "site-packages"))
+             sitepackages.append(os.path.join(prefix, "lib", "site-packages"))
+     return sitepackages
+ 
+--- ./Lib/distutils/sysconfig.py.64bit_lib64	2019-07-08 20:03:50 +0200
++++ ./Lib/distutils/sysconfig.py	2020-01-14 12:09:28 +0100
+@@ -147,8 +147,12 @@
+             prefix = plat_specific and EXEC_PREFIX or PREFIX
+ 
+     if os.name == "posix":
+-        libpython = os.path.join(prefix,
+-                                 "lib", "python" + get_python_version())
++        if plat_specific:
++            libpython = os.path.join(prefix,
++                                 "lib64", "python" + get_python_version())
++        else:
++            libpython = os.path.join(prefix,
++                                 "lib", "python3")
+         if standard_lib:
+             return libpython
+         else:
+--- ./Lib/distutils/command/build_ext.py.64bit_lib64	2019-07-08 20:03:50.000000000 +0200
++++ ./Lib/distutils/command/build_ext.py	2020-01-15 09:25:41.000000000 +0100
+@@ -262,12 +262,15 @@
+         # Finally add the user include and library directories if requested
+         if self.user:
+             user_include = os.path.join(USER_BASE, "include")
+-            user_lib = os.path.join(USER_BASE, "lib")
++            user_lib   = os.path.join(USER_BASE, "lib")
++            user_lib64 = os.path.join(USER_BASE, "lib64")
+             if os.path.isdir(user_include):
+                 self.include_dirs.append(user_include)
+             if os.path.isdir(user_lib):
+                 self.library_dirs.append(user_lib)
+                 self.rpath.append(user_lib)
++                self.library_dirs.append(user_lib64)
++                self.rpath.append(user_lib64)
+ 
+         if isinstance(self.parallel, str):
+             try:

@@ -1,0 +1,46 @@
+--- ./lib/Makefile.ORIGIN	2019-11-26 18:01:46 +0100
++++ ./lib/Makefile	2019-11-26 18:09:09 +0100
+@@ -64,7 +64,11 @@
+ 	SHARED_EXT_VER = $(LIBVER).$(SHARED_EXT)
+ 	SONAME_FLAGS = -install_name $(libdir)/liblz4.$(SHARED_EXT_MAJOR) -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER)
+ else
++  ifeq ($(shell uname), AIX)
++	SONAME_FLAGS =
++  else
+ 	SONAME_FLAGS = -Wl,-soname=liblz4.$(SHARED_EXT).$(LIBVER_MAJOR)
++  endif
+ 	SHARED_EXT = so
+ 	SHARED_EXT_MAJOR = $(SHARED_EXT).$(LIBVER_MAJOR)
+ 	SHARED_EXT_VER = $(SHARED_EXT).$(LIBVER)
+@@ -113,10 +117,20 @@
+   ifeq ($(WINBASED),yes)
+ 	$(Q)$(CC) $(FLAGS) -DLZ4_DLL_EXPORT=1 -shared $^ -o dll/$@.dll -Wl,--out-implib,dll/$(LIBLZ4_EXP)
+   else
++    ifeq ($(shell uname), AIX)
++	CreateExportList liblz4.exp liblz4.a
++	$(Q)$(CC) -qmkshrobj liblz4.a -o $@ -bE:liblz4.exp -bernotok
++	/usr/bin/rm -f liblz4.exp
++	/usr/bin/rm -f liblz4.a
++    else
+ 	$(Q)$(CC) $(FLAGS) -shared $^ -fPIC -fvisibility=hidden $(SONAME_FLAGS) -o $@
++    endif
+ 	@echo creating versioned links
+ 	$(Q)$(LN_SF) $@ liblz4.$(SHARED_EXT_MAJOR)
+ 	$(Q)$(LN_SF) $@ liblz4.$(SHARED_EXT)
++    ifeq ($(shell uname), AIX)
++	/usr/bin/ar -q liblz4.a $@
++    endif
+   endif
+ endif
+ 
+--- ./Makefile.inc.ORIGIN	2019-11-26 18:22:13 +0100
++++ ./Makefile.inc	2019-11-26 18:22:49 +0100
+@@ -51,7 +51,7 @@
+   endif
+ endif
+ 
+-ifneq (,$(filter Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku MidnightBSD MINGW% CYGWIN% MSYS%,$(shell uname)))
++ifneq (,$(filter Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku MidnightBSD AIX MINGW% CYGWIN% MSYS%,$(shell uname)))
+ POSIX_ENV = Yes
+ else
+ POSIX_ENV = No

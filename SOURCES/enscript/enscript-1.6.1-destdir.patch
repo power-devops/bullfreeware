@@ -1,0 +1,122 @@
+Index: enscript-1.6.1/lib/Makefile.in
+diff -c enscript-1.6.1/lib/Makefile.in:1.1 enscript-1.6.1/lib/Makefile.in:1.2
+*** enscript-1.6.1/lib/Makefile.in:1.1	Mon Feb 26 11:54:49 2001
+--- enscript-1.6.1/lib/Makefile.in	Mon Feb 26 12:07:21 2001
+***************
+*** 240,254 ****
+  all-local: enscript.cfg
+  
+  install-data-local: enscript.cfg
+! 	$(top_srcdir)/mkinstalldirs $(sysconfdir)
+! 	if test -r $(sysconfdir)/enscript.cfg; then \
+! 	  cp $(sysconfdir)/enscript.cfg $(sysconfdir)/enscript.cfg.old; \
+  	else :; \
+  	fi
+! 	$(INSTALL_DATA) enscript.cfg $(sysconfdir)/enscript.cfg
+  
+  uninstall-local:
+! 	rm -f $(sysconfdir)/enscript.cfg
+  
+  enscript.cfg: $(srcdir)/enscript.cfg.in Makefile
+  	sed 's%@DATADIR@%$(datadir)%g; s%@media@%@MEDIA@%g; s%@BINDIR@%$(bindir)%g; s%@spooler@%@SPOOLER@%g; s%@pslevel@%@PSLEVEL@%g' \
+--- 240,255 ----
+  all-local: enscript.cfg
+  
+  install-data-local: enscript.cfg
+! 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(sysconfdir)
+! 	if test -r $(DESTDIR)$(sysconfdir)/enscript.cfg; then \
+! 	  cp $(DESTDIR)$(sysconfdir)/enscript.cfg \
+! 		$(DESTDIR)$(sysconfdir)/enscript.cfg.old; \
+  	else :; \
+  	fi
+! 	$(INSTALL_DATA) enscript.cfg $(DESTDIR)$(sysconfdir)/enscript.cfg
+  
+  uninstall-local:
+! 	rm -f $(DESTDIR)$(sysconfdir)/enscript.cfg
+  
+  enscript.cfg: $(srcdir)/enscript.cfg.in Makefile
+  	sed 's%@DATADIR@%$(datadir)%g; s%@media@%@MEDIA@%g; s%@BINDIR@%$(bindir)%g; s%@spooler@%@SPOOLER@%g; s%@pslevel@%@PSLEVEL@%g' \
+Index: enscript-1.6.1/states/Makefile.in
+diff -c enscript-1.6.1/states/Makefile.in:1.1 enscript-1.6.1/states/Makefile.in:1.2
+*** enscript-1.6.1/states/Makefile.in:1.1	Mon Feb 26 11:54:51 2001
+--- enscript-1.6.1/states/Makefile.in	Mon Feb 26 12:07:36 2001
+***************
+*** 493,500 ****
+  	$(srcdir)/over.in > over
+  
+  install-data-local: enscript.st
+! 	$(top_srcdir)/mkinstalldirs $(datadir)/enscript
+! 	$(INSTALL_DATA) $(srcdir)/enscript.st $(datadir)/enscript/enscript.st
+  
+  uninstall-local:
+  	rm -f $(datadir)/enscript/enscript.st
+--- 493,500 ----
+  	$(srcdir)/over.in > over
+  
+  install-data-local: enscript.st
+! 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(datadir)/enscript
+! 	$(INSTALL_DATA) $(srcdir)/enscript.st $(DESTDIR)$(datadir)/enscript/enscript.st
+  
+  uninstall-local:
+  	rm -f $(datadir)/enscript/enscript.st
+Index: enscript-1.6.1/po/Makefile.in.in
+diff -c enscript-1.6.1/po/Makefile.in.in:1.1 enscript-1.6.1/po/Makefile.in.in:1.2
+*** enscript-1.6.1/po/Makefile.in.in:1.1	Mon Feb 26 11:54:50 2001
+--- enscript-1.6.1/po/Makefile.in.in	Mon Feb 26 12:07:46 2001
+***************
+*** 137,163 ****
+  	  lang=`echo $$cat | sed 's/$(CATOBJEXT)$$//'`; \
+  	  dir=$$destdir/$$lang/LC_MESSAGES; \
+  	  if test -r $(MKINSTALLDIRS); then \
+! 	    $(MKINSTALLDIRS) $$dir; \
+  	  else \
+  	    $(top_srcdir)/mkinstalldirs $$dir; \
+  	  fi; \
+  	  if test -r $$cat; then \
+! 	    $(INSTALL_DATA) $$cat $$dir/$(PACKAGE)$(INSTOBJEXT); \
+! 	    echo "installing $$cat as $$dir/$(PACKAGE)$(INSTOBJEXT)"; \
+  	  else \
+! 	    $(INSTALL_DATA) $(srcdir)/$$cat $$dir/$(PACKAGE)$(INSTOBJEXT); \
+  	    echo "installing $(srcdir)/$$cat as" \
+! 		 "$$dir/$(PACKAGE)$(INSTOBJEXT)"; \
+  	  fi; \
+  	  if test -r $$cat.m; then \
+! 	    $(INSTALL_DATA) $$cat.m $$dir/$(PACKAGE)$(INSTOBJEXT).m; \
+! 	    echo "installing $$cat.m as $$dir/$(PACKAGE)$(INSTOBJEXT).m"; \
+  	  else \
+  	    if test -r $(srcdir)/$$cat.m ; then \
+  	      $(INSTALL_DATA) $(srcdir)/$$cat.m \
+! 		$$dir/$(PACKAGE)$(INSTOBJEXT).m; \
+  	      echo "installing $(srcdir)/$$cat as" \
+! 		   "$$dir/$(PACKAGE)$(INSTOBJEXT).m"; \
+  	    else \
+  	      true; \
+  	    fi; \
+--- 137,163 ----
+  	  lang=`echo $$cat | sed 's/$(CATOBJEXT)$$//'`; \
+  	  dir=$$destdir/$$lang/LC_MESSAGES; \
+  	  if test -r $(MKINSTALLDIRS); then \
+! 	    $(MKINSTALLDIRS) $(DESTDIR)$$dir; \
+  	  else \
+  	    $(top_srcdir)/mkinstalldirs $$dir; \
+  	  fi; \
+  	  if test -r $$cat; then \
+! 	    $(INSTALL_DATA) $$cat $(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT); \
+! 	    echo "installing $$cat as $(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT)"; \
+  	  else \
+! 	    $(INSTALL_DATA) $(srcdir)/$$cat $(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT); \
+  	    echo "installing $(srcdir)/$$cat as" \
+! 		 "$(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT)"; \
+  	  fi; \
+  	  if test -r $$cat.m; then \
+! 	    $(INSTALL_DATA) $$cat.m $(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT).m; \
+! 	    echo "installing $$cat.m as $(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT).m"; \
+  	  else \
+  	    if test -r $(srcdir)/$$cat.m ; then \
+  	      $(INSTALL_DATA) $(srcdir)/$$cat.m \
+! 		$(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT).m; \
+  	      echo "installing $(srcdir)/$$cat as" \
+! 		   "$(DESTDIR)$$dir/$(PACKAGE)$(INSTOBJEXT).m"; \
+  	    else \
+  	      true; \
+  	    fi; \

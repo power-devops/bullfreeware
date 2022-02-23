@@ -1,0 +1,64 @@
+From ad1b3e68229273b4983b607c5eeb56551536c583 Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Fri, 7 Feb 2020 15:19:53 -0500
+Subject: [PATCH] Bash-5.0 patch 15: aliases and -c commands can cause
+ premature termination
+
+---
+ builtins/evalstring.c | 6 ++++--
+ patchlevel.h          | 2 +-
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/builtins/evalstring.c b/builtins/evalstring.c
+index cadc9bc0..2f13a66a 100644
+--- a/builtins/evalstring.c
++++ b/builtins/evalstring.c
+@@ -91,6 +91,7 @@ should_suppress_fork (command)
+   return (startup_state == 2 && parse_and_execute_level == 1 &&
+ 	  running_trap == 0 &&
+ 	  *bash_input.location.string == '\0' &&
++	  parser_expanding_alias () == 0 &&
+ 	  command->type == cm_simple &&
+ 	  signal_is_trapped (EXIT_TRAP) == 0 &&
+ 	  signal_is_trapped (ERROR_TRAP) == 0 &&
+@@ -105,6 +106,7 @@ can_optimize_connection (command)
+      COMMAND *command;
+ {
+   return (*bash_input.location.string == '\0' &&
++	  parser_expanding_alias () == 0 &&
+ 	  (command->value.Connection->connector == AND_AND || command->value.Connection->connector == OR_OR || command->value.Connection->connector == ';') &&
+ 	  command->value.Connection->second->type == cm_simple);
+ }
+@@ -290,7 +292,7 @@ parse_and_execute (string, from_file, flags)
+ 
+   with_input_from_string (string, from_file);
+   clear_shell_input_line ();
+-  while (*(bash_input.location.string))
++  while (*(bash_input.location.string) || parser_expanding_alias ())
+     {
+       command = (COMMAND *)NULL;
+ 
+@@ -545,7 +547,7 @@ parse_string (string, from_file, flags, endp)
+   ostring = string;
+ 
+   with_input_from_string (string, from_file);
+-  while (*(bash_input.location.string))
++  while (*(bash_input.location.string))		/* XXX - parser_expanding_alias () ? */
+     {
+       command = (COMMAND *)NULL;
+ 
+diff --git a/patchlevel.h b/patchlevel.h
+index 09a3cc84..6e9ed3fc 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 14
++#define PATCHLEVEL 15
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.25.1
+

@@ -1,0 +1,35 @@
+From 43cf653d21d931b792b36c7e6e4cfab3a6236bef Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Wed, 25 Jul 2018 11:50:02 -0400
+Subject: [PATCH] Fix k5test prompts for Python 3
+
+With Python 3, sys.stdout.write() of a partial line followed by
+sys.stdin.readline() does not display the partial line.  Add explicit
+flushes to make prompts visible in k5test.py.
+
+ticket: 8710
+(cherry picked from commit 297535b72177dcced036b78107e9d0e37781c7a3)
+---
+ src/util/k5test.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/util/k5test.py b/src/util/k5test.py
+index 81fac3063..e4f99b211 100644
+--- a/src/util/k5test.py
++++ b/src/util/k5test.py
+@@ -457,6 +457,7 @@ def _onexit():
+     if _debug or _stop_before or _stop_after or _shell_before or _shell_after:
+         # Wait before killing daemons in case one is being debugged.
+         sys.stdout.write('*** Press return to kill daemons and exit script: ')
++        sys.stdout.flush()
+         sys.stdin.readline()
+     for proc in _daemons:
+         os.kill(proc.pid, signal.SIGTERM)
+@@ -658,6 +659,7 @@ def _valgrind(args):
+ def _stop_or_shell(stop, shell, env, ind):
+     if (_match_cmdnum(stop, ind)):
+         sys.stdout.write('*** [%d] Waiting for return: ' % ind)
++        sys.stdout.flush()
+         sys.stdin.readline()
+     if (_match_cmdnum(shell, ind)):
+         output('*** [%d] Spawning shell\n' % ind, True)

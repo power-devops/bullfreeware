@@ -1,0 +1,22 @@
+Index: Python-2.7.10/Lib/sysconfig.py
+===================================================================
+--- Python-2.7.10.orig/Lib/sysconfig.py	2013-05-22 14:36:10.000000000 +0200
++++ Python-2.7.10/Lib/sysconfig.py	2013-05-23 13:55:24.000000000 +0200
+@@ -303,11 +303,12 @@
+             msg = msg + " (%s)" % e.strerror
+         raise IOError(msg)
+ 
+-    # On AIX, there are wrong paths to the linker scripts in the Makefile
+-    # -- these paths are relative to the Python source, but when installed
+-    # the scripts are in another directory.
+-    if _PYTHON_BUILD:
+-        vars['LDSHARED'] = vars['BLDSHARED']
++#  obsolete since changeset 83198 _generate_posix_vars()
++#     # On AIX, there are wrong paths to the linker scripts in the Makefile
++#     # -- these paths are relative to the Python source, but when installed
++#     # the scripts are in another directory.
++#     if _PYTHON_BUILD:
++#         vars['LDSHARED'] = vars['BLDSHARED']
+ 
+     # There's a chicken-and-egg situation on OS X with regards to the
+     # _sysconfigdata module after the changes introduced by #15298:

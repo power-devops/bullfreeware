@@ -1,0 +1,197 @@
+Index: fnlib-0.5/ltconfig
+diff -c fnlib-0.5/ltconfig:1.1 fnlib-0.5/ltconfig:1.2
+*** fnlib-0.5/ltconfig:1.1	Thu Aug 24 14:09:01 2000
+--- fnlib-0.5/ltconfig	Thu Aug 24 14:11:59 2000
+***************
+*** 696,702 ****
+  else
+    # PORTME Check for PIC flags for the system compiler.
+    case "$host_os" in
+!   aix3* | aix4*)
+      # All AIX code is PIC.
+      link_static_flag='-bnso -bI:/lib/syscalls.exp'
+      ;;
+--- 696,702 ----
+  else
+    # PORTME Check for PIC flags for the system compiler.
+    case "$host_os" in
+!   aix3* | aix4* | aix5*)
+      # All AIX code is PIC.
+      link_static_flag='-bnso -bI:/lib/syscalls.exp'
+      ;;
+***************
+*** 1115,1121 ****
+  
+    # See if GNU ld supports shared libraries.
+    case "$host_os" in
+!   aix3* | aix4*)
+      # On AIX, the GNU linker is very broken
+      ld_shlibs=no
+      cat <<EOF 1>&2
+--- 1115,1121 ----
+  
+    # See if GNU ld supports shared libraries.
+    case "$host_os" in
+!   aix3* | aix4* | aix5*)
+      # On AIX, the GNU linker is very broken
+      ld_shlibs=no
+      cat <<EOF 1>&2
+***************
+*** 1265,1303 ****
+      fi
+      ;;
+  
+!   aix4*)
+!     hardcode_libdir_flag_spec='${wl}-b ${wl}nolibpath ${wl}-b ${wl}libpath:$libdir:/usr/lib:/lib'
+!     hardcode_libdir_separator=':'
+!     if test "$with_gcc" = yes; then
+!       collect2name=`${CC} -print-prog-name=collect2`
+!       if test -f "$collect2name" && \
+! 	 strings "$collect2name" | grep resolve_lib_name >/dev/null
+!       then
+! 	# We have reworked collect2
+! 	hardcode_direct=yes
+        else
+! 	# We have old collect2
+! 	hardcode_direct=unsupported
+! 	# It fails to find uninstalled libraries when the uninstalled
+! 	# path is not listed in the libpath.  Setting hardcode_minus_L
+! 	# to unsupported forces relinking
+! 	hardcode_minus_L=yes
+! 	hardcode_libdir_flag_spec='-L$libdir'
+! 	hardcode_libdir_separator=
+        fi
+!       shared_flag='-shared'
+      else
+!       shared_flag='${wl}-bM:SRE'
+!       hardcode_direct=yes
+      fi
+!     allow_undefined_flag=' ${wl}-berok'
+!     archive_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bexpall ${wl}-bnoentry${allow_undefined_flag}'
+!     archive_expsym_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bE:$export_symbols ${wl}-bnoentry${allow_undefined_flag}'
+!     case "$host_os" in aix4.[01]|aix4.[01].*)
+!       # According to Greg Wooledge, -bexpall is only supported from AIX 4.2 on
+!       always_export_symbols=yes ;;
+!     esac
+!    ;;
+  
+    amigaos*)
+      archive_cmds='$rm $objdir/a2ixlibrary.data~$echo "#define NAME $libname" > $objdir/a2ixlibrary.data~$echo "#define LIBRARY_ID 1" >> $objdir/a2ixlibrary.data~$echo "#define VERSION $major" >> $objdir/a2ixlibrary.data~$echo "#define REVISION $revision" >> $objdir/a2ixlibrary.data~$AR cru $lib $libobjs~$RANLIB $lib~(cd $objdir && a2ixlibrary -32)'
+--- 1265,1344 ----
+      fi
+      ;;
+  
+!   aix4* | aix5*)
+!     # First test if we are trying to use run time linking, or normal AIX style linking.
+!     # If -brtl is somewhere in LDFLAGS, we need to do run time linking.
+!     aix_use_runtimelinking=no
+!     for ld_flag in $LDFLAGS; do
+!       if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl" ); then
+!         aix_use_runtimelinking=yes
+!         break
+!       fi
+!     done
+!     if test "$aix_use_runtimelinking" = yes; then
+!       hardcode_libdir_flag_spec='${wl}-blibpath:$libdir:/usr/lib:/lib'
+!       hardcode_libdir_separator=':'
+!       if test "$with_gcc" = yes; then
+!         collect2name=`${CC} -print-prog-name=collect2`
+!         if test -f "$collect2name" && \
+! 	   strings "$collect2name" | grep resolve_lib_name >/dev/null
+!         then
+! 	  # We have reworked collect2
+! 	  hardcode_direct=yes
+!         else
+! 	  # We have old collect2
+! 	  hardcode_direct=unsupported
+! 	  # It fails to find uninstalled libraries when the uninstalled
+! 	  # path is not listed in the libpath.  Setting hardcode_minus_L
+! 	  # to unsupported forces relinking
+! 	  hardcode_minus_L=yes
+! 	  hardcode_libdir_flag_spec='-L$libdir'
+! 	  hardcode_libdir_separator=
+!         fi
+!         shared_flag='-shared'
+        else
+!         shared_flag='${wl}-bM:SRE'
+!         hardcode_direct=yes
+        fi
+!       allow_undefined_flag=' -Wl,-G'
+!       archive_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bnoentry${allow_undefined_flag}'
+!       # It seems that -bexpall can do strange things, so it is better to
+!       # generate a list of symbols to export.
+!       always_export_symbols=yes
+!       archive_expsym_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bE:$export_symbols ${wl}-bnoentry${allow_undefined_flag}'
+      else
+!       hardcode_libdir_flag_spec='${wl}-bnolibpath ${wl}-blibpath:$libdir:/usr/lib:/lib'
+!       hardcode_libdir_separator=':'
+!       if test "$with_gcc" = yes; then
+!         collect2name=`${CC} -print-prog-name=collect2`
+!         if test -f "$collect2name" && \
+!            strings "$collect2name" | grep resolve_lib_name >/dev/null
+!         then
+!           # We have reworked collect2
+!           hardcode_direct=yes
+!         else
+!           # We have old collect2
+!           hardcode_direct=unsupported
+!           # It fails to find uninstalled libraries when the uninstalled
+!           # path is not listed in the libpath.  Setting hardcode_minus_L
+!           # to unsupported forces relinking
+!           hardcode_minus_L=yes
+!           hardcode_libdir_flag_spec='-L$libdir'
+!           hardcode_libdir_separator=
+!         fi
+!         shared_flag='-shared'
+!       else
+!         shared_flag='${wl}-bM:SRE'
+!         hardcode_direct=yes
+!       fi
+!       # Warning - without using the other run time loading flags, -berok will
+!       #           link without error, but may produce a broken library.
+!       allow_undefined_flag=" ${wl}-berok"
+!       archive_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bexpall ${wl}-bnoentry${allow_undefined_flag}'
+!       archive_expsym_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bE:$export_symbols ${wl}-bnoentry${allow_undefined_flag}'
+!       always_export_symbols=yes
+      fi
+!     ;;
+  
+    amigaos*)
+      archive_cmds='$rm $objdir/a2ixlibrary.data~$echo "#define NAME $libname" > $objdir/a2ixlibrary.data~$echo "#define LIBRARY_ID 1" >> $objdir/a2ixlibrary.data~$echo "#define VERSION $major" >> $objdir/a2ixlibrary.data~$echo "#define REVISION $revision" >> $objdir/a2ixlibrary.data~$AR cru $lib $libobjs~$RANLIB $lib~(cd $objdir && a2ixlibrary -32)'
+***************
+*** 1757,1770 ****
+    soname_spec='${libname}${release}.so$major'
+    ;;
+  
+! aix4*)
+    version_type=linux
+    # AIX has no versioning support, so currently we can not hardcode correct
+    # soname into executable. Probably we can add versioning support to
+    # collect2, so additional links can be useful in future.
+!   # We preserve .a as extension for shared libraries though AIX4.2
+!   # and later linker supports .so
+!   library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.a'
+    shlibpath_var=LIBPATH
+    deplibs_check_method=pass_all
+    ;;
+--- 1798,1817 ----
+    soname_spec='${libname}${release}.so$major'
+    ;;
+  
+! aix4* | aix5*)
+    version_type=linux
+    # AIX has no versioning support, so currently we can not hardcode correct
+    # soname into executable. Probably we can add versioning support to
+    # collect2, so additional links can be useful in future.
+!   if test "$aix_use_runtimelinking" = yes; then
+!     # If using run time linking (on AIX 4.2 or later) use lib<name>.so instead of
+!     # lib<name>.a to let people know that these are not typical AIX shared libraries.
+!     library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.so'
+!   else
+!     # We preserve .a as extension for shared libraries though AIX4.2
+!     # and later linker supports .so
+!     library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.a'
+!   fi
+    shlibpath_var=LIBPATH
+    deplibs_check_method=pass_all
+    ;;

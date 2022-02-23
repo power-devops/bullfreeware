@@ -1,0 +1,52 @@
+From aa349e3e010be2cbafd4d840a6e772a108a74467 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 27 May 2020 13:45:48 +0200
+Subject: [PATCH] fix fd leaks
+
+errorfd file descriptors should be closed when forking, otherwize
+a fd leak occurs.
+
+This patch make use of F_DUPFD_CLOEXEC if available or fcntl
+setting FD_CLOEXEC flag if not.
+---
+ exp_clib.c    | 5 +++++
+ exp_command.c | 5 +++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/exp_clib.c b/exp_clib.c
+index 58b769e..fe2312f 100644
+--- a/exp_clib.c
++++ b/exp_clib.c
+@@ -2510,7 +2510,12 @@ when trapping, see below in child half of fork */
+ #endif /* DO_SETSID */
+ 
+ 	/* save error fd while we're setting up new one */
++#ifdef F_DUPFD_CLOEXEC
++	errorfd = fcntl(2,F_DUPFD_CLOEXEC,3);
++#else
+	errorfd = fcntl(2,F_DUPFD,3);
++	fcntl(errorfd, F_SETFD, FD_CLOEXEC);
++#endif /* F_DUPFD_CLOXEC */
+ 	/* and here is the macro to restore it */
+ #define restore_error_fd {close(2);fcntl(errorfd,F_DUPFD,2);}
+ 
+diff --git a/exp_command.c b/exp_command.c
+index b554b18..f40d3d6 100644
+--- a/exp_command.c
++++ b/exp_command.c
+@@ -1161,7 +1161,12 @@ Exp_SpawnObjCmd(
+     /* if stty finds dev(stderr) != dev(stdout) */
+ 
+     /* save error fd while we're setting up new one */
++#ifdef F_DUPFD_CLOEXEC
++    errorfd = fcntl(2,F_DUPFD_CLOEXEC,3);
++#else
+     errorfd = fcntl(2,F_DUPFD,3);
++    fcntl(errorfd, F_SETFD, FD_CLOEXEC);
++#endif /* F_DUPFD_CLOXEC */
+     /* and here is the macro to restore it */
+ #define restore_error_fd {close(2);fcntl(errorfd,F_DUPFD,2);}
+ 
+-- 
+2.25.0
+

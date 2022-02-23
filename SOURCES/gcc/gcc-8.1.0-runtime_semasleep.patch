@@ -1,0 +1,28 @@
+Index: libgo/go/runtime/os_aix.go
+===================================================================
+--- ./libgo/go/runtime/os_aix.go	(revision 259702)
++++ ./libgo/go/runtime/os_aix.go	(working copy)
+@@ -61,12 +61,18 @@ func semasleep(ns int64) int32 {
+ 		if clock_gettime(CLOCK_REALTIME, &ts) != 0 {
+ 			throw("clock_gettime")
+ 		}
+-		ts.tv_sec += timespec_sec_t(ns / 1000000000)
+-		ts.tv_nsec += timespec_nsec_t(ns % 1000000000)
+-		if ts.tv_nsec >= 1000000000 {
+-			ts.tv_sec += timespec_sec_t(1)
+-			ts.tv_nsec -= timespec_nsec_t(1000000000)
++		sec := int64(ts.tv_sec) + ns / 1000000000
++		nsec := int64(ts.tv_nsec) + ns % 1000000000
++		if nsec >= 1000000000 {
++			sec += 1
++			nsec -= 1000000000
+ 		}
++		if sec != int64(timespec_sec_t(sec)) {
++			// Handle overflows (timespec_sec_t is 32-bit in 32-bit applications)
++			sec = 1<<31 - 1
++		}
++		ts.tv_sec = timespec_sec_t(sec)
++		ts.tv_nsec = timespec_nsec_t(nsec)
+ 
+ 		if sem_timedwait((*semt)(unsafe.Pointer(_m_.mos.waitsema)), &ts) != 0 {
+ 			err := errno()

@@ -1,0 +1,42 @@
+From 93be6b912d06ef0c7d89c08589f4b4b53c732d73 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 14 Aug 2020 09:53:05 -0500
+Subject: [PATCH 1/2] libgo: add FAT library support for static libraries on
+ AIX
+
+---
+ libgo/Makefile.am | 4 ++++
+ libgo/Makefile.in | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/libgo/Makefile.am b/libgo/Makefile.am
+index 1112ee27df6..9ce0cab9d6a 100644
+--- a/libgo/Makefile.am
++++ b/libgo/Makefile.am
+@@ -1255,4 +1255,8 @@ add-aix-fat-library: all-multi
+ 	  arx=`echo $(AR) | sed -e 's/-X[^ ]*//g'`; \
+ 	  $${arx} -X$(AIX_EXTRA_ARCH) rc .libs/$(PACKAGE).a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
+ 	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc libgobegin.a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgobegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/libgobegin.a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgobegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc libgolibbegin.a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgolibbegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/libgolibbegin.a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgolibbegin_a_OBJECTS); \
+ 	fi
+diff --git a/libgo/Makefile.in b/libgo/Makefile.in
+index 1fb8da6f552..b5770831556 100644
+--- a/libgo/Makefile.in
++++ b/libgo/Makefile.in
+@@ -3129,6 +3129,10 @@ add-aix-fat-library: all-multi
+ 	  arx=`echo $(AR) | sed -e 's/-X[^ ]*//g'`; \
+ 	  $${arx} -X$(AIX_EXTRA_ARCH) rc .libs/$(PACKAGE).a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
+ 	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc libgobegin.a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgobegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/libgobegin.a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgobegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc libgolibbegin.a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgolibbegin_a_OBJECTS); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/libgolibbegin.a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/$(libgolibbegin_a_OBJECTS); \
+ 	fi
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+-- 
+2.25.0
+

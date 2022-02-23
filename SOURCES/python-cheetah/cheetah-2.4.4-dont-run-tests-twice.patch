@@ -1,0 +1,10 @@
+--- Cheetah-2.4.4/cheetah/CheetahWrapper.py.orig	2010-12-12 22:43:26.000000000 -0500
++++ Cheetah-2.4.4/cheetah/CheetahWrapper.py	2010-12-20 17:24:44.524608918 -0500
+@@ -263,7 +263,6 @@
+         if '-v' in self.testOpts:
+             verbosity = 2
+         runner = unittest.TextTestRunner(verbosity=verbosity)
+-        runner.run(unittest.TestSuite(Test.suites))
+         results = runner.run(unittest.TestSuite(Test.suites))
+         exit(int(not results.wasSuccessful()))
+ 

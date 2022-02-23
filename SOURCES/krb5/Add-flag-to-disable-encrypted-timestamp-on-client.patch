@@ -1,0 +1,204 @@
+From f44ef4893050e673f495444c27a19525813f75a8 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 11 Jun 2018 13:53:27 -0400
+Subject: [PATCH] Add flag to disable encrypted timestamp on client
+
+ticket: 8655
+(cherry picked from commit 4ad376134b8d456392edbac7a7d351e6c7a7f0e7)
+---
+ doc/admin/conf_files/krb5_conf.rst | 10 ++++++++++
+ doc/admin/spake.rst                |  8 ++++++++
+ src/include/k5-int.h               |  1 +
+ src/include/k5-trace.h             |  2 ++
+ src/lib/krb5/krb/get_in_tkt.c      | 23 +++++++++++++++++++++++
+ src/lib/krb5/krb/init_creds_ctx.h  |  1 +
+ src/lib/krb5/krb/preauth_encts.c   | 14 +++++++++++++-
+ src/tests/t_referral.py            | 13 +++++++++++++
+ 8 files changed, 71 insertions(+), 1 deletion(-)
+
+diff --git a/doc/admin/conf_files/krb5_conf.rst b/doc/admin/conf_files/krb5_conf.rst
+index ce545492d..eb5c29e5d 100644
+--- a/doc/admin/conf_files/krb5_conf.rst
++++ b/doc/admin/conf_files/krb5_conf.rst
+@@ -475,6 +475,16 @@ following tags may be specified in the realm's subsection:
+     (for example, when converting ``rcmd.hostname`` to
+     ``host/hostname.domain``).
+ 
++**disable_encrypted_timestamp**
++    If this flag is true, the client will not perform encrypted
++    timestamp preauthentication if requested by the KDC.  Setting this
++    flag can help to prevent dictionary attacks by active attackers,
++    if the realm's KDCs support SPAKE preauthentication or if initial
++    authentication always uses another mechanism or always uses FAST.
++    This flag persists across client referrals during initial
++    authentication.  This flag does not prevent the KDC from offering
++    encrypted timestamp.  New in release 1.17.
++
+ **http_anchors**
+     When KDCs and kpasswd servers are accessed through HTTPS proxies, this tag
+     can be used to specify the location of the CA certificate which should be
+diff --git a/doc/admin/spake.rst b/doc/admin/spake.rst
+index b65c694aa..4f6eeaf53 100644
+--- a/doc/admin/spake.rst
++++ b/doc/admin/spake.rst
+@@ -30,6 +30,14 @@ principal entries, as you would for any preauthentication mechanism::
+ Clients which do not implement SPAKE preauthentication will fall back
+ to encrypted timestamp.
+ 
++An active attacker can force a fallback to encrypted timestamp by
++modifying the initial KDC response, defeating the protection against
++dictionary attacks.  To prevent this fallback on clients which do
++implement SPAKE preauthentication, set the
++**disable_encrypted_timestamp** variable to ``true`` in the
++:ref:`realms` subsection for realms whose KDCs offer SPAKE
++preauthentication.
++
+ By default, SPAKE preauthentication requires an extra network round
+ trip to the KDC during initial authentication.  If most of the clients
+ in a realm support SPAKE, this extra round trip can be eliminated
+diff --git a/src/include/k5-int.h b/src/include/k5-int.h
+index 86b53c76b..e4a9a1412 100644
+--- a/src/include/k5-int.h
++++ b/src/include/k5-int.h
+@@ -204,6 +204,7 @@ typedef unsigned char   u_char;
+ #define KRB5_CONF_DES_CRC_SESSION_SUPPORTED    "des_crc_session_supported"
+ #define KRB5_CONF_DICT_FILE                    "dict_file"
+ #define KRB5_CONF_DISABLE                      "disable"
++#define KRB5_CONF_DISABLE_ENCRYPTED_TIMESTAMP  "disable_encrypted_timestamp"
+ #define KRB5_CONF_DISABLE_LAST_SUCCESS         "disable_last_success"
+ #define KRB5_CONF_DISABLE_LOCKOUT              "disable_lockout"
+ #define KRB5_CONF_DNS_CANONICALIZE_HOSTNAME    "dns_canonicalize_hostname"
+diff --git a/src/include/k5-trace.h b/src/include/k5-trace.h
+index 5f7eb9517..0854974dc 100644
+--- a/src/include/k5-trace.h
++++ b/src/include/k5-trace.h
+@@ -299,6 +299,8 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
+ #define TRACE_PREAUTH_ENC_TS(c, sec, usec, plain, enc)                  \
+     TRACE(c, "Encrypted timestamp (for {long}.{int}): plain {hexdata}, " \
+           "encrypted {hexdata}", (long) sec, (int) usec, plain, enc)
++#define TRACE_PREAUTH_ENC_TS_DISABLED(c)                                \
++    TRACE(c, "Ignoring encrypted timestamp because it is disabled")
+ #define TRACE_PREAUTH_ETYPE_INFO(c, etype, salt, s2kparams)          \
+     TRACE(c, "Selected etype info: etype {etype}, salt \"{data}\", " \
+           "params \"{data}\"", etype, salt, s2kparams)
+diff --git a/src/lib/krb5/krb/get_in_tkt.c b/src/lib/krb5/krb/get_in_tkt.c
+index c026bbc6d..79dede2c6 100644
+--- a/src/lib/krb5/krb/get_in_tkt.c
++++ b/src/lib/krb5/krb/get_in_tkt.c
+@@ -801,6 +801,24 @@ read_allowed_preauth_type(krb5_context context, krb5_init_creds_context ctx)
+     free(tmp);
+ }
+ 
++/* Return true if encrypted timestamp is disabled for realm. */
++static krb5_boolean
++encts_disabled(profile_t profile, const krb5_data *realm)
++{
++    krb5_error_code ret;
++    char *realmstr;
++    int bval;
++
++    realmstr = k5memdup0(realm->data, realm->length, &ret);
++    if (realmstr == NULL)
++        return FALSE;
++    ret = profile_get_boolean(profile, KRB5_CONF_REALMS, realmstr,
++                              KRB5_CONF_DISABLE_ENCRYPTED_TIMESTAMP, FALSE,
++                              &bval);
++    free(realmstr);
++    return (ret == 0) ? bval : FALSE;
++}
++
+ /**
+  * Throw away any pre-authentication realm state and begin with a
+  * unauthenticated or optimistically authenticated request.  If fast_upgrade is
+@@ -842,6 +860,11 @@ restart_init_creds_loop(krb5_context context, krb5_init_creds_context ctx,
+             goto cleanup;
+     }
+ 
++    /* Never set encts_disabled back to false, so it can't be circumvented with
++     * client realm referrals. */
++    if (encts_disabled(context->profile, &ctx->request->client->realm))
++        ctx->encts_disabled = TRUE;
++
+     krb5_free_principal(context, ctx->request->server);
+     ctx->request->server = NULL;
+ 
+diff --git a/src/lib/krb5/krb/init_creds_ctx.h b/src/lib/krb5/krb/init_creds_ctx.h
+index 7ba61e17c..7a6219b1c 100644
+--- a/src/lib/krb5/krb/init_creds_ctx.h
++++ b/src/lib/krb5/krb/init_creds_ctx.h
+@@ -61,6 +61,7 @@ struct _krb5_init_creds_context {
+     krb5_boolean info_pa_permitted;
+     krb5_boolean restarted;
+     krb5_boolean fallback_disabled;
++    krb5_boolean encts_disabled;
+     struct krb5_responder_context_st rctx;
+     krb5_preauthtype selected_preauth_type;
+     krb5_preauthtype allowed_preauth_type;
+diff --git a/src/lib/krb5/krb/preauth_encts.c b/src/lib/krb5/krb/preauth_encts.c
+index 45bf9da92..345701984 100644
+--- a/src/lib/krb5/krb/preauth_encts.c
++++ b/src/lib/krb5/krb/preauth_encts.c
+@@ -28,6 +28,7 @@
+ #include <k5-int.h>
+ #include <krb5/clpreauth_plugin.h>
+ #include "int-proto.h"
++#include "init_creds_ctx.h"
+ 
+ static krb5_error_code
+ encts_prep_questions(krb5_context context, krb5_clpreauth_moddata moddata,
+@@ -38,7 +39,10 @@ encts_prep_questions(krb5_context context, krb5_clpreauth_moddata moddata,
+                      krb5_data *encoded_previous_request,
+                      krb5_pa_data *pa_data)
+ {
+-    cb->need_as_key(context, rock);
++    krb5_init_creds_context ctx = (krb5_init_creds_context)rock;
++
++    if (!ctx->encts_disabled)
++        cb->need_as_key(context, rock);
+     return 0;
+ }
+ 
+@@ -51,6 +55,7 @@ encts_process(krb5_context context, krb5_clpreauth_moddata moddata,
+               krb5_prompter_fct prompter, void *prompter_data,
+               krb5_pa_data ***out_padata)
+ {
++    krb5_init_creds_context ctx = (krb5_init_creds_context)rock;
+     krb5_error_code ret;
+     krb5_pa_enc_ts pa_enc;
+     krb5_data *ts = NULL, *enc_ts = NULL;
+@@ -60,6 +65,13 @@ encts_process(krb5_context context, krb5_clpreauth_moddata moddata,
+ 
+     enc_data.ciphertext = empty_data();
+ 
++    if (ctx->encts_disabled) {
++        TRACE_PREAUTH_ENC_TS_DISABLED(context);
++        k5_setmsg(context, KRB5_PREAUTH_FAILED,
++                  _("Encrypted timestamp is disabled"));
++        return KRB5_PREAUTH_FAILED;
++    }
++
+     ret = cb->get_as_key(context, rock, &as_key);
+     if (ret)
+         goto cleanup;
+diff --git a/src/tests/t_referral.py b/src/tests/t_referral.py
+index 98fdf2925..e12fdc2e9 100755
+--- a/src/tests/t_referral.py
++++ b/src/tests/t_referral.py
+@@ -126,4 +126,17 @@ r1.klist('user@KRBTEST2.COM', 'krbtgt/KRBTEST2.COM')
+ r1.kinit('abc@XYZ', 'pw', ['-E'])
+ r1.klist('abc\@XYZ@KRBTEST2.COM', 'krbtgt/KRBTEST2.COM')
+ 
++# Test that disable_encrypted_timestamp persists across client
++# referrals.  (This test relies on SPAKE not being enabled by default
++# on the KDC.)
++r2.run([kadminl, 'modprinc', '+preauth', 'user'])
++msgs = ('Encrypted timestamp (for ')
++r1.kinit('user', password('user'), ['-C'], expected_trace=msgs)
++dconf = {'realms': {'$realm': {'disable_encrypted_timestamp': 'true'}}}
++denv = r1.special_env('disable_encts', False, krb5_conf=dconf)
++msgs = ('Ignoring encrypted timestamp because it is disabled',
++        '/Encrypted timestamp is disabled')
++r1.kinit('user', None, ['-C'], env=denv, expected_code=1, expected_trace=msgs,
++         expected_msg='Encrypted timestamp is disabled')
++
+ success('KDC host referral tests')

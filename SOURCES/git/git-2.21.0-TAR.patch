@@ -1,0 +1,11 @@
+--- ./Makefile.ORIGIN	2019-03-06 17:34:25 +0100
++++ ./Makefile	2019-03-06 17:34:46 +0100
+@@ -565,7 +565,7 @@
+ AR = /usr/bin/ar -X32_64
+ RM = rm -f
+ DIFF = diff
+-TAR = tar
++TAR = /opt/freeware/bin/tar
+ FIND = find
+ INSTALL = install
+ TCL_PATH = tclsh

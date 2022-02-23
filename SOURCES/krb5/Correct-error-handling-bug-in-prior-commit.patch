@@ -1,0 +1,32 @@
+From edb91a5cafe2380209e5d482062dfdd608b23772 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Thu, 23 Mar 2017 13:42:55 -0400
+Subject: [PATCH] Correct error handling bug in prior commit
+
+In crypto_encode_der_cert(), if the second i2d_X509() invocation
+fails, make sure to free the allocated pointer and not the
+possibly-modified alias.
+
+ticket: 8561
+(cherry picked from commit 7fdaef7c3280c86b5df25ae061fb04cc56d8620c)
+---
+ src/plugins/preauth/pkinit/pkinit_crypto_openssl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index a5b010b26..90c30dbf5 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -6196,10 +6196,10 @@ crypto_encode_der_cert(krb5_context context, pkinit_req_crypto_context reqctx,
+     if (len <= 0)
+         return EINVAL;
+     p = der = malloc(len);
+-    if (p == NULL)
++    if (der == NULL)
+         return ENOMEM;
+     if (i2d_X509(reqctx->received_cert, &p) <= 0) {
+-        free(p);
++        free(der);
+         return EINVAL;
+     }
+     *der_out = der;

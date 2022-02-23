@@ -1,0 +1,61 @@
+--- ./configure.ac.ORIGIN	2021-01-07 17:27:23 +0100
++++ ./configure.ac	2021-01-07 17:27:03 +0100
+@@ -469,6 +469,7 @@
+ TCLINCLUDE=
+ TCLLIB=
+ TCLPACKAGE=
++TCLLINK=
+ 
+ AC_ARG_WITH(tclconfig, AS_HELP_STRING([--without-tcl], [Disable Tcl])
+ AS_HELP_STRING([--with-tclconfig=path], [Set location of tclConfig.sh]), [with_tclconfig="$withval"], [with_tclconfig=])
+@@ -580,6 +581,12 @@
+ *)TCLDYNAMICLINKING="";;
+ esac
+ 
++# AIX needs -ltcl for linking at test time
++case $host in
++*-*-aix*) TCLLINK="-ltcl -lm";;
++*)TCLLINK="";;
++esac
++
+ case $host in
+ *-*-darwin*)
+     TCLLDSHARED='$(CC) -dynamiclib -undefined suppress -flat_namespace'
+@@ -598,6 +605,7 @@
+ AC_SUBST(TCLDYNAMICLINKING)
+ AC_SUBST(TCLLDSHARED)
+ AC_SUBST(TCLCXXSHARED)
++AC_SUBST(TCLLINK)
+ 
+ #----------------------------------------------------------------
+ # Look for Python
+--- ./Examples/Makefile.in.ORIGIN	2021-01-07 17:16:11 +0100
++++ ./Examples/Makefile.in	2021-01-07 17:20:06 +0100
+@@ -165,6 +165,7 @@
+ TCLLDSHARED = @TCLLDSHARED@
+ TCLCXXSHARED = @TCLCXXSHARED@
+ TCL_SCRIPT = $(SRCDIR)$(RUNME).tcl
++TCL_LINK   = @TCLLINK@
+ 
+ # -----------------------------------------------------------
+ # Build a new version of the tclsh shell
+@@ -196,7 +197,7 @@
+ tcl_cpp: $(SRCDIR_SRCS)
+ 	$(SWIG) -tcl8 -c++ $(SWIGOPT) $(TCL_SWIGOPTS) -o $(ICXXSRCS) $(INTERFACEPATH)
+ 	$(CXX) -c $(CCSHARED) $(CPPFLAGS) $(CXXFLAGS) $(SRCDIR_SRCS) $(SRCDIR_CXXSRCS) $(ICXXSRCS) $(INCLUDES) $(TCL_INCLUDE)
+-	$(TCLCXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(TCL_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(TCL_SO)
++	$(TCLCXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(TCL_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(TCL_SO) $(TCL_LINK)
+ 
+ # -----------------------------------------------------------------
+ # Run Tcl example
+--- ./Examples/Makefile.in.ORIGIN	2021-01-07 17:42:34 +0100
++++ ./Examples/Makefile.in	2021-01-07 17:42:36 +0100
+@@ -188,7 +188,7 @@
+ tcl:  $(SRCDIR_SRCS)
+ 	$(SWIG) -tcl8 $(SWIGOPT) $(TCL_SWIGOPTS) -o $(ISRCS) $(INTERFACEPATH)
+ 	$(CC) -c $(CCSHARED) $(CPPFLAGS) $(CFLAGS) $(SRCDIR_SRCS) $(ISRCS) $(INCLUDES) $(TCL_INCLUDE)
+-	$(TCLLDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(TCL_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(TCL_SO)
++	$(TCLLDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(TCL_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(TCL_SO) $(TCL_LINK)
+ 
+ # -----------------------------------------------------------
+ # Build a Tcl7.5 dynamic loadable module for C++

@@ -1,0 +1,31 @@
+Index: AfterStep-1.8.10/asimagelib/as_png.c
+diff -c AfterStep-1.8.10/asimagelib/as_png.c:1.1 AfterStep-1.8.10/asimagelib/as_png.c:1.2
+*** AfterStep-1.8.10/asimagelib/as_png.c:1.1	Thu May 17 16:54:04 2001
+--- AfterStep-1.8.10/asimagelib/as_png.c	Mon May 21 10:19:32 2001
+***************
+*** 337,344 ****
+  
+    if (CreateTarget (pParams))
+      {
+!       png_bytep row_pointers[height];
+        unsigned int y = 0;
+  
+        set_ascolor_depth (pParams->m_w, pParams->m_pImage->bits_per_pixel);
+  
+--- 337,352 ----
+  
+    if (CreateTarget (pParams))
+      {
+!       png_bytep *row_pointers;
+        unsigned int y = 0;
++ 
++       row_pointers = (png_bytep *)malloc(height * sizeof(png_bytep));
++       if (row_pointers == NULL)
++       {
++         fprintf (stderr, "malloc failure in LoadPNGFile: %d\n",
++ 		height * sizeof(png_bytep));
++         return;
++       }
+  
+        set_ascolor_depth (pParams->m_w, pParams->m_pImage->bits_per_pixel);
+  

@@ -1,0 +1,39 @@
+diff --git a/libgo/go/math/atan.go b/libgo/go/math/atan.go
+--- a/libgo/go/math/atan.go
++++ b/libgo/go/math/atan.go
+@@ -97,6 +97,9 @@
+ func libc_atan(float64) float64
+ 
+ func Atan(x float64) float64 {
++	if x == 0 {
++		return x
++	}
+ 	return libc_atan(x)
+ }
+ 
+diff --git a/libgo/go/math/expm1.go b/libgo/go/math/expm1.go
+--- a/libgo/go/math/expm1.go
++++ b/libgo/go/math/expm1.go
+@@ -126,6 +126,9 @@
+ func libc_expm1(float64) float64
+ 
+ func Expm1(x float64) float64 {
++	if x == 0 {
++		return x
++	}
+ 	return libc_expm1(x)
+ }
+ 
+diff --git a/libgo/go/math/log1p.go b/libgo/go/math/log1p.go
+--- a/libgo/go/math/log1p.go
++++ b/libgo/go/math/log1p.go
+@@ -97,6 +97,9 @@
+ func libc_log1p(float64) float64
+ 
+ func Log1p(x float64) float64 {
++	if x == 0 {
++		return x
++	}
+ 	return libc_log1p(x)
+ }
+ 

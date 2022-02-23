@@ -1,0 +1,23 @@
+Index: Python-2.5.2/Tools/faqwiz/faqconf.py
+===================================================================
+--- Python-2.5.2.orig/Tools/faqwiz/faqconf.py	2005-12-12 03:02:24.000000000 +0100
++++ Python-2.5.2/Tools/faqwiz/faqconf.py	2008-11-06 17:36:11.-560895216 +0100
+@@ -21,7 +21,7 @@
+ OWNEREMAIL = "nobody@anywhere.org"      # Email for feedback
+ HOMEURL = "http://www.python.org"       # Related home page
+ HOMENAME = "Python home"                # Name of related home page
+-RCSBINDIR = "/usr/local/bin/"           # Directory containing RCS commands
++RCSBINDIR = "/usr/bin/"			# Directory containing RCS commands
+                                         # (must end in a slash)
+ 
+ # Parameters you can normally leave alone
+Index: Python-2.5.2/Tools/pybench/pybench.py
+===================================================================
+--- Python-2.5.2.orig/Tools/pybench/pybench.py	2006-09-06 22:38:50.000000000 +0200
++++ Python-2.5.2/Tools/pybench/pybench.py	2008-11-06 17:36:27.255990752 +0100
+@@ -1,4 +1,4 @@
+-#!/usr/local/bin/python -O
++#!/usr/bin/python -O
+ 
+ """ A Python Benchmark Suite
+ 

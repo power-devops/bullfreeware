@@ -1,0 +1,48 @@
+--- a/lib/os_mon/src/memsup.erl_orig	2020-08-10 16:09:40 +0200
++++ b/lib/os_mon/src/memsup.erl	2020-08-10 16:16:30 +0200
+@@ -180,7 +180,7 @@
+ 		   {unix, dragonfly} -> false;
+ 		   % Linux supports this.
+ 		   {unix, linux} -> true;
+-		   {unix, aix} -> true;
++		   {unix, aix} -> false;
+ 		   {unix, openbsd} -> true;
+ 		   {unix, netbsd} -> true;
+ 		   {unix, irix64} -> true;
+@@ -616,7 +616,7 @@
+ 			   {unix, dragonfly} -> false;
+ 			   {unix, linux} -> false;
+ 			   {unix, openbsd} -> true;
+-			   {unix, aix} -> true;
++			   {unix, aix} -> false;
+ 			   {unix, netbsd} -> true;
+ 			   {unix, sunos} -> true;
+ 			   {win32, _OSname} -> false
+@@ -744,6 +744,17 @@
+     NMemTotal = NMemUsed + (Free + Speculative) * PageSize,
+     {NMemUsed,NMemTotal};
+ 
++%%This function returns total and used memory in Bytes
++%%It parses the command svmon -G which returns the values in 4k so we divide by 256 and multiply by 1024*1024
++%%Str0 is used to get the Pagesize which is not required in this case
++get_memory_usage({unix,aix}) ->
++    %Str0 = os:cmd("pagesize"),
++    Str1 = string:tokens(os:cmd("svmon -G"), " "),
++    %PageSize = trunc(list_to_integer(lists:reverse(tl(lists:reverse(Str0))))),
++    NMemUsed  = trunc(list_to_integer(lists:nth(8, Str1))/(256/(1024*1024))),
++    NMemTotal = trunc(list_to_integer(lists:nth(7, Str1))/(256/(1024*1024))),
++    {NMemUsed,NMemTotal};
++
+ %% FreeBSD: Look in /usr/include/sys/vmmeter.h for the format of struct
+ %% vmmeter
+ get_memory_usage({unix,OSname}) when OSname == freebsd; OSname == dragonfly ->
+@@ -795,6 +806,9 @@
+ 	{unix, darwin} ->
+ 	    [{total_memory, Total}, {free_memory, Total-Alloc},
+ 	     {system_total_memory, Total}];
++	{unix, aix} ->
++	    [{total_memory, Total}, {free_memory, Total-Alloc},
++	     {system_total_memory, Total}];
+ 	_ -> % OSs using a port
+ 	    dummy % not sent anyway
+     end.

@@ -1,0 +1,22 @@
+--- ./Examples/test-suite/tcl/Makefile.in.ORIGIN	2021-01-14 14:28:23 +0100
++++ ./Examples/test-suite/tcl/Makefile.in	2021-01-14 14:28:31 +0100
+@@ -3,7 +3,7 @@
+ #######################################################################
+ 
+ LANGUAGE     = tcl
+-TCLSH        = tclsh
++TCLSH        = tclsh_32
+ SCRIPTSUFFIX = _runme.tcl
+ 
+ srcdir       = @srcdir@
+--- ./Examples/Makefile.in.ORIGIN	2021-01-14 14:23:40 +0100
++++ ./Examples/Makefile.in	2021-01-14 14:23:59 +0100
+@@ -153,7 +153,7 @@
+ 
+ # Set these to your local copy of Tcl/Tk.
+ 
+-TCLSH       = tclsh
++TCLSH       = tclsh_32
+ TCL_INCLUDE = @TCLINCLUDE@
+ TCL_LIB     = @TCLLIB@
+ TCL_OPTS    = @LIBS@

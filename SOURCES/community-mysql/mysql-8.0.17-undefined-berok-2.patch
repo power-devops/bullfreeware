@@ -1,0 +1,38 @@
+--- ./storage/myisam/CMakeLists.txt.1009	2019-06-25 12:23:30.000000000 +0200
++++ ./storage/myisam/CMakeLists.txt	2019-11-22 11:15:32.000000000 +0100
+@@ -123,6 +123,13 @@
+ MYSQL_ADD_EXECUTABLE(myisampack myisampack.cc)
+ TARGET_LINK_LIBRARIES(myisampack myisam_library)
+ 
++IF (CMAKE_SYSTEM_NAME MATCHES AIX)
++  TARGET_LINK_OPTIONS(myisamlog PRIVATE "-Wl,-berok")
++  TARGET_LINK_OPTIONS(myisamchk PRIVATE "-Wl,-berok")
++  TARGET_LINK_OPTIONS(myisam_ftdump PRIVATE "-Wl,-berok")
++  TARGET_LINK_OPTIONS(myisampack PRIVATE "-Wl,-berok")
++ENDIF()
++
+ IF (MSVC)
+   SET_TARGET_PROPERTIES(myisamchk myisampack PROPERTIES LINK_FLAGS "setargv.obj")
+ ENDIF()
+--- ./storage/perfschema/unittest/CMakeLists.txt.1009   2019-06-25 12:23:30 +0200
++++ ./storage/perfschema/unittest/CMakeLists.txt        2019-11-25 17:09:00 +0100
+@@ -30,6 +30,9 @@
+   MYSQL_ADD_EXECUTABLE(${name}-t ${name}-t.cc ADD_TEST ${name})
+   TARGET_LINK_LIBRARIES(${name}-t
+     mytap perfschema mysys pfs_server_stubs strings ${ICU_LIBRARIES})
++  IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++    TARGET_LINK_OPTIONS(${name}-t PRIVATE "-Wl,-berok")
++  ENDIF()
+ ENDMACRO()
+
+ SET(tests
+@@ -77,6 +80,9 @@
+   SET_PROPERTY(TARGET pfs_connect_attr-t PROPERTY EXCLUDE_FROM_ALL TRUE)
+ ENDIF()
+
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  TARGET_LINK_OPTIONS(pfs_connect_attr-t PRIVATE "-Wl,-berok")
++ENDIF()
+ ADD_DEPENDENCIES(pfs_connect_attr-t GenServerSource)
+ TARGET_LINK_LIBRARIES(pfs_connect_attr-t mytap perfschema)
+ # We need to explicitly link in everything referenced in sql/sql_builtin.cc

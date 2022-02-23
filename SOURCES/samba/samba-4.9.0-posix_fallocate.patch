@@ -1,0 +1,20 @@
+--- ./lib/tdb/common/io.c.orig	2018-07-12 10:23:36 +0200
++++ ./lib/tdb/common/io.c	2019-01-22 17:53:22 +0100
+@@ -96,7 +96,7 @@
+ 	return ret;
+ }
+ 
+-#if HAVE_POSIX_FALLOCATE
++#if defined(HAVE_POSIX_FALLOCATE) && !defined(_AIX)
+ static int tdb_posix_fallocate(struct tdb_context *tdb, off_t offset,
+ 			       off_t len)
+ {
+@@ -413,7 +413,7 @@
+ 		return -1;
+ 	}
+ 
+-#if HAVE_POSIX_FALLOCATE
++#if defined(HAVE_POSIX_FALLOCATE) && !defined(_AIX)
+ 	ret = tdb_posix_fallocate(tdb, size, addition);
+ 	if (ret == 0) {
+ 		return 0;

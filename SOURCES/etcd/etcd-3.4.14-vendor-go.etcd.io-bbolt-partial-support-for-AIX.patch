@@ -1,0 +1,110 @@
+From 20233109feac64f361f48d33d00da3763c40e786 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Dec 2020 10:48:28 +0100
+Subject: [PATCH 3/6] vendor/go.etcd.io/bbolt: partial support for AIX
+
+---
+ vendor/go.etcd.io/bbolt/bolt_unix.go     |  2 +-
+ vendor/go.etcd.io/bbolt/bolt_unix_aix.go | 80 ++++++++++++++++++++++++
+ 2 files changed, 81 insertions(+), 1 deletion(-)
+ create mode 100644 vendor/go.etcd.io/bbolt/bolt_unix_aix.go
+
+diff --git a/vendor/go.etcd.io/bbolt/bolt_unix.go b/vendor/go.etcd.io/bbolt/bolt_unix.go
+index 5f2bb51..2938fed 100644
+--- a/vendor/go.etcd.io/bbolt/bolt_unix.go
++++ b/vendor/go.etcd.io/bbolt/bolt_unix.go
+@@ -1,4 +1,4 @@
+-// +build !windows,!plan9,!solaris
++// +build !windows,!plan9,!solaris,!aix
+ 
+ package bbolt
+ 
+diff --git a/vendor/go.etcd.io/bbolt/bolt_unix_aix.go b/vendor/go.etcd.io/bbolt/bolt_unix_aix.go
+new file mode 100644
+index 0000000..313838b
+--- /dev/null
++++ b/vendor/go.etcd.io/bbolt/bolt_unix_aix.go
+@@ -0,0 +1,80 @@
++package bbolt
++
++import (
++	"syscall"
++	"time"
++	"unsafe"
++)
++
++// flock acquires an advisory lock on a file descriptor.
++// syscall.Flock doesn't exist, anymore, on AIX. Normally, fcntl
++// shouldn't be used to implement flock, because the lock is
++// attached to a (inode, process) and not a filedescriptor.
++// Idealy, code like github.com/gofrs/flock should be used there.
++// But, as the previous implementation was actually based on fcntl
++// too, it should work as is.
++func flock(db *DB, exclusive bool, timeout time.Duration) error {
++	var t time.Time
++	if timeout != 0 {
++		t = time.Now()
++	}
++	fd := db.file.Fd()
++	lk := &syscall.Flock_t{}
++	if exclusive {
++		lk.Type = syscall.F_WRLCK
++	} else {
++		lk.Type = syscall.F_RDLCK
++	}
++	for {
++		// Attempt to obtain an exclusive lock.
++		err := syscall.FcntlFlock(fd, syscall.F_SETLK, lk)
++		if err == nil {
++			return nil
++		} else if err != syscall.EWOULDBLOCK {
++			return err
++		}
++
++		// If we timed out then return an error.
++		if timeout != 0 && time.Since(t) > timeout-flockRetryTimeout {
++			return ErrTimeout
++		}
++
++		// Wait for a bit and try again.
++		time.Sleep(flockRetryTimeout)
++	}
++}
++
++// funlock releases an advisory lock on a file descriptor.
++func funlock(db *DB) error {
++	return syscall.FcntlFlock(db.file.Fd(), syscall.F_SETLK, &syscall.Flock_t{Type: syscall.F_UNLCK})
++}
++
++// mmap memory maps a DB's data file.
++func mmap(db *DB, sz int) error {
++	// Map the data file to memory.
++	b, err := syscall.Mmap(int(db.file.Fd()), 0, sz, syscall.PROT_READ, syscall.MAP_SHARED|db.MmapFlags)
++	if err != nil {
++		return err
++	}
++
++	// Save the original byte slice and convert to a byte array pointer.
++	db.dataref = b
++	db.data = (*[maxMapSize]byte)(unsafe.Pointer(&b[0]))
++	db.datasz = sz
++	return nil
++}
++
++// munmap unmaps a DB's data file from memory.
++func munmap(db *DB) error {
++	// Ignore the unmap if we have no mapped data.
++	if db.dataref == nil {
++		return nil
++	}
++
++	// Unmap using the original byte slice.
++	err := syscall.Munmap(db.dataref)
++	db.dataref = nil
++	db.data = nil
++	db.datasz = 0
++	return err
++}
+-- 
+2.25.0
+

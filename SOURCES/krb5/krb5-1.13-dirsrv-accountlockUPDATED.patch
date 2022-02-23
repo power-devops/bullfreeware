@@ -1,0 +1,75 @@
+From bd9a3cc0c53f6dc47a124eb6e8f698c7f1d3cd36 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Tue, 23 Aug 2016 16:47:44 -0400
+Subject: [PATCH] krb5-1.13-dirsrv-accountlock.patch
+
+Treat 'nsAccountLock: true' the same as 'loginDisabled: true'.  Updated from
+original version filed as RT#5891.
+---
+ src/aclocal.m4                                  |  9 +++++++++
+ src/plugins/kdb/ldap/libkdb_ldap/ldap_misc.c    | 17 +++++++++++++++++
+ .../kdb/ldap/libkdb_ldap/ldap_principal.c       |  3 +++
+ 3 files changed, 29 insertions(+)
+
+diff --git a/src/aclocal.m4 b/src/aclocal.m4
+index 5eeaa2d8a..1fd243094 100644
+--- a/src/aclocal.m4
++++ b/src/aclocal.m4
+@@ -1677,6 +1677,15 @@ if test "$with_ldap" = yes; then
+   AC_MSG_NOTICE(enabling OpenLDAP database backend module support)
+   OPENLDAP_PLUGIN=yes
+ fi
++AC_ARG_WITH([dirsrv-account-locking],
++[  --with-dirsrv-account-locking       compile 389/Red Hat/Fedora/Netscape Directory Server database backend module],
++[case "$withval" in
++    yes | no) ;;
++    *)  AC_MSG_ERROR(Invalid option value --with-dirsrv-account-locking="$withval") ;;
++esac], with_dirsrv_account_locking=no)
++if test $with_dirsrv_account_locking = yes; then
++    AC_DEFINE(HAVE_DIRSRV_ACCOUNT_LOCKING,1,[Define if LDAP KDB interface should heed 389 DS's nsAccountLock attribute.])
++fi
+ ])dnl
+ dnl
+ dnl If libkeyutils exists (on Linux) include it and use keyring ccache
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/ldap_misc.c b/src/plugins/kdb/ldap/libkdb_ldap/ldap_misc.c
+index 5b9d1e9fa..4e7270065 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/ldap_misc.c
++++ b/src/plugins/kdb/ldap/libkdb_ldap/ldap_misc.c
+@@ -1652,6 +1652,23 @@ populate_krb5_db_entry(krb5_context context, krb5_ldap_context *ldap_context,
+     ret = krb5_dbe_update_tl_data(context, entry, &userinfo_tl_data);
+     if (ret)
+         goto cleanup;
++#ifdef HAVE_DIRSRV_ACCOUNT_LOCKING
++    {
++        krb5_timestamp              expiretime=0;
++        char                        *is_login_disabled=NULL;
++
++        /* LOGIN DISABLED */
++        ret = krb5_ldap_get_string(ld, ent, "nsAccountLock", &is_login_disabled,
++                                   &attr_present);
++        if (ret)
++            goto cleanup;
++        if (attr_present == TRUE) {
++            if (strcasecmp(is_login_disabled, "TRUE")== 0)
++                entry->attributes |= KRB5_KDB_DISALLOW_ALL_TIX;
++            free (is_login_disabled);
++        }
++    }
++#endif
+ 
+     ret = krb5_read_tkt_policy(context, ldap_context, entry, tktpolname);
+     if (ret)
+diff --git a/src/plugins/kdb/ldap/libkdb_ldap/ldap_principal.c b/src/plugins/kdb/ldap/libkdb_ldap/ldap_principal.c
+index d722dbfa6..5e8e9a897 100644
+--- a/src/plugins/kdb/ldap/libkdb_ldap/ldap_principal.c
++++ b/src/plugins/kdb/ldap/libkdb_ldap/ldap_principal.c
+@@ -54,6 +54,9 @@ char     *principal_attributes[] = { "krbprincipalname",
+                                      "krbLastFailedAuth",
+                                      "krbLoginFailedCount",
+                                      "krbLastSuccessfulAuth",
++#ifdef HAVE_DIRSRV_ACCOUNT_LOCKING
++                                     "nsAccountLock",
++#endif
+                                      "krbLastPwdChange",
+                                      "krbLastAdminUnlock",
+                                      "krbPrincipalAuthInd",

@@ -1,0 +1,13 @@
+--- ./libmariadb/libmariadb/CMakeLists.txt.orig	2019-04-16 11:28:54.024000000 +0200
++++ ./libmariadb/libmariadb/CMakeLists.txt	2019-04-10 16:40:08.460000000 +0200
+@@ -427,8 +427,10 @@
+ IF(WITH_MYSQLCOMPAT)
+   create_symlink(libmysqlclient${CMAKE_SHARED_LIBRARY_SUFFIX} libmariadb ${INSTALL_LIBDIR})
+   create_symlink(libmysqlclient_r${CMAKE_SHARED_LIBRARY_SUFFIX} libmariadb ${INSTALL_LIBDIR})
++  if (NOT AIX) 
+   create_symlink(libmysqlclient${CMAKE_STATIC_LIBRARY_SUFFIX} mariadbclient ${INSTALL_LIBDIR})
+   create_symlink(libmysqlclient_r${CMAKE_STATIC_LIBRARY_SUFFIX} mariadbclient ${INSTALL_LIBDIR})
++  endif()
+ ENDIF()
+ 
+ 

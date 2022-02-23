@@ -1,0 +1,11 @@
+--- ./tools/build/src/tools/python.jam.orig	2020-05-12 13:52:04 -0500
++++ ./tools/build/src/tools/python.jam	2020-06-11 11:31:39 -0500
+@@ -1031,7 +1031,7 @@
+             :
+             : $(target-requirements)
+             :
+-            : $(usage-requirements) <linkflags>"-Wl,-bI:$(libraries[1])/python.exp"
++            : $(usage-requirements) <linkflags>"-lpython3.8"
+             ;
+     }
+     else

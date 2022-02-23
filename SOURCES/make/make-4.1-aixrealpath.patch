@@ -1,0 +1,17 @@
+Index: make-4.1/function.c
+===================================================================
+--- make-4.1.orig/function.c	2015-11-06 16:18:24.000000000 +0100
++++ make-4.1/function.c	2015-11-06 16:20:50.000000000 +0100
+@@ -2152,6 +2152,12 @@
+               EINTRLOOP (r, stat (out, &st));
+               if (r == 0)
+                 {
++		int length = strlen(out);
++		if(length > 1 && out[length-1] == '/')
++		{
++			length--;
++			out[length] = '\0';
++		}
+                   o = variable_buffer_output (o, out, strlen (out));
+                   o = variable_buffer_output (o, " ", 1);
+                   doneany = 1;

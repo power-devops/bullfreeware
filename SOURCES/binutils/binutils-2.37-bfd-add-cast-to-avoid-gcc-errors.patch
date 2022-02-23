@@ -1,0 +1,42 @@
+From 1338ad3c8a9d9a9deeba6cf8a6ff497e75986085 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 16 Oct 2020 09:16:07 +0200
+Subject: [PATCH] bfd: add cast to avoid gcc errors
+
+---
+ bfd/aix5ppc-core.c | 2 +-
+ bfd/rs6000-core.c  | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/bfd/aix5ppc-core.c b/bfd/aix5ppc-core.c
+index 51f2d781fa2..77792ff1653 100644
+--- a/bfd/aix5ppc-core.c
++++ b/bfd/aix5ppc-core.c
+@@ -189,7 +189,7 @@ xcoff64_core_p (bfd *abfd)
+ 	    return NULL;
+ 
+ 	  sec->size = ldinfo.ldinfo_datasize;
+-	  sec->vma = ldinfo.ldinfo_dataorg;
++	  sec->vma = (unsigned long) ldinfo.ldinfo_dataorg;
+ 	  sec->filepos = ldinfo.ldinfo_core;
+ 	}
+ 
+diff --git a/bfd/rs6000-core.c b/bfd/rs6000-core.c
+index 74bde846dec..e9bb5d55bf1 100644
+--- a/bfd/rs6000-core.c
++++ b/bfd/rs6000-core.c
+@@ -718,9 +718,9 @@ rs6000coff_core_file_matches_executable_p (bfd *core_bfd, bfd *exec_bfd)
+ #endif
+ 
+   if (CORE_NEW (core) && CNEW_PROC64 (core.new_dump))
+-    size = (int) ((LdInfo *) 0)->l64.ldinfo_filename;
++    size = (unsigned long) ((LdInfo *) 0)->l64.ldinfo_filename;
+   else
+-    size = (int) ((LdInfo *) 0)->l32.ldinfo_filename;
++    size = (unsigned long) ((LdInfo *) 0)->l32.ldinfo_filename;
+ 
+   if (bfd_seek (core_bfd, c_loader + size, SEEK_SET) != 0)
+     return false;
+-- 
+2.31.1
+

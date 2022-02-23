@@ -1,0 +1,43 @@
+From 48f02732031f0c51aa810a8f380b11b7f68657db Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 31 Jan 2020 13:55:17 +0100
+Subject: [PATCH] libbeat/processors/add_process_metadata: fix TestBadProcess
+ for AIX
+
+---
+ .../add_process_metadata/add_process_metadata_test.go  | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/libbeat/processors/add_process_metadata/add_process_metadata_test.go b/libbeat/processors/add_process_metadata/add_process_metadata_test.go
+index 8f76c5ec6..3829f99e2 100644
+--- a/libbeat/processors/add_process_metadata/add_process_metadata_test.go
++++ b/libbeat/processors/add_process_metadata/add_process_metadata_test.go
+@@ -19,6 +19,7 @@ package add_process_metadata
+ 
+ import (
+ 	"os"
++	"runtime"
+ 	"testing"
+ 	"time"
+ 
+@@ -467,9 +468,16 @@ func TestBadProcess(t *testing.T) {
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
++
++	badpid := 0
++	// Pid 0 can't be used on aix as /proc/0 exists.
++	if runtime.GOOS == "aix" {
++		badpid = 1 << 31
++	}
++
+ 	ev := beat.Event{
+ 		Fields: common.MapStr{
+-			"self_pid": 0,
++			"self_pid": badpid,
+ 		},
+ 	}
+ 	result, err := proc.Run(&ev)
+-- 
+2.22.0
+

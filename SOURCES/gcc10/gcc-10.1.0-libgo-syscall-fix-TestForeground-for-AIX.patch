@@ -1,0 +1,53 @@
+From 9a9f7effb0fe8ae32553749a8ed9419858f564e3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 3 May 2019 16:53:13 +0200
+Subject: [PATCH] syscall: fix TestForeground for AIX
+
+Syscall function can't be used on AIX. Therefore, Ioctl in
+TestForeground must call raw_ioctl.
+
+Change-Id: I96c3b52ee2d61073ae367028d4dfa926107402ba
+---
+ libgo/go/syscall/export_aix_test.go  | 16 ++++++++++++++++
+ libgo/go/syscall/export_unix_test.go |  2 +-
+ 2 files changed, 17 insertions(+), 1 deletion(-)
+ create mode 100644 libgo/go/syscall/export_aix_test.go
+
+diff --git a/libgo/go/syscall/export_aix_test.go b/libgo/go/syscall/export_aix_test.go
+new file mode 100644
+index 00000000..044337b9
+--- /dev/null
++++ b/libgo/go/syscall/export_aix_test.go
+@@ -0,0 +1,16 @@
++// Copyright 2019 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package syscall
++
++import (
++	"unsafe"
++)
++
++func Ioctl(fd, req, arg uintptr) (err Errno) {
++	_, err = raw_ioctl_ptr(int(fd), req, unsafe.Pointer(arg))
++	return err
++}
+diff --git a/libgo/go/syscall/export_unix_test.go b/libgo/go/syscall/export_unix_test.go
+index 120500c3..47ec5443 100644
+--- a/libgo/go/syscall/export_unix_test.go
++++ b/libgo/go/syscall/export_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build aix darwin dragonfly freebsd hurd linux netbsd openbsd solaris
++// +build darwin dragonfly freebsd hurd linux netbsd openbsd solaris
+ 
+ package syscall
+ 
+-- 
+2.17.1
+

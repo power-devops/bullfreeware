@@ -1,0 +1,13 @@
+Index: tcsh-6.14.00/tc.sig.h
+===================================================================
+--- tcsh-6.14.00.orig/tc.sig.h	2005-01-18 21:24:51.000000000 +0100
++++ tcsh-6.14.00/tc.sig.h	2010-12-08 16:47:56.000000000 +0100
+@@ -34,7 +34,7 @@
+ #ifndef _h_tc_sig
+ #define _h_tc_sig
+ 
+-#if (SYSVREL > 0) || defined(BSD4_4) || defined(_MINIX) || defined(DGUX) || defined(WINNT_NATIVE)
++#if (SYSVREL > 0) || defined(BSD4_4) || defined(_MINIX) || defined(DGUX) || defined(WINNT_NATIVE) || defined(_AIX)
+ # include <signal.h>
+ # ifndef SIGCHLD
+ #  define SIGCHLD SIGCLD

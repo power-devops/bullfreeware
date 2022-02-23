@@ -1,0 +1,26 @@
+From a4aa66a858f1ecd375c5efe5916398281f73f794 Mon Sep 17 00:00:00 2001
+From: Jan Tojnar <jtojnar@gmail.com>
+Date: Wed, 20 Nov 2019 02:13:58 +0000
+Subject: [PATCH] Correct reset-dirs in DTD
+
+Empty elements need to be declared as such in well-formed DTDs.
+---
+ fonts.dtd | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fonts.dtd b/fonts.dtd
+index f8c9f2c..40ecb4e 100644
+--- a/fonts.dtd
++++ b/fonts.dtd
+@@ -124,7 +124,7 @@
+ <!--
+     Reset the list of fonts directories
+ -->
+-<!ELEMENT reset-dirs >
++<!ELEMENT reset-dirs EMPTY>
+ 
+ <!--
+     Periodically rescan the font configuration and
+-- 
+2.24.1
+

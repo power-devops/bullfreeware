@@ -1,0 +1,11 @@
+--- ./cups/request.c.orig	2019-12-13 15:44:10 +0100
++++ ./cups/request.c	2020-04-09 11:18:14 +0200
+@@ -1027,7 +1027,7 @@
+       if ((n = recv(cg->http->fd, &ch, 1, MSG_PEEK)) == 0 ||
+           (n < 0 && WSAGetLastError() != WSAEWOULDBLOCK))
+ #else
+-      if ((n = recv(cg->http->fd, &ch, 1, MSG_PEEK | MSG_DONTWAIT)) == 0 ||
++      if ((n = recv(cg->http->fd, &ch, 1, MSG_PEEK | MSG_NONBLOCK)) == 0 ||
+           (n < 0 && errno != EWOULDBLOCK))
+ #endif /* _WIN32 */
+       {

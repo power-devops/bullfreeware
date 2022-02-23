@@ -1,0 +1,105 @@
+From ba571412343b79ab827890defb591c6d2663cc82 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 8 Jun 2021 11:26:09 +0200
+Subject: [PATCH] agen5: convert stat.st_mtime to struct timespec on AIX
+
+AIX stat return time information into "struct st_timespec" instead
+of "struct timespec". Thus, a convertion is needed.
+---
+ agen5/autogen.h    | 10 ++++++++++
+ agen5/defDirect.c  |  4 ++--
+ agen5/defLoad.c    |  4 ++--
+ agen5/expExtract.c |  4 ++--
+ agen5/tpLoad.c     |  4 ++--
+ 5 files changed, 18 insertions(+), 8 deletions(-)
+
+diff --git a/agen5/autogen.h b/agen5/autogen.h
+index 78c1269..0e20c04 100644
+--- a/agen5/autogen.h
++++ b/agen5/autogen.h
+@@ -413,6 +413,16 @@ MODE time_t             maxfile_time     VALUE( 0 );
+ #define time_is_before(_f, _s) ((_f) < (_s))
+ 
+ #else  // HAVE_UTIMENSAT
++#ifdef _AIX
++#define CAST_TO_TIMESPEC(_tm, _stm)             \
++    do {                                        \
++        (_tm).tv_sec = (_stm).tv_sec;           \
++        (_tm).tv_nsec = (long)(_stm).tv_nsec;   \
++    } while (0)
++#else
++#define CAST_TO_TIMESPEC(_tm, _stm) _tm = _stm;
++#endif
++
+ #ifdef DEFINING
+ MODE struct timespec    outfile_time     = {0, UTIME_OMIT};
+ MODE struct timespec    maxfile_time     = {0, UTIME_OMIT};
+diff --git a/agen5/defDirect.c b/agen5/defDirect.c
+index 92dd010..d3d57b7 100644
+--- a/agen5/defDirect.c
++++ b/agen5/defDirect.c
+@@ -304,10 +304,10 @@ file_size(char const * fname)
+ 
+     if (   time_is_before(outfile_time, stbf.st_mtime)
+         && ENABLED_OPT(SOURCE_TIME))
+-        outfile_time = stbf.st_mtime;
++        CAST_TO_TIMESPEC(outfile_time, stbf.st_mtime);
+ 
+     if (time_is_before(maxfile_time, stbf.st_mtime))
+-        maxfile_time = stbf.st_mtime;
++        CAST_TO_TIMESPEC(maxfile_time, stbf.st_mtime);
+ 
+     return stbf.st_size;
+ }
+diff --git a/agen5/defLoad.c b/agen5/defLoad.c
+index 0215857..767fdb7 100644
+--- a/agen5/defLoad.c
++++ b/agen5/defLoad.c
+@@ -427,10 +427,10 @@ ready_def_input(char const ** ppzfile, size_t * psz)
+     *psz = (size_t)stbf.st_size;
+ 
+     if (ENABLED_OPT(SOURCE_TIME))
+-        outfile_time = stbf.st_mtime;
++        CAST_TO_TIMESPEC(outfile_time, stbf.st_mtime);
+     else
+         mod_time_is_now();
+-    maxfile_time = stbf.st_mtime;
++    CAST_TO_TIMESPEC(maxfile_time, stbf.st_mtime);
+ 
+     return INPUT_FILE;
+ }
+diff --git a/agen5/expExtract.c b/agen5/expExtract.c
+index 9684425..45a3c54 100644
+--- a/agen5/expExtract.c
++++ b/agen5/expExtract.c
+@@ -46,9 +46,9 @@ load_file(char const * fname)
+         fsz = stbf.st_size;
+         res = (char *)AGALOC(fsz + 1, "load_file");
+         if (time_is_before(outfile_time, stbf.st_mtime))
+-            outfile_time = stbf.st_mtime;
++            CAST_TO_TIMESPEC(outfile_time, stbf.st_mtime);
+         if (time_is_before(maxfile_time, stbf.st_mtime))
+-            maxfile_time = stbf.st_mtime;
++            CAST_TO_TIMESPEC(maxfile_time, stbf.st_mtime);
+     }
+ 
+     {
+diff --git a/agen5/tpLoad.c b/agen5/tpLoad.c
+index 4eb5b32..c0daa1f 100644
+--- a/agen5/tpLoad.c
++++ b/agen5/tpLoad.c
+@@ -456,9 +456,9 @@ tpl_load(char const * fname, char const * referrer)
+         }
+ 
+         if (time_is_before(outfile_time, stbf.st_mtime))
+-            outfile_time = stbf.st_mtime;
++            CAST_TO_TIMESPEC(outfile_time, stbf.st_mtime);
+         if (time_is_before(maxfile_time, stbf.st_mtime))
+-            maxfile_time = stbf.st_mtime;
++            CAST_TO_TIMESPEC(maxfile_time, stbf.st_mtime);
+     }
+ 
+     text_mmap(tpl_file, PROT_READ|PROT_WRITE, MAP_PRIVATE, &map_info);
+-- 
+2.31.1
+

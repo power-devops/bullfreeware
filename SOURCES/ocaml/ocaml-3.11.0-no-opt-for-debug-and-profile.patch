@@ -1,0 +1,14 @@
+diff -Naur --exclude '*.orig' --exclude '*~' ocaml-3.11.0/asmrun/Makefile ocaml-3.11.0-no-opt-for-debug-and-profile/asmrun/Makefile
+--- ocaml-3.11.0/asmrun/Makefile	2007-11-15 14:21:15.000000000 +0100
++++ ocaml-3.11.0-no-opt-for-debug-and-profile/asmrun/Makefile	2008-12-24 00:36:13.000000000 +0100
+@@ -19,8 +19,8 @@
+ FLAGS=-I../byterun -DCAML_NAME_SPACE -DNATIVE_CODE \
+       -DTARGET_$(ARCH) -DSYS_$(SYSTEM) $(IFLEXDIR)
+ CFLAGS=$(FLAGS) -O $(NATIVECCCOMPOPTS)
+-DFLAGS=$(FLAGS) -g -DDEBUG $(NATIVECCCOMPOPTS)
+-PFLAGS=$(FLAGS) -pg -O -DPROFILING $(NATIVECCPROFOPTS)
++DFLAGS=$(FLAGS) -g -DDEBUG
++PFLAGS=$(FLAGS) -pg -O -DPROFILING
+ 
+ COBJS=startup.o main.o fail.o roots.o globroots.o signals.o signals_asm.o \
+   misc.o freelist.o major_gc.o minor_gc.o memory.o alloc.o compare.o ints.o \

@@ -1,0 +1,11 @@
+--- old/osdef.h.in	2016-09-20 12:21:39 +0200
++++ new/osdef.h.in	2016-09-20 12:23:13 +0200
+@@ -155,7 +155,7 @@
+ extern int   connect __P((int, struct sockaddr *, int));
+ extern int   bind __P((int, struct sockaddr *, int));
+ extern int   listen __P((int, int));
+-extern int   accept __P((int, struct sockaddr *, int *));
++extern int   accept __P((int, struct sockaddr *, socklen_t *));
+ #endif
+ 
+ #if defined(UTMPOK) && defined(GETUTENT)

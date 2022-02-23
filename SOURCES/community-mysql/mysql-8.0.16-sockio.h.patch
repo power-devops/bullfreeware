@@ -1,0 +1,30 @@
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_base.c.ORIGIN	2019-06-14 14:55:44 -0500
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_base.c	2019-06-14 14:51:08 -0500
+@@ -253,9 +253,9 @@
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+ #include <sys/socket.h>
+-#ifndef __linux__
+-#include <sys/sockio.h>
+-#endif
++//	#ifndef __linux__
++//	#include <sys/sockio.h>
++//	#endif
+ #endif
+ 
+ #if defined(_WIN32)
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c.ORIGIN	2019-06-18 11:03:17 -0500
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c	2019-06-18 11:04:28 -0500
+@@ -22,9 +22,9 @@
+ 
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+-#ifndef __linux__
+-#include <sys/sockio.h>
+-#endif
++//	#ifndef __linux__
++//	#include <sys/sockio.h>
++//	#endif
+ #include <arpa/inet.h>
+ #include <assert.h>
+ #include <errno.h>

@@ -1,0 +1,88 @@
+*** ./SConstruct.ORIG	Wed Jan 11 20:51:22 2017
+--- ./SConstruct	Wed Jan 11 20:50:26 2017
+***************
+*** 290,296 ****
+  SOURCES = Glob('*.c') + Glob('buckets/*.c') + Glob('auth/*.c')
+  
+  lib_static = env.StaticLibrary(LIBNAMESTATIC, SOURCES)
+- lib_shared = env.SharedLibrary(LIBNAME, SOURCES + SHARED_SOURCES)
+  
+  if aprstatic:
+    env.Append(CPPDEFINES=['APR_DECLARE_STATIC', 'APU_DECLARE_STATIC'])
+--- 290,295 ----
+***************
+*** 404,410 ****
+                                                         env.get('GSSAPI_LIBS', '')),
+                             })
+  
+! env.Default(lib_static, lib_shared, pkgconfig)
+  
+  if CALLOUT_OKAY:
+    conf = Configure(env)
+--- 403,409 ----
+                                                         env.get('GSSAPI_LIBS', '')),
+                             })
+  
+! env.Default(lib_static, pkgconfig)
+  
+  if CALLOUT_OKAY:
+    conf = Configure(env)
+***************
+*** 417,423 ****
+  # INSTALLATION STUFF
+  
+  install_static = env.Install(libdir, lib_static)
+- install_shared = env.InstallVersionedLib(libdir, lib_shared)
+  
+  if sys.platform == 'darwin':
+    # Change the shared library install name (id) to its final name and location.
+--- 416,421 ----
+***************
+*** 434,440 ****
+                                       % (target_install_shared_path,
+                                          install_shared_path)))
+  
+! env.Alias('install-lib', [install_static, install_shared,
+                            ])
+  env.Alias('install-inc', env.Install(incdir, HEADER_FILES))
+  env.Alias('install-pc', env.Install(os.path.join(libdir, 'pkgconfig'),
+--- 432,438 ----
+                                       % (target_install_shared_path,
+                                          install_shared_path)))
+  
+! env.Alias('install-lib', [install_static,
+                            ])
+  env.Alias('install-inc', env.Install(incdir, HEADER_FILES))
+  env.Alias('install-pc', env.Install(os.path.join(libdir, 'pkgconfig'),
+*** ./SConstruct.ORIG	Wed Jan 11 21:48:30 2017
+--- ./SConstruct	Wed Jan 11 21:46:41 2017
+***************
+*** 108,113 ****
+--- 108,114 ----
+    BoolVariable('APR_STATIC',
+                 "Enable using a static compiled APR",
+                 False),
++   RawListVariable('AR', "Command name or path of the static library archiver", None),
+    RawListVariable('CC', "Command name or path of the C compiler", None),
+    RawListVariable('CFLAGS', "Extra flags for the C compiler (space-separated)",
+                    None),
+*** ./SConstruct.ORIG	Wed Jan 11 22:22:52 2017
+--- ./SConstruct	Wed Jan 11 22:23:05 2017
+***************
+*** 258,264 ****
+      env.Append(CCFLAGS=['-g'])
+      env.Append(CPPDEFINES=['DEBUG', '_DEBUG'])
+    else:
+!     env.Append(CCFLAGS=['-O2'])
+      env.Append(CPPDEFINES=['NDEBUG'])
+  
+    ### works for Mac OS. probably needs to change
+--- 258,264 ----
+      env.Append(CCFLAGS=['-g'])
+      env.Append(CPPDEFINES=['DEBUG', '_DEBUG'])
+    else:
+!     env.Append(CCFLAGS=['-O3'])
+      env.Append(CPPDEFINES=['NDEBUG'])
+  
+    ### works for Mac OS. probably needs to change
+

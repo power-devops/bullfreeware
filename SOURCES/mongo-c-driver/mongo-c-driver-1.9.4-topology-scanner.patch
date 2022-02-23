@@ -1,0 +1,11 @@
+--- ./tests/test-mongoc-topology-scanner.c.ORIGIN	2018-04-17 16:42:08 +0200
++++ ./tests/test-mongoc-topology-scanner.c	2018-04-17 16:43:11 +0200
+@@ -300,7 +300,7 @@
+    ASSERT_ERROR_CONTAINS (error,
+                           MONGOC_ERROR_SERVER_SELECTION,
+                           MONGOC_ERROR_SERVER_SELECTION_FAILURE,
+-                          "connection refused calling ismaster on "
++                          "Failed to write rpc bytes. calling ismaster on "
+                           "'localhost:9876'");
+ 
+    mongoc_client_destroy (client);

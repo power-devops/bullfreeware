@@ -1,0 +1,37 @@
+diff -crN ./xcursor/autogen.sh /users6/vanderms/sb/gnome_21264bis/src/./xcursor/autogen.sh
+*** ./xcursor/autogen.sh	Tue May  6 19:49:08 2003
+--- /users6/vanderms/sb/gnome_21264bis/src/./xcursor/autogen.sh	Tue Oct 25 13:53:02 2005
+***************
+*** 1,6 ****
+  #! /bin/sh
+  #
+! # $Id: autogen.sh,v 1.1 2003/05/06 17:49:08 keithp Exp $
+  #
+  # runs autotools to create ./configure and friends
+  #
+--- 1,6 ----
+  #! /bin/sh
+  #
+! # $Id: autogen.sh,v 1.1.3.2 2005/10/25 11:53:01 bellec Exp $
+  #
+  # runs autotools to create ./configure and friends
+  #
+***************
+*** 20,27 ****
+  fi
+  
+  # Use the versioned executables if available.
+! aclocal=aclocal-1.7
+! automake=automake-1.7
+  $aclocal  --version </dev/null >/dev/null 2>&1 || aclocal=aclocal
+  $automake --version </dev/null >/dev/null 2>&1 || automake=automake
+  
+--- 20,27 ----
+  fi
+  
+  # Use the versioned executables if available.
+! aclocal=aclocal-1.9
+! automake=automake-1.9
+  $aclocal  --version </dev/null >/dev/null 2>&1 || aclocal=aclocal
+  $automake --version </dev/null >/dev/null 2>&1 || automake=automake
+  

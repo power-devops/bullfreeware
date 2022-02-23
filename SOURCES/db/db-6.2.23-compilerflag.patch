@@ -1,0 +1,11 @@
+--- dist/configure.orig	2016-12-14 05:34:47.000000000 -0600
++++ dist/configure	2016-12-14 05:35:17.000000000 -0600
+@@ -5309,7 +5309,7 @@
+ 	# when ordinary optimization is enabled because they make strong
+ 	# assumptions about the types held at each memory location, and some
+ 	# Berkeley DB code violates those assumptions.  [#16141]
+-	extra_cflags=" -qalias=noansi"
++	extra_cflags=" -fno-strict-aliasing"
+ 	optimize_flag="-O2"
+ 	CC=${CC-"xlc_r"}
+ 	CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE"

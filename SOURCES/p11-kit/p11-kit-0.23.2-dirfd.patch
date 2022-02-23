@@ -1,0 +1,93 @@
+diff -Nru old/Makefile.in new/Makefile.in
+--- old/Makefile.in	2016-08-23 12:03:28 +0200
++++ new/Makefile.in	2016-08-23 12:03:18 +0200
+@@ -207,7 +207,7 @@
+ am__dirstamp = $(am__leading_dot)dirstamp
+ am__objects_1 =
+ am_libp11_common_la_OBJECTS = common/argv.lo common/attrs.lo \
+-	common/array.lo common/buffer.lo common/compat.lo \
++	common/array.lo common/buffer.lo common/compat.lo common/dirfd.lo \
+ 	common/constants.lo common/debug.lo common/dict.lo \
+ 	common/hash.lo common/lexer.lo common/message.lo \
+ 	common/path.lo common/url.lo $(am__objects_1)
+@@ -1229,6 +1229,7 @@
+ 	common/array.c common/array.h \
+ 	common/buffer.c common/buffer.h \
+ 	common/compat.c common/compat.h \
++	common/dirfd.c common/dirfd.h \
+ 	common/constants.c common/constants.h \
+ 	common/debug.c common/debug.h \
+ 	common/dict.c common/dict.h \
+@@ -1812,6 +1813,8 @@
+ 	common/$(DEPDIR)/$(am__dirstamp)
+ common/compat.lo: common/$(am__dirstamp) \
+ 	common/$(DEPDIR)/$(am__dirstamp)
++common/dirfd.lo: common/$(am__dirstamp) \
++	common/$(DEPDIR)/$(am__dirstamp)
+ common/constants.lo: common/$(am__dirstamp) \
+ 	common/$(DEPDIR)/$(am__dirstamp)
+ common/debug.lo: common/$(am__dirstamp) \
+@@ -2552,6 +2555,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/attrs.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/buffer.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/compat.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/dirfd.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/constants.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/debug.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@common/$(DEPDIR)/dict.Plo@am__quote@
+diff -Nru old/common/dirfd.c new/common/dirfd.c
+--- old/common/dirfd.c	1970-01-01 01:00:00 +0100
++++ new/common/dirfd.c	2016-08-23 12:02:42 +0200
+@@ -0,0 +1,36 @@
++#include <sys/limits.h>
++#include <sys/types.h>
++#include <fcntl.h>
++#include <dirent.h>
++#include <errno.h>
++#include <stdlib.h>
++#include <unistd.h>
++
++#include "dirfd.h"
++
++#ifdef __64BIT_FSINTERFACE
++#define _DIR_           DIR64
++#define _DIRFD_ dirfd64
++#else
++#define _DIR_           DIR
++#define _DIRFD_ dirfd
++#endif
++
++/*
++ * return the  file descriptor used by a DIR stream
++ */
++int
++_DIRFD_(_DIR_ *dirp)
++{
++
++        /**********
++          if dirp is null, or already been closed, then return -1
++        **********/
++
++        if (dirp == NULL || dirp->dd_fd <0) {
++                errno = EINVAL;
++                return(-1);
++        }
++
++        return(dirp->dd_fd);
++}
+diff -Nru old/common/dirfd.h new/common/dirfd.h
+--- old/common/dirfd.h	1970-01-01 01:00:00 +0100
++++ new/common/dirfd.h	2016-08-23 12:02:42 +0200
+@@ -0,0 +1,12 @@
++#ifdef _NO_PROTO
++#if (_XOPEN_SOURCE >= 700)
++extern  int  dirfd();
++extern  int  dirfd64();
++#endif
++#else /* _NO_PROTO */
++#if (_XOPEN_SOURCE >= 700)
++extern  int  dirfd(DIR *);
++extern  int  dirfd64(DIR64 *);
++#endif
++#endif
++

@@ -1,0 +1,114 @@
+From 5d868264bca1771aa16abbc8cc0aefb0e1750a73 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Wed, 6 Jun 2018 17:58:41 -0400
+Subject: [PATCH] Process profile includedir in sorted order
+
+In the profile library, use k5_dir_filenames() so that files within an
+included directory are read in a predictable order (alphanumeric
+within the C locale).
+
+ticket: 8686
+(cherry picked from commit f574eda48740ad192f51e9a382a205e2ea0e60ad)
+---
+ doc/admin/conf_files/krb5_conf.rst |  4 ++-
+ src/util/profile/prof_parse.c      | 56 +++++-------------------------
+ 2 files changed, 12 insertions(+), 48 deletions(-)
+
+diff --git a/doc/admin/conf_files/krb5_conf.rst b/doc/admin/conf_files/krb5_conf.rst
+index 2574e5c26..ce545492d 100644
+--- a/doc/admin/conf_files/krb5_conf.rst
++++ b/doc/admin/conf_files/krb5_conf.rst
+@@ -60,7 +60,9 @@ alphanumeric characters, dashes, or underscores.  Starting in release
+ 1.15, files with names ending in ".conf" are also included, unless the
+ name begins with ".".  Included profile files are syntactically
+ independent of their parents, so each included file must begin with a
+-section header.
++section header.  Starting in release 1.17, files are read in
++alphanumeric order; in previous releases, they may be read in any
++order.
+ 
+ The krb5.conf file can specify that configuration should be obtained
+ from a loadable module, rather than the file itself, using the
+diff --git a/src/util/profile/prof_parse.c b/src/util/profile/prof_parse.c
+index 1baceea9e..531e4a099 100644
+--- a/src/util/profile/prof_parse.c
++++ b/src/util/profile/prof_parse.c
+@@ -246,59 +246,22 @@ static int valid_name(const char *filename)
+  * Include files within dirname.  Only files with names ending in ".conf", or
+  * consisting entirely of alphanumeric characters, dashes, and underscores are
+  * included.  This restriction avoids including editor backup files, .rpmsave
+- * files, and the like.
++ * files, and the like.  Files are processed in alphanumeric order.
+  */
+ static errcode_t parse_include_dir(const char *dirname,
+                                    struct profile_node *root_section)
+ {
+-#ifdef _WIN32
+-    char *wildcard = NULL, *pathname;
+-    WIN32_FIND_DATA ffd;
+-    HANDLE handle;
+     errcode_t retval = 0;
++    char **fnames, *pathname;
++    int i;
+ 
+-    if (asprintf(&wildcard, "%s\\*", dirname) < 0)
+-        return ENOMEM;
+-
+-    handle = FindFirstFile(wildcard, &ffd);
+-    if (handle == INVALID_HANDLE_VALUE) {
+-        retval = PROF_FAIL_INCLUDE_DIR;
+-        goto cleanup;
+-    }
+-
+-    do {
+-        if (!valid_name(ffd.cFileName))
+-            continue;
+-        if (asprintf(&pathname, "%s\\%s", dirname, ffd.cFileName) < 0) {
+-            retval = ENOMEM;
+-            break;
+-        }
+-        retval = parse_include_file(pathname, root_section);
+-        free(pathname);
+-        if (retval)
+-            break;
+-    } while (FindNextFile(handle, &ffd) != 0);
+-
+-    FindClose(handle);
+-
+-cleanup:
+-    free(wildcard);
+-    return retval;
+-
+-#else /* not _WIN32 */
+-
+-    DIR     *dir;
+-    char    *pathname;
+-    errcode_t retval = 0;
+-    struct dirent *ent;
+-
+-    dir = opendir(dirname);
+-    if (dir == NULL)
++    if (k5_dir_filenames(dirname, &fnames) != 0)
+         return PROF_FAIL_INCLUDE_DIR;
+-    while ((ent = readdir(dir)) != NULL) {
+-        if (!valid_name(ent->d_name))
++
++    for (i = 0; fnames != NULL && fnames[i] != NULL; i++) {
++        if (!valid_name(fnames[i]))
+             continue;
+-        if (asprintf(&pathname, "%s/%s", dirname, ent->d_name) < 0) {
++        if (asprintf(&pathname, "%s/%s", dirname, fnames[i]) < 0) {
+             retval = ENOMEM;
+             break;
+         }
+@@ -307,9 +270,8 @@ cleanup:
+         if (retval)
+             break;
+     }
+-    closedir(dir);
++    k5_free_filenames(fnames);
+     return retval;
+-#endif /* not _WIN32 */
+ }
+ 
+ static errcode_t parse_line(char *line, struct parse_state *state,

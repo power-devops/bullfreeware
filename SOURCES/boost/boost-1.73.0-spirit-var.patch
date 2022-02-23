@@ -1,0 +1,102 @@
+--- ./libs/spirit/classic/test/epsilon_tests.cpp.ORIGIN	2020-05-05 16:54:01 +0200
++++ ./libs/spirit/classic/test/epsilon_tests.cpp	2020-05-05 16:55:32 +0200
+@@ -77,11 +77,11 @@
+ epsilon_as_parser_generator_for_functors()
+ {
+     bool       flag = false;
+-    parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), flag);
++    parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), flag);
+     BOOST_TEST(no_match);
+ 
+     flag = true;
+-    parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), flag);
++    parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), flag);
+     BOOST_TEST(full_match);
+ }
+ 
+@@ -97,12 +97,12 @@
+ 
+     bool        flag = false;
+     parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(
+-            BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag))), flag);
++            BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag))), flag);
+     BOOST_TEST(no_match);
+ 
+     flag = true;
+     parse(empty, BOOST_SPIRIT_CLASSIC_NS::epsilon_p(
+-            BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag))), flag);
++            BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag))), flag);
+     BOOST_TEST(full_match);
+ }
+ 
+@@ -112,15 +112,15 @@
+ negation_operator_for_epsilon()
+ {
+     bool       flag = false;
+-    parse(empty, ~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), !flag);
++    parse(empty, ~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), !flag);
+     BOOST_TEST(full_match);
+-    parse(empty, ~~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), flag);
++    parse(empty, ~~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), flag);
+     BOOST_TEST(no_match);
+ 
+     flag = true;
+-    parse(empty, ~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), !flag);
++    parse(empty, ~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), !flag);
+     BOOST_TEST(no_match);
+-    parse(empty, ~~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(var(flag)), flag);
++    parse(empty, ~~BOOST_SPIRIT_CLASSIC_NS::epsilon_p(test::var(flag)), flag);
+     BOOST_TEST(full_match);
+ }
+ 
+--- ./libs/spirit/classic/test/negated_eps_p_test.cpp.ORIGIN	2020-05-05 18:05:47 +0200
++++ ./libs/spirit/classic/test/negated_eps_p_test.cpp	2020-05-05 18:06:21 +0200
+@@ -26,7 +26,7 @@
+     bool f = false;
+ 
+     rule<> start =
+-    while_p(~eps_p(anychar_p[var(f) = true]))
++    while_p(~eps_p(anychar_p[phoenix::var(f) = true]))
+     [
+         anychar_p
+     ];
+--- ./libs/spirit/classic/test/closure_tests.cpp.ORIGIN	2020-05-05 18:05:55 +0200
++++ ./libs/spirit/classic/test/closure_tests.cpp	2020-05-05 18:06:30 +0200
+@@ -92,7 +92,7 @@
+     (
+         real_p[num_list.val = arg1] >>  *(',' >> real_p[num_list.val += arg1])
+     )
+-    [var(n) = num_list.val];
++    [phoenix::var(n) = num_list.val];
+ 
+     parse_info<char const*> pi;
+     pi = parse("123, 456, 789", num_list, space_p);
+@@ -131,7 +131,7 @@
+     ;
+ 
+     X x;
+-    pi = parse("123, 456", complex_p[var(x) = arg1], space_p);
++    pi = parse("123, 456", complex_p[phoenix::var(x) = arg1], space_p);
+     BOOST_TEST(pi.hit);
+     BOOST_TEST(x.a == 123);
+     BOOST_TEST(x.b == 456);
+--- ./libs/spirit/classic/test/parametric_tests.cpp.ORIGIN	2020-05-05 18:06:05 +0200
++++ ./libs/spirit/classic/test/parametric_tests.cpp	2020-05-05 18:06:37 +0200
+@@ -53,7 +53,7 @@
+ narrow_f_ch_p()
+ {
+     char ch;
+-    rule<> r = anychar_p[var(ch) = arg1] >> *f_ch_p(const_(ch));
++    rule<> r = anychar_p[phoenix::var(ch) = arg1] >> *f_ch_p(const_(ch));
+     parse_info<char const*> pi;
+ 
+     pi = parse("aaaaaaaaa", r);
+@@ -70,7 +70,7 @@
+ wide_f_ch_p()
+ {
+     wchar_t ch;
+-    wrule_t r = anychar_p[var(ch) = arg1] >> *f_ch_p(const_(ch));
++    wrule_t r = anychar_p[phoenix::var(ch) = arg1] >> *f_ch_p(const_(ch));
+     parse_info<wchar_t const*> pi;
+ 
+     pi = parse(L"aaaaaaaaa", r);

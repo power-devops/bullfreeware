@@ -1,0 +1,70 @@
+#
+# Simplified makefile for running the PostgreSQL regression tests
+# in an RPM installation
+#
+
+# default encoding
+MULTIBYTE = SQL_ASCII
+
+# maximum simultaneous connections for parallel tests
+MAXCONNOPT =
+ifdef MAX_CONNECTIONS
+MAXCONNOPT += --max-connections=$(MAX_CONNECTIONS)
+endif
+
+# locale
+NOLOCALE =
+ifdef NO_LOCALE
+NOLOCALE += --no-locale
+endif
+
+srcdir := .
+
+# Test input and expected files.  These are created by pg_regress itself, so we
+# don't have a rule to create them.  We do need rules to clean them however.
+ifile_list := $(subst .source,, $(notdir $(wildcard $(srcdir)/input/*.source)))
+input_files  := $(foreach file, $(ifile_list), sql/$(file).sql)
+ofile_list := $(subst .source,, $(notdir $(wildcard $(srcdir)/output/*.source)))
+output_files := $(foreach file, $(ofile_list), expected/$(file).out)
+
+abs_srcdir := $(shell pwd)
+abs_builddir := $(shell pwd)
+
+check: installcheck-parallel
+
+installcheck: cleandirs
+	./pg_regress --schedule=$(srcdir)/serial_schedule --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(NOLOCALE)
+
+installcheck-parallel: cleandirs
+	./pg_regress --schedule=$(srcdir)/parallel_schedule --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(MAXCONNOPT) $(NOLOCALE)
+
+# The tests command the server to write into testtablespace and results.
+# On a SELinux-enabled system this will fail unless we mark those directories
+# as writable by the server.
+cleandirs:
+	-rm -rf testtablespace results
+	mkdir testtablespace results
+	[ -x /usr/bin/chcon ] && /usr/bin/chcon -u system_u -r object_r -t postgresql_db_t testtablespace results
+
+# old interfaces follow...
+
+runcheck: check
+runtest: installcheck
+runtest-parallel: installcheck-parallel
+
+bigtest: cleandirs
+	./pg_regress --schedule=$(srcdir)/serial_schedule --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(NOLOCALE) numeric_big
+
+bigcheck: cleandirs
+	./pg_regress --schedule=$(srcdir)/parallel_schedule --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(MAXCONNOPT) $(NOLOCALE) numeric_big
+
+
+##
+## Clean up
+##
+
+clean distclean maintainer-clean:
+	rm -f $(output_files) $(input_files)
+	rm -rf testtablespace
+	rm -rf results tmp_check log
+	rm -f regression.diffs regression.out regress.out run_check.out

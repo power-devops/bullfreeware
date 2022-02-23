@@ -1,0 +1,39 @@
+--- ./daemon.c.ORIGIN	2019-03-13 10:51:34 +0100
++++ ./daemon.c	2019-03-13 10:50:27 +0100
+@@ -943,8 +943,8 @@
+ 	 * Otherwise empty handler because systemcalls will get interrupted
+ 	 * upon signal receipt
+ 	 * SysV needs the handler to be rearmed
++	 * AIX does NOT like, sometimes (t5570-git-daemon test 4), to rearm it. So: No!
+ 	 */
+-	signal(SIGCHLD, child_handler);
+ }
+ 
+ static int set_reuse_addr(int sockfd)
+@@ -1148,6 +1148,17 @@
+ 	struct pollfd *pfd;
+ 	int i;
+ 
++	/* AIX does NOT like, sometimes (t5570-git-daemon test 4), to rearm the SIGCHLD handler */
++	struct sigaction sa;
++
++	bzero(&sa, sizeof(sa));
++	sa.sa_handler = child_handler;
++	sa.sa_flags   = NULL;
++	sigemptyset(&sa.sa_mask);
++
++	sigaction(SIGCHLD, &sa, NULL);
++	/* AIX */
++
+ 	CALLOC_ARRAY(pfd, socklist->nr);
+ 
+ 	for (i = 0; i < socklist->nr; i++) {
+@@ -1155,8 +1166,6 @@
+ 		pfd[i].events = POLLIN;
+ 	}
+ 
+-	signal(SIGCHLD, child_handler);
+-
+ 	for (;;) {
+ 		int i;
+ 

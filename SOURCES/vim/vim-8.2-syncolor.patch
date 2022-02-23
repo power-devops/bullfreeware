@@ -1,0 +1,51 @@
+--- vim82/src/highlight.c.orig	2006-04-26 14:49:45.000000000 +0200
++++ vim82/src/highlight.c	2006-09-19 13:15:41.000000000 +0200
+@@ -211,8 +211,8 @@ static char *(highlight_init_light[]) = {
+     CENT("Visual term=reverse",
+ 	 "Visual term=reverse guibg=LightGrey"),
+ #ifdef FEAT_DIFF
+-    CENT("DiffAdd term=bold ctermbg=LightBlue",
+-	 "DiffAdd term=bold ctermbg=LightBlue guibg=LightBlue"),
++    CENT("DiffAdd term=bold ctermbg=LightRed",
++	  "DiffAdd term=bold ctermbg=LightRed guibg=LightBlue"),
+     CENT("DiffChange term=bold ctermbg=LightMagenta",
+ 	 "DiffChange term=bold ctermbg=LightMagenta guibg=LightMagenta"),
+     CENT("DiffDelete term=bold ctermfg=Blue ctermbg=LightCyan",
+@@ -304,8 +304,8 @@ static char *(highlight_init_dark[]) = {
+     CENT("Visual term=reverse",
+ 	 "Visual term=reverse guibg=DarkGrey"),
+ #ifdef FEAT_DIFF
+-    CENT("DiffAdd term=bold ctermbg=DarkBlue",
+-	 "DiffAdd term=bold ctermbg=DarkBlue guibg=DarkBlue"),
++    CENT("DiffAdd term=bold ctermbg=DarkRed",
++	  "DiffAdd term=bold ctermbg=DarkRed guibg=DarkBlue"),
+     CENT("DiffChange term=bold ctermbg=DarkMagenta",
+ 	 "DiffChange term=bold ctermbg=DarkMagenta guibg=DarkMagenta"),
+     CENT("DiffDelete term=bold ctermfg=Blue ctermbg=DarkCyan",
+--- ./runtime/syntax/syncolor.vim.orig	2010-05-15 13:03:57 +0200
++++ ./runtime/syntax/syncolor.vim	2020-06-19 17:00:30 +0200
+@@ -33,7 +33,7 @@
+ if &background == "dark"
+   SynColor Comment	term=bold cterm=NONE ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
+   SynColor Constant	term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
+-  SynColor Special	term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
++  SynColor Special	term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=#ed7f10 guibg=NONE
+   SynColor Identifier	term=underline cterm=bold ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#40ffff guibg=NONE
+   SynColor Statement	term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ffff60 guibg=NONE
+   SynColor PreProc	term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
+@@ -43,12 +43,12 @@
+ else
+   SynColor Comment	term=bold cterm=NONE ctermfg=DarkBlue ctermbg=NONE gui=NONE guifg=Blue guibg=NONE
+   SynColor Constant	term=underline cterm=NONE ctermfg=DarkRed ctermbg=NONE gui=NONE guifg=Magenta guibg=NONE
+-  SynColor Special	term=bold cterm=NONE ctermfg=DarkMagenta ctermbg=NONE gui=NONE guifg=SlateBlue guibg=NONE
++  SynColor Special	term=bold cterm=NONE ctermfg=DarkMagenta ctermbg=NONE gui=NONE guifg=#686f8c guibg=NONE
+   SynColor Identifier	term=underline cterm=NONE ctermfg=DarkCyan ctermbg=NONE gui=NONE guifg=DarkCyan guibg=NONE
+   SynColor Statement	term=bold cterm=NONE ctermfg=Brown ctermbg=NONE gui=bold guifg=Brown guibg=NONE
+-  SynColor PreProc	term=underline cterm=NONE ctermfg=DarkMagenta ctermbg=NONE gui=NONE guifg=Purple guibg=NONE
++  SynColor PreProc	term=underline cterm=NONE ctermfg=DarkMagenta ctermbg=NONE gui=NONE guifg=#9e0e40 guibg=NONE
+   SynColor Type		term=underline cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=bold guifg=SeaGreen guibg=NONE
+-  SynColor Underlined	term=underline cterm=underline ctermfg=DarkMagenta gui=underline guifg=SlateBlue
++  SynColor Underlined	term=underline cterm=underline ctermfg=DarkMagenta gui=underline guifg=#686f8c
+   SynColor Ignore	term=NONE cterm=NONE ctermfg=white ctermbg=NONE gui=NONE guifg=bg guibg=NONE
+ endif
+ SynColor Error		term=reverse cterm=NONE ctermfg=White ctermbg=Red gui=NONE guifg=White guibg=Red

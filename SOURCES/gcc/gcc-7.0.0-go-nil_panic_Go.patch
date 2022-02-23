@@ -1,0 +1,73 @@
+--- ./gcc/go/gofrontend/gogo.h.ORIGIN	2017-05-19 14:56:05 -0500
++++ ./gcc/go/gofrontend/gogo.h	2017-05-19 17:01:58 -0500
+@@ -278,6 +278,16 @@
+   set_c_header(const std::string& s)
+   { this->c_header_ = s; }
+ 
++  // Return whether to check for <nil>
++  bool
++  check_nil() const
++  { return this->check_nil_; }
++
++  // Set the option to check for <nil>
++  void
++  set_check_nil(bool b)
++  { this->check_nil_ = b; }
++
+   // Return whether to check for division by zero in binary operations.
+   bool
+   check_divide_by_zero() const
+@@ -901,6 +911,9 @@
+   std::string relative_import_path_;
+   // The C header file to write, from the -fgo-c-header option.
+   std::string c_header_;
++  // Whether or not to check for nil
++  // -fgo-check-nil option.
++  bool check_nil_;
+   // Whether or not to check for division by zero, from the
+   // -fgo-check-divide-zero option.
+   bool check_divide_by_zero_;
+--- ./gcc/go/lang.opt.ORIGIN	2017-04-12 17:46:47 -0500
++++ ./gcc/go/lang.opt	2017-04-12 17:46:50 -0500
+@@ -41,6 +41,10 @@
+ Go Joined RejectNegative
+ -fgo-c-header=<file>	Write Go struct definitions to file as C code.
+ 
++fgo-check-nil
++Go Var(go_check_nil) Init(1)
++Add explicit checks for <nil>.
++
+ fgo-check-divide-zero
+ Go Var(go_check_divide_zero) Init(1)
+ Add explicit checks for division by zero.
+--- ./gcc/go/go-lang.c.ORIGIN	2017-04-12 17:47:33 -0500
++++ ./gcc/go/go-lang.c	2017-04-12 17:48:31 -0500
+@@ -108,6 +108,7 @@
+   args.prefix = go_prefix;
+   args.relative_import_path = go_relative_import_path;
+   args.c_header = go_c_header;
++  args.check_nil = go_check_nil;
+   args.check_divide_by_zero = go_check_divide_zero;
+   args.check_divide_overflow = go_check_divide_overflow;
+   args.compiling_runtime = go_compiling_runtime;
+--- ./gcc/go/go-c.h.ORIGIN	2017-04-12 17:49:24 -0500
++++ ./gcc/go/go-c.h	2017-04-12 17:50:02 -0500
+@@ -43,6 +43,7 @@
+   const char* c_header;
+   Backend* backend;
+   Linemap* linemap;
++  bool check_nil;
+   bool check_divide_by_zero;
+   bool check_divide_overflow;
+   bool compiling_runtime;
+--- ./gcc/go/gofrontend/go.cc.ORIGIN	2017-04-12 17:53:06 -0500
++++ ./gcc/go/gofrontend/go.cc	2017-04-12 17:54:04 -0500
+@@ -34,6 +34,8 @@
+ 
+   if (args->relative_import_path != NULL)
+     ::gogo->set_relative_import_path(args->relative_import_path);
++  if (args->check_nil)
++    ::gogo->set_check_nil(args->check_nil);
+   ::gogo->set_check_divide_by_zero(args->check_divide_by_zero);
+   ::gogo->set_check_divide_overflow(args->check_divide_overflow);
+   if (args->compiling_runtime)

@@ -1,0 +1,2291 @@
+From e53984ccb82c4613123e3b458ac5d191c37ae6b9 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 14:54:43 +0200
+Subject: [PATCH] runtime: add AIX operating system
+
+This commit adds AIX operating system to runtime package for ppc64
+architecture.
+
+Only new files and minor changes are in this commit. Others
+modifications in files like asm_ppc64.s  will be in separate commits.
+
+Updates: #25893
+
+Change-Id: I9c5e073f5f3debb43b004ad1167694a5afd31cfd
+---
+
+diff --git a/src/runtime/crash_unix_test.go b/src/runtime/crash_unix_test.go
+index af9e643..1384e00 100644
+--- a/src/runtime/crash_unix_test.go
++++ b/src/runtime/crash_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime_test
+ 
+diff --git a/src/runtime/defs_aix.go b/src/runtime/defs_aix.go
+new file mode 100644
+index 0000000..b1f3bba
+--- /dev/null
++++ b/src/runtime/defs_aix.go
+@@ -0,0 +1,170 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build ignore
++
++/*
++Input to cgo -godefs
++GOARCH=ppc64 go tool cgo -godefs defs_aix.go > defs_aix_ppc64_tmp.go
++
++This is only an helper to create defs_aix_ppc64.go
++Golang runtime functions require the "linux" name of fields (ss_sp, si_addr, etc)
++However, AIX structures don't provide such names and must be modified.
++
++TODO(aix): create a script to automatise defs_aix creation.
++
++Modifications made:
++ - sigset replaced by a [4]uint64 array
++ - add sigset_all variable
++ - siginfo.si_addr uintptr instead of *byte
++ - add (*timeval) set_usec
++ - stackt.ss_sp uintptr instead of *byte
++ - stackt.ss_size uintptr instead of uint64
++ - sigcontext.sc_jmpbuf context64 instead of jumbuf
++ - ucontext.__extctx is a uintptr because we don't need extctx struct
++ - ucontext.uc_mcontext: replace jumbuf structure by context64 structure
++ - sigaction.sa_handler represents union field as both are uintptr
++ - tstate.* replace *byte by uintptr
++
++
++*/
++
++package runtime
++
++/*
++
++#include <sys/types.h>
++#include <sys/errno.h>
++#include <sys/time.h>
++#include <sys/signal.h>
++#include <sys/mman.h>
++#include <sys/thread.h>
++#include <sys/resource.h>
++
++#include <unistd.h>
++#include <fcntl.h>
++#include <pthread.h>
++#include <semaphore.h>
++*/
++import "C"
++
++const (
++	_EPERM     = C.EPERM
++	_ENOENT    = C.ENOENT
++	_EINTR     = C.EINTR
++	_EAGAIN    = C.EAGAIN
++	_ENOMEM    = C.ENOMEM
++	_EACCES    = C.EACCES
++	_EFAULT    = C.EFAULT
++	_EINVAL    = C.EINVAL
++	_ETIMEDOUT = C.ETIMEDOUT
++
++	_PROT_NONE  = C.PROT_NONE
++	_PROT_READ  = C.PROT_READ
++	_PROT_WRITE = C.PROT_WRITE
++	_PROT_EXEC  = C.PROT_EXEC
++
++	_MAP_ANONYMOUS = C.MAP_ANONYMOUS
++	_MAP_PRIVATE   = C.MAP_PRIVATE
++	_MAP_FIXED     = C.MAP_FIXED
++	_MADV_DONTNEED = C.MADV_DONTNEED
++
++	_SIGHUP     = C.SIGHUP
++	_SIGINT     = C.SIGINT
++	_SIGQUIT    = C.SIGQUIT
++	_SIGILL     = C.SIGILL
++	_SIGTRAP    = C.SIGTRAP
++	_SIGABRT    = C.SIGABRT
++	_SIGBUS     = C.SIGBUS
++	_SIGFPE     = C.SIGFPE
++	_SIGKILL    = C.SIGKILL
++	_SIGUSR1    = C.SIGUSR1
++	_SIGSEGV    = C.SIGSEGV
++	_SIGUSR2    = C.SIGUSR2
++	_SIGPIPE    = C.SIGPIPE
++	_SIGALRM    = C.SIGALRM
++	_SIGCHLD    = C.SIGCHLD
++	_SIGCONT    = C.SIGCONT
++	_SIGSTOP    = C.SIGSTOP
++	_SIGTSTP    = C.SIGTSTP
++	_SIGTTIN    = C.SIGTTIN
++	_SIGTTOU    = C.SIGTTOU
++	_SIGURG     = C.SIGURG
++	_SIGXCPU    = C.SIGXCPU
++	_SIGXFSZ    = C.SIGXFSZ
++	_SIGVTALRM  = C.SIGVTALRM
++	_SIGPROF    = C.SIGPROF
++	_SIGWINCH   = C.SIGWINCH
++	_SIGIO      = C.SIGIO
++	_SIGPWR     = C.SIGPWR
++	_SIGSYS     = C.SIGSYS
++	_SIGTERM    = C.SIGTERM
++	_SIGEMT     = C.SIGEMT
++	_SIGWAITING = C.SIGWAITING
++
++	_FPE_INTDIV = C.FPE_INTDIV
++	_FPE_INTOVF = C.FPE_INTOVF
++	_FPE_FLTDIV = C.FPE_FLTDIV
++	_FPE_FLTOVF = C.FPE_FLTOVF
++	_FPE_FLTUND = C.FPE_FLTUND
++	_FPE_FLTRES = C.FPE_FLTRES
++	_FPE_FLTINV = C.FPE_FLTINV
++	_FPE_FLTSUB = C.FPE_FLTSUB
++
++	_BUS_ADRALN = C.BUS_ADRALN
++	_BUS_ADRERR = C.BUS_ADRERR
++	_BUS_OBJERR = C.BUS_OBJERR
++
++	_SEGV_MAPERR = C.SEGV_MAPERR
++	_SEGV_ACCERR = C.SEGV_ACCERR
++
++	_ITIMER_REAL    = C.ITIMER_REAL
++	_ITIMER_VIRTUAL = C.ITIMER_VIRTUAL
++	_ITIMER_PROF    = C.ITIMER_PROF
++
++	_O_RDONLY = C.O_RDONLY
++
++	_SS_DISABLE  = C.SS_DISABLE
++	_SI_USER     = C.SI_USER
++	_SIG_BLOCK   = C.SIG_BLOCK
++	_SIG_UNBLOCK = C.SIG_UNBLOCK
++	_SIG_SETMASK = C.SIG_SETMASK
++
++	_SA_SIGINFO = C.SA_SIGINFO
++	_SA_RESTART = C.SA_RESTART
++	_SA_ONSTACK = C.SA_ONSTACK
++
++	_PTHREAD_CREATE_DETACHED = C.PTHREAD_CREATE_DETACHED
++
++	__SC_PAGE_SIZE        = C._SC_PAGE_SIZE
++	__SC_NPROCESSORS_ONLN = C._SC_NPROCESSORS_ONLN
++
++	_F_SETFD    = C.F_SETFD
++	_F_SETFL    = C.F_SETFL
++	_F_GETFD    = C.F_GETFD
++	_F_GETFL    = C.F_GETFL
++	_FD_CLOEXEC = C.FD_CLOEXEC
++)
++
++type sigset C.sigset_t
++type siginfo C.siginfo_t
++type timespec C.struct_timespec
++type timestruc C.struct_timestruc_t
++type timeval C.struct_timeval
++type itimerval C.struct_itimerval
++
++type stackt C.stack_t
++type sigcontext C.struct_sigcontext
++type ucontext C.ucontext_t
++type _Ctype_struct___extctx uint64 // ucontext use a pointer to this structure but it shouldn't be used
++type jmpbuf C.struct___jmpbuf
++type context64 C.struct___context64
++type sigactiont C.struct_sigaction
++type tstate C.struct_tstate
++type rusage C.struct_rusage
++
++type pthread C.pthread_t
++type pthread_attr C.pthread_attr_t
++
++type semt C.sem_t
+diff --git a/src/runtime/defs_aix_ppc64.go b/src/runtime/defs_aix_ppc64.go
+new file mode 100644
+index 0000000..e7480d0
+--- /dev/null
++++ b/src/runtime/defs_aix_ppc64.go
+@@ -0,0 +1,203 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package runtime
++
++const (
++	_EPERM     = 0x1
++	_ENOENT    = 0x2
++	_EINTR     = 0x4
++	_EAGAIN    = 0xb
++	_ENOMEM    = 0xc
++	_EACCES    = 0xd
++	_EFAULT    = 0xe
++	_EINVAL    = 0x16
++	_ETIMEDOUT = 0x4e
++
++	_PROT_NONE  = 0x0
++	_PROT_READ  = 0x1
++	_PROT_WRITE = 0x2
++	_PROT_EXEC  = 0x4
++
++	_MAP_ANONYMOUS = 0x10
++	_MAP_PRIVATE   = 0x2
++	_MAP_FIXED     = 0x100
++	_MADV_DONTNEED = 0x4
++
++	_SIGHUP     = 0x1
++	_SIGINT     = 0x2
++	_SIGQUIT    = 0x3
++	_SIGILL     = 0x4
++	_SIGTRAP    = 0x5
++	_SIGABRT    = 0x6
++	_SIGBUS     = 0xa
++	_SIGFPE     = 0x8
++	_SIGKILL    = 0x9
++	_SIGUSR1    = 0x1e
++	_SIGSEGV    = 0xb
++	_SIGUSR2    = 0x1f
++	_SIGPIPE    = 0xd
++	_SIGALRM    = 0xe
++	_SIGCHLD    = 0x14
++	_SIGCONT    = 0x13
++	_SIGSTOP    = 0x11
++	_SIGTSTP    = 0x12
++	_SIGTTIN    = 0x15
++	_SIGTTOU    = 0x16
++	_SIGURG     = 0x10
++	_SIGXCPU    = 0x18
++	_SIGXFSZ    = 0x19
++	_SIGVTALRM  = 0x22
++	_SIGPROF    = 0x20
++	_SIGWINCH   = 0x1c
++	_SIGIO      = 0x17
++	_SIGPWR     = 0x1d
++	_SIGSYS     = 0xc
++	_SIGTERM    = 0xf
++	_SIGEMT     = 0x7
++	_SIGWAITING = 0x27
++
++	_FPE_INTDIV = 0x14
++	_FPE_INTOVF = 0x15
++	_FPE_FLTDIV = 0x16
++	_FPE_FLTOVF = 0x17
++	_FPE_FLTUND = 0x18
++	_FPE_FLTRES = 0x19
++	_FPE_FLTINV = 0x1a
++	_FPE_FLTSUB = 0x1b
++
++	_BUS_ADRALN = 0x1
++	_BUS_ADRERR = 0x2
++	_BUS_OBJERR = 0x3
++	_
++	_SEGV_MAPERR = 0x32
++	_SEGV_ACCERR = 0x33
++
++	_ITIMER_REAL    = 0x0
++	_ITIMER_VIRTUAL = 0x1
++	_ITIMER_PROF    = 0x2
++
++	_O_RDONLY = 0x0
++
++	_SS_DISABLE  = 0x2
++	_SI_USER     = 0x0
++	_SIG_BLOCK   = 0x0
++	_SIG_UNBLOCK = 0x1
++	_SIG_SETMASK = 0x2
++
++	_SA_SIGINFO = 0x100
++	_SA_RESTART = 0x8
++	_SA_ONSTACK = 0x1
++
++	_PTHREAD_CREATE_DETACHED = 0x1
++
++	__SC_PAGE_SIZE        = 0x30
++	__SC_NPROCESSORS_ONLN = 0x48
++
++	_F_SETFD    = 0x2
++	_F_SETFL    = 0x4
++	_F_GETFD    = 0x1
++	_F_GETFL    = 0x3
++	_FD_CLOEXEC = 0x1
++)
++
++type sigset [4]uint64
++
++var sigset_all = sigset{^uint64(0), ^uint64(0), ^uint64(0), ^uint64(0)}
++
++type siginfo struct {
++	si_signo   int32
++	si_errno   int32
++	si_code    int32
++	si_pid     int32
++	si_uid     uint32
++	si_status  int32
++	si_addr    uintptr
++	si_band    int64
++	si_value   [2]int32 // [8]byte
++	__si_flags int32
++	__pad      [3]int32
++}
++
++type timespec struct {
++	tv_sec  int64
++	tv_nsec int64
++}
++type timeval struct {
++	tv_sec    int64
++	tv_usec   int32
++	pad_cgo_0 [4]byte
++}
++
++func (tv *timeval) set_usec(x int32) {
++	tv.tv_usec = x
++}
++
++type itimerval struct {
++	it_interval timeval
++	it_value    timeval
++}
++
++type stackt struct {
++	ss_sp     uintptr
++	ss_size   uintptr
++	ss_flags  int32
++	__pad     [4]int32
++	pas_cgo_0 [4]byte
++}
++
++type sigcontext struct {
++	sc_onstack int32
++	pad_cgo_0  [4]byte
++	sc_mask    sigset
++	sc_uerror  int32
++	sc_jmpbuf  context64
++}
++
++type ucontext struct {
++	__sc_onstack   int32
++	pad_cgo_0      [4]byte
++	uc_sigmask     sigset
++	__sc_error     int32
++	pad_cgo_1      [4]byte
++	uc_mcontext    context64
++	uc_link        *ucontext
++	uc_stack       stackt
++	__extctx       uintptr // pointer to struct __extctx but we don't use it
++	__extctx_magic int32
++	__pad          int32
++}
++
++type context64 struct {
++	gpr        [32]uint64
++	msr        uint64
++	iar        uint64
++	lr         uint64
++	ctr        uint64
++	cr         uint32
++	xer        uint32
++	fpscr      uint32
++	fpscrx     uint32
++	except     [1]uint64
++	fpr        [32]float64
++	fpeu       uint8
++	fpinfo     uint8
++	fpscr24_31 uint8
++	pad        [1]uint8
++	excp_type  int32
++}
++
++type sigactiont struct {
++	sa_handler uintptr // a union of two pointer
++	sa_mask    sigset
++	sa_flags   int32
++	pad_cgo_0  [4]byte
++}
++
++type pthread uint32
++type pthread_attr *byte
++
++type semt int32
+diff --git a/src/runtime/env_posix.go b/src/runtime/env_posix.go
+index 032e712..a2daeb7 100644
+--- a/src/runtime/env_posix.go
++++ b/src/runtime/env_posix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package runtime
+ 
+diff --git a/src/runtime/export_unix_test.go b/src/runtime/export_unix_test.go
+index 54d5770..eecdfb7 100644
+--- a/src/runtime/export_unix_test.go
++++ b/src/runtime/export_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff --git a/src/runtime/lock_sema.go b/src/runtime/lock_sema.go
+index 6e01d70..d21a055 100644
+--- a/src/runtime/lock_sema.go
++++ b/src/runtime/lock_sema.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin nacl netbsd openbsd plan9 solaris windows
++// +build aix darwin nacl netbsd openbsd plan9 solaris windows
+ 
+ package runtime
+ 
+diff --git a/src/runtime/mem_aix.go b/src/runtime/mem_aix.go
+new file mode 100644
+index 0000000..f11f0ab
+--- /dev/null
++++ b/src/runtime/mem_aix.go
+@@ -0,0 +1,74 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package runtime
++
++import (
++	"unsafe"
++)
++
++// Don't split the stack as this method may be invoked without a valid G, which
++// prevents us from allocating more stack.
++//go:nosplit
++func sysAlloc(n uintptr, sysStat *uint64) unsafe.Pointer {
++	p, err := mmap(nil, n, _PROT_READ|_PROT_WRITE, _MAP_ANONYMOUS|_MAP_PRIVATE, -1, 0)
++	if err != 0 {
++		if err == _EACCES {
++			print("runtime: mmap: access denied\n")
++			exit(2)
++		}
++		if err == _EAGAIN {
++			print("runtime: mmap: too much locked memory (check 'ulimit -l').\n")
++			exit(2)
++		}
++		//println("sysAlloc failed: ", err)
++		return nil
++	}
++	mSysStatInc(sysStat, n)
++	return p
++}
++
++func sysUnused(v unsafe.Pointer, n uintptr) {
++	madvise(v, n, _MADV_DONTNEED)
++}
++
++func sysUsed(v unsafe.Pointer, n uintptr) {
++}
++
++// Don't split the stack as this function may be invoked without a valid G,
++// which prevents us from allocating more stack.
++//go:nosplit
++func sysFree(v unsafe.Pointer, n uintptr, sysStat *uint64) {
++	mSysStatDec(sysStat, n)
++	munmap(v, n)
++
++}
++
++func sysFault(v unsafe.Pointer, n uintptr) {
++	mmap(v, n, _PROT_NONE, _MAP_ANONYMOUS|_MAP_PRIVATE|_MAP_FIXED, -1, 0)
++}
++
++func sysReserve(v unsafe.Pointer, n uintptr) unsafe.Pointer {
++	p, err := mmap(v, n, _PROT_NONE, _MAP_ANONYMOUS|_MAP_PRIVATE, -1, 0)
++	if err != 0 {
++		return nil
++	}
++	return p
++}
++
++func sysMap(v unsafe.Pointer, n uintptr, sysStat *uint64) {
++	mSysStatInc(sysStat, n)
++
++	// AIX does not allow mapping a range that is already mapped.
++	// So always unmap first even if it is already unmapped.
++	munmap(v, n)
++	p, err := mmap(v, n, _PROT_READ|_PROT_WRITE, _MAP_ANONYMOUS|_MAP_FIXED|_MAP_PRIVATE, -1, 0)
++
++	if err == _ENOMEM {
++		throw("runtime: out of memory")
++	}
++	if p != v || err != 0 {
++		throw("runtime: cannot map pages in arena address space")
++	}
++}
+diff --git a/src/runtime/mmap.go b/src/runtime/mmap.go
+index fe09e70..2868f3f 100644
+--- a/src/runtime/mmap.go
++++ b/src/runtime/mmap.go
+@@ -10,6 +10,7 @@
+ // +build !linux !arm64
+ // +build !js
+ // +build !darwin
++// +build !aix
+ 
+ package runtime
+ 
+diff --git a/src/runtime/netpoll.go b/src/runtime/netpoll.go
+index f9c4226..da822a7 100644
+--- a/src/runtime/netpoll.go
++++ b/src/runtime/netpoll.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package runtime
+ 
+@@ -166,8 +166,8 @@
+ 	if err != 0 {
+ 		return err
+ 	}
+-	// As for now only Solaris uses level-triggered IO.
+-	if GOOS == "solaris" {
++	// As for now only Solaris and AIX use level-triggered IO.
++	if GOOS == "solaris" || GOOS == "aix" {
+ 		netpollarm(pd, mode)
+ 	}
+ 	for !netpollblock(pd, int32(mode), false) {
+diff --git a/src/runtime/netpoll_aix.go b/src/runtime/netpoll_aix.go
+new file mode 100644
+index 0000000..635fa27
+--- /dev/null
++++ b/src/runtime/netpoll_aix.go
+@@ -0,0 +1,246 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package runtime
++
++import "unsafe"
++
++// This is based on the former libgo/runtime/netpoll_select.c implementation
++// except that it uses poll instead of select and is written in Go.
++// It's also based on Solaris implementation for the arming mechanisms
++
++//go:cgo_import_dynamic libc_poll poll "libc.a/shr_64.o"
++//go:linkname libc_poll libc_poll
++
++var libc_poll libFunc
++
++//go:nosplit
++func poll(pfds *pollfd, npfds uintptr, timeout uintptr) (int32, int32) {
++	r, err := syscall3(&libc_poll, uintptr(unsafe.Pointer(pfds)), npfds, timeout)
++	return int32(r), int32(err)
++}
++
++//go:nosplit
++func fcntl(fd, cmd int32, arg uintptr) int32 {
++	r, _ := syscall3(&libc_fcntl, uintptr(fd), uintptr(cmd), arg)
++	return int32(r)
++}
++
++// pollfd represents the poll structure for AIX operating system.
++type pollfd struct {
++	fd      int32
++	events  int16
++	revents int16
++}
++
++const _POLLIN = 0x0001
++const _POLLOUT = 0x0002
++const _POLLHUP = 0x2000
++const _POLLERR = 0x4000
++const _O_NONBLOCK = 0x4
++
++var (
++	pfds           []pollfd
++	pds            []*pollDesc
++	mtxpoll        mutex
++	mtxset         mutex
++	rdwake         int32
++	wrwake         int32
++	pendingUpdates int32
++)
++
++const pollVerbose = false
++
++func netpollinit() {
++	var p [2]int32
++
++	// Create the pipe we use to wakeup poll.
++	if err := pipe(&p[0]); err < 0 {
++		throw("netpollinit: failed to create pipe")
++	}
++	rdwake = p[0]
++	wrwake = p[1]
++
++	fl := uintptr(fcntl(rdwake, _F_GETFL, 0))
++	fcntl(rdwake, _F_SETFL, fl|_O_NONBLOCK)
++	fcntl(rdwake, _F_SETFD, _FD_CLOEXEC)
++
++	fl = uintptr(fcntl(wrwake, _F_GETFL, 0))
++	fcntl(wrwake, _F_SETFL, fl|_O_NONBLOCK)
++	fcntl(wrwake, _F_SETFD, _FD_CLOEXEC)
++
++	// Pre-allocate array of pollfd structures for poll.
++	if pollVerbose {
++		println("*** allocating")
++	}
++	pfds = make([]pollfd, 1, 128)
++	if pollVerbose {
++		println("*** allocating done", &pfds[0])
++	}
++
++	// Poll the read side of the pipe.
++	pfds[0].fd = rdwake
++	pfds[0].events = _POLLIN
++
++	pds = make([]*pollDesc, 1, 128)
++	pds[0] = nil
++}
++
++func netpolldescriptor() uintptr {
++	// Both fd must be returned
++	return uintptr(rdwake<<16 | wrwake)
++}
++
++// netpollwakeup writes on wrwake to wakeup poll before any changes.
++func netpollwakeup() {
++	if pendingUpdates == 0 {
++		pendingUpdates = 1
++		if pollVerbose {
++			println("*** writing 1 byte")
++		}
++		b := [1]byte{0}
++		write(uintptr(wrwake), unsafe.Pointer(&b[0]), 1)
++	}
++}
++
++func netpollopen(fd uintptr, pd *pollDesc) int32 {
++	if pollVerbose {
++		println("*** netpollopen", fd)
++	}
++	lock(&mtxpoll)
++	netpollwakeup()
++
++	lock(&mtxset)
++	unlock(&mtxpoll)
++
++	pd.user = uint32(len(pfds))
++	var pfd pollfd
++	pfd.fd = int32(fd)
++	pfds = append(pfds, pfd)
++	pds = append(pds, pd)
++	unlock(&mtxset)
++	return 0
++}
++
++func netpollclose(fd uintptr) int32 {
++	if pollVerbose {
++		println("*** netpollclose", fd)
++	}
++	lock(&mtxpoll)
++	netpollwakeup()
++
++	lock(&mtxset)
++	unlock(&mtxpoll)
++
++	for i := 0; i < len(pfds); i++ {
++		if pfds[i].fd == int32(fd) {
++			pfds[i] = pfds[len(pfds)-1]
++			pfds = pfds[:len(pfds)-1]
++
++			pds[i] = pds[len(pds)-1]
++			pds[i].user = uint32(i)
++			pds = pds[:len(pds)-1]
++			break
++		}
++	}
++	unlock(&mtxset)
++	return 0
++}
++
++func netpollarm(pd *pollDesc, mode int) {
++	if pollVerbose {
++		println("*** netpollarm", pd.fd, mode)
++	}
++	lock(&mtxpoll)
++	netpollwakeup()
++
++	lock(&mtxset)
++	unlock(&mtxpoll)
++
++	switch mode {
++	case 'r':
++		pfds[pd.user].events |= _POLLIN
++	case 'w':
++		pfds[pd.user].events |= _POLLOUT
++	}
++	unlock(&mtxset)
++}
++
++//go:nowritebarrierrec
++func netpoll(block bool) *g {
++	timeout := ^uintptr(0)
++	if !block {
++		timeout = 0
++		return nil
++	}
++	if pollVerbose {
++		println("*** netpoll", block)
++	}
++retry:
++	lock(&mtxpoll)
++	lock(&mtxset)
++	pendingUpdates = 0
++	unlock(&mtxpoll)
++
++	if pollVerbose {
++		println("*** netpoll before poll")
++	}
++	n, e := poll(&pfds[0], uintptr(len(pfds)), timeout)
++	if pollVerbose {
++		println("*** netpoll after poll", n)
++	}
++	if n < 0 {
++		if e != _EINTR {
++			println("errno=", e, " len(pfds)=", len(pfds))
++			throw("poll failed")
++		}
++		if pollVerbose {
++			println("*** poll failed")
++		}
++		unlock(&mtxset)
++		goto retry
++	}
++	// Check if some descriptors need to be changed
++	if n != 0 && pfds[0].revents&(_POLLIN|_POLLHUP|_POLLERR) != 0 {
++		var b [1]byte
++		for read(rdwake, unsafe.Pointer(&b[0]), 1) == 1 {
++			if pollVerbose {
++				println("*** read 1 byte from pipe")
++			}
++		}
++		// Do not look at the other fds in this case as the mode may have changed
++		// XXX only additions of flags are made, so maybe it is ok
++		unlock(&mtxset)
++		goto retry
++	}
++	var toRun guintptr
++	for i := 0; i < len(pfds) && n > 0; i++ {
++		pfd := &pfds[i]
++
++		var mode int32
++		if pfd.revents&(_POLLIN|_POLLHUP|_POLLERR) != 0 {
++			mode += 'r'
++			pfd.events &= ^_POLLIN
++		}
++		if pfd.revents&(_POLLOUT|_POLLHUP|_POLLERR) != 0 {
++			mode += 'w'
++			pfd.events &= ^_POLLOUT
++		}
++		if mode != 0 {
++			if pollVerbose {
++				println("*** netpollready i=", i, "revents=", pfd.revents, "events=", pfd.events, "pd=", pds[i])
++			}
++			netpollready(&toRun, pds[i], mode)
++			n--
++		}
++	}
++	unlock(&mtxset)
++	if block && toRun == 0 {
++		goto retry
++	}
++	if pollVerbose {
++		println("*** netpoll returning end")
++	}
++	return toRun.ptr()
++}
+diff --git a/src/runtime/os2_aix.go b/src/runtime/os2_aix.go
+new file mode 100644
+index 0000000..9e26ce2
+--- /dev/null
++++ b/src/runtime/os2_aix.go
+@@ -0,0 +1,479 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// This file contains main runtime AIX syscalls.
++// Pollset syscalls are in netpoll_aix.go.
++// The implementation is based on Solaris and Windows.
++// Each syscall is made by calling its libc symbol using asmcgocall and asmsyscall6
++// asssembly functions.
++
++package runtime
++
++import (
++	"unsafe"
++)
++
++// Symbols imported for __start function.
++
++//go:cgo_import_dynamic libc___n_pthreads __n_pthreads "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libc___mod_init __mod_init "libc.a/shr_64.o"
++//go:linkname libc___n_pthreads libc___n_pthread
++//go:linkname libc___mod_init libc___mod_init
++
++var (
++	libc___n_pthread,
++	libc___mod_init libFunc
++)
++
++// Syscalls
++
++//go:cgo_import_dynamic libc__Errno _Errno "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_clock_gettime clock_gettime "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_close close "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_exit exit "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getpid getpid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_kill kill "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_madvise madvise "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_malloc malloc "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_mmap mmap "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_munmap munmap "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_open open "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_pipe pipe "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_raise raise "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_read read "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sched_yield sched_yield "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sem_init sem_init "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sem_post sem_post "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sem_timedwait sem_timedwait "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sem_wait sem_wait "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setitimer setitimer "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sigaction sigaction "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sigaltstack sigaltstack "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sysconf sysconf "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_usleep usleep "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_write write "libc.a/shr_64.o"
++
++//go:cgo_import_dynamic libpthread___pth_init __pth_init "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_destroy pthread_attr_destroy "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_init pthread_attr_init "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_getstacksize pthread_attr_getstacksize "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_setstacksize pthread_attr_setstacksize "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_setdetachstate pthread_attr_setdetachstate "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_attr_setstackaddr pthread_attr_setstackaddr "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_create pthread_create "libpthread.a/shr_xpg5_64.o"
++//go:cgo_import_dynamic libpthread_sigthreadmask sigthreadmask "libpthread.a/shr_xpg5_64.o"
++
++//go:linkname libc__Errno libc__Errno
++//go:linkname libc_clock_gettime libc_clock_gettime
++//go:linkname libc_close libc_close
++//go:linkname libc_exit libc_exit
++//go:linkname libc_getpid libc_getpid
++//go:linkname libc_kill libc_kill
++//go:linkname libc_madvise libc_madvise
++//go:linkname libc_malloc libc_malloc
++//go:linkname libc_mmap libc_mmap
++//go:linkname libc_munmap libc_munmap
++//go:linkname libc_open libc_open
++//go:linkname libc_pipe libc_pipe
++//go:linkname libc_raise libc_raise
++//go:linkname libc_read libc_read
++//go:linkname libc_sched_yield libc_sched_yield
++//go:linkname libc_sem_init libc_sem_init
++//go:linkname libc_sem_post libc_sem_post
++//go:linkname libc_sem_timedwait libc_sem_timedwait
++//go:linkname libc_sem_wait libc_sem_wait
++//go:linkname libc_setitimer libc_setitimer
++//go:linkname libc_sigaction libc_sigaction
++//go:linkname libc_sigaltstack libc_sigaltstack
++//go:linkname libc_sysconf libc_sysconf
++//go:linkname libc_usleep libc_usleep
++//go:linkname libc_write libc_write
++
++//go:linkname libpthread___pth_init libpthread___pth_init
++//go:linkname libpthread_attr_destroy libpthread_attr_destroy
++//go:linkname libpthread_attr_init libpthread_attr_init
++//go:linkname libpthread_attr_getstacksize libpthread_attr_getstacksize
++//go:linkname libpthread_attr_setstacksize libpthread_attr_setstacksize
++//go:linkname libpthread_attr_setdetachstate libpthread_attr_setdetachstate
++//go:linkname libpthread_attr_setstackaddr libpthread_attr_setstackaddr
++//go:linkname libpthread_create libpthread_create
++//go:linkname libpthread_sigthreadmask libpthread_sigthreadmask
++
++var (
++	//libc
++	libc__Errno,
++	libc_clock_gettime,
++	libc_close,
++	libc_exit,
++	libc_getpid,
++	libc_kill,
++	libc_madvise,
++	libc_malloc,
++	libc_mmap,
++	libc_munmap,
++	libc_open,
++	libc_pipe,
++	libc_raise,
++	libc_read,
++	libc_sched_yield,
++	libc_sem_init,
++	libc_sem_post,
++	libc_sem_timedwait,
++	libc_sem_wait,
++	libc_setitimer,
++	libc_sigaction,
++	libc_sigaltstack,
++	libc_sysconf,
++	libc_usleep,
++	libc_write,
++	//libpthread
++	libpthread___pth_init,
++	libpthread_attr_destroy,
++	libpthread_attr_init,
++	libpthread_attr_getstacksize,
++	libpthread_attr_setstacksize,
++	libpthread_attr_setdetachstate,
++	libpthread_attr_setstackaddr,
++	libpthread_create,
++	libpthread_sigthreadmask libFunc
++)
++
++type libFunc uintptr
++
++// asmsyscall6 calls the libc symbol using a C convention.
++// It's defined in sys_aix_ppc64.go.
++var asmsyscall6 libFunc
++
++//go:nowritebarrier
++//go:nosplit
++func syscall0(fn *libFunc) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 0
++	c.args = uintptr(noescape(unsafe.Pointer(&fn))) // it's unused but must be non-nil, otherwise crashes
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall1(fn *libFunc, a0 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 1
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall2(fn *libFunc, a0, a1 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 2
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall3(fn *libFunc, a0, a1, a2 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 3
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall4(fn *libFunc, a0, a1, a2, a3 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 4
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall5(fn *libFunc, a0, a1, a2, a3, a4 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 5
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nowritebarrier
++//go:nosplit
++func syscall6(fn *libFunc, a0, a1, a2, a3, a4, a5 uintptr) (r, err uintptr) {
++	c := &getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = 6
++	c.args = uintptr(noescape(unsafe.Pointer(&a0)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(c))
++
++	return c.r1, c.err
++}
++
++//go:nosplit
++func exit(code int32) {
++	syscall1(&libc_exit, uintptr(code))
++}
++
++//go:nosplit
++func write(fd uintptr, p unsafe.Pointer, n int32) int32 {
++	r, _ := syscall3(&libc_write, uintptr(fd), uintptr(p), uintptr(n))
++	return int32(r)
++
++}
++
++//go:nosplit
++func read(fd int32, p unsafe.Pointer, n int32) int32 {
++	r, _ := syscall3(&libc_read, uintptr(fd), uintptr(p), uintptr(n))
++	return int32(r)
++}
++
++//go:nosplit
++func open(name *byte, mode, perm int32) int32 {
++	r, _ := syscall3(&libc_open, uintptr(unsafe.Pointer(name)), uintptr(mode), uintptr(perm))
++	return int32(r)
++}
++
++//go:nosplit
++func closefd(fd int32) int32 {
++	r, _ := syscall1(&libc_close, uintptr(fd))
++	return int32(r)
++}
++
++//go:nosplit
++func pipe(fd *int32) int32 {
++	r, _ := syscall1(&libc_pipe, uintptr(unsafe.Pointer(fd)))
++	return int32(r)
++}
++
++// mmap calls the mmap system call.
++// We only pass the lower 32 bits of file offset to the
++// assembly routine; the higher bits (if required), should be provided
++// by the assembly routine as 0.
++// The err result is an OS error code such as ENOMEM.
++//go:nosplit
++func mmap(addr unsafe.Pointer, n uintptr, prot, flags, fd int32, off uint32) (p unsafe.Pointer, err int) {
++	r, err0 := syscall6(&libc_mmap, uintptr(addr), uintptr(n), uintptr(prot), uintptr(flags), uintptr(fd), uintptr(off))
++	return unsafe.Pointer(r), int(err0)
++}
++
++//go:nosplit
++func munmap(addr unsafe.Pointer, n uintptr) {
++	r, err := syscall2(&libc_munmap, uintptr(addr), uintptr(n))
++	if int32(r) == -1 {
++		println("syscall munmap failed: ", hex(err))
++		throw("syscall munmap")
++	}
++}
++
++//go:nosplit
++func madvise(addr unsafe.Pointer, n uintptr, flags int32) {
++	r, err := syscall3(&libc_madvise, uintptr(addr), uintptr(n), uintptr(flags))
++	if int32(r) == -1 {
++		println("syscall madvise failed: ", hex(err))
++		throw("syscall madvise")
++	}
++}
++
++//go:nosplit
++func sigaction(sig uintptr, new, old *sigactiont) {
++	r, err := syscall3(&libc_sigaction, sig, uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
++	if int32(r) == -1 {
++		println("Sigaction failed for sig: ", sig, " with error:", hex(err))
++		throw("syscall sigaction")
++	}
++}
++
++//go:nosplit
++func sigaltstack(new, old *stackt) {
++	r, err := syscall2(&libc_sigaltstack, uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
++	if int32(r) == -1 {
++		println("syscall sigaltstack failed: ", hex(err))
++		throw("syscall sigaltstack")
++	}
++}
++
++//go:nosplit
++func usleep(us uint32) {
++	r, err := syscall1(&libc_usleep, uintptr(us))
++	if int32(r) == -1 {
++		println("syscall usleep failed: ", hex(err))
++		throw("syscall usleep")
++	}
++}
++
++//go:nosplit
++func clock_gettime(clockid int32, tp *timespec) int32 {
++	r, _ := syscall2(&libc_clock_gettime, uintptr(clockid), uintptr(unsafe.Pointer(tp)))
++	return int32(r)
++}
++
++//go:nosplit
++func setitimer(mode int32, new, old *itimerval) {
++	r, err := syscall3(&libc_setitimer, uintptr(mode), uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
++	if int32(r) == -1 {
++		println("syscall setitimer failed: ", hex(err))
++		throw("syscall setitimer")
++	}
++}
++
++//go:nosplit
++func malloc(size uintptr) unsafe.Pointer {
++	r, _ := syscall1(&libc_malloc, size)
++	return unsafe.Pointer(r)
++}
++
++//go:nosplit
++func sem_init(sem *semt, pshared int32, value uint32) int32 {
++	r, _ := syscall3(&libc_sem_init, uintptr(unsafe.Pointer(sem)), uintptr(pshared), uintptr(value))
++	return int32(r)
++}
++
++//go:nosplit
++func sem_wait(sem *semt) (int32, int32) {
++	r, err := syscall1(&libc_sem_wait, uintptr(unsafe.Pointer(sem)))
++	return int32(r), int32(err)
++}
++
++//go:nosplit
++func sem_post(sem *semt) int32 {
++	r, _ := syscall1(&libc_sem_post, uintptr(unsafe.Pointer(sem)))
++	return int32(r)
++}
++
++//go:nosplit
++func sem_timedwait(sem *semt, timeout *timespec) (int32, int32) {
++	r, err := syscall2(&libc_sem_timedwait, uintptr(unsafe.Pointer(sem)), uintptr(unsafe.Pointer(timeout)))
++	return int32(r), int32(err)
++}
++
++//go:nosplit
++func raise(sig uint32) {
++	r, err := syscall1(&libc_raise, uintptr(sig))
++	if int32(r) == -1 {
++		println("syscall raise failed: ", hex(err))
++		throw("syscall raise")
++	}
++}
++
++//go:nosplit
++func raiseproc(sig uint32) {
++	pid, err := syscall0(&libc_getpid)
++	if int32(pid) == -1 {
++		println("syscall getpid failed: ", hex(err))
++		throw("syscall raiseproc")
++	}
++
++	syscall2(&libc_kill, pid, uintptr(sig))
++}
++
++func osyield1()
++
++//go:nosplit
++func osyield() {
++	_g_ := getg()
++
++	// Check the validity of m because we might be called in cgo callback
++	// path early enough where there isn't a m available yet.
++	if _g_ != nil && _g_.m != nil {
++		r, err := syscall0(&libc_sched_yield)
++		if int32(r) == -1 {
++			println("syscall osyield failed: ", hex(err))
++			throw("syscall osyield")
++		}
++		return
++	}
++	osyield1()
++}
++
++//go:nosplit
++func sysconf(name int32) uintptr {
++	r, _ := syscall1(&libc_sysconf, uintptr(name))
++	if int32(r) == -1 {
++		throw("syscall sysconf")
++	}
++	return r
++
++}
++
++// pthread functions returns its error code in the main return value
++// Therefore, err returns by syscall means nothing and must not be used
++
++//go:nosplit
++func pthread_attr_destroy(attr *pthread_attr) int32 {
++	r, _ := syscall1(&libpthread_attr_destroy, uintptr(unsafe.Pointer(attr)))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_attr_init(attr *pthread_attr) int32 {
++	r, _ := syscall1(&libpthread_attr_init, uintptr(unsafe.Pointer(attr)))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_attr_setdetachstate(attr *pthread_attr, state int32) int32 {
++	r, _ := syscall2(&libpthread_attr_setdetachstate, uintptr(unsafe.Pointer(attr)), uintptr(state))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_attr_setstackaddr(attr *pthread_attr, stk unsafe.Pointer) int32 {
++	r, _ := syscall2(&libpthread_attr_setstackaddr, uintptr(unsafe.Pointer(attr)), uintptr(stk))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_attr_getstacksize(attr *pthread_attr, size *uint64) int32 {
++	r, _ := syscall2(&libpthread_attr_getstacksize, uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(size)))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_attr_setstacksize(attr *pthread_attr, size uint64) int32 {
++	r, _ := syscall2(&libpthread_attr_setstacksize, uintptr(unsafe.Pointer(attr)), uintptr(size))
++	return int32(r)
++}
++
++//go:nosplit
++func pthread_create(tid *pthread, attr *pthread_attr, fn *funcDescriptor, arg unsafe.Pointer) int32 {
++	r, _ := syscall4(&libpthread_create, uintptr(unsafe.Pointer(tid)), uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(fn)), uintptr(arg))
++	return int32(r)
++}
++
++// On multi-thread program, sigprocmask must not be called.
++// It's replaced by sigthreadmask.
++//go:nosplit
++func sigprocmask(how int32, new, old *sigset) {
++	r, err := syscall3(&libpthread_sigthreadmask, uintptr(how), uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
++	if int32(r) != 0 {
++		println("syscall sigthreadmask failed: ", hex(err))
++		throw("syscall sigthreadmask")
++	}
++}
+diff --git a/src/runtime/os_aix.go b/src/runtime/os_aix.go
+new file mode 100644
+index 0000000..cb09a15
+--- /dev/null
++++ b/src/runtime/os_aix.go
+@@ -0,0 +1,262 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package runtime
++
++import (
++	"unsafe"
++)
++
++const (
++	threadStackSize = 0x100000 // size of a thread stack allocated by OS
++)
++
++// funcDescriptor is a structure representing a function descriptor
++// A variable with this type is always created in assembler
++type funcDescriptor struct {
++	fn         uintptr
++	toc        uintptr
++	envPointer uintptr // unused in Golang
++}
++
++type mOS struct {
++	waitsema uintptr // semaphore for parking on locks
++	perrno   uintptr // pointer to tls errno
++}
++
++//go:nosplit
++func semacreate(mp *m) {
++	if mp.waitsema != 0 {
++		return
++	}
++
++	var sem *semt
++
++	// Call libc's malloc rather than malloc. This will
++	// allocate space on the C heap. We can't call malloc
++	// here because it could cause a deadlock.
++	sem = (*semt)(malloc(unsafe.Sizeof(*sem)))
++	if sem_init(sem, 0, 0) != 0 {
++		throw("sem_init")
++	}
++	mp.waitsema = uintptr(unsafe.Pointer(sem))
++}
++
++//go:nosplit
++func semasleep(ns int64) int32 {
++	_m_ := getg().m
++	if ns >= 0 {
++		var ts timespec
++
++		if clock_gettime(_CLOCK_REALTIME, &ts) != 0 {
++			throw("clock_gettime")
++		}
++		ts.tv_sec += ns / 1000000000
++		ts.tv_nsec += ns % 1000000000
++		if ts.tv_nsec >= 1000000000 {
++			ts.tv_sec += 1
++			ts.tv_nsec -= 1000000000
++		}
++
++		if r, err := sem_timedwait((*semt)(unsafe.Pointer(_m_.waitsema)), &ts); r != 0 {
++			if err == _ETIMEDOUT || err == _EAGAIN || err == _EINTR {
++				return -1
++			}
++			println("sem_timedwait err ", err, " ts.tv_sec ", ts.tv_sec, " ts.tv_nsec ", ts.tv_nsec, " ns ", ns, " id ", _m_.id)
++			throw("sem_timedwait")
++		}
++		return 0
++	}
++	for {
++		r1, err := sem_wait((*semt)(unsafe.Pointer(_m_.waitsema)))
++		if r1 == 0 {
++			break
++		}
++		if err == _EINTR {
++			continue
++		}
++		throw("sem_wait")
++	}
++	return 0
++}
++
++//go:nosplit
++func semawakeup(mp *m) {
++	if sem_post((*semt)(unsafe.Pointer(mp.waitsema))) != 0 {
++		throw("sem_post")
++	}
++}
++
++func osinit() {
++	ncpu = int32(sysconf(__SC_NPROCESSORS_ONLN))
++	physPageSize = sysconf(__SC_PAGE_SIZE)
++}
++
++// Ms related functions
++func mpreinit(mp *m) {
++	mp.gsignal = malg(32 * 1024) // AIX wants >= 8K
++	mp.gsignal.m = mp
++}
++
++// errno address must be retrieved by calling _Errno libc function.
++// This will return a pointer to errno
++func miniterrno() {
++	mp := getg().m
++	r, _ := syscall0(&libc__Errno)
++	mp.perrno = r
++
++}
++
++func minit() {
++	miniterrno()
++	minitSignals()
++}
++
++func unminit() {
++	unminitSignals()
++}
++
++// tstart is a function descriptor to _tstart defined in assembly.
++var tstart funcDescriptor
++
++func newosproc(mp *m) {
++	var (
++		attr pthread_attr
++		oset sigset
++		tid  pthread
++	)
++
++	if pthread_attr_init(&attr) != 0 {
++		throw("pthread_attr_init")
++	}
++
++	if pthread_attr_setstacksize(&attr, threadStackSize) != 0 {
++		throw("pthread_attr_getstacksize")
++	}
++
++	if pthread_attr_setdetachstate(&attr, _PTHREAD_CREATE_DETACHED) != 0 {
++		throw("pthread_attr_setdetachstate")
++	}
++
++	// Disable signals during create, so that the new thread starts
++	// with signals disabled. It will enable them in minit.
++	sigprocmask(_SIG_SETMASK, &sigset_all, &oset)
++	var ret int32
++	for tries := 0; tries < 20; tries++ {
++		// pthread_create can fail with EAGAIN for no reasons
++		// but it will be ok if it retries.
++		ret = pthread_create(&tid, &attr, &tstart, unsafe.Pointer(mp))
++		if ret != _EAGAIN {
++			break
++		}
++		usleep(uint32(tries+1) * 1000) // Milliseconds.
++	}
++	sigprocmask(_SIG_SETMASK, &oset, nil)
++	if ret != 0 {
++		print("runtime: failed to create new OS thread (have ", mcount(), " already; errno=", ret, ")\n")
++		if ret == _EAGAIN {
++			println("runtime: may need to increase max user processes (ulimit -u)")
++		}
++		throw("newosproc")
++	}
++
++}
++
++func exitThread(wait *uint32) {
++	// We should never reach exitThread on AIX because we let
++	// libc clean up threads.
++	throw("exitThread")
++}
++
++var urandom_dev = []byte("/dev/urandom\x00")
++
++//go:nosplit
++func getRandomData(r []byte) {
++	fd := open(&urandom_dev[0], 0 /* O_RDONLY */, 0)
++	n := read(fd, unsafe.Pointer(&r[0]), int32(len(r)))
++	closefd(fd)
++	extendRandom(r, int(n))
++}
++
++func goenvs() {
++	goenvs_unix()
++}
++
++/* SIGNAL */
++
++const (
++	_NSIG = 256
++)
++
++// sigtramp is a function descriptor to _sigtramp defined in assembly
++var sigtramp funcDescriptor
++
++//go:nosplit
++//go:nowritebarrierrec
++func setsig(i uint32, fn uintptr) {
++	var sa sigactiont
++	sa.sa_flags = _SA_SIGINFO | _SA_ONSTACK | _SA_RESTART
++	sa.sa_mask = sigset_all
++	if fn == funcPC(sighandler) {
++		fn = uintptr(unsafe.Pointer(&sigtramp))
++	}
++	sa.sa_handler = fn
++	sigaction(uintptr(i), &sa, nil)
++
++}
++
++//go:nosplit
++//go:nowritebarrierrec
++func setsigstack(i uint32) {
++	throw("Not yet implemented\n")
++}
++
++//go:nosplit
++//go:nowritebarrierrec
++func getsig(i uint32) uintptr {
++	var sa sigactiont
++	sigaction(uintptr(i), nil, &sa)
++	return sa.sa_handler
++}
++
++// setSignaltstackSP sets the ss_sp field of a stackt.
++//go:nosplit
++func setSignalstackSP(s *stackt, sp uintptr) {
++	*(*uintptr)(unsafe.Pointer(&s.ss_sp)) = sp
++}
++
++func (c *sigctxt) fixsigcode(sig uint32) {
++}
++
++func sigaddset(mask *sigset, i int) {
++	(*mask)[(i-1)/64] |= 1 << ((uint32(i) - 1) & 63)
++}
++
++func sigdelset(mask *sigset, i int) {
++	(*mask)[(i-1)/64] &^= 1 << ((uint32(i) - 1) & 63)
++}
++
++const (
++	_CLOCK_REALTIME  = 9
++	_CLOCK_MONOTONIC = 10
++)
++
++//go:nosplit
++func nanotime() int64 {
++	tp := &timespec{}
++	if clock_gettime(_CLOCK_REALTIME, tp) != 0 {
++		throw("syscall clock_gettime failed")
++	}
++	return tp.tv_sec*1000000000 + tp.tv_nsec
++}
++
++func walltime() (sec int64, nsec int32) {
++	ts := &timespec{}
++	if clock_gettime(_CLOCK_REALTIME, ts) != 0 {
++		throw("syscall clock_gettime failed")
++	}
++	return ts.tv_sec, int32(ts.tv_nsec)
++}
+diff --git a/src/runtime/proc.go b/src/runtime/proc.go
+index db6f908..acfdc84 100644
+--- a/src/runtime/proc.go
++++ b/src/runtime/proc.go
+@@ -1172,8 +1172,8 @@
+ 	mstart1()
+ 
+ 	// Exit this thread.
+-	if GOOS == "windows" || GOOS == "solaris" || GOOS == "plan9" || GOOS == "darwin" {
+-		// Window, Solaris, Darwin and Plan 9 always system-allocate
++	if GOOS == "windows" || GOOS == "solaris" || GOOS == "plan9" || GOOS == "darwin" || GOOS == "aix" {
++		// Window, Solaris, Darwin, AIX and Plan 9 always system-allocate
+ 		// the stack, but put it in _g_.stack before mstart,
+ 		// so the logic above hasn't set osStack yet.
+ 		osStack = true
+diff --git a/src/runtime/rt0_aix_ppc64.s b/src/runtime/rt0_aix_ppc64.s
+new file mode 100644
+index 0000000..0e3d582
+--- /dev/null
++++ b/src/runtime/rt0_aix_ppc64.s
+@@ -0,0 +1,40 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++#include "textflag.h"
++
++// _rt0_ppc64_aix is a function descriptor of the entrypoint function
++// __start. This name is needed by cmd/link.
++DATA	_rt0_ppc64_aix+0(SB)/8, $__start<>(SB)
++DATA	_rt0_ppc64_aix+8(SB)/8, $TOC(SB)
++GLOBL	_rt0_ppc64_aix(SB), NOPTR, $16
++
++
++// The starting function must return in the loader to
++// initialise some librairies, especially libthread which
++// creates the main thread and adds the TLS in R13
++// R19 contains a function descriptor to the loader function
++// which needs to be called.
++// This code is similar to the __start function in C
++TEXT __start<>(SB),NOSPLIT,$-8
++	XOR R0, R0
++	MOVD $libc___n_pthreads(SB), R4
++	MOVD 0(R4), R4
++	MOVD $libc___mod_init(SB), R5
++	MOVD 0(R5), R5
++	MOVD 0(R19), R0
++	MOVD R2, 40(R1)
++	MOVD 8(R19), R2
++	MOVD R18, R3
++	MOVD R0, CTR
++	BL (CTR) // Return to AIX loader
++
++	// Launch rt0_go
++	MOVD 40(R1), R2
++	MOVD R14, R3 // argc
++	MOVD R15, R4 // argv
++	MOVD $runtime·rt0_go(SB), R12
++	MOVD R12, CTR
++	BR (CTR)
++
+diff --git a/src/runtime/runtime_unix_test.go b/src/runtime/runtime_unix_test.go
+index e912163..b0cbbbe 100644
+--- a/src/runtime/runtime_unix_test.go
++++ b/src/runtime/runtime_unix_test.go
+@@ -6,7 +6,7 @@
+ // We need a fast system call to provoke the race,
+ // and Close(-1) is nearly universally fast.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd plan9
++// +build aix darwin dragonfly freebsd linux netbsd openbsd plan9
+ 
+ package runtime_test
+ 
+diff --git a/src/runtime/signal_aix_ppc64.go b/src/runtime/signal_aix_ppc64.go
+new file mode 100644
+index 0000000..c17563e2
+--- /dev/null
++++ b/src/runtime/signal_aix_ppc64.go
+@@ -0,0 +1,85 @@
++/// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package runtime
++
++import (
++	"runtime/internal/sys"
++	"unsafe"
++)
++
++type sigctxt struct {
++	info *siginfo
++	ctxt unsafe.Pointer
++}
++
++//go:nosplit
++//go:nowritebarrierrec
++func (c *sigctxt) regs() *context64 { return &(*ucontext)(c.ctxt).uc_mcontext }
++
++func (c *sigctxt) r0() uint64  { return c.regs().gpr[0] }
++func (c *sigctxt) r1() uint64  { return c.regs().gpr[1] }
++func (c *sigctxt) r2() uint64  { return c.regs().gpr[2] }
++func (c *sigctxt) r3() uint64  { return c.regs().gpr[3] }
++func (c *sigctxt) r4() uint64  { return c.regs().gpr[4] }
++func (c *sigctxt) r5() uint64  { return c.regs().gpr[5] }
++func (c *sigctxt) r6() uint64  { return c.regs().gpr[6] }
++func (c *sigctxt) r7() uint64  { return c.regs().gpr[7] }
++func (c *sigctxt) r8() uint64  { return c.regs().gpr[8] }
++func (c *sigctxt) r9() uint64  { return c.regs().gpr[9] }
++func (c *sigctxt) r10() uint64 { return c.regs().gpr[10] }
++func (c *sigctxt) r11() uint64 { return c.regs().gpr[11] }
++func (c *sigctxt) r12() uint64 { return c.regs().gpr[12] }
++func (c *sigctxt) r13() uint64 { return c.regs().gpr[13] }
++func (c *sigctxt) r14() uint64 { return c.regs().gpr[14] }
++func (c *sigctxt) r15() uint64 { return c.regs().gpr[15] }
++func (c *sigctxt) r16() uint64 { return c.regs().gpr[16] }
++func (c *sigctxt) r17() uint64 { return c.regs().gpr[17] }
++func (c *sigctxt) r18() uint64 { return c.regs().gpr[18] }
++func (c *sigctxt) r19() uint64 { return c.regs().gpr[19] }
++func (c *sigctxt) r20() uint64 { return c.regs().gpr[20] }
++func (c *sigctxt) r21() uint64 { return c.regs().gpr[21] }
++func (c *sigctxt) r22() uint64 { return c.regs().gpr[22] }
++func (c *sigctxt) r23() uint64 { return c.regs().gpr[23] }
++func (c *sigctxt) r24() uint64 { return c.regs().gpr[24] }
++func (c *sigctxt) r25() uint64 { return c.regs().gpr[25] }
++func (c *sigctxt) r26() uint64 { return c.regs().gpr[26] }
++func (c *sigctxt) r27() uint64 { return c.regs().gpr[27] }
++func (c *sigctxt) r28() uint64 { return c.regs().gpr[28] }
++func (c *sigctxt) r29() uint64 { return c.regs().gpr[29] }
++func (c *sigctxt) r30() uint64 { return c.regs().gpr[30] }
++func (c *sigctxt) r31() uint64 { return c.regs().gpr[31] }
++func (c *sigctxt) sp() uint64  { return c.regs().gpr[1] }
++
++//go:nosplit
++//go:nowritebarrierrec
++func (c *sigctxt) pc() uint64 { return c.regs().iar }
++
++func (c *sigctxt) ctr() uint64    { return c.regs().ctr }
++func (c *sigctxt) link() uint64   { return c.regs().lr }
++func (c *sigctxt) xer() uint32    { return c.regs().xer }
++func (c *sigctxt) ccr() uint32    { return c.regs().cr }
++func (c *sigctxt) fpscr() uint32  { return c.regs().fpscr }
++func (c *sigctxt) fpscrx() uint32 { return c.regs().fpscrx }
++
++// TODO(aix): find trap equivalent
++func (c *sigctxt) trap() uint32 { return 0x0 }
++
++func (c *sigctxt) sigcode() uint32 { return uint32(c.info.si_code) }
++func (c *sigctxt) sigaddr() uint64 { return uint64(c.info.si_addr) }
++func (c *sigctxt) fault() uintptr  { return uintptr(c.sigaddr()) }
++
++func (c *sigctxt) set_r0(x uint64)   { c.regs().gpr[0] = x }
++func (c *sigctxt) set_r12(x uint64)  { c.regs().gpr[12] = x }
++func (c *sigctxt) set_r30(x uint64)  { c.regs().gpr[30] = x }
++func (c *sigctxt) set_pc(x uint64)   { c.regs().iar = x }
++func (c *sigctxt) set_sp(x uint64)   { c.regs().gpr[1] = x }
++func (c *sigctxt) set_link(x uint64) { c.regs().lr = x }
++
++func (c *sigctxt) set_sigcode(x uint32) { c.info.si_code = int32(x) }
++func (c *sigctxt) set_sigaddr(x uint64) {
++	*(*uintptr)(add(unsafe.Pointer(c.info), 2*sys.PtrSize)) = uintptr(x)
++}
+diff --git a/src/runtime/signal_ppc64x.go b/src/runtime/signal_ppc64x.go
+index 5a1a5ca..cac1a23 100644
+--- a/src/runtime/signal_ppc64x.go
++++ b/src/runtime/signal_ppc64x.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux
++// +build aix linux
+ // +build ppc64 ppc64le
+ 
+ package runtime
+diff --git a/src/runtime/signal_sighandler.go b/src/runtime/signal_sighandler.go
+index 5a734f9..6e71e41 100644
+--- a/src/runtime/signal_sighandler.go
++++ b/src/runtime/signal_sighandler.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff --git a/src/runtime/signal_unix.go b/src/runtime/signal_unix.go
+index 6cd9f8d..12a938c 100644
+--- a/src/runtime/signal_unix.go
++++ b/src/runtime/signal_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff --git a/src/runtime/sigtab_aix.go b/src/runtime/sigtab_aix.go
+new file mode 100644
+index 0000000..42e5606
+--- /dev/null
++++ b/src/runtime/sigtab_aix.go
+@@ -0,0 +1,264 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package runtime
++
++var sigtable = [...]sigTabT{
++	0:           {0, "SIGNONE: no trap"},
++	_SIGHUP:     {_SigNotify + _SigKill, "SIGHUP: terminal line hangup"},
++	_SIGINT:     {_SigNotify + _SigKill, "SIGINT: interrupt"},
++	_SIGQUIT:    {_SigNotify + _SigThrow, "SIGQUIT: quit"},
++	_SIGILL:     {_SigThrow + _SigUnblock, "SIGILL: illegal instruction"},
++	_SIGTRAP:    {_SigThrow + _SigUnblock, "SIGTRAP: trace trap"},
++	_SIGABRT:    {_SigNotify + _SigThrow, "SIGABRT: abort"},
++	_SIGBUS:     {_SigPanic + _SigUnblock, "SIGBUS: bus error"},
++	_SIGFPE:     {_SigPanic + _SigUnblock, "SIGFPE: floating-point exception"},
++	_SIGKILL:    {0, "SIGKILL: kill"},
++	_SIGUSR1:    {_SigNotify, "SIGUSR1: user-defined signal 1"},
++	_SIGSEGV:    {_SigPanic + _SigUnblock, "SIGSEGV: segmentation violation"},
++	_SIGUSR2:    {_SigNotify, "SIGUSR2: user-defined signal 2"},
++	_SIGPIPE:    {_SigNotify, "SIGPIPE: write to broken pipe"},
++	_SIGALRM:    {_SigNotify, "SIGALRM: alarm clock"},
++	_SIGTERM:    {_SigNotify + _SigKill, "SIGTERM: termination"},
++	_SIGCHLD:    {_SigNotify + _SigUnblock, "SIGCHLD: child status has changed"},
++	_SIGCONT:    {_SigNotify + _SigDefault, "SIGCONT: continue"},
++	_SIGSTOP:    {0, "SIGSTOP: stop"},
++	_SIGTSTP:    {_SigNotify + _SigDefault, "SIGTSTP: keyboard stop"},
++	_SIGTTIN:    {_SigNotify + _SigDefault, "SIGTTIN: background read from tty"},
++	_SIGTTOU:    {_SigNotify + _SigDefault, "SIGTTOU: background write to tty"},
++	_SIGURG:     {_SigNotify, "SIGURG: urgent condition on socket"},
++	_SIGXCPU:    {_SigNotify, "SIGXCPU: cpu limit exceeded"},
++	_SIGXFSZ:    {_SigNotify, "SIGXFSZ: file size limit exceeded"},
++	_SIGVTALRM:  {_SigNotify, "SIGVTALRM: virtual alarm clock"},
++	_SIGPROF:    {_SigNotify + _SigUnblock, "SIGPROF: profiling alarm clock"},
++	_SIGWINCH:   {_SigNotify, "SIGWINCH: window size change"},
++	_SIGSYS:     {_SigThrow, "SIGSYS: bad system call"},
++	_SIGIO:      {_SigNotify, "SIGIO: i/o now possible"},
++	_SIGPWR:     {_SigNotify, "SIGPWR: power failure restart"},
++	_SIGEMT:     {_SigThrow, "SIGEMT: emulate instruction executed"},
++	_SIGWAITING: {0, "SIGWAITING: reserved signal no longer used by"},
++	26:          {_SigNotify, "signal 26"},
++	27:          {_SigNotify, "signal 27"},
++	33:          {_SigNotify, "signal 33"},
++	35:          {_SigNotify, "signal 35"},
++	36:          {_SigNotify, "signal 36"},
++	37:          {_SigNotify, "signal 37"},
++	38:          {_SigNotify, "signal 38"},
++	40:          {_SigNotify, "signal 40"},
++	41:          {_SigNotify, "signal 41"},
++	42:          {_SigNotify, "signal 42"},
++	43:          {_SigNotify, "signal 43"},
++	44:          {_SigNotify, "signal 44"},
++	45:          {_SigNotify, "signal 45"},
++	46:          {_SigNotify, "signal 46"},
++	47:          {_SigNotify, "signal 47"},
++	48:          {_SigNotify, "signal 48"},
++	49:          {_SigNotify, "signal 49"},
++	50:          {_SigNotify, "signal 50"},
++	51:          {_SigNotify, "signal 51"},
++	52:          {_SigNotify, "signal 52"},
++	53:          {_SigNotify, "signal 53"},
++	54:          {_SigNotify, "signal 54"},
++	55:          {_SigNotify, "signal 55"},
++	56:          {_SigNotify, "signal 56"},
++	57:          {_SigNotify, "signal 57"},
++	58:          {_SigNotify, "signal 58"},
++	59:          {_SigNotify, "signal 59"},
++	60:          {_SigNotify, "signal 60"},
++	61:          {_SigNotify, "signal 61"},
++	62:          {_SigNotify, "signal 62"},
++	63:          {_SigNotify, "signal 63"},
++	64:          {_SigNotify, "signal 64"},
++	65:          {_SigNotify, "signal 65"},
++	66:          {_SigNotify, "signal 66"},
++	67:          {_SigNotify, "signal 67"},
++	68:          {_SigNotify, "signal 68"},
++	69:          {_SigNotify, "signal 69"},
++	70:          {_SigNotify, "signal 70"},
++	71:          {_SigNotify, "signal 71"},
++	72:          {_SigNotify, "signal 72"},
++	73:          {_SigNotify, "signal 73"},
++	74:          {_SigNotify, "signal 74"},
++	75:          {_SigNotify, "signal 75"},
++	76:          {_SigNotify, "signal 76"},
++	77:          {_SigNotify, "signal 77"},
++	78:          {_SigNotify, "signal 78"},
++	79:          {_SigNotify, "signal 79"},
++	80:          {_SigNotify, "signal 80"},
++	81:          {_SigNotify, "signal 81"},
++	82:          {_SigNotify, "signal 82"},
++	83:          {_SigNotify, "signal 83"},
++	84:          {_SigNotify, "signal 84"},
++	85:          {_SigNotify, "signal 85"},
++	86:          {_SigNotify, "signal 86"},
++	87:          {_SigNotify, "signal 87"},
++	88:          {_SigNotify, "signal 88"},
++	89:          {_SigNotify, "signal 89"},
++	90:          {_SigNotify, "signal 90"},
++	91:          {_SigNotify, "signal 91"},
++	92:          {_SigNotify, "signal 92"},
++	93:          {_SigNotify, "signal 93"},
++	94:          {_SigNotify, "signal 94"},
++	95:          {_SigNotify, "signal 95"},
++	96:          {_SigNotify, "signal 96"},
++	97:          {_SigNotify, "signal 97"},
++	98:          {_SigNotify, "signal 98"},
++	99:          {_SigNotify, "signal 99"},
++	100:         {_SigNotify, "signal 100"},
++	101:         {_SigNotify, "signal 101"},
++	102:         {_SigNotify, "signal 102"},
++	103:         {_SigNotify, "signal 103"},
++	104:         {_SigNotify, "signal 104"},
++	105:         {_SigNotify, "signal 105"},
++	106:         {_SigNotify, "signal 106"},
++	107:         {_SigNotify, "signal 107"},
++	108:         {_SigNotify, "signal 108"},
++	109:         {_SigNotify, "signal 109"},
++	110:         {_SigNotify, "signal 110"},
++	111:         {_SigNotify, "signal 111"},
++	112:         {_SigNotify, "signal 112"},
++	113:         {_SigNotify, "signal 113"},
++	114:         {_SigNotify, "signal 114"},
++	115:         {_SigNotify, "signal 115"},
++	116:         {_SigNotify, "signal 116"},
++	117:         {_SigNotify, "signal 117"},
++	118:         {_SigNotify, "signal 118"},
++	119:         {_SigNotify, "signal 119"},
++	120:         {_SigNotify, "signal 120"},
++	121:         {_SigNotify, "signal 121"},
++	122:         {_SigNotify, "signal 122"},
++	123:         {_SigNotify, "signal 123"},
++	124:         {_SigNotify, "signal 124"},
++	125:         {_SigNotify, "signal 125"},
++	126:         {_SigNotify, "signal 126"},
++	127:         {_SigNotify, "signal 127"},
++	128:         {_SigNotify, "signal 128"},
++	129:         {_SigNotify, "signal 129"},
++	130:         {_SigNotify, "signal 130"},
++	131:         {_SigNotify, "signal 131"},
++	132:         {_SigNotify, "signal 132"},
++	133:         {_SigNotify, "signal 133"},
++	134:         {_SigNotify, "signal 134"},
++	135:         {_SigNotify, "signal 135"},
++	136:         {_SigNotify, "signal 136"},
++	137:         {_SigNotify, "signal 137"},
++	138:         {_SigNotify, "signal 138"},
++	139:         {_SigNotify, "signal 139"},
++	140:         {_SigNotify, "signal 140"},
++	141:         {_SigNotify, "signal 141"},
++	142:         {_SigNotify, "signal 142"},
++	143:         {_SigNotify, "signal 143"},
++	144:         {_SigNotify, "signal 144"},
++	145:         {_SigNotify, "signal 145"},
++	146:         {_SigNotify, "signal 146"},
++	147:         {_SigNotify, "signal 147"},
++	148:         {_SigNotify, "signal 148"},
++	149:         {_SigNotify, "signal 149"},
++	150:         {_SigNotify, "signal 150"},
++	151:         {_SigNotify, "signal 151"},
++	152:         {_SigNotify, "signal 152"},
++	153:         {_SigNotify, "signal 153"},
++	154:         {_SigNotify, "signal 154"},
++	155:         {_SigNotify, "signal 155"},
++	156:         {_SigNotify, "signal 156"},
++	157:         {_SigNotify, "signal 157"},
++	158:         {_SigNotify, "signal 158"},
++	159:         {_SigNotify, "signal 159"},
++	160:         {_SigNotify, "signal 160"},
++	161:         {_SigNotify, "signal 161"},
++	162:         {_SigNotify, "signal 162"},
++	163:         {_SigNotify, "signal 163"},
++	164:         {_SigNotify, "signal 164"},
++	165:         {_SigNotify, "signal 165"},
++	166:         {_SigNotify, "signal 166"},
++	167:         {_SigNotify, "signal 167"},
++	168:         {_SigNotify, "signal 168"},
++	169:         {_SigNotify, "signal 169"},
++	170:         {_SigNotify, "signal 170"},
++	171:         {_SigNotify, "signal 171"},
++	172:         {_SigNotify, "signal 172"},
++	173:         {_SigNotify, "signal 173"},
++	174:         {_SigNotify, "signal 174"},
++	175:         {_SigNotify, "signal 175"},
++	176:         {_SigNotify, "signal 176"},
++	177:         {_SigNotify, "signal 177"},
++	178:         {_SigNotify, "signal 178"},
++	179:         {_SigNotify, "signal 179"},
++	180:         {_SigNotify, "signal 180"},
++	181:         {_SigNotify, "signal 181"},
++	182:         {_SigNotify, "signal 182"},
++	183:         {_SigNotify, "signal 183"},
++	184:         {_SigNotify, "signal 184"},
++	185:         {_SigNotify, "signal 185"},
++	186:         {_SigNotify, "signal 186"},
++	187:         {_SigNotify, "signal 187"},
++	188:         {_SigNotify, "signal 188"},
++	189:         {_SigNotify, "signal 189"},
++	190:         {_SigNotify, "signal 190"},
++	191:         {_SigNotify, "signal 191"},
++	192:         {_SigNotify, "signal 192"},
++	193:         {_SigNotify, "signal 193"},
++	194:         {_SigNotify, "signal 194"},
++	195:         {_SigNotify, "signal 195"},
++	196:         {_SigNotify, "signal 196"},
++	197:         {_SigNotify, "signal 197"},
++	198:         {_SigNotify, "signal 198"},
++	199:         {_SigNotify, "signal 199"},
++	200:         {_SigNotify, "signal 200"},
++	201:         {_SigNotify, "signal 201"},
++	202:         {_SigNotify, "signal 202"},
++	203:         {_SigNotify, "signal 203"},
++	204:         {_SigNotify, "signal 204"},
++	205:         {_SigNotify, "signal 205"},
++	206:         {_SigNotify, "signal 206"},
++	207:         {_SigNotify, "signal 207"},
++	208:         {_SigNotify, "signal 208"},
++	209:         {_SigNotify, "signal 209"},
++	210:         {_SigNotify, "signal 210"},
++	211:         {_SigNotify, "signal 211"},
++	212:         {_SigNotify, "signal 212"},
++	213:         {_SigNotify, "signal 213"},
++	214:         {_SigNotify, "signal 214"},
++	215:         {_SigNotify, "signal 215"},
++	216:         {_SigNotify, "signal 216"},
++	217:         {_SigNotify, "signal 217"},
++	218:         {_SigNotify, "signal 218"},
++	219:         {_SigNotify, "signal 219"},
++	220:         {_SigNotify, "signal 220"},
++	221:         {_SigNotify, "signal 221"},
++	222:         {_SigNotify, "signal 222"},
++	223:         {_SigNotify, "signal 223"},
++	224:         {_SigNotify, "signal 224"},
++	225:         {_SigNotify, "signal 225"},
++	226:         {_SigNotify, "signal 226"},
++	227:         {_SigNotify, "signal 227"},
++	228:         {_SigNotify, "signal 228"},
++	229:         {_SigNotify, "signal 229"},
++	230:         {_SigNotify, "signal 230"},
++	231:         {_SigNotify, "signal 231"},
++	232:         {_SigNotify, "signal 232"},
++	233:         {_SigNotify, "signal 233"},
++	234:         {_SigNotify, "signal 234"},
++	235:         {_SigNotify, "signal 235"},
++	236:         {_SigNotify, "signal 236"},
++	237:         {_SigNotify, "signal 237"},
++	238:         {_SigNotify, "signal 238"},
++	239:         {_SigNotify, "signal 239"},
++	240:         {_SigNotify, "signal 240"},
++	241:         {_SigNotify, "signal 241"},
++	242:         {_SigNotify, "signal 242"},
++	243:         {_SigNotify, "signal 243"},
++	244:         {_SigNotify, "signal 244"},
++	245:         {_SigNotify, "signal 245"},
++	246:         {_SigNotify, "signal 246"},
++	247:         {_SigNotify, "signal 247"},
++	248:         {_SigNotify, "signal 248"},
++	249:         {_SigNotify, "signal 249"},
++	250:         {_SigNotify, "signal 250"},
++	251:         {_SigNotify, "signal 251"},
++	252:         {_SigNotify, "signal 252"},
++	253:         {_SigNotify, "signal 253"},
++	254:         {_SigNotify, "signal 254"},
++	255:         {_SigNotify, "signal 255"},
++}
+diff --git a/src/runtime/stubs2.go b/src/runtime/stubs2.go
+index c14db74..57134f7 100644
+--- a/src/runtime/stubs2.go
++++ b/src/runtime/stubs2.go
+@@ -8,6 +8,7 @@
+ // +build !nacl
+ // +build !js
+ // +build !darwin
++// +build !aix
+ 
+ package runtime
+ 
+diff --git a/src/runtime/stubs3.go b/src/runtime/stubs3.go
+index 5c0786e..a9ff689 100644
+--- a/src/runtime/stubs3.go
++++ b/src/runtime/stubs3.go
+@@ -8,6 +8,7 @@
+ // +build !nacl
+ // +build !freebsd
+ // +build !darwin
++// +build !aix
+ 
+ package runtime
+ 
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+new file mode 100644
+index 0000000..20a0560
+--- /dev/null
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -0,0 +1,201 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++// +build ppc64 ppc64le
++
++//
++// System calls and other sys.stuff for ppc64, Aix
++//
++
++#include "go_asm.h"
++#include "go_tls.h"
++#include "textflag.h"
++#include "asm_ppc64x.h"
++
++// This function calls a C function with the function descriptor in R12
++TEXT runtime·callCfunction(SB),	NOSPLIT|NOFRAME,$0
++	MOVD	0(R12), R12
++	MOVD	R2, 40(R1)
++	MOVD	0(R12), R0
++	MOVD	8(R12), R2
++	MOVD	R0, CTR
++	BR	(CTR)
++
++
++// asmsyscall6 calls a library function with a function descriptor
++// stored in libcall_fn and store the results in libcall struture
++// Up to 6 arguments can be passed to this C function
++// Called by runtime.asmcgocall
++// It reserves a stack of 288 bytes for the C function.
++// NOT USING GO CALLING CONVENTION
++TEXT runtime·asmsyscall6(SB),NOSPLIT,$256
++	MOVD	R3, 48(R1) // Save libcall for later
++	MOVD	libcall_fn(R3), R12
++	MOVD	libcall_args(R3), R9
++	MOVD	0(R9), R3
++	MOVD	8(R9), R4
++	MOVD	16(R9), R5
++	MOVD	24(R9), R6
++	MOVD	32(R9), R7
++	MOVD	40(R9), R8
++	BL	runtime·callCfunction(SB)
++
++	// Restore R0 and TOC 
++	XOR	R0, R0
++	MOVD	40(R1), R2
++
++	// Store result in libcall
++	MOVD	48(R1), R5
++	MOVD	R3, (libcall_r1)(R5)
++	MOVD	$-1, R6
++	CMP	R6, R3
++	BNE	skiperrno
++
++    // Save errno in libcall
++	BL	runtime·load_g(SB)
++	MOVD	g_m(g), R4
++	MOVD	(m_mOS + mOS_perrno)(R4), R9
++	MOVW	0(R9), R9
++	MOVD	R9, (libcall_err)(R5)
++	RET
++skiperrno:
++	// Reset errno if no error has been returned
++	MOVD	R0, (libcall_err)(R5)
++	RET
++
++
++TEXT runtime·sigfwd(SB),NOSPLIT,$0-32
++	MOVW	sig+8(FP), R3
++	MOVD	info+16(FP), R4
++	MOVD	ctx+24(FP), R5
++	MOVD	fn+0(FP), R12
++	MOVD	R12, CTR
++	BL	(CTR)
++	RET
++
++
++// runtime.sigtramp is a function descriptor to the real sigtramp.
++DATA	runtime·sigtramp+0(SB)/8, $runtime·_sigtramp(SB)
++DATA	runtime·sigtramp+8(SB)/8, $TOC(SB)
++DATA	runtime·sigtramp+16(SB)/8, $0
++GLOBL	runtime·sigtramp(SB), NOPTR, $24
++
++// This funcion must not have any frame as we want to control how
++// every registers are used.
++TEXT runtime·_sigtramp(SB),NOSPLIT|NOFRAME,$0
++	MOVD	LR, R0
++	MOVD	R0, 16(R1)
++	// initialize essential registers (just in case)
++	BL	runtime·reginit(SB)
++
++	// Note that we are executing on altsigstack here, so we have
++	// more stack available than NOSPLIT would have us believe.
++	// To defeat the linker, we make our own stack frame with
++	// more space.
++	SUB	   $128+FIXED_FRAME, R1
++
++	// Save registers
++	MOVD	R31, 56(R1)
++	MOVD	g, 64(R1)
++	MOVD	R29, 72(R1)
++
++	BL	runtime·load_g(SB)
++
++	// Save m->libcall. We need to do this because we
++	// might get interrupted by a signal in runtime·asmcgocall.
++
++	// save m->libcall 
++	MOVD	g_m(g), R6
++	MOVD	(m_libcall+libcall_fn)(R6), R7
++	MOVD	R7, 80(R1)
++	MOVD	(m_libcall+libcall_args)(R6), R7
++	MOVD	R7, 88(R1)
++	MOVD	(m_libcall+libcall_n)(R6), R7
++	MOVD	R7, 96(R1)
++	MOVD	(m_libcall+libcall_r1)(R6), R7
++	MOVD	R7, 104(R1)
++	MOVD	(m_libcall+libcall_r2)(R6), R7
++	MOVD	R7, 112(R1)
++
++	// save errno, it might be EINTR; stuff we do here might reset it.
++	MOVD	(m_mOS+mOS_perrno)(R6), R8
++	MOVD	0(R8), R8
++	MOVD	R8, 120(R1)
++
++	MOVW	R3, FIXED_FRAME+0(R1)
++	MOVD	R4, FIXED_FRAME+8(R1)
++	MOVD	R5, FIXED_FRAME+16(R1)
++	MOVD	$runtime·sigtrampgo(SB), R12
++	MOVD	R12, CTR
++	BL	(CTR)
++
++	MOVD	g_m(g), R6
++	// restore libcall
++	MOVD	80(R1), R7
++	MOVD	R7, (m_libcall+libcall_fn)(R6)
++	MOVD	88(R1), R7
++	MOVD	R7, (m_libcall+libcall_args)(R6)
++	MOVD	96(R1), R7
++	MOVD	R7, (m_libcall+libcall_n)(R6)
++	MOVD	104(R1), R7
++	MOVD	R7, (m_libcall+libcall_r1)(R6)
++	MOVD	112(R1), R7
++	MOVD	R7, (m_libcall+libcall_r2)(R6)
++
++	// restore errno
++	MOVD	(m_mOS+mOS_perrno)(R6), R7
++	MOVD	120(R1), R8
++	MOVD	R8, 0(R7)
++
++	// restore registers
++	MOVD	56(R1),R31
++	MOVD	64(R1),g
++	MOVD	72(R1),R29
++
++	// Don't use RET because we need to restore R31 !
++	ADD $128+FIXED_FRAME, R1
++	MOVD	16(R1), R0
++	MOVD	R0, LR
++	BR (LR)
++
++// runtime.tstart is a function descriptor to the real tstart.
++DATA	runtime·tstart+0(SB)/8, $runtime·_tstart(SB)
++DATA	runtime·tstart+8(SB)/8, $TOC(SB)
++DATA	runtime·tstart+16(SB)/8, $0
++GLOBL	runtime·tstart(SB), NOPTR, $24
++
++TEXT runtime·_tstart(SB),NOSPLIT,$0
++	XOR	 R0, R0 // reset R0
++
++	// set g
++	MOVD	m_g0(R3), g
++	BL	runtime·save_g(SB)
++    MOVD    R3, g_m(g)
++
++	// Layout new m scheduler stack on os stack.
++	MOVD	R1, R3
++	MOVD	R3, (g_stack+stack_hi)(g)
++	SUB	$(const_threadStackSize), R3		// stack size
++	MOVD	R3, (g_stack+stack_lo)(g)
++	ADD	$const__StackGuard, R3
++	MOVD	R3, g_stackguard0(g)
++	MOVD	R3, g_stackguard1(g)
++
++	BL	runtime·mstart(SB)
++
++	MOVD R0, R3
++	RET
++
++// Runs on OS stack, called from runtime·osyield.
++TEXT runtime·osyield1(SB),NOSPLIT,$0
++	MOVD	$libc_sched_yield(SB), R12
++	MOVD	0(R12), R12
++	MOVD	R2, 40(R1)
++	MOVD	0(R12), R0
++	MOVD	8(R12), R2
++	MOVD	R0, CTR
++	BL	(CTR)
++	MOVD	40(R1), R2
++	RET
+diff --git a/src/runtime/timestub2.go b/src/runtime/timestub2.go
+index 9ddc6fe..00c2c55 100644
+--- a/src/runtime/timestub2.go
++++ b/src/runtime/timestub2.go
+@@ -5,6 +5,7 @@
+ // +build !darwin
+ // +build !windows
+ // +build !freebsd
++// +build !aix
+ 
+ package runtime
+ 

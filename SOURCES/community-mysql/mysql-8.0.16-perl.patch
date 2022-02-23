@@ -1,0 +1,133 @@
+--- ./mysql-test/mysql-test-run.pl.ORIGIN	2019-06-28 10:07:45 -0500
++++ ./mysql-test/mysql-test-run.pl	2019-06-28 10:07:53 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ # -*- cperl -*-
+ 
+ # Copyright (c) 2004, 2019, Oracle and/or its affiliates. All rights reserved.
+--- ./mysql-test/CMakeLists.txt.ORIGIN	2019-06-28 10:24:48 -0500
++++ ./mysql-test/CMakeLists.txt	2019-06-28 10:25:31 -0500
+@@ -62,11 +62,11 @@
+ IF(NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+   # Enable running mtr from build directory
+   FIND_PROGRAM(PERL_EXECUTABLE perl
+-    /usr/bin /usr/local/bin
++    /opt/freeware/bin
+     NO_CMAKE_ENVIRONMENT_PATH
+     NO_SYSTEM_ENVIRONMENT_PATH)
+   # If not found in hard-coded list above, look in PATH as well.
+-  FIND_PROGRAM(PERL_EXECUTABLE perl)
++  # FIND_PROGRAM(PERL_EXECUTABLE perl)
+ 
+   CONFIGURE_FILE(
+     ${CMAKE_CURRENT_SOURCE_DIR}/mtr.out-of-source 
+--- ./boost/boost_1_69_0/boost/function/gen_function_N.pl.ORIGIN	2019-06-28 10:28:50 -0500
++++ ./boost/boost_1_69_0/boost/function/gen_function_N.pl	2019-06-28 10:28:59 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!/opt/freeware/bin/perl -w
+ #
+ # Boost.Function library
+ #
+--- ./Doxyfile.in.ORIGIN	2019-06-28 10:34:40 -0500
++++ ./Doxyfile.in	2019-06-28 10:35:13 -0500
+@@ -2294,7 +2294,7 @@
+ # interpreter (i.e. the result of 'which perl').
+ # The default file (with absolute path) is: /usr/bin/perl.
+ 
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ 
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool
+--- ./boost/boost_1_69_0/boost/function/detail/gen_maybe_include.pl.ORIGIN	2019-06-28 10:35:48 -0500
++++ ./boost/boost_1_69_0/boost/function/detail/gen_maybe_include.pl	2019-06-28 10:35:56 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!/opt/freeware/bin/perl -w
+ #
+ # Boost.Function library
+ #
+--- ./extra/icu/source/Doxyfile.in.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./extra/icu/source/Doxyfile.in	2019-08-08 09:43:10 -0500
+@@ -204,7 +204,7 @@
+ GENERATE_TAGFILE       =  "@builddir@/doc/html/icudocs.tag"
+ ALLEXTERNALS           = NO
+ EXTERNAL_GROUPS        = YES
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool   
+ #---------------------------------------------------------------------------
+--- ./plugin/innodb_memcached/daemon_memcached/doc/Doxyfile.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/doc/Doxyfile	2019-08-08 09:43:31 -0500
+@@ -1088,7 +1088,7 @@
+ # The PERL_PATH should be the absolute path and name of the perl script
+ # interpreter (i.e. the result of `which perl').
+ 
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ 
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool
+--- ./router/src/harness/Doxyfile.in.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./router/src/harness/Doxyfile.in	2019-08-08 09:43:43 -0500
+@@ -2028,7 +2028,7 @@
+ # interpreter (i.e. the result of 'which perl').
+ # The default file (with absolute path) is: /usr/bin/perl.
+ 
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ 
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool
+--- ./scripts/CMakeLists.txt.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./scripts/CMakeLists.txt	2019-08-08 09:45:40 -0500
+@@ -275,6 +275,8 @@
+ 
+ IF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+   SET (PERL_PATH "/usr/local/bin/perl")
++ELSEIF(CMAKE_SYSTEM_NAME MATCHES "AIX")
++  SET (PERL_PATH "/opt/freeware/bin/perl")
+ ELSE()
+   SET (PERL_PATH "/usr/bin/perl")
+ ENDIF()
+--- ./storage/innobase/Doxyfile.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./storage/innobase/Doxyfile	2019-08-08 09:47:39 -0500
+@@ -1242,7 +1242,7 @@
+ # The PERL_PATH should be the absolute path and name of the perl script
+ # interpreter (i.e. the result of `which perl').
+ 
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ 
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool
+--- ./unittest/mytap/Doxyfile.ORIGIN	2019-08-08 09:42:09 -0500
++++ ./unittest/mytap/Doxyfile	2019-08-08 09:47:54 -0500
+@@ -1011,7 +1011,7 @@
+ # The PERL_PATH should be the absolute path and name of the perl script 
+ # interpreter (i.e. the result of `which perl').
+ 
+-PERL_PATH              = /usr/bin/perl
++PERL_PATH              = /opt/freeware/bin/perl
+ 
+ #---------------------------------------------------------------------------
+ # Configuration options related to the dot tool   
+--- ./dbug/tests-t.pl.ORIGIN	2019-10-11 15:12:18 -0500
++++ ./dbug/tests-t.pl	2019-10-11 15:12:31 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env perl
++#!/opt/freeware/bin/perl
+ 
+ #
+ #  A driver program to test DBUG features - runs tests (shell commands)
+--- ./plugin/innodb_memcached/daemon_memcached/devtools/bench_noreply.pl.ORIGIN	2019-10-11 15:15:16 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/devtools/bench_noreply.pl	2019-10-11 15:15:25 -0500
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl
++#! /opt/freeware/bin/perl
+ #
+ use warnings;
+ use strict;

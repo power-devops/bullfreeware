@@ -1,0 +1,11 @@
+--- ./src/Makefile.ORIGIN	2019-04-08 16:25:52 +0200
++++ ./src/Makefile	2019-04-08 16:26:12 +0200
+@@ -89,7 +89,7 @@
+ 	@echo "   $(PLATS)"
+ 
+ aix:
+-	$(MAKE) $(ALL) CC="xlc_r" CFLAGS="-O -DLUA_USE_POSIX -DLUA_C89_NUMBERS" SYSLIBS="" SYSLDFLAGS="-L. -L/opt/freeware/lib -lreadline"
++	$(MAKE) $(ALL) CC="gcc" CFLAGS="${CFLAGS} -O2 -DLUA_C89_NUMBERS" SYSLIBS="" SYSLDFLAGS="-L. -L/opt/freeware/lib -lreadline"
+ 
+ bsd:
+ 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"

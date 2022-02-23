@@ -1,0 +1,41 @@
+--- ./Modules/clinic/posixmodule.c.h_orig	2021-02-11 10:46:43.356483657 -0600
++++ ./Modules/clinic/posixmodule.c.h	2021-02-12 05:05:51.243623150 -0600
+@@ -6299,7 +6299,11 @@
+     if ((_return_value == (dev_t)-1) && PyErr_Occurred()) {
+         goto exit;
+     }
++#ifdef _AIX
++    return_value = PyLong_FromUnsignedLong(_return_value);
++#else
+     return_value = _PyLong_FromDev(_return_value);
++#endif
+ 
+ exit:
+     return return_value;
+--- ./Modules/posixmodule.c_orig	2021-02-11 07:12:59.444889426 -0600
++++ .//Modules/posixmodule.c	2021-02-12 05:07:34.587340150 -0600
+@@ -179,6 +179,15 @@
+ #  include <sys/sysmacros.h>
+ #endif
+ 
++#ifdef _AIX
++#undef minor
++#undef major
++#undef makedev
++#define minor minor64
++#define major major64
++#define makedev makedev64
++#endif
++
+ #ifdef HAVE_SYS_TYPES_H
+ #  include <sys/types.h>
+ #endif /* HAVE_SYS_TYPES_H */
+@@ -2316,7 +2325,7 @@
+     PyStructSequence_SET_ITEM(v, 0, PyLong_FromLong((long)st->st_mode));
+     Py_BUILD_ASSERT(sizeof(unsigned long long) >= sizeof(st->st_ino));
+     PyStructSequence_SET_ITEM(v, 1, PyLong_FromUnsignedLongLong(st->st_ino));
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) || defined(_AIX)
+     PyStructSequence_SET_ITEM(v, 2, PyLong_FromUnsignedLong(st->st_dev));
+ #else
+     PyStructSequence_SET_ITEM(v, 2, _PyLong_FromDev(st->st_dev));

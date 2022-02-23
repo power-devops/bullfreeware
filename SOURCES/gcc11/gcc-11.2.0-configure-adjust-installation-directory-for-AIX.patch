@@ -1,0 +1,250 @@
+From 28f596419bcbcd961f37c64793512cbd7a52ef53 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 15 Sep 2021 09:56:44 +0200
+Subject: [PATCH] configure: adjust installation directory for AIX
+
+---
+ libgo/Makefile.am           |  2 +-
+ libgo/Makefile.in           |  4 +--
+ libgo/configure             | 72 +++++++++++++++++++------------------
+ libgo/configure.ac          | 69 +++++++++++++++++------------------
+ libgo/testsuite/Makefile.in |  2 +-
+ 5 files changed, 76 insertions(+), 73 deletions(-)
+
+diff --git a/libgo/Makefile.am b/libgo/Makefile.am
+index 92fedcf6eb8..e44f9a820f3 100644
+--- a/libgo/Makefile.am
++++ b/libgo/Makefile.am
+@@ -31,7 +31,7 @@ STAMP = echo timestamp >
+ 
+ toolexecdir = $(glibgo_toolexecdir)
+ toolexeclibdir = $(glibgo_toolexeclibdir)
+-toolexeclibgodir = $(nover_glibgo_toolexeclibdir)/go/$(gcc_version)/$(target_alias)
++toolexeclibgodir = $(glibgo_toolexeclibgodir)
+ libexecsubdir = $(libexecdir)/gcc/$(target_alias)/$(gcc_version)
+ 
+ LIBFFI = @LIBFFI@
+diff --git a/libgo/Makefile.in b/libgo/Makefile.in
+index 3b2bdf99027..cc47eb834c6 100644
+--- a/libgo/Makefile.in
++++ b/libgo/Makefile.in
+@@ -504,6 +504,7 @@ enable_static = @enable_static@
+ exec_prefix = @exec_prefix@
+ glibgo_toolexecdir = @glibgo_toolexecdir@
+ glibgo_toolexeclibdir = @glibgo_toolexeclibdir@
++glibgo_toolexeclibgodir = @glibgo_toolexeclibgodir@
+ go_include = @go_include@
+ host = @host@
+ host_alias = @host_alias@
+@@ -522,7 +523,6 @@ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+-nover_glibgo_toolexeclibdir = @nover_glibgo_toolexeclibdir@
+ oldincludedir = @oldincludedir@
+ pdfdir = @pdfdir@
+ prefix = @prefix@
+@@ -554,7 +554,7 @@ PWD_COMMAND = $${PWDCMD-pwd}
+ STAMP = echo timestamp >
+ toolexecdir = $(glibgo_toolexecdir)
+ toolexeclibdir = $(glibgo_toolexeclibdir)
+-toolexeclibgodir = $(nover_glibgo_toolexeclibdir)/go/$(gcc_version)/$(target_alias)
++toolexeclibgodir = $(glibgo_toolexeclibgodir)
+ libexecsubdir = $(libexecdir)/gcc/$(target_alias)/$(gcc_version)
+ WARN_CFLAGS = $(WARN_FLAGS) $(WERROR)
+ 
+diff --git a/libgo/configure b/libgo/configure
+index 09ab2eb48aa..7cffe7e7506 100755
+--- a/libgo/configure
++++ b/libgo/configure
+@@ -702,7 +702,7 @@ USE_LIBFFI_FALSE
+ USE_LIBFFI_TRUE
+ LIBFFIINCS
+ LIBFFI
+-nover_glibgo_toolexeclibdir
++glibgo_toolexeclibgodir
+ glibgo_toolexeclibdir
+ glibgo_toolexecdir
+ WERROR
+@@ -13972,41 +13972,43 @@ fi
+ 
+ 
+ 
+-# Version-specific runtime libs processing.
+-if test $version_specific_libs = yes; then
+-  glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
+-  glibgo_toolexeclibdir='${toolexecdir}/${gcc_version}$(MULTISUBDIR)'
+-fi
+-
+-# Calculate glibgo_toolexecdir, glibgo_toolexeclibdir
+-# Install a library built with a cross compiler in tooldir, not libdir.
+-if test -n "$with_cross_host" &&
+-   test x"$with_cross_host" != x"no"; then
+-  nover_glibgo_toolexecdir='${exec_prefix}/${host_alias}'
+-  case ${with_toolexeclibdir} in
+-    no)
+-      nover_glibgo_toolexeclibdir='${toolexecdir}/lib'
+-      ;;
+-    *)
+-      nover_glibgo_toolexeclibdir=${with_toolexeclibdir}
+-      ;;
+-  esac
+-else
+-  nover_glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
+-  nover_glibgo_toolexeclibdir='${libdir}'
+-fi
+-multi_os_directory=`$GOC -print-multi-os-directory`
+-case $multi_os_directory in
+-  .) ;; # Avoid trailing /.
+-  *) nover_glibgo_toolexeclibdir=${nover_glibgo_toolexeclibdir}/${multi_os_directory} ;;
++# Calculate toolexeclibdir
++# Also toolexecdir, though it's only used in toolexeclibdir
++case ${version_specific_libs} in
++  yes)
++    # Need the gcc compiler version to know where to install libraries
++    # and header files if --enable-version-specific-runtime-libs option
++    # is selected.
++    glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
++    glibgo_toolexeclibdir='${toolexecdir}/${gcc_version}$(MULTISUBDIR)'
++    ;;
++  no)
++    if test -n "$with_cross_host" &&
++       test x"$with_cross_host" != x"no"; then
++      # Install a library built with a cross compiler in tooldir, not libdir.
++      glibgo_toolexecdir='${exec_prefix}/${host_alias}'
++      case ${with_toolexeclibdir} in
++	no)
++	  glibgo_toolexeclibdir='${toolexecdir}/lib'
++	  ;;
++	*)
++	  glibgo_toolexeclibdir=${with_toolexeclibdir}
++	  ;;
++      esac
++    else
++      glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
++      glibgo_toolexeclibdir='${libdir}'
++    fi
++    multi_os_directory=`$CC -print-multi-os-directory`
++    case $multi_os_directory in
++      .) ;; # Avoid trailing /.
++      *) glibgo_toolexeclibdir=$glibgo_toolexeclibdir/$multi_os_directory ;;
++    esac
++    ;;
+ esac
+ 
+-if test x"$glibgo_toolexecdir" = x"no"; then
+-  glibgo_toolexecdir="${nover_glibgo_toolexecdir}"
+-  glibgo_toolexeclibdir="${nover_glibgo_toolexeclibdir}"
+-fi
+-
+ 
++glibgo_toolexeclibgodir='${glibgo_toolexeclibdir}/go/${target_alias}'
+ 
+ 
+ 
+diff --git a/libgo/configure.ac b/libgo/configure.ac
+index bde7dcb53e6..8b6cf5b732f 100644
+--- a/libgo/configure.ac
++++ b/libgo/configure.ac
+@@ -93,43 +93,44 @@ AC_MSG_RESULT($version_specific_libs)
+ 
+ GCC_WITH_TOOLEXECLIBDIR
+ 
+-# Version-specific runtime libs processing.
+-if test $version_specific_libs = yes; then
+-  glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
+-  glibgo_toolexeclibdir='${toolexecdir}/${gcc_version}$(MULTISUBDIR)'
+-fi
+-
+-# Calculate glibgo_toolexecdir, glibgo_toolexeclibdir
+-# Install a library built with a cross compiler in tooldir, not libdir.
+-if test -n "$with_cross_host" &&
+-   test x"$with_cross_host" != x"no"; then
+-  nover_glibgo_toolexecdir='${exec_prefix}/${host_alias}'
+-  case ${with_toolexeclibdir} in
+-    no)
+-      nover_glibgo_toolexeclibdir='${toolexecdir}/lib'
+-      ;;
+-    *)
+-      nover_glibgo_toolexeclibdir=${with_toolexeclibdir}
+-      ;;
+-  esac
+-else
+-  nover_glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
+-  nover_glibgo_toolexeclibdir='${libdir}'
+-fi
+-multi_os_directory=`$GOC -print-multi-os-directory`
+-case $multi_os_directory in
+-  .) ;; # Avoid trailing /.
+-  *) nover_glibgo_toolexeclibdir=${nover_glibgo_toolexeclibdir}/${multi_os_directory} ;;
++# Calculate toolexeclibdir
++# Also toolexecdir, though it's only used in toolexeclibdir
++case ${version_specific_libs} in
++  yes)
++    # Need the gcc compiler version to know where to install libraries
++    # and header files if --enable-version-specific-runtime-libs option
++    # is selected.
++    glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
++    glibgo_toolexeclibdir='${toolexecdir}/${gcc_version}$(MULTISUBDIR)'
++    ;;
++  no)
++    if test -n "$with_cross_host" &&
++       test x"$with_cross_host" != x"no"; then
++      # Install a library built with a cross compiler in tooldir, not libdir.
++      glibgo_toolexecdir='${exec_prefix}/${host_alias}'
++      case ${with_toolexeclibdir} in
++	no)
++	  glibgo_toolexeclibdir='${toolexecdir}/lib'
++	  ;;
++	*)
++	  glibgo_toolexeclibdir=${with_toolexeclibdir}
++	  ;;
++      esac
++    else
++      glibgo_toolexecdir='${libdir}/gcc/${host_alias}'
++      glibgo_toolexeclibdir='${libdir}'
++    fi
++    multi_os_directory=`$CC -print-multi-os-directory`
++    case $multi_os_directory in
++      .) ;; # Avoid trailing /.
++      *) glibgo_toolexeclibdir=$glibgo_toolexeclibdir/$multi_os_directory ;;
++    esac
++    ;;
+ esac
+-
+-if test x"$glibgo_toolexecdir" = x"no"; then
+-  glibgo_toolexecdir="${nover_glibgo_toolexecdir}"
+-  glibgo_toolexeclibdir="${nover_glibgo_toolexeclibdir}"
+-fi
+-
+ AC_SUBST(glibgo_toolexecdir)
+ AC_SUBST(glibgo_toolexeclibdir)
+-AC_SUBST(nover_glibgo_toolexeclibdir)
++glibgo_toolexeclibgodir='${glibgo_toolexeclibdir}/go/${target_alias}'
++AC_SUBST(glibgo_toolexeclibgodir)
+ 
+ # See if the user wants to configure without libffi.  Some
+ # architectures don't support it.  FIXME: We should set a default
+diff --git a/libgo/testsuite/Makefile.in b/libgo/testsuite/Makefile.in
+index 7869265851c..4db51092305 100644
+--- a/libgo/testsuite/Makefile.in
++++ b/libgo/testsuite/Makefile.in
+@@ -254,6 +254,7 @@ enable_static = @enable_static@
+ exec_prefix = @exec_prefix@
+ glibgo_toolexecdir = @glibgo_toolexecdir@
+ glibgo_toolexeclibdir = @glibgo_toolexeclibdir@
++glibgo_toolexeclibgodir = @glibgo_toolexeclibgodir@
+ go_include = @go_include@
+ host = @host@
+ host_alias = @host_alias@
+@@ -272,7 +273,6 @@ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+-nover_glibgo_toolexeclibdir = @nover_glibgo_toolexeclibdir@
+ oldincludedir = @oldincludedir@
+ pdfdir = @pdfdir@
+ prefix = @prefix@
+-- 
+2.33.0
+

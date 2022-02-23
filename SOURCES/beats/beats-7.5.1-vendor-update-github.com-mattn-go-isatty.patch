@@ -1,0 +1,293 @@
+From 439495f66fe155eb39cf3af9b7de89874d55a544 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 2 Jan 2020 10:54:11 +0100
+Subject: [PATCH 1/6] vendor: update mattn/go-isatty
+
+---
+ vendor/github.com/mattn/go-isatty/go.mod      |  5 +++
+ vendor/github.com/mattn/go-isatty/go.sum      |  2 +
+ .../{isatty_linux.go => isatty_android.go}    |  9 ++++-
+ .../mattn/go-isatty/isatty_appengine.go       | 15 -------
+ .../github.com/mattn/go-isatty/isatty_bsd.go  |  6 +++
+ .../mattn/go-isatty/isatty_others.go          |  9 ++++-
+ .../mattn/go-isatty/isatty_plan9.go           | 22 +++++++++++
+ .../mattn/go-isatty/isatty_solaris.go         |  6 +++
+ .../mattn/go-isatty/isatty_tcgets.go          | 19 +++++++++
+ .../mattn/go-isatty/isatty_windows.go         | 39 +++++++++++++++++--
+ vendor/vendor.json                            |  6 +--
+ 11 files changed, 112 insertions(+), 26 deletions(-)
+ create mode 100644 vendor/github.com/mattn/go-isatty/go.mod
+ create mode 100644 vendor/github.com/mattn/go-isatty/go.sum
+ rename vendor/github.com/mattn/go-isatty/{isatty_linux.go => isatty_android.go} (62%)
+ delete mode 100644 vendor/github.com/mattn/go-isatty/isatty_appengine.go
+ create mode 100644 vendor/github.com/mattn/go-isatty/isatty_plan9.go
+ create mode 100644 vendor/github.com/mattn/go-isatty/isatty_tcgets.go
+
+diff --git a/vendor/github.com/mattn/go-isatty/go.mod b/vendor/github.com/mattn/go-isatty/go.mod
+new file mode 100644
+index 000000000..53d84a672
+--- /dev/null
++++ b/vendor/github.com/mattn/go-isatty/go.mod
+@@ -0,0 +1,5 @@
++module github.com/mattn/go-isatty
++
++go 1.12
++
++require golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
+diff --git a/vendor/github.com/mattn/go-isatty/go.sum b/vendor/github.com/mattn/go-isatty/go.sum
+new file mode 100644
+index 000000000..5e0752bdf
+--- /dev/null
++++ b/vendor/github.com/mattn/go-isatty/go.sum
+@@ -0,0 +1,2 @@
++golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 h1:YyJpGZS1sBuBCzLAR1VEpK193GlqGZbnPFnPV/5Rsb4=
++golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_linux.go b/vendor/github.com/mattn/go-isatty/isatty_android.go
+similarity index 62%
+rename from vendor/github.com/mattn/go-isatty/isatty_linux.go
+rename to vendor/github.com/mattn/go-isatty/isatty_android.go
+index 9d24bac1d..d3567cb5b 100644
+--- a/vendor/github.com/mattn/go-isatty/isatty_linux.go
++++ b/vendor/github.com/mattn/go-isatty/isatty_android.go
+@@ -1,5 +1,4 @@
+-// +build linux
+-// +build !appengine
++// +build android
+ 
+ package isatty
+ 
+@@ -16,3 +15,9 @@ func IsTerminal(fd uintptr) bool {
+ 	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, fd, ioctlReadTermios, uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
+ 	return err == 0
+ }
++
++// IsCygwinTerminal return true if the file descriptor is a cygwin or msys2
++// terminal. This is also always false on this environment.
++func IsCygwinTerminal(fd uintptr) bool {
++	return false
++}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_appengine.go b/vendor/github.com/mattn/go-isatty/isatty_appengine.go
+deleted file mode 100644
+index 9584a9884..000000000
+--- a/vendor/github.com/mattn/go-isatty/isatty_appengine.go
++++ /dev/null
+@@ -1,15 +0,0 @@
+-// +build appengine
+-
+-package isatty
+-
+-// IsTerminal returns true if the file descriptor is terminal which
+-// is always false on on appengine classic which is a sandboxed PaaS.
+-func IsTerminal(fd uintptr) bool {
+-	return false
+-}
+-
+-// IsCygwinTerminal() return true if the file descriptor is a cygwin or msys2
+-// terminal. This is also always false on this environment.
+-func IsCygwinTerminal(fd uintptr) bool {
+-	return false
+-}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_bsd.go b/vendor/github.com/mattn/go-isatty/isatty_bsd.go
+index 42f2514d1..07e93039d 100644
+--- a/vendor/github.com/mattn/go-isatty/isatty_bsd.go
++++ b/vendor/github.com/mattn/go-isatty/isatty_bsd.go
+@@ -16,3 +16,9 @@ func IsTerminal(fd uintptr) bool {
+ 	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, fd, ioctlReadTermios, uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
+ 	return err == 0
+ }
++
++// IsCygwinTerminal return true if the file descriptor is a cygwin or msys2
++// terminal. This is also always false on this environment.
++func IsCygwinTerminal(fd uintptr) bool {
++	return false
++}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_others.go b/vendor/github.com/mattn/go-isatty/isatty_others.go
+index ff4de3d9a..ff714a376 100644
+--- a/vendor/github.com/mattn/go-isatty/isatty_others.go
++++ b/vendor/github.com/mattn/go-isatty/isatty_others.go
+@@ -1,8 +1,13 @@
+-// +build !windows
+-// +build !appengine
++// +build appengine js nacl
+ 
+ package isatty
+ 
++// IsTerminal returns true if the file descriptor is terminal which
++// is always false on js and appengine classic which is a sandboxed PaaS.
++func IsTerminal(fd uintptr) bool {
++	return false
++}
++
+ // IsCygwinTerminal() return true if the file descriptor is a cygwin or msys2
+ // terminal. This is also always false on this environment.
+ func IsCygwinTerminal(fd uintptr) bool {
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_plan9.go b/vendor/github.com/mattn/go-isatty/isatty_plan9.go
+new file mode 100644
+index 000000000..c5b6e0c08
+--- /dev/null
++++ b/vendor/github.com/mattn/go-isatty/isatty_plan9.go
+@@ -0,0 +1,22 @@
++// +build plan9
++
++package isatty
++
++import (
++	"syscall"
++)
++
++// IsTerminal returns true if the given file descriptor is a terminal.
++func IsTerminal(fd uintptr) bool {
++	path, err := syscall.Fd2path(int(fd))
++	if err != nil {
++		return false
++	}
++	return path == "/dev/cons" || path == "/mnt/term/dev/cons"
++}
++
++// IsCygwinTerminal return true if the file descriptor is a cygwin or msys2
++// terminal. This is also always false on this environment.
++func IsCygwinTerminal(fd uintptr) bool {
++	return false
++}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_solaris.go b/vendor/github.com/mattn/go-isatty/isatty_solaris.go
+index 1f0c6bf53..bdd5c79a0 100644
+--- a/vendor/github.com/mattn/go-isatty/isatty_solaris.go
++++ b/vendor/github.com/mattn/go-isatty/isatty_solaris.go
+@@ -14,3 +14,9 @@ func IsTerminal(fd uintptr) bool {
+ 	err := unix.IoctlSetTermio(int(fd), unix.TCGETA, &termio)
+ 	return err == nil
+ }
++
++// IsCygwinTerminal return true if the file descriptor is a cygwin or msys2
++// terminal. This is also always false on this environment.
++func IsCygwinTerminal(fd uintptr) bool {
++	return false
++}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_tcgets.go b/vendor/github.com/mattn/go-isatty/isatty_tcgets.go
+new file mode 100644
+index 000000000..453b025d0
+--- /dev/null
++++ b/vendor/github.com/mattn/go-isatty/isatty_tcgets.go
+@@ -0,0 +1,19 @@
++// +build linux aix
++// +build !appengine
++// +build !android
++
++package isatty
++
++import "golang.org/x/sys/unix"
++
++// IsTerminal return true if the file descriptor is terminal.
++func IsTerminal(fd uintptr) bool {
++	_, err := unix.IoctlGetTermios(int(fd), unix.TCGETS)
++	return err == nil
++}
++
++// IsCygwinTerminal return true if the file descriptor is a cygwin or msys2
++// terminal. This is also always false on this environment.
++func IsCygwinTerminal(fd uintptr) bool {
++	return false
++}
+diff --git a/vendor/github.com/mattn/go-isatty/isatty_windows.go b/vendor/github.com/mattn/go-isatty/isatty_windows.go
+index af51cbcaa..1fa869154 100644
+--- a/vendor/github.com/mattn/go-isatty/isatty_windows.go
++++ b/vendor/github.com/mattn/go-isatty/isatty_windows.go
+@@ -4,6 +4,7 @@
+ package isatty
+ 
+ import (
++	"errors"
+ 	"strings"
+ 	"syscall"
+ 	"unicode/utf16"
+@@ -11,15 +12,18 @@ import (
+ )
+ 
+ const (
+-	fileNameInfo uintptr = 2
+-	fileTypePipe         = 3
++	objectNameInfo uintptr = 1
++	fileNameInfo           = 2
++	fileTypePipe           = 3
+ )
+ 
+ var (
+ 	kernel32                         = syscall.NewLazyDLL("kernel32.dll")
++	ntdll                            = syscall.NewLazyDLL("ntdll.dll")
+ 	procGetConsoleMode               = kernel32.NewProc("GetConsoleMode")
+ 	procGetFileInformationByHandleEx = kernel32.NewProc("GetFileInformationByHandleEx")
+ 	procGetFileType                  = kernel32.NewProc("GetFileType")
++	procNtQueryObject                = ntdll.NewProc("NtQueryObject")
+ )
+ 
+ func init() {
+@@ -45,7 +49,10 @@ func isCygwinPipeName(name string) bool {
+ 		return false
+ 	}
+ 
+-	if token[0] != `\msys` && token[0] != `\cygwin` {
++	if token[0] != `\msys` &&
++		token[0] != `\cygwin` &&
++		token[0] != `\Device\NamedPipe\msys` &&
++		token[0] != `\Device\NamedPipe\cygwin` {
+ 		return false
+ 	}
+ 
+@@ -68,11 +75,35 @@ func isCygwinPipeName(name string) bool {
+ 	return true
+ }
+ 
++// getFileNameByHandle use the undocomented ntdll NtQueryObject to get file full name from file handler
++// since GetFileInformationByHandleEx is not avilable under windows Vista and still some old fashion
++// guys are using Windows XP, this is a workaround for those guys, it will also work on system from
++// Windows vista to 10
++// see https://stackoverflow.com/a/18792477 for details
++func getFileNameByHandle(fd uintptr) (string, error) {
++	if procNtQueryObject == nil {
++		return "", errors.New("ntdll.dll: NtQueryObject not supported")
++	}
++
++	var buf [4 + syscall.MAX_PATH]uint16
++	var result int
++	r, _, e := syscall.Syscall6(procNtQueryObject.Addr(), 5,
++		fd, objectNameInfo, uintptr(unsafe.Pointer(&buf)), uintptr(2*len(buf)), uintptr(unsafe.Pointer(&result)), 0)
++	if r != 0 {
++		return "", e
++	}
++	return string(utf16.Decode(buf[4 : 4+buf[0]/2])), nil
++}
++
+ // IsCygwinTerminal() return true if the file descriptor is a cygwin or msys2
+ // terminal.
+ func IsCygwinTerminal(fd uintptr) bool {
+ 	if procGetFileInformationByHandleEx == nil {
+-		return false
++		name, err := getFileNameByHandle(fd)
++		if err != nil {
++			return false
++		}
++		return isCygwinPipeName(name)
+ 	}
+ 
+ 	// Cygwin/msys's pty is a pipe.
+diff --git a/vendor/vendor.json b/vendor/vendor.json
+index c239d262e..ee25c797e 100644
+--- a/vendor/vendor.json
++++ b/vendor/vendor.json
+@@ -3775,10 +3775,10 @@
+ 			"revisionTime": "2017-06-15T03:49:14Z"
+ 		},
+ 		{
+-			"checksumSHA1": "U6lX43KDDlNOn+Z0Yyww+ZzHfFo=",
++			"checksumSHA1": "AGYXOcAtYsDYMIQOkmr38ehdEM8=",
+ 			"path": "github.com/mattn/go-isatty",
+-			"revision": "fc9e8d8ef48496124e79ae0df75490096eccf6fe",
+-			"revisionTime": "2017-03-22T23:44:13Z"
++			"revision": "31745d66dd679ac0ac4f8d3ecff168fce6170c6a",
++			"revisionTime": "2019-12-11T04:17:20Z"
+ 		},
+ 		{
+ 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
+-- 
+2.22.0
+

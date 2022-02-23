@@ -1,0 +1,15 @@
+--- ./tests/t-stringutils.c.ORIGIN	2021-06-09 16:03:15 +0200
++++ ./tests/t-stringutils.c	2021-06-09 16:17:27 +0200
+@@ -269,7 +269,12 @@
+         fail ("fnameconcat failed at line %d (out=%s)\n", __LINE__, out);
+       else if (strncmp (out, home, homelen))
+         fail ("fnameconcat failed at line %d (out=%s)\n", __LINE__, out);
++#ifdef _AIX
++      // homelen==1 ==> User == "root" & $HOME = "/"
++      else if (strcmp (out+homelen, homelen==1 ? "bar" : "/bar" ))
++#else
+       else if (strcmp (out+homelen, "/bar"))
++#endif
+         fail ("fnameconcat failed at line %d (out=%s)\n", __LINE__, out);
+     }
+   else

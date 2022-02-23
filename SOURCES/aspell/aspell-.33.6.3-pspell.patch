@@ -1,0 +1,52 @@
+*** aspell-.33.6.3/src/termios.cc.org	Mon Jun  4 10:31:09 2001
+--- aspell-.33.6.3/src/termios.cc	Mon Jun  4 10:32:43 2001
+***************
+*** 190,196 ****
+--- 190,198 ----
+      noecho();
+      halfdelay(1);
+      keypad(stdscr, true);
++ #if COMPILE_ERROR
+      clear();
++ #endif
+      int height, width;
+      getmaxyx(stdscr, height, width);
+      int text_height = height - MENU_HEIGHT - 3;
+*** aspell-.33.6.3/pspell-module/Makefile.am.org	Mon Jun  4 10:40:09 2001
+--- aspell-.33.6.3/pspell-module/Makefile.am	Mon Jun  4 10:41:01 2001
+***************
+*** 5,11 ****
+  
+  libpspell_aspell_la_SOURCES = manager.cc
+  
+! libpspell_aspell_la_LIBADD = -L$(libdir) -lpspell-impl -L../lib/.libs ../lib/libaspell.la
+  
+  libpspell_aspell_la_LDFLAGS = ${extra_ldflags} -module -version-info 2:1:0
+  
+--- 5,11 ----
+  
+  libpspell_aspell_la_SOURCES = manager.cc
+  
+! libpspell_aspell_la_LIBADD = -L$(libdir) -lpspell-impl -lpspell -L../lib/.libs ../lib/libaspell.la
+  
+  libpspell_aspell_la_LDFLAGS = ${extra_ldflags} -module -version-info 2:1:0
+  
+*** aspell-.33.6.3/pspell-module/Makefile.in.org	Mon Jun  4 10:40:13 2001
+--- aspell-.33.6.3/pspell-module/Makefile.in	Mon Jun  4 10:40:38 2001
+***************
+*** 91,97 ****
+  
+  libpspell_aspell_la_SOURCES = manager.cc
+  
+! libpspell_aspell_la_LIBADD = -L$(libdir) -lpspell-impl -L../lib/.libs ../lib/libaspell.la
+  
+  libpspell_aspell_la_LDFLAGS = ${extra_ldflags} -module -version-info 2:1:0
+  mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+--- 91,97 ----
+  
+  libpspell_aspell_la_SOURCES = manager.cc
+  
+! libpspell_aspell_la_LIBADD = -L$(libdir) -lpspell-impl -lpspell -L../lib/.libs ../lib/libaspell.la
+  
+  libpspell_aspell_la_LDFLAGS = ${extra_ldflags} -module -version-info 2:1:0
+  mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs

@@ -1,0 +1,11 @@
+--- ./tools/build/src/tools/gcc.jam.O	2020-04-28 10:25:04 -0500
++++ ./tools/build/src/tools/gcc.jam	2020-04-28 10:25:58 -0500
+@@ -945,7 +945,7 @@
+     # AIX 4.x and AIX 6.x. For details about the AIX linker see:
+     # http://download.boulder.ibm.com/ibmdl/pub/software/dw/aix/es-aix_ll.pdf
+     #
+-    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-brtl -Wl,-bnoipath ;
++    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-brtl -Wl,-bnoipath -Wl,-lpthread -Wl,-latomic ;
+ 
+     # See note [1]
+     toolset.flags gcc.link OPTIONS <target-os>aix/<runtime-link>static : -static ;

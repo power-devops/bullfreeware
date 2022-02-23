@@ -1,0 +1,47 @@
+From 80d4ed8e4d2c989624d0ebdef6f1586976ecfec3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 8 Dec 2020 11:04:52 +0100
+Subject: [PATCH] fix tests compilation for go1.15
+
+---
+ etcdserver/api/v2store/store_test.go | 3 ++-
+ wal/wal_test.go                      | 2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/etcdserver/api/v2store/store_test.go b/etcdserver/api/v2store/store_test.go
+index 451d9be..321e52e 100644
+--- a/etcdserver/api/v2store/store_test.go
++++ b/etcdserver/api/v2store/store_test.go
+@@ -15,6 +15,7 @@
+ package v2store_test
+ 
+ import (
++	"fmt"
+ 	"testing"
+ 	"time"
+ 
+@@ -844,7 +845,7 @@ func TestStoreWatchSlowConsumer(t *testing.T) {
+ 	s.Watch("/foo", true, true, 0) // stream must be true
+ 	// Fill watch channel with 100 events
+ 	for i := 1; i <= 100; i++ {
+-		s.Set("/foo", false, string(i), v2store.TTLOptionSet{ExpireTime: v2store.Permanent}) // ok
++		s.Set("/foo", false, fmt.Sprint(i), v2store.TTLOptionSet{ExpireTime: v2store.Permanent}) // ok
+ 	}
+ 	// testutil.AssertEqual(t, s.WatcherHub.count, int64(1))
+ 	s.Set("/foo", false, "101", v2store.TTLOptionSet{ExpireTime: v2store.Permanent}) // ok
+diff --git a/wal/wal_test.go b/wal/wal_test.go
+index 9bdec2b..60e36e6 100644
+--- a/wal/wal_test.go
++++ b/wal/wal_test.go
+@@ -239,7 +239,7 @@ func TestVerify(t *testing.T) {
+ 
+ 	// make 5 separate files
+ 	for i := 0; i < 5; i++ {
+-		es := []raftpb.Entry{{Index: uint64(i), Data: []byte("waldata" + string(i+1))}}
++		es := []raftpb.Entry{{Index: uint64(i), Data: []byte("waldata" + fmt.Sprint(i+1))}}
+ 		if err = w.Save(raftpb.HardState{}, es); err != nil {
+ 			t.Fatal(err)
+ 		}
+-- 
+2.25.0
+

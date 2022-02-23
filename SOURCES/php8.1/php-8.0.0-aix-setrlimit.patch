@@ -1,0 +1,21 @@
+--- ./ext/posix/posix.c.orig	2020-11-26 16:30:16 +0100
++++ ./ext/posix/posix.c	2020-11-26 16:32:12 +0100
+@@ -1134,6 +1134,18 @@
+ 		Z_PARAM_LONG(max)
+ 	ZEND_PARSE_PARAMETERS_END();
+ 
++#if defined(_AIX)
++       /*
++       On AIX, when cur > max setrlimit returns 0 and sets softlimit and hardlimit to max,
++       instead of returning -1, so we need to check the values to reproduce the same behavior
++       as setrlimit on Linux.
++       */
++       if (cur > max) {
++               POSIX_G(last_error) = EINVAL;
++               RETURN_FALSE;
++       }
++#endif
++
+ 	rl.rlim_cur = cur;
+ 	rl.rlim_max = max;
+ 

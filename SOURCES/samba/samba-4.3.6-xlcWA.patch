@@ -1,0 +1,64 @@
+--- ./libcli/nbt/nbtname.c.ORIG	2015-07-21 11:47:49 +0200
++++ ./libcli/nbt/nbtname.c	2016-04-08 11:50:16 +0200
+@@ -1,3 +1,5 @@
++
++
+ /*
+    Unix SMB/CIFS implementation.
+ 
+--- ./source4/dsdb/repl/drepl_notify.c.ORIG	2015-07-21 11:47:49 +0200
++++ ./source4/dsdb/repl/drepl_notify.c	2016-04-07 14:52:58 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS mplementation.
+ 
+--- ./source4/ldap_server/ldap_server.c.ORIG	2015-07-21 11:47:49 +0200
++++ ./source4/ldap_server/ldap_server.c	2016-04-07 15:09:44 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS implementation.
+ 
+--- ./source4/libcli/dgram/netlogon.c.ORIG	2015-07-21 11:47:49 +0200
++++ ./source4/libcli/dgram/netlogon.c	2016-04-08 11:50:26 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS implementation.
+ 
+--- ./source4/ntvfs/print/vfs_print.c.ORIG	2015-07-21 11:47:49 +0200
++++ ./source4/ntvfs/print/vfs_print.c	2016-04-07 15:02:48 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS implementation.
+    default print NTVFS backend
+--- ./source4/torture/drs/rpc/dssync.c.ORIG	2015-07-21 11:47:50 +0200
++++ ./source4/torture/drs/rpc/dssync.c	2016-04-08 11:51:44 +0200
+@@ -1,3 +1,5 @@
++
++
+ /*
+    Unix SMB/CIFS implementation.
+ 
+--- ./source4/torture/ldap/cldapbench.c.ORIG	2015-07-21 11:47:50 +0200
++++ ./source4/torture/ldap/cldapbench.c	2016-04-08 11:51:53 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS implementation.
+ 
+--- ./source4/torture/nbt/dgram.c.ORIG	2015-07-21 11:47:50 +0200
++++ ./source4/torture/nbt/dgram.c	2016-04-08 11:52:03 +0200
+@@ -1,3 +1,5 @@
++
++
+ /* 
+    Unix SMB/CIFS implementation.
+ 

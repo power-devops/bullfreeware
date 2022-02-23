@@ -1,0 +1,10 @@
+--- ./config.mak.uname.ORIGIN	2019-02-28 11:29:20 +0100
++++ ./config.mak.uname	2019-02-28 11:29:51 +0100
+@@ -278,6 +278,7 @@
+ 		INLINE = ''
+ 	endif
+ 	GIT_TEST_CMP = cmp
++	FILENO_IS_A_MACRO = UnfortunatelyYes
+ endif
+ ifeq ($(uname_S),GNU)
+ 	# GNU/Hurd

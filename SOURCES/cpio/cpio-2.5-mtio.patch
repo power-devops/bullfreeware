@@ -1,0 +1,93 @@
+Index: cpio-2.4.2/configure
+diff -c cpio-2.4.2/configure:1.1.1.1 cpio-2.4.2/configure:1.2
+*** cpio-2.4.2/configure:1.1.1.1	Wed Aug 16 14:24:46 2000
+--- cpio-2.4.2/configure	Sun Mar 25 14:58:56 2001
+***************
+*** 995,1049 ****
+  fi
+  
+  
+- echo "checking for remote tape and socket header files" 1>&6
+- ac_safe=`echo "sys/mtio.h" | tr './\055' '___'`
+- echo $ac_n "checking for sys/mtio.h""... $ac_c" 1>&6
+- if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
+-   echo $ac_n "(cached) $ac_c" 1>&6
+- else
+-   cat > conftest.$ac_ext <<EOF
+- #line 1006 "configure"
+- #include "confdefs.h"
+- #include <sys/mtio.h>
+- EOF
+- eval "$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
+- ac_err=`grep -v '^ *+' conftest.out`
+- if test -z "$ac_err"; then
+-   rm -rf conftest*
+-   eval "ac_cv_header_$ac_safe=yes"
+- else
+-   echo "$ac_err" >&5
+-   rm -rf conftest*
+-   eval "ac_cv_header_$ac_safe=no"
+- fi
+- rm -f conftest*
+- fi
+- if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+-   echo "$ac_t""yes" 1>&6
+-   cat >> confdefs.h <<\EOF
+- #define HAVE_SYS_MTIO_H 1
+- EOF
+- 
+- PROGS="$PROGS mt"
+- cat > conftest.$ac_ext <<EOF
+- #line 1030 "configure"
+- #include "confdefs.h"
+- #include <sgtty.h>
+- #include <sys/socket.h>
+- EOF
+- eval "$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
+- ac_err=`grep -v '^ *+' conftest.out`
+- if test -z "$ac_err"; then
+-   rm -rf conftest*
+-   PROGS="$PROGS rmt"
+- else
+-   echo "$ac_err" >&5
+- fi
+- rm -f conftest*
+- else
+-   echo "$ac_t""no" 1>&6
+- fi
+- 
+  
+  echo "checking for remote shell" 1>&6
+  if test -f /usr/ucb/rsh || test -f /usr/bin/remsh || test -f /usr/bin/rsh ||
+--- 995,1000 ----
+Index: cpio-2.4.2/configure.in
+diff -c cpio-2.4.2/configure.in:1.1.1.1 cpio-2.4.2/configure.in:1.2
+*** cpio-2.4.2/configure.in:1.1.1.1	Wed Aug 16 14:24:46 2000
+--- cpio-2.4.2/configure.in	Sun Mar 25 14:58:56 2001
+***************
+*** 12,23 ****
+  AC_TYPE_SIGNAL
+  AC_HEADER_MAJOR
+  
+! AC_CHECKING(for remote tape and socket header files)
+! AC_CHECK_HEADER(sys/mtio.h,
+! [AC_DEFINE(HAVE_SYS_MTIO_H)
+! PROGS="$PROGS mt"
+! AC_TRY_CPP([#include <sgtty.h>
+! #include <sys/socket.h>], PROGS="$PROGS rmt")])
+  
+  AC_CHECKING(for remote shell)
+  if test -f /usr/ucb/rsh || test -f /usr/bin/remsh || test -f /usr/bin/rsh ||
+--- 12,23 ----
+  AC_TYPE_SIGNAL
+  AC_HEADER_MAJOR
+  
+! dnl AC_CHECKING(for remote tape and socket header files)
+! dnl AC_CHECK_HEADER(sys/mtio.h,
+! dnl [AC_DEFINE(HAVE_SYS_MTIO_H)
+! dnl PROGS="$PROGS mt"
+! dnl AC_TRY_CPP([#include <sgtty.h>
+! dnl #include <sys/socket.h>], PROGS="$PROGS rmt")])
+  
+  AC_CHECKING(for remote shell)
+  if test -f /usr/ucb/rsh || test -f /usr/bin/remsh || test -f /usr/bin/rsh ||

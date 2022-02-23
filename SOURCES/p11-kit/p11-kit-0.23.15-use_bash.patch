@@ -1,0 +1,63 @@
+--- ./p11-kit/test-messages.sh	2018-08-06 11:43:42 +0200
++++ ./p11-kit/test-messages.sh.New	2019-03-22 17:10:13 +0100
+@@ -1,4 +1,5 @@
+-#!/bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ 
+ set -e
+ 
+--- ./p11-kit/test-server.sh	2018-08-06 11:43:42 +0200
++++ ./p11-kit/test-server.sh.New	2019-03-22 17:13:31 +0100
+@@ -1,4 +1,5 @@
+-#!/bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ 
+ set -e
+ 
+--- ./trust/test-extract.sh	2018-08-06 11:43:42 +0200
++++ ./trust/test-extract.sh.New	2019-03-22 17:14:28 +0100
+@@ -1,4 +1,5 @@
+-#!/bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ 
+ . "${builddir=.}/test-init.sh"
+ 
+--- ./trust/test-init.sh.in	2018-08-06 11:43:42 +0200
++++ ./trust/test-init.sh.in.New	2019-03-22 17:15:30 +0100
+@@ -1,4 +1,5 @@
+-#!/bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ 
+ set -euf
+ 
+--- ./trust/test-trust.sh	2018-08-06 11:43:42 +0200
++++ ./trust/test-trust.sh.New	2019-03-22 17:16:15 +0100
+@@ -1,4 +1,5 @@
+-#!/bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ 
+ . "${builddir=.}/test-init.sh"
+ 
+--- ./build/litter/ltmain.sh	2019-01-21 10:45:25 +0100
++++ ./build/litter/ltmain.sh.New	2019-03-22 17:21:42 +0100
+@@ -1,4 +1,5 @@
+-#! /bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ ## DO NOT EDIT - This file generated from ./build-aux/ltmain.in
+ ##               by inline-source v2014-01-03.01
+ 
+--- ./build/litter/tap-driver.sh	2019-01-21 10:45:31 +0100
++++ ./build/litter/tap-driver.sh.New	2019-03-22 17:23:33 +0100
+@@ -1,4 +1,5 @@
+-#! /bin/sh
++#!/bin/bash
++#  There are problems in the test scripts using ksh  #!/bin/sh
+ # Copyright (C) 2011-2018 Free Software Foundation, Inc.
+ #
+ # This program is free software; you can redistribute it and/or modify

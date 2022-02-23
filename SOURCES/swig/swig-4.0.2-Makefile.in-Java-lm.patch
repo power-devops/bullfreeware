@@ -1,0 +1,20 @@
+--- ./Examples/Makefile.in.ORIGIN	2021-01-15 11:10:34 +0100
++++ ./Examples/Makefile.in	2021-01-15 11:10:36 +0100
+@@ -630,7 +630,7 @@
+ java: $(SRCDIR_SRCS)
+ 	$(SWIG) -java $(SWIGOPT) -o $(ISRCS) $(INTERFACEPATH)
+ 	$(CC) -c $(CCSHARED) $(CPPFLAGS) $(CFLAGS) $(JAVACFLAGS) $(SRCDIR_SRCS) $(ISRCS) $(INCLUDES) $(JAVA_INCLUDE)
+-	$(JAVALDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(JAVA_DLNK) $(LIBS) -o $(JAVA_LIBPREFIX)$(TARGET)$(JAVASO)
++	$(JAVALDSHARED) $(CFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(JAVA_DLNK) $(LIBS) -o $(JAVA_LIBPREFIX)$(TARGET)$(JAVASO) -lm
+ 
+ # ----------------------------------------------------------------
+ # Build a java dynamically loadable module (C++)
+@@ -639,7 +639,7 @@
+ java_cpp: $(SRCDIR_SRCS)
+ 	$(SWIG) -java -c++ $(SWIGOPT) -o $(ICXXSRCS) $(INTERFACEPATH)
+ 	$(CXX) -c $(CCSHARED) $(CPPFLAGS) $(CXXFLAGS) $(JAVACFLAGS) $(SRCDIR_SRCS) $(SRCDIR_CXXSRCS) $(ICXXSRCS) $(INCLUDES) $(JAVA_INCLUDE)
+-	$(JAVACXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(JAVA_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(JAVA_LIBPREFIX)$(TARGET)$(JAVASO)
++	$(JAVACXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(IOBJS) $(JAVA_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(JAVA_LIBPREFIX)$(TARGET)$(JAVASO) -lm
+ 
+ # ----------------------------------------------------------------
+ # Compile java files

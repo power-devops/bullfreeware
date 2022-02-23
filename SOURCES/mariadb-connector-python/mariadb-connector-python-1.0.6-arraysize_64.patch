@@ -1,0 +1,11 @@
+--- ./mariadb/mariadb_cursor.c.orig	2020-07-21 14:01:12 +0200
++++ ./mariadb/mariadb_cursor.c	2020-07-21 13:55:28 +0200
+@@ -206,7 +206,7 @@
+         0,
+         cursor_buffered__doc__},
+     {"arraysize",
+-        T_LONG,
++        T_INT,
+         offsetof(MrdbCursor, row_array_size),
+         0,
+         cursor_arraysize__doc__},

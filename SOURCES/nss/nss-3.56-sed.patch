@@ -1,0 +1,152 @@
+--- ./nss/tests/smime/smime.sh.ORIG	2020-08-21 17:10:57 +0200
++++ ./nss/tests/smime/smime.sh	2020-10-01 14:54:43 +0200
+@@ -176,12 +176,12 @@
+   OUT="tb/alice.mime"
+   echo "${header_clearsigned}" >>${OUT}
+   cat alice.txt >>${OUT}
+-  sed -i"" "s/\$/${CR}/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/${CR}/" ${OUT}
+ 
+   OUT="tb/alice.textplain"
+   echo "${header_plaintext}" >>${OUT}
+   cat alice.txt >>${OUT}
+-  sed -i"" "s/\$/${CR}/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/${CR}/" ${OUT}
+ }
+ 
+ smime_enveloped()
+@@ -197,7 +197,7 @@
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+   echo "enveloped ${SIG}" >>${OUT}
+   cat "tb/alice.env" >>${OUT}
+-  sed -i"" "s/\$/${CR}/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/${CR}/" ${OUT}
+ }
+ 
+ smime_signed_enveloped()
+@@ -219,7 +219,7 @@
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+   echo "clear-signed ${SIG}" >>${OUT}
+   cat "tb/alice.d${SIG}.multipart" >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   OUT="tb/alice.d${SIG}.multipart.env.eml"
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+@@ -227,7 +227,7 @@
+   echo "$header_enveloped" >>${OUT}
+   cat "tb/alice.d${SIG}.multipart.env" | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
+   echo >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.textplain.${SIG}
+ 
+@@ -242,7 +242,7 @@
+   echo "opaque-signed $SIG" >>${OUT}
+   cat "tb/alice.${SIG}.opaque" >>${OUT}
+   echo >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   OUT="tb/alice.${SIG}.opaque.env.eml"
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+@@ -250,7 +250,7 @@
+   echo "$header_enveloped" >>$OUT
+   cat "tb/alice.${SIG}.opaque.env" | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
+   echo >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   # bad messages below
+ 
+@@ -258,7 +258,7 @@
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+   echo "BAD clear-signed $SIG" >>${OUT}
+   cat "tb/alice.d${SIG}.multipart" | sed 's/test message from Alice/FAKE message NOT from Alice/' >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   OUT="tb/alice.d${SIG}.multipart.mismatch-econtent"
+   echo "${multipart_start}" | sed "s/HASHHASH/$HASH/" >>${OUT}
+@@ -271,7 +271,7 @@
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+   echo "BAD mismatch-econtent $SIG" >>${OUT}
+   cat "tb/alice.d${SIG}.multipart.mismatch-econtent" >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ }
+ 
+ smime_plain_signed()
+@@ -308,7 +308,7 @@
+   echo "clear-signed $SIG then opaque signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ 
+   INPUT="tb/alice.plain.${SIG}.opaque"
+   OUT_SIG="${INPUT}.dave.${SIG}"
+@@ -323,7 +323,7 @@
+   echo "opaque-signed $SIG then opaque signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ 
+   # Alternatively, second outer, multipart signature layer.
+ 
+@@ -346,7 +346,7 @@
+   echo "clear-signed $SIG then clear-signed signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ 
+   INPUT="tb/alice.plain.${SIG}.opaque"
+   OUT_SIG="${INPUT}.dave.d${SIG}"
+@@ -367,7 +367,7 @@
+   echo "opaque-signed $SIG then clear-signed signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ }
+ 
+ smime_enveloped_signed()
+@@ -387,7 +387,7 @@
+   echo -n "${header_mime_from_to_subject}" >>${OUT}
+   echo "enveloped then clear-signed ${SIG}" >>${OUT}
+   cat "tb/alice.env.d${SIG}.multipart" >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i tb/alice.env -d ${P_R_ALICEDIR} -p nss -o tb/alice.env.${SIG}
+ 
+@@ -400,7 +400,7 @@
+   echo "enveloped then opaque-signed $SIG" >>${OUT}
+   cat "tb/alice.env.${SIG}.opaque" >>${OUT}
+   echo >>${OUT}
+-  sed -i"" "s/\$/$CR/" ${OUT}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT}
+ 
+   # Second outer, opaque signature layer.
+ 
+@@ -417,7 +417,7 @@
+   echo "enveloped then clear-signed $SIG then opaque signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ 
+   INPUT="tb/alice.env.${SIG}.opaque"
+   OUT_SIG="${INPUT}.dave.${SIG}"
+@@ -432,7 +432,7 @@
+   echo "enveloped then opaque-signed $SIG then opaque signed by dave" >>${OUT_EML}
+   cat "${OUT_MIME}" >>${OUT_EML}
+   echo >>${OUT_EML}
+-  sed -i"" "s/\$/$CR/" ${OUT_EML}
++  /opt/freeware/bin/sed -i"" "s/\$/$CR/" ${OUT_EML}
+ }
+ 
+ smime_p7()

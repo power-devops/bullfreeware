@@ -1,0 +1,29 @@
+*** ./scheduler/log.c.ORIG	Wed Nov 30 12:59:37 2016
+--- ./scheduler/log.c	Wed Nov 30 13:00:14 2016
+***************
+*** 505,510 ****
+--- 505,515 ----
+  #endif /* HAVE_GSSAPI */
+  
+  
++ #ifndef va_copy
++ # define va_copy(__list1,__list2) ((void)(__list1 = __list2))
++ #endif
++ 
++ 
+  /*
+   * 'cupsdLogClient()' - Log a client message.
+   */
+*** ./backend/Makefile.ORIG	Wed Nov 30 13:56:54 2016
+--- ./backend/Makefile	Wed Nov 30 14:00:11 2016
+***************
+*** 15,20 ****
+--- 15,22 ----
+  
+  include ../Makedefs
+  
++ LIBS = $(LINKCUPS) $(COMMONLIBS) -L/opt/freeware/lib -lgnutls
++ 
+  #
+  # Object files...
+  #

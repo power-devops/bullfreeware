@@ -1,0 +1,11 @@
+--- gcc-7.1.0/libgo/testsuite/gotest.ORIGIN	2017-05-19 10:32:05 +0200
++++ gcc-7.1.0/libgo/testsuite/gotest	2017-05-19 10:34:04 +0200
+@@ -19,7 +19,7 @@
+ GL=${GL:-${GC-gccgo}}
+ GOLIBS=${GOLIBS:-}
+ export GC GL GOLIBS
+-GL="${GL} -fno-section-anchors -Wl,-bernotok"
++GL="${GL} -fno-section-anchors -Wl,-bernotok -static-libgo -Wl,-bbigtoc"
+ 
+ NM=${NM:-nm}
+ 

@@ -1,0 +1,16 @@
+Index: samba-4.2.0/lib/util/time.c
+===================================================================
+--- samba-4.2.0.orig/lib/util/time.c	2014-12-20 16:07:55.000000000 +0100
++++ samba-4.2.0/lib/util/time.c	2015-04-29 09:23:17.000000000 +0200
+@@ -60,11 +60,9 @@
+ 	}
+ #endif
+ /* then try the  monotonic clock: */
+-#if CUSTOM_CLOCK_MONOTONIC != CLOCK_REALTIME
+ 	if (clock_gettime(CUSTOM_CLOCK_MONOTONIC,tp) == 0) {
+ 		return;
+ 	}
+-#endif
+ 	clock_gettime(CLOCK_REALTIME,tp);
+ }
+ 

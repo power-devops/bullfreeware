@@ -1,0 +1,24 @@
+Index: libbacktrace/fileline.c
+===================================================================
+--- a/libbacktrace/fileline.c	(revision 272180)
++++ b/libbacktrace/fileline.c	(working copy)
+@@ -96,15 +96,15 @@ fileline_initialize (struct backtrace_state *state
+ 	  filename = getexecname ();
+ 	  break;
+ 	case 2:
+-	  filename = "/proc/self/exe";
++	  snprintf (buf, sizeof (buf), "/proc/%ld/object/a.out",
++		    (long) getpid ());
++	  filename = buf;
+ 	  break;
+ 	case 3:
+ 	  filename = "/proc/curproc/file";
+ 	  break;
+ 	case 4:
+-	  snprintf (buf, sizeof (buf), "/proc/%ld/object/a.out",
+-		    (long) getpid ());
+-	  filename = buf;
++	  filename = "/proc/self/exe";
+ 	  break;
+ 	default:
+ 	  abort ();

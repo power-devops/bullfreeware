@@ -1,0 +1,12 @@
+--- ./python/rpmfiles-py.c_orig	2019-10-31 05:49:58 +0000
++++ ./python/rpmfiles-py.c	2019-10-31 05:50:45 +0000
+@@ -467,9 +467,6 @@
+ 	PyObject * result;
+ 	
+ 	if (PySlice_GetIndicesEx(
+-#if PY_MAJOR_VERSION < 3
+-				 (PySliceObject*)
+-#endif
+ 				 item, rpmfiles_length(s),
+ 				 &start, &stop, &step, &slicelength) < 0) {
+ 	    return NULL;

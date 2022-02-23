@@ -1,0 +1,61 @@
+From 62aa63e194ace8361e6a5967c9646143c4d6c901 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 12 Aug 2021 13:48:24 +0200
+Subject: [PATCH] meson: adapt to AIX
+
+AIX meson isn't able to find library by itself.
+pkg-config files aren't always present, cmake file neither.
+Thus, simply try if the compiler is able to find it.
+---
+ meson.build | 21 ++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 2cb37df..3166dca 100644
+--- a/meson.build
++++ b/meson.build
+@@ -20,16 +20,24 @@ endif
+ if get_option('with-zstd') == 'disabled'
+     zstd_dep = dependency('', required : false)
+ else
+-    zstd_dep = dependency('libzstd', required : get_option('with-zstd') == 'enabled')
++    if build_machine.system() == 'aix'
++       zstd_dep = cc.find_library('zstd')
++    else
++       zstd_dep = dependency('libzstd', required : get_option('with-zstd') == 'enabled')
++    endif
+     if zstd_dep.found()
+         add_project_arguments('-DZCHUNK_ZSTD', language : 'c')
+-        if zstd_dep.version().version_compare('<=1.4.9')
++        if build_machine.system() != 'aix' and zstd_dep.version().version_compare('<=1.4.9')
+             add_project_arguments('-DOLD_ZSTD', language : 'c')
+         endif
+     endif
+ endif
+ 
+-curl_dep = dependency('libcurl')
++if build_machine.system() == 'aix'
++   curl_dep = cc.find_library('curl')
++else
++   curl_dep = dependency('libcurl')
++endif
+ 
+ if build_machine.system() == 'darwin' or build_machine.system() == 'freebsd' or not cc.links('#include <argp.h>\nstatic error_t parse_opt (int key, char *arg, struct argp_state *state) { argp_usage(state); return 0; }; void main() {}')
+     argplib = cc.find_library('argp')
+@@ -40,7 +48,12 @@ endif
+ if get_option('with-openssl') == 'disabled'
+     openssl_dep = dependency('', required : false)
+ else
+-    openssl_dep = dependency('openssl', required : get_option('with-openssl') == 'enabled')
++    if build_machine.system() == 'aix'
++        openssl_dep = cc.find_library('ssl')
++        openssl_dep = cc.find_library('crypto')
++    else
++        openssl_dep = dependency('openssl', required : get_option('with-openssl') == 'enabled')
++    endif
+     if openssl_dep.found()
+         add_project_arguments('-DZCHUNK_OPENSSL', language : 'c')
+     endif
+-- 
+2.32.0
+

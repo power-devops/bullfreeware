@@ -1,0 +1,91 @@
+--- ./libgo/go/runtime/netpoll_aix.go	(revision 259702)
++++ ./libgo/go/runtime/netpoll_aix.go	(working copy)
+@@ -4,7 +4,10 @@
+ 
+ package runtime
+ 
+-import "unsafe"
++import (
++	"runtime/internal/atomic"
++	"unsafe"
++)
+ 
+ // This is based on the former libgo/runtime/netpoll_select.c implementation
+ // except that it uses AIX pollset_poll instead of select and is written in Go.
+@@ -55,12 +58,12 @@ func fcntl(fd, cmd int32, arg uintptr) uintptr {
+ }
+ 
+ var (
+-	ps          pollset_t = -1
+-	mpfds       map[int32]*pollDesc
+-	pmtx        mutex
+-	rdwake      int32
+-	wrwake      int32
+-	needsUpdate bool
++	ps             pollset_t = -1
++	mpfds          map[int32]*pollDesc
++	pmtx           mutex
++	rdwake         int32
++	wrwake         int32
++	pendingUpdates uint32
+ )
+ 
+ func netpollinit() {
+@@ -107,9 +110,7 @@ func netpolldescriptor() uintptr {
+ func netpollopen(fd uintptr, pd *pollDesc) int32 {
+ 	// pollset_ctl will block if pollset_poll is active
+ 	// so wakeup pollset_poll first.
+-	lock(&pmtx)
+-	needsUpdate = true
+-	unlock(&pmtx)
++	atomic.Xadd(&pendingUpdates, 1)
+ 	b := [1]byte{0}
+ 	write(uintptr(wrwake), unsafe.Pointer(&b[0]), 1)
+ 
+@@ -122,7 +123,7 @@ func netpollopen(fd uintptr, pd *pollDesc) int32 {
+ 	}
+ 	lock(&pmtx)
+ 	mpfds[int32(fd)] = pd
+-	needsUpdate = false
++	atomic.Xadd(&pendingUpdates, -1)
+ 	unlock(&pmtx)
+ 
+ 	return 0
+@@ -131,9 +132,7 @@ func netpollopen(fd uintptr, pd *pollDesc) int32 {
+ func netpollclose(fd uintptr) int32 {
+ 	// pollset_ctl will block if pollset_poll is active
+ 	// so wakeup pollset_poll first.
+-	lock(&pmtx)
+-	needsUpdate = true
+-	unlock(&pmtx)
++	atomic.Xadd(&pendingUpdates, 1)
+ 	b := [1]byte{0}
+ 	write(uintptr(wrwake), unsafe.Pointer(&b[0]), 1)
+ 
+@@ -145,7 +144,7 @@ func netpollclose(fd uintptr) int32 {
+ 	}
+ 	lock(&pmtx)
+ 	delete(mpfds, int32(fd))
+-	needsUpdate = false
++	atomic.Xadd(&pendingUpdates, -1)
+ 	unlock(&pmtx)
+ 
+ 	return 0
+@@ -165,13 +164,12 @@ func netpoll(block bool) *g {
+ 	}
+ 	var pfds [128]pollfd
+ retry:
+-	lock(&pmtx)
+-	if needsUpdate {
+-		unlock(&pmtx)
++	for atomic.Load(&pendingUpdates) > 0 {
++		if !block {
++			return nil
++		}
+ 		osyield()
+-		goto retry
+ 	}
+-	unlock(&pmtx)
+ 	nfound := pollset_poll(ps, &pfds[0], int32(len(pfds)), timeout)
+ 	if nfound < 0 {
+ 		e := errno()

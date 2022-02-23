@@ -1,0 +1,30 @@
+ Index: cups-2.0.2/cups/request.c
+ ===================================================================
+--- cups-2.0.2.orig/cups/request.c	2014-05-09 22:20:16.000000000 +0200
++++ cups-2.0.2/cups/request.c	2015-03-18 13:36:21.000000000 +0100
+@@ -993,6 +993,10 @@
+   * '_cupsConnect()' - Get the default server connection...
+   */
+   
++#ifdef _AIX
++#define MSG_DONTWAIT MSG_NONBLOCK
++#endif
++
+  http_t *				/* O - HTTP connection */
+  _cupsConnect(void)
+  {
+ Index: cups-2.0.2/scheduler/log.c
+ ===================================================================
+--- cups-2.0.2.orig/scheduler/log.c	2014-06-11 21:03:59.000000000 +0200
++++ cups-2.0.2/scheduler/log.c	2015-03-18 13:34:08.000000000 +0100
+@@ -484,6 +484,10 @@
+   * 'cupsdLogJob()' - Log a job message.
+   */
+  
++#ifndef va_copy
++# define va_copy(__list1,__list2) ((void)(__list1 = __list2))
++#endif
++
+  int					/* O - 1 on success, 0 on error */
+  cupsdLogJob(cupsd_job_t *job,		/* I - Job */
+              int         level,		/* I - Log level */

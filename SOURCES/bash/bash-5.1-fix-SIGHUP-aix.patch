@@ -1,0 +1,25 @@
+--- bash-5.0/lib/readline/signals.c_orig	2020-09-08 13:22:42 +0000
++++ bash-5.0/lib/readline/signals.c	2020-09-15 17:39:01 +0000
+@@ -155,7 +155,22 @@
+     }
+   else
+ #endif
++#if defined (_AIX)
++/* In AIX, when terminal gets disconnected,SIGHUP keeps triggered which 
++   causes a loop here. So let's have a check */
++    {
++      static int sighup_count = 0;
++
++      if (sig == SIGHUP)
++        ++sighup_count;
++      if (sighup_count < 3)
++        _rl_handle_signal (sig);
++
++      sighup_count = 0; /* Reset the count */
++    }
++#else
+     _rl_handle_signal (sig);
++#endif
+ 
+   SIGHANDLER_RETURN;
+ }

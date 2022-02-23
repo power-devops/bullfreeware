@@ -1,0 +1,29 @@
+From bf25a22d163daee728f3075652b246ca1c32bd79 Mon Sep 17 00:00:00 2001
+From: Jan Kaluza <jkaluza@redhat.com>
+Date: Tue, 4 Dec 2012 12:07:36 +0100
+Subject: [PATCH] file-5.04-man-return-code.patch
+
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ doc/file.man | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/doc/file.man b/doc/file.man
+index fff7730..3a524f5 100644
+--- a/doc/file.man
++++ b/doc/file.man
+@@ -585,6 +585,11 @@ program, and are not covered by the above license.
+ .Sh RETURN CODE
+ .Nm
+ returns 0 on success, and non-zero on error.
++.Pp
++If the file named by the file
++operand does not exist, cannot be read, or the type of the file named by
++the file operand cannot be determined, this is not be considered an error
++that affects the exit status.
+ .Sh BUGS
+ Please report bugs and send patches to the bug tracker at
+ .Pa http://bugs.gw.com/
+-- 
+2.5.5
+

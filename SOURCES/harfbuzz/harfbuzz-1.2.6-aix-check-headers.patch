@@ -1,0 +1,12 @@
+diff -Nur harfbuzz-1.2.6-orig/src/check-header-guards.sh harfbuzz-1.2.6-aix/src/check-header-guards.sh
+--- harfbuzz-1.2.6-orig/src/check-header-guards.sh	2016-01-06 13:00:36 +0100
++++ harfbuzz-1.2.6-aix/src/check-header-guards.sh	2016-04-22 14:44:06 +0200
+@@ -13,7 +13,7 @@
+ 	test -f "$srcdir/$x" && x="$srcdir/$x"
+ 	echo "$x" | grep -q '[^h]$' && continue;
+ 	xx=`echo "$x" | sed 's@.*/@@'`
+-	tag=`echo "$xx" | tr 'a-z.-' 'A-Z_'`
++	tag=`echo "$xx" | tr 'a-z.-' 'A-Z__'`
+ 	lines=`grep -w "$tag" "$x" | wc -l | sed 's/[ 	]*//g'`
+ 	if test "x$lines" != x3; then
+ 		echo "Ouch, header file $x does not have correct preprocessor guards"

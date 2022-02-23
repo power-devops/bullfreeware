@@ -1,0 +1,16 @@
+Index: gdb-7.3/gdb/regcache.c
+===================================================================
+--- gdb-7.3.orig/gdb/regcache.c	2011-04-20 19:04:32.000000000 +0200
++++ gdb-7.3/gdb/regcache.c	2011-08-05 14:00:11.000000000 +0200
+@@ -409,8 +409,9 @@
+   return newbuf;
+ }
+ 
+-int
+-regcache_register_status (const struct regcache *regcache, int regnum)
++
++enum register_status regcache_register_status (const struct regcache *regcache,
++					       int regnum)
+ {
+   gdb_assert (regcache != NULL);
+   gdb_assert (regnum >= 0);

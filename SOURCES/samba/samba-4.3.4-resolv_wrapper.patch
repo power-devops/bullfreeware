@@ -1,0 +1,26 @@
+--- ./lib/resolv_wrapper/resolv_wrapper.c.ORIG  2015-07-21 11:47:48 +0200
++++ ./lib/resolv_wrapper/resolv_wrapper.c       2016-01-26 11:23:00 +0100
+@@ -48,6 +48,11 @@
+ 
+ #include <resolv.h>
+ 
++#ifdef _AIX
++#include <arpa/nameser.h>
++#include <sys/socket.h>
++#endif
++
+ /* GCC has printf type attribute check. */
+ #ifdef HAVE_ATTRIBUTE_PRINTF_FORMAT
+ #define PRINTF_ATTRIBUTE(a,b) __attribute__ ((__format__ (__printf__, a, b)))
+@@ -1404,7 +1409,11 @@
+ 			state->nscount = 0;
+ 			memset(state->nsaddr_list, 0, sizeof(state->nsaddr_list));
+ 
++#ifdef _AIX
++			state->_ext.nscount = 0;
++#else
+ 			state->_u._ext.nscount = 0;
++#endif
+ #ifdef HAVE_RESOLV_IPV6_NSADDRS
+ 			for (i = 0; i < state->_u._ext.nscount; i++) {
+ 				SAFE_FREE(state->_u._ext.nsaddrs[i]);

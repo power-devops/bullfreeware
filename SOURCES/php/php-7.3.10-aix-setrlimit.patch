@@ -1,0 +1,21 @@
+--- php-7.3.10.orig/ext/posix/posix.c	2019-09-24 11:20:24 +0200
++++ php-7.3.10-aix/ext/posix/posix.c	2019-12-18 18:02:26 +0100
+@@ -1416,6 +1416,18 @@
+ 		Z_PARAM_LONG(max)
+ 	ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+ 
++#if defined(_AIX)
++	/*
++	On AIX, when cur > max setrlimit returns 0 and sets softlimit and hardlimit to max,
++	instead of returning -1, so we need to check the values to reproduce the same behavior
++	as setrlimit on Linux.
++	*/
++	if (cur > max) {
++		POSIX_G(last_error) = EINVAL;
++		RETURN_FALSE;
++	}
++#endif
++
+ 	rl.rlim_cur = cur;
+ 	rl.rlim_max = max;
+ 

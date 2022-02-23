@@ -1,0 +1,196 @@
+--- ./libgo/mksysinfo.sh.ORIGIN	2017-09-27 10:42:33 -0500
++++ ./libgo/mksysinfo.sh	2017-09-22 16:23:53 -0500
+@@ -963,6 +963,18 @@
+       -e 's/ifi_change/Change/' \
+     >> ${OUT}
+ 
++# The if_msghdr struct.
++grep '^type _if_msghdr ' gen-sysinfo.go | \
++    sed -e 's/_if_msghdr/IfMsgHdr/' \
++      -e 's/ifm_msglen/MsgLen/' \
++      -e 's/ifm_version/Version/' \
++      -e 's/ifm_type/Type/' \
++      -e 's/ifm_addrs/Addrs/' \
++      -e 's/ifm_flags/Flags/' \
++      -e 's/ifm_index/Index/' \
++      -e 's/ifm_addrlen/AddrLen/' \
++    >> ${OUT}
++
+ # The interface information types and flags.
+ grep '^const _IFA' gen-sysinfo.go | \
+     sed -e 's/^\(const \)_\(IFA[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+--- ./libgo/go/net/interface_stub.go.ORIGIN	2017-09-28 10:30:07 -0500
++++ ./libgo/go/net/interface_stub.go	2017-09-28 10:30:13 -0500
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build aix nacl
++// +build nacl
+ 
+ package net
+ 
+--- /dev/null	2018-01-23 16:49:12 -0600
++++ ./libgo/go/net/interface_aix.go	2017-09-25 09:45:20 -0500
+@@ -0,0 +1,161 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package net
++
++import (
++	//"os"
++	"syscall"
++	"unsafe"
++)
++
++type RawSockaddrDatalink struct {
++	Len uint8
++	Family uint8
++	Index uint16
++	Type uint8
++	Nlen uint8
++	Alen uint8
++	Slen uint8
++	Data [120]byte
++}
++
++const _KINFO_RT_IFLIST = (0x1<<8)|3|(1<<30)
++
++const _RTAX_NETMASK = 2
++const _RTAX_IFA = 5
++const _RTAX_MAX = 8
++
++//extern getkerninfo
++func getkerninfo(op int32, where uintptr, size uintptr, arg int64) int32
++
++func getIfList() ([]byte, error) {
++	needed := getkerninfo(_KINFO_RT_IFLIST, 0, 0, 0)
++	if needed == -1 {
++		return nil, nil // XXX
++	}
++	tab := make([]byte, needed)
++	err := getkerninfo(_KINFO_RT_IFLIST, uintptr(unsafe.Pointer(&tab[0])), uintptr(unsafe.Pointer(&needed)), 0)
++	if err == -1 {
++		return nil, nil // XXX
++	}
++	return tab[:needed], nil
++}
++
++// If the ifindex is zero, interfaceTable returns mappings of all
++// network interfaces. Otherwise it returns a mapping of a specific
++// interface.
++func interfaceTable(ifindex int) ([]Interface, error) {
++	tab, err := getIfList()
++	if err != nil {
++		return nil, err
++	}
++
++	var ift []Interface
++	for len(tab) > 0 {
++		ifm := (*syscall.IfMsgHdr)(unsafe.Pointer(&tab[0]))
++		if ifm.MsgLen == 0 {
++			break
++		}
++		if ifm.Type == syscall.RTM_IFINFO {
++			if ifindex == 0 || ifindex == int(ifm.Index) {
++				sdl := (*RawSockaddrDatalink)(unsafe.Pointer(&tab[unsafe.Sizeof(syscall.IfMsgHdr)]))
++
++				ifi := &Interface{Index: int(ifm.Index), Flags: linkFlags(ifm.Flags)}
++				ifi.Name = string(sdl.Data[:sdl.Nlen])
++				ifi.HardwareAddr = sdl.Data[sdl.Nlen:sdl.Nlen+sdl.Alen]
++/* XXX MTU? */
++				ift = append(ift, *ifi)
++				if ifindex == int(ifm.Index) {
++					break
++				}
++			}
++		}
++		tab = tab[ifm.MsgLen:]
++	}
++
++	return ift, nil
++}
++
++func linkFlags(rawFlags int32) Flags {
++	var f Flags
++	if rawFlags&syscall.IFF_UP != 0 {
++		f |= FlagUp
++	}
++	if rawFlags&syscall.IFF_BROADCAST != 0 {
++		f |= FlagBroadcast
++	}
++	if rawFlags&syscall.IFF_LOOPBACK != 0 {
++		f |= FlagLoopback
++	}
++	if rawFlags&syscall.IFF_POINTOPOINT != 0 {
++		f |= FlagPointToPoint
++	}
++	if rawFlags&syscall.IFF_MULTICAST != 0 {
++		f |= FlagMulticast
++	}
++	return f
++}
++
++// If the ifi is nil, interfaceAddrTable returns addresses for all
++// network interfaces. Otherwise it returns addresses for a specific
++// interface.
++func interfaceAddrTable(ifi *Interface) ([]Addr, error) {
++	tab, err := getIfList()
++	if err != nil {
++		return nil, err
++	}
++
++	var ifat []Addr
++	for len(tab) > 0 {
++		ifm := (*syscall.IfMsgHdr)(unsafe.Pointer(&tab[0]))
++		if ifm.MsgLen == 0 {
++			break
++		}
++		if ifm.Type == syscall.RTM_NEWADDR {
++			if ifi == nil || ifi.Index == int(ifm.Index) {
++				mask := ifm.Addrs
++				off := uint(unsafe.Sizeof(syscall.IfMsgHdr))
++
++				var iprsa, nmrsa *syscall.RawSockaddr
++				for i := uint(0); i < _RTAX_MAX; i++ {
++					if mask&(1<<i) == 0 {
++						continue
++					}
++					rsa := (*syscall.RawSockaddr)(unsafe.Pointer(&tab[off]))
++					if i == _RTAX_NETMASK {
++						nmrsa = rsa
++					}
++					if i == _RTAX_IFA {
++						iprsa = rsa
++					}
++					off += (uint(rsa.Len) + 3) &^ 3
++				}
++				if iprsa != nil && nmrsa != nil {
++					switch iprsa.Family {
++					case syscall.AF_INET:
++						ipsa := (*syscall.RawSockaddrInet4)(unsafe.Pointer(iprsa))
++						nmsa := (*syscall.RawSockaddrInet4)(unsafe.Pointer(nmrsa))
++						ifa := &IPNet{IP: ipsa.Addr[:], Mask: nmsa.Addr[:]}
++						ifat = append(ifat, ifa)
++					case syscall.AF_INET6:
++						ipsa := (*syscall.RawSockaddrInet6)(unsafe.Pointer(iprsa))
++						nmsa := (*syscall.RawSockaddrInet6)(unsafe.Pointer(nmrsa))
++						ifa := &IPNet{IP: ipsa.Addr[:], Mask: nmsa.Addr[:]}
++						ifat = append(ifat, ifa)
++					}
++				}
++			}
++		}
++		tab = tab[ifm.MsgLen:]
++	}
++
++	return ifat, nil
++}
++
++// interfaceMulticastAddrTable returns addresses for a specific
++// interface.
++func interfaceMulticastAddrTable(ifi *Interface) ([]Addr, error) {
++	return nil, nil
++}

@@ -1,0 +1,23 @@
+--- ./configure.ORIGIN	2020-01-10 10:45:31 +0100
++++ ./configure	2020-01-10 10:46:17 +0100
+@@ -14142,17 +14142,17 @@
+ 	   -d $with_python/lib/python$PYTHON_VERSION/site-packages
+ 	then
+ 	    PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
+-	    PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
++	    PYTHON_SITE_PACKAGES="${libdir}/python${PYTHON_VERSION}/site-packages"
+ 	else
+ 	    if test -r $prefix/include/python$PYTHON_VERSION/Python.h
+ 	    then
+ 	        PYTHON_INCLUDES=$prefix/include/python$PYTHON_VERSION
+-		PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
++		PYTHON_SITE_PACKAGES="${libdir}/python${PYTHON_VERSION}/site-packages"
+ 	    else
+ 		if test -r /usr/include/python$PYTHON_VERSION/Python.h
+ 		then
+ 		    PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
+-		    PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
++		    PYTHON_SITE_PACKAGES="${libdir}/python${PYTHON_VERSION}/site-packages"
+ 		else
+ 		    echo could not find python$PYTHON_VERSION/Python.h
+ 		fi

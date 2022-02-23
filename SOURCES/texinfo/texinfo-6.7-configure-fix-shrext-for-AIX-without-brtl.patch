@@ -1,0 +1,26 @@
+--- a/build-aux/config.rpath	2019-10-22 16:38:22 +0200
++++ b/build-aux/config.rpath	2019-10-23 10:47:15 +0200
+@@ -517,6 +517,10 @@
+     library_names_spec='$libname.a'
+     ;;
+   aix[4-9]*)
++    # .so must not be used without -brtl.
++    if test $aix_use_runtimelinking = no; then
++      shrext=.a
++    fi
+     library_names_spec='$libname$shrext'
+     ;;
+   amigaos*)
+--- a/tp/Texinfo/XS/config.rpath	2019-10-22 16:38:22 +0200
++++ b/tp/Texinfo/XS/config.rpath	2019-10-23 10:47:15 +0200
+@@ -517,6 +517,10 @@
+     library_names_spec='$libname.a'
+     ;;
+   aix[4-9]*)
++    # .so must not be used without -brtl.
++    if test $aix_use_runtimelinking = no; then
++      shrext=.a
++    fi
+     library_names_spec='$libname$shrext'
+     ;;
+   amigaos*)

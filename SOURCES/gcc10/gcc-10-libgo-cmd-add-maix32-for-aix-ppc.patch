@@ -1,0 +1,53 @@
+From 9485e9e95d9742b9b129b2889d4d2999b16faa8d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 21 Aug 2020 15:52:36 -0500
+Subject: [PATCH] cmd: add -maix32 for aix/ppc
+
+As gcc might now be compiled in 64bit, -maix32 must always be added
+to be sure that 32bit objects will be created.
+---
+ libgo/go/cmd/cgo/gcc.go               | 5 ++++-
+ libgo/go/cmd/go/internal/work/exec.go | 4 ++++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/libgo/go/cmd/cgo/gcc.go b/libgo/go/cmd/cgo/gcc.go
+index 249cfe4675d..f774cbb9353 100644
+--- a/libgo/go/cmd/cgo/gcc.go
++++ b/libgo/go/cmd/cgo/gcc.go
+@@ -1573,6 +1573,10 @@ func (p *Package) gccMachine() []string {
+ 		if goos == "aix" {
+ 			return []string{"-maix64"}
+ 		}
++	case "ppc":
++		if goos == "aix" {
++			return []string{"-maix32"}
++		}
+ 	}
+ 	return nil
+ }
+@@ -1615,7 +1619,6 @@ func (p *Package) gccCmd() []string {
+ 	c = append(c, p.GccOptions...)
+ 	c = append(c, p.gccMachine()...)
+ 	if goos == "aix" {
+-		c = append(c, "-maix64")
+ 		c = append(c, "-mcmodel=large")
+ 	}
+ 	c = append(c, "-") //read input from standard input
+diff --git a/libgo/go/cmd/go/internal/work/exec.go b/libgo/go/cmd/go/internal/work/exec.go
+index d610410a72c..65f3011adfa 100644
+--- a/libgo/go/cmd/go/internal/work/exec.go
++++ b/libgo/go/cmd/go/internal/work/exec.go
+@@ -2503,6 +2503,10 @@ func (b *Builder) gccArchArgs() []string {
+ 		if cfg.Goos == "aix" {
+ 			return []string{"-maix64"}
+ 		}
++	case "ppc":
++		if cfg.Goos == "aix" {
++			return []string{"-maix32"}
++		}
+ 	}
+ 	return nil
+ }
+-- 
+2.25.0
+

@@ -1,0 +1,34 @@
+*** ./src/Makefile.ORIG	Tue Feb 21 14:20:04 2012
+--- ./src/Makefile	Tue Feb 21 14:22:00 2012
+***************
+*** 89,95 ****
+  	@echo "   $(PLATS)"
+  
+  aix:
+! 	$(MAKE) $(ALL) CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl" SYSLDFLAGS="-brtl -bexpall"
+  
+  ansi:
+  	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_ANSI"
+--- 89,95 ----
+  	@echo "   $(PLATS)"
+  
+  aix:
+! 	$(MAKE) $(ALL) CC="xlc_r" CFLAGS="-O -DLUA_USE_POSIX -DLUA_C89_NUMBERS" SYSLIBS="" SYSLDFLAGS="-L. -L/opt/freeware/lib -lreadline"
+  
+  ansi:
+  	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_ANSI"
+*** ./src/lmathlib.c.ORIG	Fri Sep 25 10:27:23 2015
+--- ./src/lmathlib.c	Fri Sep 25 10:28:20 2015
+***************
+*** 176,181 ****
+--- 176,185 ----
+    return 1;
+  }
+  
++ #if defined(_AIX) && !defined(_AIX52)
++ #define LUA_USE_C89
++ #endif
++ 
+  static int math_log (lua_State *L) {
+    lua_Number x = luaL_checknumber(L, 1);
+    lua_Number res;

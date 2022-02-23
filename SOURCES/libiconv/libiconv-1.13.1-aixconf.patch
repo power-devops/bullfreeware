@@ -1,0 +1,26 @@
+Index: libiconv-1.13.1/libcharset/build-aux/config.guess
+===================================================================
+--- libiconv-1.13.1.orig/libcharset/build-aux/config.guess	2009-06-21 13:17:33.000000000 +0200
++++ libiconv-1.13.1/libcharset/build-aux/config.guess	2012-02-07 10:56:15.000000000 +0100
+@@ -527,7 +527,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4-9])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: libiconv-1.13.1/libcharset/build-aux/config.libpath
+===================================================================
+--- libiconv-1.13.1.orig/libcharset/build-aux/config.libpath	2009-06-21 13:17:33.000000000 +0200
++++ libiconv-1.13.1/libcharset/build-aux/config.libpath	2012-02-07 15:47:53.000000000 +0100
+@@ -43,7 +43,7 @@
+   aix3*)
+     shlibpath_var=LIBPATH
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     if test "$host_cpu" = ia64; then
+       # AIX 5 supports IA64
+       shlibpath_var=LD_LIBRARY_PATH

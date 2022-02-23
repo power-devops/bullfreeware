@@ -1,0 +1,1048 @@
+Index: libgo/Makefile.am
+===================================================================
+diff --git a/libgo/Makefile.am b/trunk/libgo/Makefile.am
+--- a/libgo/Makefile.am	(revision 250916)
++++ b/libgo/Makefile.am	(working copy)
+@@ -215,7 +215,8 @@ toolexeclibgodebug_DATA = \
+ 	debug/gosym.gox \
+ 	debug/macho.gox \
+ 	debug/pe.gox \
+-	debug/plan9obj.gox
++	debug/plan9obj.gox \
++	debug/xcoff.gox
+ 
+ toolexeclibgoencodingdir = $(toolexeclibgodir)/encoding
+ 
+@@ -698,6 +699,7 @@ PACKAGES = \
+ 	debug/macho \
+ 	debug/pe \
+ 	debug/plan9obj \
++	debug/xcoff \
+ 	encoding \
+ 	encoding/ascii85 \
+ 	encoding/asn1 \
+@@ -1209,6 +1211,7 @@ TEST_PACKAGES = \
+ 	debug/macho/check \
+ 	debug/pe/check \
+ 	debug/plan9obj/check \
++	debug/xcoff/check \
+ 	encoding/ascii85/check \
+ 	encoding/asn1/check \
+ 	encoding/base32/check \
+Index: libgo/Makefile.in
+===================================================================
+diff --git a/libgo/Makefile.in b/trunk/libgo/Makefile.in
+--- a/libgo/Makefile.in	(revision 250916)
++++ b/libgo/Makefile.in	(working copy)
+@@ -608,7 +608,8 @@ toolexeclibgodebug_DATA = \
+ 	debug/gosym.gox \
+ 	debug/macho.gox \
+ 	debug/pe.gox \
+-	debug/plan9obj.gox
++	debug/plan9obj.gox \
++	debug/xcoff.gox
+ 
+ toolexeclibgoencodingdir = $(toolexeclibgodir)/encoding
+ toolexeclibgoencoding_DATA = \
+@@ -861,6 +862,7 @@ PACKAGES = \
+ 	debug/macho \
+ 	debug/pe \
+ 	debug/plan9obj \
++	debug/xcoff \
+ 	encoding \
+ 	encoding/ascii85 \
+ 	encoding/asn1 \
+@@ -1239,6 +1241,7 @@ TEST_PACKAGES = \
+ 	debug/macho/check \
+ 	debug/pe/check \
+ 	debug/plan9obj/check \
++	debug/xcoff/check \
+ 	encoding/ascii85/check \
+ 	encoding/asn1/check \
+ 	encoding/base32/check \
+Index: libgo/go/cmd/cgo/gcc.go
+===================================================================
+diff --git a/libgo/go/cmd/cgo/gcc.go b/trunk/libgo/go/cmd/cgo/gcc.go
+--- a/libgo/go/cmd/cgo/gcc.go	(revision 250916)
++++ b/libgo/go/cmd/cgo/gcc.go	(working copy)
+@@ -13,6 +13,7 @@ import (
+ 	"debug/elf"
+ 	"debug/macho"
+ 	"debug/pe"
++	"debug/xcoff"
+ 	"encoding/binary"
+ 	"errors"
+ 	"flag"
+@@ -1230,6 +1231,10 @@ func (p *Package) gccMachine() []string {
+ 		return []string{"-mabi=64"}
+ 	case "mips", "mipsle":
+ 		return []string{"-mabi=32"}
++	case "ppc64":
++		if goos == "aix" {
++			return []string{"-maix64"}
++		}
+ 	}
+ 	return nil
+ }
+@@ -1360,7 +1365,29 @@ func (p *Package) gccDebug(stdin []byte) (*dwarf.D
+ 		return d, binary.LittleEndian, data
+ 	}
+ 
+-	fatalf("cannot parse gcc output %s as ELF, Mach-O, PE object", gccTmp())
++	if f, err := xcoff.Open(gccTmp()); err == nil {
++		defer f.Close()
++		d, err := f.DWARF()
++		if err != nil {
++			fatalf("cannot load DWARF output from %s: %v", gccTmp(), err)
++		}
++		var data []byte
++		for _, s := range f.Symbols {
++			if isDebugData(s.Name) {
++				if i := int(s.SectionNumber) - 1; 0 <= i && i < len(f.Sections) {
++					sect := f.Sections[i]
++					if s.Value < sect.Size {
++						if sdat, err := sect.Data(); err == nil {
++							data = sdat[s.Value:]
++						}
++					}
++				}
++			}
++		}
++		return d, binary.BigEndian, data
++	}
++
++	fatalf("cannot parse gcc output %s as ELF, Mach-O, PE, XCOFF object", gccTmp())
+ 	panic("not reached")
+ }
+ 
+Index: libgo/go/cmd/cgo/out.go
+===================================================================
+diff --git a/libgo/go/cmd/cgo/out.go b/trunk/libgo/go/cmd/cgo/out.go
+--- a/libgo/go/cmd/cgo/out.go	(revision 250916)
++++ b/libgo/go/cmd/cgo/out.go	(working copy)
+@@ -9,6 +9,7 @@ import (
+ 	"debug/elf"
+ 	"debug/macho"
+ 	"debug/pe"
++	"debug/xcoff"
+ 	"fmt"
+ 	"go/ast"
+ 	"go/printer"
+@@ -324,7 +325,25 @@ func dynimport(obj string) {
+ 		return
+ 	}
+ 
+-	fatalf("cannot parse %s as ELF, Mach-O or PE", obj)
++	if f, err := xcoff.Open(obj); err == nil {
++		sym, err := f.ImportedSymbols()
++		if err != nil {
++			fatalf("cannot load imported symbols from XCOFF file %s: %v", obj, err)
++		}
++		for _, s := range sym {
++			fmt.Fprintf(stdout, "//go:cgo_import_dynamic %s %s %q\n", s.Name, s.Name, s.Library)
++		}
++		lib, err := f.ImportedLibraries()
++		if err != nil {
++			fatalf("cannot load imported libraries from XCOFF file %s: %v", obj, err)
++		}
++		for _, l := range lib {
++			fmt.Fprintf(stdout, "//go:cgo_import_dynamic _ _ %q\n", l)
++		}
++		return
++	}
++
++	fatalf("cannot parse %s as ELF, Mach-O, PE or XCOFF", obj)
+ }
+ 
+ // Construct a gcc struct matching the gc argument frame.
+Index: libgo/go/debug/dwarf/open.go
+===================================================================
+diff --git a/libgo/go/debug/dwarf/open.go b/trunk/libgo/go/debug/dwarf/open.go
+--- a/libgo/go/debug/dwarf/open.go	(revision 250916)
++++ b/libgo/go/debug/dwarf/open.go	(working copy)
+@@ -33,7 +33,7 @@ type Data struct {
+ // New returns a new Data object initialized from the given parameters.
+ // Rather than calling this function directly, clients should typically use
+ // the DWARF method of the File type of the appropriate package debug/elf,
+-// debug/macho, or debug/pe.
++// debug/macho, debug/pe, or debug/xcoff.
+ //
+ // The []byte arguments are the data from the corresponding debug section
+ // in the object file; for example, for an ELF object, abbrev is the contents of
+Index: libgo/go/debug/xcoff/file.go
+===================================================================
+diff --git a/libgo/go/debug/xcoff/file.go b/trunk/libgo/go/debug/xcoff/file.go
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/libgo/go/debug/xcoff/file.go	(working copy)
+@@ -0,0 +1,478 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Package xcoff implements access to XCOFF (Extended Common Object File Format) files.
++package xcoff
++
++import (
++	"debug/dwarf"
++	"encoding/binary"
++	"fmt"
++	"io"
++	"os"
++)
++
++// Information we store about an XCOFF section header.
++type SectionHeader struct {
++	Name           string
++	VirtualAddress uint64
++	Size           uint64
++	Type           uint32
++}
++type Section struct {
++	SectionHeader
++	io.ReaderAt
++	sr *io.SectionReader
++}
++
++// Information we store about an XCOFF symbol.
++type Symbol struct {
++	Name          string
++	Value	      uint64
++	SectionNumber int
++}
++
++// Information we store about an imported XCOFF symbol.
++type ImportedSymbol struct {
++	Name    string
++	Library string
++}
++
++// A File represents an open XCOFF file.
++type FileHeader struct {
++	TargetMachine  uint16
++}
++type File struct {
++	FileHeader
++	Sections       []*Section
++	Symbols        []*Symbol
++	StringTable    []byte
++	LibraryPath    string
++
++	closer io.Closer
++}
++
++// Open opens the named file using os.Open and prepares it for use as an XCOFF binary.
++func Open(name string) (*File, error) {
++	f, err := os.Open(name)
++	if err != nil {
++		return nil, err
++	}
++	ff, err := NewFile(f)
++	if err != nil {
++		f.Close()
++		return nil, err
++	}
++	ff.closer = f
++	return ff, nil
++}
++
++// Close closes the File.
++// If the File was created using NewFile directly instead of Open,
++// Close has no effect.
++func (f *File) Close() error {
++	var err error
++	if f.closer != nil {
++		err = f.closer.Close()
++		f.closer = nil
++	}
++	return err
++}
++
++// SectionByType returns the first section in f with the
++// given type, or nil if there is no such section.
++func (f *File) SectionByType(typ uint32) *Section {
++	for _, s := range f.Sections {
++		if s.Type == typ {
++			return s
++		}
++	}
++	return nil
++}
++
++// cstring converts ASCII byte sequence b to string.
++// It stops once it finds 0 or reaches end of b.
++func cstring(b []byte) string {
++	var i int
++	for i = 0; i < len(b) && b[i] != 0; i++ {
++	}
++	return string(b[:i])
++}
++
++// getString extracts a string from an XCOFF string table.
++func getString(st []byte, offset uint32) (string, bool) {
++	if offset < 4 || int(offset) >= len(st) {
++		return "", false
++	}
++	return cstring(st[offset:]), true
++}
++
++// NewFile creates a new File for accessing an XCOFF binary in an underlying reader.
++func NewFile(r io.ReaderAt) (*File, error) {
++	sr := io.NewSectionReader(r, 0, 1<<63-1)
++	// Read XCOFF target machine
++	var magic uint16
++	if err := binary.Read(sr, binary.BigEndian, &magic); err != nil {
++		return nil, err
++	}
++	if magic != U802TOCMAGIC && magic != U64_TOCMAGIC {
++		return nil, fmt.Errorf("Unrecognised XCOFF magic.", magic)
++	}
++
++	f := new(File)
++	f.TargetMachine = magic
++
++	// Read XCOFF file header
++	sr.Seek(0, io.SeekStart)
++	var nscns uint16
++	var symptr uint64
++	var nsyms int32
++	var opthdr uint16
++	var hdrsz int
++	switch f.TargetMachine {
++	case U802TOCMAGIC:
++		fhdr := new(FileHeader32)
++		if err := binary.Read(sr, binary.BigEndian, fhdr); err != nil {
++			return nil, err
++		}
++		nscns = fhdr.Fnscns
++		symptr = uint64(fhdr.Fsymptr)
++		nsyms = fhdr.Fnsyms
++		opthdr = fhdr.Fopthdr
++		hdrsz = FILHSZ_32
++	case U64_TOCMAGIC:
++		fhdr := new(FileHeader64)
++		if err := binary.Read(sr, binary.BigEndian, fhdr); err != nil {
++			return nil, err
++		}
++		nscns = fhdr.Fnscns
++		symptr = fhdr.Fsymptr
++		nsyms = fhdr.Fnsyms
++		opthdr = fhdr.Fopthdr
++		hdrsz = FILHSZ_64
++	}
++
++	if symptr == 0 || nsyms <= 0 {
++		return nil, fmt.Errorf("No symbol table.")
++	}
++
++	// Read string table (located right after symbol table).
++	offset := symptr + uint64(nsyms) * SYMESZ
++	sr.Seek(int64(offset), io.SeekStart)
++	// The first 4 bytes contain the length (in bytes).
++	var l uint32
++	binary.Read(sr, binary.BigEndian, &l)
++	if l > 4 {
++		sr.Seek(int64(offset), io.SeekStart)
++		f.StringTable = make([]byte, l)
++		io.ReadFull(sr, f.StringTable)
++	}
++
++	// Read section headers
++	sr.Seek(int64(hdrsz) + int64(opthdr), io.SeekStart)
++	f.Sections = make([]*Section, nscns)
++	for i := 0; i < int(nscns); i++ {
++		var scnptr uint64
++		s := new(Section)
++		switch f.TargetMachine {
++		case U802TOCMAGIC:
++			shdr := new(SectionHeader32)
++			if err := binary.Read(sr, binary.BigEndian, shdr); err != nil {
++				return nil, err
++			}
++			s.Name = cstring(shdr.Sname[:])
++			s.VirtualAddress = uint64(shdr.Svaddr)
++			s.Size = uint64(shdr.Ssize)
++			scnptr = uint64(shdr.Sscnptr)
++			s.Type = shdr.Sflags
++		case U64_TOCMAGIC:
++			shdr := new(SectionHeader64)
++			if err := binary.Read(sr, binary.BigEndian, shdr); err != nil {
++				return nil, err
++			}
++			s.Name = cstring(shdr.Sname[:])
++			s.VirtualAddress = shdr.Svaddr
++			s.Size = shdr.Ssize
++			scnptr = shdr.Sscnptr
++			s.Type = shdr.Sflags
++		}
++		r2 := r
++		if scnptr == 0 {  // .bss must have all 0s
++			r2 = zeroReaderAt{}
++		}
++		s.sr = io.NewSectionReader(r2, int64(scnptr), int64(s.Size))
++		s.ReaderAt = s.sr
++		f.Sections[i] = s
++	}
++
++	// Read symbol table
++	sr.Seek(int64(symptr), io.SeekStart)
++	f.Symbols = make([]*Symbol, 0)
++	var numaux int
++	for i := 0; i < int(nsyms); i++ {
++		var ok bool
++		sym := new(Symbol)
++		switch f.TargetMachine {
++		case U802TOCMAGIC:
++			se := new(SymEnt32)
++			if err := binary.Read(sr, binary.BigEndian, se); err != nil {
++				return nil, err
++			}
++			numaux = int(se.Nnumaux)
++			if se.Nscnum <= 0 || (se.Nsclass != C_EXT && se.Nsclass != C_WEAKEXT && se.Nsclass != C_HIDEXT) {
++				goto skip
++			}
++			sym.SectionNumber = int(se.Nscnum)
++			sym.Value = uint64(se.Nvalue) - f.Sections[se.Nscnum - 1].VirtualAddress
++			zeroes := binary.BigEndian.Uint32(se.Nname[:4])
++			if zeroes != 0 {
++				sym.Name = cstring(se.Nname[:])
++			} else {
++				offset := binary.BigEndian.Uint32(se.Nname[4:])
++				sym.Name, ok = getString(f.StringTable, offset)
++				if !ok {
++					goto skip
++				}
++			}
++		case U64_TOCMAGIC:
++			se := new(SymEnt64)
++			if err := binary.Read(sr, binary.BigEndian, se); err != nil {
++				return nil, err
++			}
++			numaux = int(se.Nnumaux)
++			if se.Nscnum <= 0 || (se.Nsclass != C_EXT && se.Nsclass != C_WEAKEXT && se.Nsclass != C_HIDEXT) {
++				goto skip
++			}
++			sym.SectionNumber = int(se.Nscnum)
++			sym.Value = uint64(se.Nvalue) - f.Sections[se.Nscnum - 1].VirtualAddress
++			sym.Name, ok = getString(f.StringTable, se.Noffset)
++			if !ok {
++				goto skip
++			}
++		}
++		f.Symbols = append(f.Symbols, sym)
++ skip:
++		i += numaux // Skip auxiliary entries
++		sr.Seek(int64(numaux) * SYMESZ, io.SeekCurrent)
++	}
++
++	return f, nil
++}
++
++// zeroReaderAt is ReaderAt that reads 0s.
++type zeroReaderAt struct{}
++
++// ReadAt writes len(p) 0s into p.
++func (w zeroReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
++	for i := range p {
++		p[i] = 0
++	}
++	return len(p), nil
++}
++
++// Data reads and returns the contents of the XCOFF section s.
++func (s *Section) Data() ([]byte, error) {
++	dat := make([]byte, s.sr.Size())
++	n, err := s.sr.ReadAt(dat, 0)
++	if n == len(dat) {
++		err = nil
++	}
++	return dat[0:n], err
++}
++
++func (f *File) DWARF() (*dwarf.Data, error) {
++	// There are many other DWARF sections, but these
++	// are the ones the debug/dwarf package uses.
++	// Don't bother loading others.
++	var subtypes = [...]uint32{SSUBTYP_DWABREV, SSUBTYP_DWINFO, SSUBTYP_DWLINE, SSUBTYP_DWARNGE, SSUBTYP_DWSTR}
++	var dat [len(subtypes)][]byte
++	for i, subtype := range subtypes {
++		s := f.SectionByType(STYP_DWARF|subtype)
++		if s != nil {
++			b, err := s.Data()
++			if err != nil && uint64(len(b)) < s.Size {
++				return nil, err
++			}
++			dat[i] = b
++		}
++	}
++
++	abbrev, info, line, ranges, str := dat[0], dat[1], dat[2], dat[3], dat[4]
++	return dwarf.New(abbrev, nil, nil, info, line, nil, ranges, str)
++}
++
++// Read the loader import file ID name strings of a loader section
++func (f *File) readImportID(s *Section) ([]string, error) {
++	// Read loader header
++	s.sr.Seek(0, io.SeekStart)
++	var istlen uint32
++	var nimpid int32
++	var impoff uint64
++	switch f.TargetMachine {
++	case U802TOCMAGIC:
++		lhdr := new(LoaderHeader32)
++		if err := binary.Read(s.sr, binary.BigEndian, lhdr); err != nil {
++			return nil, err
++		}
++		istlen = lhdr.Listlen
++		nimpid = lhdr.Lnimpid
++		impoff = uint64(lhdr.Limpoff)
++	case U64_TOCMAGIC:
++		lhdr := new(LoaderHeader64)
++		if err := binary.Read(s.sr, binary.BigEndian, lhdr); err != nil {
++			return nil, err
++		}
++		istlen = lhdr.Listlen
++		nimpid = lhdr.Lnimpid
++		impoff = lhdr.Limpoff
++	}
++
++	// Read loader import file ID table
++	s.sr.Seek(int64(impoff), io.SeekStart)
++	table := make([]byte, istlen)
++	io.ReadFull(s.sr, table)
++
++	offset := 0
++	// First import file ID is the default LIBPATH value
++	f.LibraryPath = cstring(table[offset:])
++	offset += len(f.LibraryPath) + 3 // 3 null bytes
++	all := make([]string, 0)
++	for i := 1; i < int(nimpid); i++ {
++		impidpath := cstring(table[offset:])
++		offset += len(impidpath) + 1
++		impidbase := cstring(table[offset:])
++		offset += len(impidbase) + 1
++		impidmem := cstring(table[offset:])
++		offset += len(impidmem) + 1
++		var path string
++		if len(impidpath) > 0 {
++			path = impidpath + "/" + impidbase
++		} else {
++			path = impidbase
++		}
++		all = append(all, path)
++	}
++
++	return all, nil
++}
++
++// ImportedSymbols returns the names of all symbols
++// referred to by the binary f that are expected to be
++// satisfied by other libraries at dynamic load time.
++// It does not return weak symbols.
++func (f *File) ImportedSymbols() ([]ImportedSymbol, error) {
++	s := f.SectionByType(STYP_LOADER)
++	if s == nil {
++		return nil, nil
++	}
++	// Read loader header
++	s.sr.Seek(0, io.SeekStart)
++	var stlen uint32
++	var stoff uint64
++	var nsyms int32
++	var symoff uint64
++	switch f.TargetMachine {
++	case U802TOCMAGIC:
++		lhdr := new(LoaderHeader32)
++		if err := binary.Read(s.sr, binary.BigEndian, lhdr); err != nil {
++			return nil, err
++		}
++		stlen = lhdr.Lstlen
++		stoff = uint64(lhdr.Lstoff)
++		nsyms = lhdr.Lnsyms
++		symoff = LDHDRSZ_32
++	case U64_TOCMAGIC:
++		lhdr := new(LoaderHeader64)
++		if err := binary.Read(s.sr, binary.BigEndian, lhdr); err != nil {
++			return nil, err
++		}
++		stlen = lhdr.Lstlen
++		stoff = lhdr.Lstoff
++		nsyms = lhdr.Lnsyms
++		symoff = lhdr.Lsymoff
++	}
++
++	// Read loader section string table
++	s.sr.Seek(int64(stoff), io.SeekStart)
++	st := make([]byte, stlen)
++	io.ReadFull(s.sr, st)
++
++	// Read imported libraries
++	libs, err := f.readImportID(s)
++	if err != nil {
++		return nil, err
++	}
++
++	// Read loader symbol table
++	s.sr.Seek(int64(symoff), io.SeekStart)
++	all := make([]ImportedSymbol, 0)
++	for i := 0; i < int(nsyms); i++ {
++		var name string
++		var ifile int32
++		var ok bool
++		switch f.TargetMachine {
++		case U802TOCMAGIC:
++			ldsym := new(LoaderSymbol32)
++			if err := binary.Read(s.sr, binary.BigEndian, ldsym); err != nil {
++				return nil, err
++			}
++			if ldsym.Lsmtype & 0x40 == 0 {
++				continue  // Imported symbols only
++			}
++			zeroes := binary.BigEndian.Uint32(ldsym.Lname[:4])
++			if zeroes != 0 {
++				name = cstring(ldsym.Lname[:])
++			} else {
++				offset := binary.BigEndian.Uint32(ldsym.Lname[4:])
++				name, ok = getString(st, offset)
++				if !ok {
++					continue
++				}
++			}
++			ifile = ldsym.Lifile
++		case U64_TOCMAGIC:
++			ldsym := new(LoaderSymbol64)
++			if err := binary.Read(s.sr, binary.BigEndian, ldsym); err != nil {
++				return nil, err
++			}
++			if ldsym.Lsmtype & 0x40 == 0 {
++				continue  // Imported symbols only
++			}
++			name, ok = getString(st, ldsym.Loffset)
++			if !ok {
++				continue
++			}
++			ifile = ldsym.Lifile
++		}
++		var sym ImportedSymbol
++		sym.Name = name
++		if ifile >= 1 && int(ifile) <= len(libs) {
++			sym.Library = libs[ifile - 1]
++		}
++		all = append(all, sym)
++	}
++
++	return all, nil
++}
++
++// ImportedLibraries returns the names of all libraries
++// referred to by the binary f that are expected to be
++// linked with the binary at dynamic link time.
++func (f *File) ImportedLibraries() ([]string, error) {
++	s := f.SectionByType(STYP_LOADER)
++	if s == nil {
++		return nil, nil
++	}
++	all, err := f.readImportID(s)
++	return all, err
++}
++
++// FormatError is unused.
++// The type is retained for compatibility.
++type FormatError struct {
++}
++
++func (e *FormatError) Error() string {
++	return "unknown error"
++}
+Index: libgo/go/debug/xcoff/file_test.go
+===================================================================
+diff --git a/libgo/go/debug/xcoff/file_test.go b/trunk/libgo/go/debug/xcoff/file_test.go
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/libgo/go/debug/xcoff/file_test.go	(working copy)
+@@ -0,0 +1,150 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package xcoff
++
++import (
++	"reflect"
++	"testing"
++)
++
++type fileTest struct {
++	file     string
++	hdr      FileHeader
++	sections []*SectionHeader
++	needed   []string
++}
++
++var fileTests = []fileTest{
++	{
++		"testdata/gcc-ppc32-aix-exec",
++		FileHeader{U802TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x10000150, 0x00000bbd, STYP_TEXT},
++			{".data", 0x20000d0d, 0x0000042b, STYP_DATA},
++			{".bss", 0x20001138, 0x00000218, STYP_BSS},
++			{".loader", 0x00000000, 0x000004b3, STYP_LOADER},
++			{".debug", 0x00000000, 0x0000751e, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++	{
++		"testdata/gcc-ppc64-aix-exec",
++		FileHeader{U64_TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x10000240, 0x00000afd, STYP_TEXT},
++			{".data", 0x20000d3d, 0x000002e3, STYP_DATA},
++			{".bss", 0x20001020, 0x00000428, STYP_BSS},
++			{".loader", 0x00000000, 0x00000535, STYP_LOADER},
++			{".debug", 0x00000000, 0x00008238, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++	{
++		"testdata/xlc-ppc32-aix-exec",
++		FileHeader{U802TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x10000150, 0x00000372, STYP_TEXT},
++			{".data", 0x200004c2, 0x0000032e, STYP_DATA},
++			{".bss", 0x200007f0, 0x00000004, STYP_BSS},
++			{".loader", 0x00000000, 0x0000029d, STYP_LOADER},
++			{".debug", 0x00000000, 0x0000008f, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++	{
++		"testdata/xlc-ppc64-aix-exec",
++		FileHeader{U64_TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x100000240, 0x00000326, STYP_TEXT},
++			{".data", 0x110000566, 0x00000182, STYP_DATA},
++			{".bss", 0x1100006e8, 0x00000008, STYP_BSS},
++			{".loader", 0x00000000, 0x0000029b, STYP_LOADER},
++			{".debug", 0x00000000, 0x000000ea, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++	{
++		"testdata/gcc-ppc32-aix-dwarf2-exec",
++		FileHeader{U802TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x10000290, 0x00000bbd, STYP_TEXT},
++			{".data", 0x20000e4d, 0x00000437, STYP_DATA},
++			{".bss", 0x20001284, 0x0000021c, STYP_BSS},
++			{".loader", 0x00000000, 0x000004b3, STYP_LOADER},
++			{".dwline", 0x00000000, 0x000000df, STYP_DWARF|SSUBTYP_DWLINE},
++			{".dwinfo", 0x00000000, 0x00000314, STYP_DWARF|SSUBTYP_DWINFO},
++			{".dwabrev", 0x00000000, 0x000000d6, STYP_DWARF|SSUBTYP_DWABREV},
++			{".dwarnge", 0x00000000, 0x00000020, STYP_DWARF|SSUBTYP_DWARNGE},
++			{".dwloc", 0x00000000, 0x00000074, STYP_DWARF|SSUBTYP_DWLOC},
++			{".debug", 0x00000000, 0x00005e4f, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++	{
++		"testdata/gcc-ppc64-aix-dwarf2-exec",
++		FileHeader{U64_TOCMAGIC},
++		[]*SectionHeader{
++			{".text", 0x10000480, 0x00000afd, STYP_TEXT},
++			{".data", 0x20000f7d, 0x000002f3, STYP_DATA},
++			{".bss", 0x20001270, 0x00000428, STYP_BSS},
++			{".loader", 0x00000000, 0x00000535, STYP_LOADER},
++			{".dwline", 0x00000000, 0x000000b4, STYP_DWARF|SSUBTYP_DWLINE},
++			{".dwinfo", 0x00000000, 0x0000036a, STYP_DWARF|SSUBTYP_DWINFO},
++			{".dwabrev", 0x00000000, 0x000000b5, STYP_DWARF|SSUBTYP_DWABREV},
++			{".dwarnge", 0x00000000, 0x00000040, STYP_DWARF|SSUBTYP_DWARNGE},
++			{".dwloc", 0x00000000, 0x00000062, STYP_DWARF|SSUBTYP_DWLOC},
++			{".debug", 0x00000000, 0x00006605, STYP_DEBUG},
++		},
++		[]string{"libc.a"},
++	},
++}
++
++func TestOpen(t *testing.T) {
++	for i := range fileTests {
++		tt := &fileTests[i]
++
++		f, err := Open(tt.file)
++		if err != nil {
++			t.Error(err)
++			continue
++		}
++		if !reflect.DeepEqual(f.FileHeader, tt.hdr) {
++			t.Errorf("open %s:\n\thave %#v\n\twant %#v\n", tt.file, f.FileHeader, tt.hdr)
++			continue
++		}
++
++		for i, sh := range f.Sections {
++			if i >= len(tt.sections) {
++				break
++			}
++			have := &sh.SectionHeader
++			want := tt.sections[i]
++			if !reflect.DeepEqual(have, want) {
++				t.Errorf("open %s, section %d:\n\thave %#v\n\twant %#v\n", tt.file, i, have, want)
++			}
++		}
++		tn := len(tt.sections)
++		fn := len(f.Sections)
++		if tn != fn {
++			t.Errorf("open %s: len(Sections) = %d, want %d", tt.file, fn, tn)
++		}
++		tl := tt.needed
++		fl, err := f.ImportedLibraries()
++		if err != nil {
++			t.Error(err)
++		}
++		if !reflect.DeepEqual(tl, fl) {
++			t.Errorf("open %s: loader import = %v, want %v", tt.file, tl, fl)
++		}
++	}
++}
++
++func TestOpenFailure(t *testing.T) {
++	filename := "file.go"    // not an XCOFF object file
++	_, err := Open(filename) // don't crash
++	if err == nil {
++		t.Errorf("open %s: succeeded unexpectedly", filename)
++	}
++}
+Index: libgo/go/debug/xcoff/testdata/hello.c
+===================================================================
+diff --git a/libgo/go/debug/xcoff/testdata/hello.c b/trunk/libgo/go/debug/xcoff/testdata/hello.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/libgo/go/debug/xcoff/testdata/hello.c	(working copy)
+@@ -0,0 +1,7 @@
++#include <stdio.h>
++
++void
++main(int argc, char *argv[])
++{
++	printf("hello, world\n");
++}
+Index: libgo/go/debug/xcoff/xcoff.go
+===================================================================
+diff --git a/libgo/go/debug/xcoff/xcoff.go b/trunk/libgo/go/debug/xcoff/xcoff.go
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/libgo/go/debug/xcoff/xcoff.go	(working copy)
+@@ -0,0 +1,201 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package xcoff
++
++type FileHeader32 struct {
++	Fmagic   uint16  // Target machine
++	Fnscns   uint16  // Number of sections
++	Ftimedat int32   // Time and date of file creation
++	Fsymptr  uint32  // Byte offset to symbol table start
++	Fnsyms   int32   // Number of entries in symbol table
++	Fopthdr  uint16  // Number of bytes in optional header
++	Fflags   uint16  // Flags
++}
++
++type FileHeader64 struct {
++	Fmagic   uint16  // Target machine
++	Fnscns   uint16  // Number of sections
++	Ftimedat int32   // Time and date of file creation
++	Fsymptr  uint64  // Byte offset to symbol table start
++	Fopthdr  uint16  // Number of bytes in optional header
++	Fflags   uint16  // Flags
++	Fnsyms   int32   // Number of entries in symbol table
++}
++
++const (
++	FILHSZ_32 = 20
++	FILHSZ_64 = 24
++)
++const (
++	U802TOCMAGIC = 0737  // AIX 32-bit XCOFF
++	U64_TOCMAGIC = 0767  // AIX 64-bit XCOFF
++)
++const (
++	C_NULL    = 0    // Symbol table entry marked for deletion
++	C_EXT     = 2    // External symbol
++	C_STAT    = 3    // Static symbol
++	C_BLOCK   = 100  // Beginning or end of inner block
++	C_FCN     = 101  // Beginning or end of function
++	C_FILE    = 103  // Source file name and compiler information
++	C_HIDEXT  = 107  // Unnamed external symbol
++	C_BINCL   = 108  // Beginning of include file
++	C_EINCL   = 109  // End of include file
++	C_WEAKEXT = 111  // Weak external symbol
++	C_DWARF   = 112  // DWARF symbol
++	C_GSYM    = 128  // Global variable
++	C_LSYM    = 129  // Automatic variable allocated on stack
++	C_PSYM    = 130  // Argument to subroutine allocated on stack
++	C_RSYM    = 131  // Register variable
++	C_RPSYM   = 132  // Argument to function or procedure stored in register
++	C_STSYM   = 133  // Statically allocated symbol
++	C_BCOMM   = 135  // Beginning of common block
++	C_ECOML   = 136  // Local member of common block
++	C_ECOMM   = 137  // End of common block
++	C_DECL    = 140  // Declaration of object
++	C_ENTRY   = 141  // Alternate entry
++	C_FUN     = 142  // Function or procedure
++	C_BSTAT   = 143  // Beginning of static block
++	C_ESTAT   = 144  // End of static block
++	C_GTLS    = 145  // Global thread-local variable
++	C_STTLS   = 146  // Static thread-local variable
++)
++const (
++	F_RELFLG    = 0x0001
++	F_EXEC      = 0x0002
++	F_LNNO      = 0x0004
++	F_FDPR_PROF = 0x0010
++	F_FDPR_OPTI = 0x0020
++	F_DSA       = 0x0040
++	F_VARPG     = 0x0100
++	F_DYNLOAD   = 0x1000
++	F_SHROBJ    = 0x2000
++	F_LOADONLY  = 0x4000
++)
++
++type SectionHeader32 struct {
++	Sname    [8]byte  // Section name
++	Spaddr   uint32   // Physical address
++	Svaddr   uint32   // Virtual address
++	Ssize    uint32   // Section size
++	Sscnptr  uint32   // Offset in file to raw data for section
++	Srelptr  uint32   // Offset in file to relocation entries for section
++	Slnnoptr uint32   // Offset in file to line number entries for section
++	Snreloc  uint16   // Number of relocation entries
++	Snlnno   uint16   // Number of line number entries
++	Sflags   uint32   // Flags to define the section type
++}
++
++type SectionHeader64 struct {
++	Sname    [8]byte  // Section name
++	Spaddr   uint64   // Physical address
++	Svaddr   uint64   // Virtual address
++	Ssize    uint64   // Section size
++	Sscnptr  uint64   // Offset in file to raw data for section
++	Srelptr  uint64   // Offset in file to relocation entries for section
++	Slnnoptr uint64   // Offset in file to line number entries for section
++	Snreloc  uint32   // Number of relocation entries
++	Snlnno   uint32   // Number of line number entries
++	Sflags   uint32   // Flags to define the section type
++	Spad     uint32   // Needs to be 72 bytes long
++}
++
++const (
++	STYP_DWARF  = 0x0010
++	STYP_TEXT   = 0x0020
++	STYP_DATA   = 0x0040
++	STYP_BSS    = 0x0080
++	STYP_EXCEPT = 0x0100
++	STYP_INFO   = 0x0200
++	STYP_TDATA  = 0x0400
++	STYP_TBSS   = 0x0800
++	STYP_LOADER = 0x1000
++	STYP_DEBUG  = 0x2000
++	STYP_TYPCHK = 0x4000
++	STYP_OVRFLO = 0x8000
++)
++
++const (
++	SSUBTYP_DWINFO  = 0x10000  // DWARF info section
++	SSUBTYP_DWLINE  = 0x20000  // DWARF line-number section
++	SSUBTYP_DWPBNMS = 0x30000  // DWARF public names section
++	SSUBTYP_DWPBTYP = 0x40000  // DWARF public types section
++	SSUBTYP_DWARNGE = 0x50000  // DWARF aranges section
++	SSUBTYP_DWABREV = 0x60000  // DWARF abbreviation section
++	SSUBTYP_DWSTR   = 0x70000  // DWARF strings section
++	SSUBTYP_DWRNGES = 0x80000  // DWARF ranges section
++	SSUBTYP_DWLOC   = 0x90000  // DWARF location lists section
++	SSUBTYP_DWFRAME = 0xA0000  // DWARF frames section
++	SSUBTYP_DWMAC   = 0xB0000  // DWARF macros section
++)
++
++const SYMESZ = 18
++
++type SymEnt32 struct {
++	Nname   [8]byte  // Symbol name
++	Nvalue  uint32   // Symbol value
++	Nscnum  int16    // Section number of symbol
++	Ntype   uint16   // Basic and derived type specification
++	Nsclass int8     // Storage class of symbol
++	Nnumaux int8     // Number of auxiliary entries
++}
++
++type SymEnt64 struct {
++	Nvalue  uint64   // Symbol value
++	Noffset uint32   // Offset of the name in string table or .debug section
++	Nscnum  int16    // Section number of symbol
++	Ntype   uint16   // Basic and derived type specification
++	Nsclass int8     // Storage class of symbol
++	Nnumaux int8     // Number of auxiliary entries
++}
++
++type LoaderHeader32 struct {
++	Lversion int32   // Loader section version number
++	Lnsyms   int32   // Number of symbol table entries
++	Lnreloc  int32   // Number of relocation table entries
++	Listlen  uint32  // Length of import file ID string table
++	Lnimpid  int32   // Number of import file IDs
++	Limpoff  uint32  // Offset to start of import file IDs
++	Lstlen   uint32  // Length of string table
++	Lstoff   uint32  // Offset to start of string table
++}
++
++type LoaderHeader64 struct {
++	Lversion int32   // Loader section version number
++	Lnsyms   int32   // Number of symbol table entries
++	Lnreloc  int32   // Number of relocation table entries
++	Listlen  uint32  // Length of import file ID string table
++	Lnimpid  int32   // Number of import file IDs
++	Lstlen   uint32  // Length of string table
++	Limpoff  uint64  // Offset to start of import file IDs
++	Lstoff   uint64  // Offset to start of string table
++	Lsymoff  uint64  // Offset to start of symbol table
++	Lrldoff  uint64  // Offset to start of relocation entries
++}
++
++const (
++	LDHDRSZ_32 = 32
++	LDHDRSZ_64 = 56
++)
++
++type LoaderSymbol32 struct {
++	Lname   [8]byte  // Symbol name or byte offset into string table
++	Lvalue  uint32   // Address field
++	Lscnum  int16    // Section number containing symbol
++	Lsmtype int8     // Symbol type, export, import flags
++	Lsmclas int8     // Symbol storage class
++	Lifile  int32    // Import file ID; ordinal of import file IDs
++	Lparm   uint32   // Parameter type-check field
++}
++
++type LoaderSymbol64 struct {
++	Lvalue  uint64   // Address field
++	Loffset uint32   // Byte offset into string table of symbol name
++	Lscnum  int16    // Section number containing symbol
++	Lsmtype int8     // Symbol type, export, import flags
++	Lsmclas int8     // Symbol storage class
++	Lifile  int32    // Import file ID; ordinal of import file IDs
++	Lparm   uint32   // Parameter type-check field
++}
++
+Index: libgo/go/go/build/deps_test.go
+===================================================================
+diff --git a/libgo/go/go/build/deps_test.go b/trunk/libgo/go/go/build/deps_test.go
+--- a/libgo/go/go/build/deps_test.go	(revision 250916)
++++ b/libgo/go/go/build/deps_test.go	(working copy)
+@@ -238,6 +238,7 @@ var pkgDeps = map[string][]string{
+ 	"debug/macho":               {"L4", "OS", "debug/dwarf"},
+ 	"debug/pe":                  {"L4", "OS", "debug/dwarf"},
+ 	"debug/plan9obj":            {"L4", "OS"},
++	"debug/xcoff":               {"L4", "OS", "debug/dwarf"},
+ 	"encoding":                  {"L4"},
+ 	"encoding/ascii85":          {"L4"},
+ 	"encoding/asn1":             {"L4", "math/big"},

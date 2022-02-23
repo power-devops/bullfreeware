@@ -1,0 +1,272 @@
+--- Python-3.5.1-orig/Lib/cgi.py	2015-12-07 02:39:07 +0100
++++ Python-3.5.1-aix/Lib/cgi.py	2016-06-22 11:14:48 +0200
+@@ -1,4 +1,4 @@
+-#! /usr/local/bin/python
++#! /opt/freeware/bin/python
+ 
+ # NOTE: the above "/usr/local/bin/python" is NOT a mistake.  It is
+ # intentionally NOT "/usr/bin/env python".  On many systems
+--- Python-3.5.1-orig/Lib/test/test_fcntl.py	2015-12-07 02:39:09 +0100
++++ Python-3.5.1-aix/Lib/test/test_fcntl.py	2016-06-22 11:17:45 +0200
+@@ -34,7 +34,7 @@
+                                fcntl.F_WRLCK, 0)
+     elif sys.platform.startswith('gnukfreebsd'):
+         lockdata = struct.pack('qqihhi', 0, 0, 0, fcntl.F_WRLCK, 0, 0)
+-    elif sys.platform in ['aix3', 'aix4', 'hp-uxB', 'unixware7']:
++    elif sys.platform in ['aix3', 'aix4', 'aix5', 'aix6', 'aix7', 'hp-uxB', 'unixware7']:
+         lockdata = struct.pack('hhlllii', fcntl.F_WRLCK, 0, 0, 0, 0, 0, 0)
+     else:
+         lockdata = struct.pack('hh'+start_len+'hh', fcntl.F_WRLCK, 0, 0, 0, 0, 0)
+--- Python-3.5.1-orig/Makefile.pre.in	2015-12-07 02:39:09 +0100
++++ Python-3.5.1-aix/Makefile.pre.in	2016-06-22 11:19:25 +0200
+@@ -613,10 +613,10 @@
+ 
+ libpython$(LDVERSION).so: $(LIBRARY_OBJS)
+ 	if test $(INSTSONAME) != $(LDLIBRARY); then \
+-		$(BLDSHARED) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(LDFLAGS) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
+ 		$(LN) -f $(INSTSONAME) $@; \
+ 	else \
+-		$(BLDSHARED) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(LDFLAGS) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
+ 	fi
+ 
+ libpython3.so:	libpython$(LDVERSION).so
+--- Python-3.5.1-orig/Modules/Setup.dist	2015-12-07 02:39:10 +0100
++++ Python-3.5.1-aix/Modules/Setup.dist	2016-06-22 11:20:42 +0200
+@@ -153,7 +153,7 @@
+ # modules are to be built as shared libraries (see above for more
+ # detail; also note that *static* reverses this effect):
+ 
+-#*shared*
++*shared*
+ 
+ # GNU readline.  Unlike previous Python incarnations, GNU readline is
+ # now incorporated in an optional module, configured in the Setup file
+--- Python-3.5.1-orig/configure	2015-12-07 02:39:11 +0100
++++ Python-3.5.1-aix/configure	2016-06-22 11:24:22 +0200
+@@ -3438,7 +3438,7 @@
+   # or has another value. By not (re)defining it, the defaults come in place.
+   AIX/4)
+     define_xopen_source=no;;
+-  AIX/5)
++  AIX/5|AIX/6|AIX/7)
+     if test `uname -r` -eq 1; then
+       define_xopen_source=no
+     fi
+@@ -3540,7 +3540,7 @@
+ else
+ 
+ 	case $ac_sys_system in
+-	AIX*)   CC=${CC:-xlc_r}
++	aix*|AIX*)   CC=${CC:-xlc_r}
+ 		without_gcc=;;
+ 	*)	without_gcc=no;;
+ 	esac
+@@ -5614,7 +5614,7 @@
+ then
+ 	LINKCC='$(PURIFY) $(MAINCC)'
+ 	case $ac_sys_system in
+-	AIX*)
++	aix*|AIX*)
+ 	   exp_extra="\"\""
+ 	   if test $ac_sys_release -ge 5 -o \
+ 		   $ac_sys_release -eq 4 -a `uname -r` -ge 2 ; then
+@@ -5820,7 +5820,7 @@
+ 	BLDLIBRARY='-L. -lpython$(LDVERSION)'
+ 	RUNSHARED=DYLD_LIBRARY_PATH=`pwd`${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
+ 	;;
+-    AIX*)
++    aix*|AIX*)
+ 	LDLIBRARY='libpython$(LDVERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`${LIBPATH:+:${LIBPATH}}
+ 	;;
+@@ -7793,7 +7793,7 @@
+ # Two defines needed to enable largefile support on various platforms
+ # These may affect some typedefs
+ case $ac_sys_system/$ac_sys_release in
+-AIX*)
++aix*|AIX*)
+ 
+ $as_echo "#define _LARGE_FILES 1" >>confdefs.h
+ 
+@@ -8868,7 +8868,7 @@
+ if test -z "$LDSHARED"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*)
++	aix*|AIX*)
+ 		BLDSHARED="\$(srcdir)/Modules/ld_so_aix \$(CC) -bI:\$(srcdir)/Modules/python.exp"
+ 		LDSHARED="\$(BINLIBDEST)/config/ld_so_aix \$(CC) -bI:\$(BINLIBDEST)/config/python.exp"
+ 		;;
+@@ -9047,7 +9047,7 @@
+ if test -z "$LINKFORSHARED"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*)	LINKFORSHARED='-Wl,-bE:Modules/python.exp -lld';;
++	aix*|AIX*)	LINKFORSHARED='-Wl,-bE:Modules/python.exp -lld';;
+ 	hp*|HP*)
+ 	    LINKFORSHARED="-Wl,-E -Wl,+s";;
+ #	    LINKFORSHARED="-Wl,-E -Wl,+s -Wl,+b\$(BINLIBDEST)/lib-dynload";;
+@@ -9424,7 +9424,7 @@
+ 
+ # checks for system dependent C++ extensions support
+ case "$ac_sys_system" in
+-	AIX*)	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for genuine AIX C++ extensions support" >&5
++	aix*|AIX*)	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for genuine AIX C++ extensions support" >&5
+ $as_echo_n "checking for genuine AIX C++ extensions support... " >&6; }
+ 		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+@@ -10378,7 +10378,7 @@
+ $as_echo "#define HAVE_BROKEN_POSIX_SEMAPHORES 1" >>confdefs.h
+ 
+ 		       ;;
+-      AIX/*)
++      aix/*|AIX/*)
+ $as_echo "#define HAVE_BROKEN_POSIX_SEMAPHORES 1" >>confdefs.h
+ 
+ 		       ;;
+@@ -10892,7 +10892,7 @@
+ if test -z "$DYNLOADFILE"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*) # Use dynload_shlib.c and dlopen() if we have it; otherwise dynload_aix.c
++	aix*|AIX*) # Use dynload_shlib.c and dlopen() if we have it; otherwise dynload_aix.c
+ 	if test "$ac_cv_func_dlopen" = yes
+ 	then DYNLOADFILE="dynload_shlib.o"
+ 	else DYNLOADFILE="dynload_aix.o"
+@@ -15796,7 +15796,7 @@
+ esac
+ 
+ case $ac_sys_system in
+-AIX*)
++aix*|AIX*)
+ 
+ $as_echo "#define HAVE_BROKEN_PIPE_BUF 1" >>confdefs.h
+  ;;
+--- Python-3.5.1-orig/configure.ac	2015-12-07 02:39:11 +0100
++++ Python-3.5.1-aix/configure.ac	2016-06-22 11:27:21 +0200
+@@ -496,7 +496,7 @@
+   # or has another value. By not (re)defining it, the defaults come in place.
+   AIX/4)
+     define_xopen_source=no;;
+-  AIX/5)
++  AIX/5|AIX/6|AIX/7)
+     if test `uname -r` -eq 1; then
+       define_xopen_source=no
+     fi
+@@ -587,7 +587,7 @@
+ 		without_gcc=$withval;;
+ 	esac], [
+ 	case $ac_sys_system in
+-	AIX*)   CC=${CC:-xlc_r}
++	aix*|AIX*)   CC=${CC:-xlc_r}
+ 		without_gcc=;;
+ 	*)	without_gcc=no;;
+ 	esac])
+@@ -978,7 +978,7 @@
+ then
+ 	LINKCC='$(PURIFY) $(MAINCC)'
+ 	case $ac_sys_system in
+-	AIX*)
++	aix*|AIX*)
+ 	   exp_extra="\"\""
+ 	   if test $ac_sys_release -ge 5 -o \
+ 		   $ac_sys_release -eq 4 -a `uname -r` -ge 2 ; then
+@@ -1117,7 +1117,7 @@
+ 	BLDLIBRARY='-L. -lpython$(LDVERSION)'
+ 	RUNSHARED=DYLD_LIBRARY_PATH=`pwd`${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
+ 	;;
+-    AIX*)
++    aix*|AIX*)
+ 	LDLIBRARY='libpython$(LDVERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`${LIBPATH:+:${LIBPATH}}
+ 	;;
+@@ -1901,7 +1901,7 @@
+ # Two defines needed to enable largefile support on various platforms
+ # These may affect some typedefs
+ case $ac_sys_system/$ac_sys_release in
+-AIX*)
++aix*|AIX*)
+     AC_DEFINE(_LARGE_FILES, 1, 
+     [This must be defined on AIX systems to enable large file support.])
+     ;;
+@@ -2206,7 +2206,7 @@
+ if test -z "$LDSHARED"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*)
++	aix*|AIX*)
+ 		BLDSHARED="\$(srcdir)/Modules/ld_so_aix \$(CC) -bI:\$(srcdir)/Modules/python.exp"
+ 		LDSHARED="\$(BINLIBDEST)/config/ld_so_aix \$(CC) -bI:\$(BINLIBDEST)/config/python.exp"
+ 		;;
+@@ -2381,7 +2381,7 @@
+ if test -z "$LINKFORSHARED"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*)	LINKFORSHARED='-Wl,-bE:Modules/python.exp -lld';;
++	aix*|AIX*)	 LINKFORSHARED='-Wl,-bE:Modules/python.exp -lld';;
+ 	hp*|HP*)
+ 	    LINKFORSHARED="-Wl,-E -Wl,+s";;
+ #	    LINKFORSHARED="-Wl,-E -Wl,+s -Wl,+b\$(BINLIBDEST)/lib-dynload";;
+@@ -2488,7 +2488,7 @@
+ 
+ # checks for system dependent C++ extensions support
+ case "$ac_sys_system" in
+-	AIX*)	AC_MSG_CHECKING(for genuine AIX C++ extensions support)
++	aix*|AIX*)	AC_MSG_CHECKING(for genuine AIX C++ extensions support)
+ 		AC_LINK_IFELSE([
+ 		  AC_LANG_PROGRAM([[#include <load.h>]],
+ 				  [[loadAndInit("", 0, "")]])
+@@ -2847,7 +2847,7 @@
+       SunOS/5.8) AC_DEFINE(HAVE_BROKEN_POSIX_SEMAPHORES, 1,
+ 		       [Define if the Posix semaphores do not work on your system])
+ 		       ;;
+-      AIX/*) AC_DEFINE(HAVE_BROKEN_POSIX_SEMAPHORES, 1,
++      aix*/|AIX/*) AC_DEFINE(HAVE_BROKEN_POSIX_SEMAPHORES, 1,
+ 		       [Define if the Posix semaphores do not work on your system])
+ 		       ;;
+       esac
+@@ -3144,7 +3144,7 @@
+ if test -z "$DYNLOADFILE"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*) # Use dynload_shlib.c and dlopen() if we have it; otherwise dynload_aix.c
++	aix*|AIX*) # Use dynload_shlib.c and dlopen() if we have it; otherwise dynload_aix.c
+ 	if test "$ac_cv_func_dlopen" = yes
+ 	then DYNLOADFILE="dynload_shlib.o"
+ 	else DYNLOADFILE="dynload_aix.o"
+@@ -4965,7 +4965,7 @@
+ esac
+ 
+ case $ac_sys_system in
+-AIX*)   
++aix*|AIX*)   
+   AC_DEFINE(HAVE_BROKEN_PIPE_BUF, 1, [Define if the system reports an invalid PIPE_BUF value.]) ;;
+ esac
+ 
+--- Python-3.5.1-orig/setup.py	2015-12-07 02:39:11 +0100
++++ Python-3.5.1-aix/setup.py	2016-06-22 11:28:44 +0200
+@@ -1525,6 +1525,13 @@
+             macros = dict()
+             libraries = []
+ 
++        elif host_platform.startswith('aix'):
++            macros = dict(
++                HAVE_SEM_OPEN=1,
++                HAVE_SEM_TIMEDWAIT=0
++                )
++            libraries = ['rt']
++
+         else:                                   # Linux and other unices
+             macros = dict()
+             libraries = ['rt']
+@@ -1803,7 +1810,7 @@
+         libs.append('tk'+ version)
+         libs.append('tcl'+ version)
+ 
+-        if host_platform in ['aix3', 'aix4']:
++        if host_platform in ['aix3', 'aix4', 'aix5', 'aix6', 'aix7']:
+             libs.append('ld')
+ 
+         # Finally, link with the X11 libraries (not appropriate on cygwin)

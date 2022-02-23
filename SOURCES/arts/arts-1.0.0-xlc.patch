@@ -1,0 +1,259 @@
+--- flow/gsl/gslcommon.h.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslcommon.h	Thu Mar 28 15:09:50 2002
+@@ -196,7 +196,7 @@
+ void		gsl_free_memblock	(gsize		 size,
+ 					 gpointer	 memblock);
+ void		gsl_alloc_report	(void);
+-const guint	gsl_alloc_upper_power2	(const gulong	 number);
++guint		gsl_alloc_upper_power2	(const gulong	 number);
+ void	       _gsl_tick_stamp_inc	(void);
+ void	       _gsl_tick_stamp_set_leap (guint		 ticks);
+ void	_gsl_init_data_handles		(void);
+--- flow/gsl/gsldatahandle.c.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gsldatahandle.c	Thu Mar 28 15:08:39 2002
+@@ -688,7 +688,7 @@
+ 
+ 
+ /* --- wave handle --- */
+-static inline const guint G_GNUC_CONST
++static inline guint
+ wave_format_bit_depth (const GslWaveFormatType format)
+ {
+   switch (format)
+--- flow/gsl/gslwavechunk.h.orig	Tue Feb 12 09:10:40 2002
++++ flow/gsl/gslwavechunk.h	Thu Mar 28 15:08:39 2002
+@@ -55,7 +55,7 @@
+   GslLong	  wave_length;	/* start + loop duration + end */
+ 
+   /* loop spec */
+-  GslWaveLoopType loop_type : 16;
++  guint		  loop_type : 16;
+   guint		  pploop_ends_backwards : 1;
+   guint		  mini_loop : 1;
+   GslLong	  loop_start;
+--- flow/gsl/gslcommon.c.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslcommon.c	Thu Mar 28 15:08:39 2002
+@@ -29,6 +29,15 @@
+ #include <sys/stat.h>
+ #include <sys/time.h>
+ 
++#if _AIX
++# ifdef revents
++#   undef revents
++# endif
++# ifdef events
++#   undef events
++# endif
++#endif /* _AIX */
++
+ /* some systems don't have ERESTART (which is what linux returns for system
+  * calls on pipes which are being interrupted). most propably just use EINTR,
+  * and maybe some can return both. so we check for both in the below code,
+@@ -56,7 +65,7 @@
+ static GTrashStack *simple_cache[SIMPLE_CACHE_SIZE] = { 0, 0, 0, /* ... */ };
+ static gulong       memory_allocated = 0;
+ 
+-const guint
++guint
+ gsl_alloc_upper_power2 (const gulong number)
+ {
+   return number ? 1 << g_bit_storage (number - 1) : 0;
+@@ -695,14 +704,14 @@
+   gint r, aborted;
+ 
+   pfd.fd = tdata->wpipe[0];
+-  pfd.events = GSL_POLLIN;
+-  pfd.revents = 0;
++  pfd.reqevents = GSL_POLLIN;
++  pfd.rtnevents = 0;
+ 
+   r = poll (&pfd, 1, max_msec);
+ 
+   if (r < 0 && errno != EINTR)
+     g_message (G_STRLOC ": poll() error: %s\n", g_strerror (errno));
+-  else if (pfd.revents & GSL_POLLIN)
++  else if (pfd.rtnevents & GSL_POLLIN)
+     {
+       guint8 data[64];
+ 
+--- flow/gsl/gslopmaster.c.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslopmaster.c	Thu Mar 28 15:08:39 2002
+@@ -29,6 +29,14 @@
+ #include <sys/time.h>
+ #include <errno.h>
+ 
++#if _AIX
++# ifdef revents
++#   undef revents
++# endif
++# ifdef events
++#   undef events
++# endif
++#endif /* _AIX */
+ 
+ 
+ /* force public constantness but allow us to change values
+@@ -92,7 +100,7 @@
+ static gboolean	    master_need_reflow = FALSE;
+ static gboolean	    master_need_process = FALSE;
+ static OpNode	   *master_consumer_list = NULL;
+-const gfloat        gsl_engine_master_zero_block[GSL_STREAM_MAX_VALUES] = { 0, }; /* FIXME */
++gfloat              gsl_engine_master_zero_block[GSL_STREAM_MAX_VALUES] = { 0, }; /* FIXME */
+ static Poll	   *master_poll_list = NULL;
+ static guint        master_n_pollfds = 0;
+ static guint        master_pollfds_changed = FALSE;
+@@ -660,8 +668,8 @@
+   /* assert sane configuration checks, since we're simply casting structures */
+   g_assert (sizeof (struct pollfd) == sizeof (GslPollFD) &&
+ 	    G_STRUCT_OFFSET (GslPollFD, fd) == G_STRUCT_OFFSET (struct pollfd, fd) &&
+-	    G_STRUCT_OFFSET (GslPollFD, events) == G_STRUCT_OFFSET (struct pollfd, events) &&
+-	    G_STRUCT_OFFSET (GslPollFD, revents) == G_STRUCT_OFFSET (struct pollfd, revents));
++	    G_STRUCT_OFFSET (GslPollFD, events) == G_STRUCT_OFFSET (struct pollfd, reqevents) &&
++	    G_STRUCT_OFFSET (GslPollFD, revents) == G_STRUCT_OFFSET (struct pollfd, rtnevents));
+ 
+   /* add the thread wakeup pipe to master pollfds, so we get woken
+    * up in time (even though we evaluate the pipe contents later)
+--- flow/gsl/gslengine.h.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslengine.h	Thu Mar 28 15:11:27 2002
+@@ -89,15 +89,15 @@
+ };
+ struct _GslIStream
+ {
+-  const gfloat *values;
++  gfloat	*values;
+   guint		user_flags : 16;
+-  guint	connected : 1;
++  guint		connected : 1;
+ };
+ struct _GslOStream
+ {
+   gfloat     *values;
+   guint	      user_flags : 16;
+-  guint connected : 1;
++  guint       connected : 1;
+ };
+ #endif	/* !__GSL_MASTER_C__ */
+ 
+--- flow/gsl/gslwchunk.c.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslwchunk.c	Thu Mar 28 15:08:39 2002
+@@ -31,7 +31,7 @@
+   VERBOSITY_BLOCKS,
+   VERBOSITY_DATA,
+   VERBOSITY_PADDING,
+-  VERBOSITY_CHECKS,
++  VERBOSITY_CHECKS
+ };
+ static guint verbosity = VERBOSITY_SETUP;
+ 
+--- flow/gsl/gslopnode.h.orig	Fri Mar 22 14:28:29 2002
++++ flow/gsl/gslopnode.h	Thu Mar 28 15:08:39 2002
+@@ -227,6 +227,8 @@
+ void _gsl_op_debug    (GslEngineDebugLevel lvl,
+ 		       const gchar        *format,
+ 		       ...) G_GNUC_PRINTF (2,3);
++#else
++#define OP_DEBUG(stuff)
+ #endif
+ 
+ void	_op_engine_inc_counter	(guint64	delta);
+--- flow/gsl/gslmagic.c.orig	Sun Feb 10 15:04:49 2002
++++ flow/gsl/gslmagic.c	Thu Mar 28 15:08:39 2002
+@@ -172,7 +172,7 @@
+   MAGIC_CHECK_UINT_ONES,
+   MAGIC_CHECK_STRING_EQUAL,
+   MAGIC_CHECK_STRING_GREATER,
+-  MAGIC_CHECK_STRING_SMALLER,
++  MAGIC_CHECK_STRING_SMALLER
+ } MagicCheckType;
+ typedef union
+ {
+--- flow/audiosubsys.cc.orig	Sat Mar  9 13:56:11 2002
++++ flow/audiosubsys.cc	Thu Mar 28 15:08:39 2002
+@@ -20,6 +20,10 @@
+ 
+     */
+ 
++#ifdef _AIX
++#include <strings.h>
++#endif /* _AIX */
++
+ #ifdef HAVE_CONFIG_H
+ #include <config.h>
+ #endif
+--- mcop/iomanager.cc.orig	Sat Mar  9 13:56:12 2002
++++ mcop/iomanager.cc	Thu Mar 28 15:08:39 2002
+@@ -19,6 +19,10 @@
+     Boston, MA 02111-1307, USA.
+ 
+     */
++#ifdef _AIX
++#include <strings.h>
++#endif
++
+ #ifdef HAVE_CONFIG_H
+ #include <config.h>
+ #endif
+--- artsc/artsdsp.c.orig	Fri Jul 27 10:49:53 2001
++++ artsc/artsdsp.c	Thu Mar 28 15:08:39 2002
+@@ -26,6 +26,10 @@
+ #include <config.h>
+ #endif
+ 
++/* ifndef HAVE_SYS_SOUNDCARD_H, this is an empty file */
++/* xlC does not like a link consisting of one empty file */
++void *not_empty_file;
++
+ #ifdef HAVE_SYS_SOUNDCARD_H
+ #include <stdlib.h>
+ #include <stdio.h>
+--- flow/gsl/gslglibhash.cc.orig	Tue Apr 16 15:47:11 2002
++++ flow/gsl/gslglibhash.cc	Tue Apr 16 15:48:23 2002
+@@ -16,6 +16,8 @@
+  * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  * Boston, MA 02111-1307, USA.
+  */
++
++#include <string.h>
+ #include "gslglib.h"
+ #include <list>
+ #include <map>
+--- mcop/dispatcher.cc.orig	Mon Mar 18 06:39:39 2002
++++ mcop/dispatcher.cc	Thu Apr 18 09:59:57 2002
+@@ -39,7 +39,7 @@
+ #include <stdio.h>
+ #include <signal.h>
+ #include <errno.h>
+-#include <iostream>
++#include <iostream.h>
+ 
+ #if TIME_WITH_SYS_TIME
+ # include <sys/time.h>
+@@ -214,8 +214,8 @@
+ 	orig_sigpipe = signal(SIGPIPE,SIG_IGN);
+ 	if(orig_sigpipe != SIG_DFL)
+ 	{
+-		cerr << "mcop warning: user defined signal handler found for"
+-		        " SIG_PIPE, overriding" << endl;
++		cerr << "mcop warning: user defined signal handler found for";
++		cerr << " SIG_PIPE, overriding" << endl;
+ 	}
+ 	
+ 	StartupManager::startup();
+@@ -393,7 +393,7 @@
+ 		list<Object_skel *> which = objectPool.enumerate();
+ 		list<Object_skel *>::iterator i;
+ 		for(i = which.begin(); i != which.end();i++)
+-			cerr << "  - " << (*i)->_interfaceName() << endl;
++			cerr << "  - " << (*i)->_interfaceName().c_str() << endl;
+ 	}
+ 
+ 	if(Type::_typeCount())
+@@ -690,7 +690,7 @@
+ 					cerr << "MCOP error: don't know authentication protocol" << endl;
+ 					cerr << "   server offered: ";
+ 					for(ai = h.authProtocols.begin(); ai != h.authProtocols.end(); ai++)
+-						cerr << *ai << " ";
++						cerr << (*ai).c_str() << " ";
+ 					cerr << endl;
+ 				}
+ 			}

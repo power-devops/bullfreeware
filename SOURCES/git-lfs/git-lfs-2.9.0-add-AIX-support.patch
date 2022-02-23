@@ -1,0 +1,27 @@
+From 4f5cb8b9cb67a2d9754df91a4f8460bcfe88dd66 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 6 Nov 2019 16:46:43 -0600
+Subject: [PATCH] add AIX support
+
+---
+ lfshttp/certs_aix.go | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+ create mode 100644 lfshttp/certs_aix.go
+
+diff --git a/lfshttp/certs_aix.go b/lfshttp/certs_aix.go
+new file mode 100644
+index 00000000..4c8e80a5
+--- /dev/null
++++ b/lfshttp/certs_aix.go
+@@ -0,0 +1,8 @@
++package lfshttp
++
++import "crypto/x509"
++
++func appendRootCAsForHostFromPlatform(pool *x509.CertPool, host string) *x509.CertPool {
++	// Do nothing, use golang default
++	return pool
++}
+-- 
+2.21.0
+

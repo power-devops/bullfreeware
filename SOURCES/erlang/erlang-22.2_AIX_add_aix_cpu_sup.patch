@@ -1,0 +1,22 @@
+--- a/erts/configure.in.old	2020-04-22 16:46:08 +0200
++++ b/erts/configure.in	2020-04-22 16:51:02 +0200
+@@ -3273,6 +3273,8 @@
+ 		use_cpu_sup=yes ;;
+ 	freebsd*)
+ 		use_cpu_sup=yes ;;
++	aix*)
++		use_cpu_sup=yes ;;
+ esac
+ 
+ if test "$use_cpu_sup" = "yes"; then
+--- a/erts/configure.old	2020-04-22 16:53:42 +0200
++++ b/erts/configure	2020-04-22 16:30:43 +0200
+@@ -22167,6 +22167,8 @@
+ 		use_cpu_sup=yes ;;
+ 	freebsd*)
+ 		use_cpu_sup=yes ;;
++	aix*)
++		use_cpu_sup=yes ;;
+ esac
+ 
+ if test "$use_cpu_sup" = "yes"; then

@@ -1,0 +1,21 @@
+--- old/configure	2016-09-27 11:36:37 +0200
++++ new/configure	2016-09-27 11:53:43 +0200
+@@ -3556,7 +3556,7 @@
+ # Disable the go frontend on systems where it is known to not work. Please keep
+ # this in sync with contrib/config-list.mk.
+ case "${target}" in
+-*-*-darwin* | *-*-cygwin* | *-*-mingw* | *-*-aix*)
++*-*-darwin* | *-*-cygwin* | *-*-mingw* )
+     unsupported_languages="$unsupported_languages go"
+     ;;
+ esac
+@@ -3572,9 +3572,6 @@
+     *-*-cygwin* | *-*-mingw*)
+ 	noconfigdirs="$noconfigdirs target-libgo"
+ 	;;
+-    *-*-aix*)
+-	noconfigdirs="$noconfigdirs target-libgo"
+-	;;
+     esac
+ fi
+ 

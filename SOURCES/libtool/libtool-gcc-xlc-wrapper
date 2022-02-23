@@ -1,0 +1,17 @@
+#! /usr/bin/sh
+if [ -z "${LT_GCC}" ]; then
+    LT_GCC="no"
+    case $CC in
+        *gcc*)
+            LT_GCC="yes";;
+    esac
+    case $CXX in
+        *g++*)
+            LT_GCC="yes";;
+    esac
+fi
+if [ "${LT_GCC}" == "yes" ]; then
+    /opt/freeware/bin/libtool.gcc $*
+else
+    /opt/freeware/bin/libtool.xlc $*
+fi

@@ -1,0 +1,60 @@
+diff -up gnupg-2.0.20/tools/Makefile.am.insttools gnupg-2.0.20/tools/Makefile.am
+--- gnupg-2.0.20/tools/Makefile.am.insttools	2013-05-10 14:55:49.000000000 +0200
++++ gnupg-2.0.20/tools/Makefile.am	2013-05-28 11:30:22.711552140 +0200
+@@ -36,8 +36,8 @@ sbin_SCRIPTS = addgnupghome applygnupgde
+ 
+ bin_SCRIPTS = gpgsm-gencert.sh
+ if HAVE_USTAR
+-# bin_SCRIPTS += gpg-zip
+-noinst_SCRIPTS = gpg-zip
++bin_SCRIPTS += gpg-zip
++#noinst_SCRIPTS = gpg-zip
+ endif
+ 
+ if BUILD_SYMCRYPTRUN
+@@ -53,7 +53,7 @@ else
+ endif
+ 
+ 
+-bin_PROGRAMS = gpgconf gpg-connect-agent gpgkey2ssh ${symcryptrun} ${gpgtar}
++bin_PROGRAMS = gpgconf gpg-connect-agent ${symcryptrun} ${gpgtar} gpgsplit
+ if !HAVE_W32_SYSTEM
+ bin_PROGRAMS += watchgnupg gpgparsemail
+ endif
+@@ -62,7 +62,7 @@ if !DISABLE_REGEX
+ libexec_PROGRAMS = gpg-check-pattern
+ endif
+ 
+-noinst_PROGRAMS = clean-sat mk-tdata make-dns-cert gpgsplit
++noinst_PROGRAMS = clean-sat mk-tdata make-dns-cert gpgkey2ssh
+ 
+ common_libs = $(libcommon) ../jnlib/libjnlib.a ../gl/libgnu.a
+ pwquery_libs = ../common/libsimple-pwquery.a
+diff -up gnupg-2.0.20/tools/Makefile.in.insttools gnupg-2.0.20/tools/Makefile.in
+--- gnupg-2.0.20/tools/Makefile.in.insttools	2013-05-10 15:56:30.000000000 +0200
++++ gnupg-2.0.20/tools/Makefile.in	2013-05-28 11:29:48.556819325 +0200
+@@ -107,12 +107,12 @@ DIST_COMMON = $(srcdir)/Makefile.am $(sr
+ @GNUPG_PROTECT_TOOL_PGM_TRUE@am__append_6 = -DGNUPG_DEFAULT_PROTECT_TOOL="\"@GNUPG_PROTECT_TOOL_PGM@\""
+ @HAVE_W32_SYSTEM_TRUE@am__append_7 = gpg-connect-agent-w32info.o
+ bin_PROGRAMS = gpgconf$(EXEEXT) gpg-connect-agent$(EXEEXT) \
+-	gpgkey2ssh$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
+-	$(am__EXEEXT_3)
++	$(am__EXEEXT_1) $(am__EXEEXT_2) \
++	$(am__EXEEXT_3) gpgsplit$(EXEEXT)
+ @HAVE_W32_SYSTEM_FALSE@am__append_8 = watchgnupg gpgparsemail
+ @DISABLE_REGEX_FALSE@libexec_PROGRAMS = gpg-check-pattern$(EXEEXT)
+ noinst_PROGRAMS = clean-sat$(EXEEXT) mk-tdata$(EXEEXT) \
+-	make-dns-cert$(EXEEXT) gpgsplit$(EXEEXT)
++	make-dns-cert$(EXEEXT) gpgkey2ssh$(EXEEXT)
+ subdir = tools
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/gl/m4/absolute-header.m4 \
+@@ -488,7 +488,7 @@ AM_CFLAGS = $(LIBGCRYPT_CFLAGS) $(GPG_ER
+ sbin_SCRIPTS = addgnupghome applygnupgdefaults
+ bin_SCRIPTS = gpgsm-gencert.sh
+ # bin_SCRIPTS += gpg-zip
+-@HAVE_USTAR_TRUE@noinst_SCRIPTS = gpg-zip
++@HAVE_USTAR_TRUE@bin_SCRIPTS += gpg-zip
+ @BUILD_SYMCRYPTRUN_FALSE@symcryptrun = 
+ @BUILD_SYMCRYPTRUN_TRUE@symcryptrun = symcryptrun
+ @BUILD_GPGTAR_FALSE@gpgtar = 

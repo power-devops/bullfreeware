@@ -1,0 +1,27 @@
+Index: tcp_wrappers_7.6-ipv6.4/socket.c
+===================================================================
+--- tcp_wrappers_7.6-ipv6.4.orig/socket.c	1999-10-27 15:23:14.000000000 +0200
++++ tcp_wrappers_7.6-ipv6.4/socket.c	2013-03-19 09:56:30.000000000 +0100
+@@ -53,6 +53,7 @@
+ int af;
+ {
+     char    dot_name[MAXHOSTNAMELEN + 1];
++    struct hostent *hp;
+ 
+     /*
+      * Don't append dots to unqualified names. Such names are likely to come
+@@ -62,8 +63,12 @@
+     if (strchr(name, '.') == 0 || strlen(name) >= MAXHOSTNAMELEN - 1) {
+ 	return (tcpd_gethostbyname(name, af));
+     } else {
+-	sprintf(dot_name, "%s.", name);
+-	return (tcpd_gethostbyname(dot_name, af));
++       sprintf(dot_name, "%s.", name);
++       hp = (tcpd_gethostbyname(name, af);
++       if (hp)
++           return hp;
++       else
++           return (tcpd_gethostbyname(dot_name, af));
+     }
+ }
+ 

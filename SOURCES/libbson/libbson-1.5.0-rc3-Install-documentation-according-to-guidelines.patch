@@ -1,0 +1,35 @@
+From 3fc66a3ac884e3a9a43c6e41d9a5464d13beb75a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Petr=20P=C3=ADsa=C5=99?= <ppisar@redhat.com>
+Date: Fri, 22 Jan 2016 14:42:45 +0100
+Subject: [PATCH] Install documentation according to guidelines
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+We put COPYING into different directory.
+
+Signed-off-by: Petr Písař <ppisar@redhat.com>
+---
+ Makefile.am | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index f075945..0368860 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -32,10 +32,9 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-maintainer-flags --enable-silent-rules --en
+ 
+ bsondocdir = ${docdir}
+ bsondoc_DATA = \
+-	COPYING \
++	ChangeLog \
+ 	NEWS \
+-	README \
+-	THIRD_PARTY_NOTICES
++	README
+ 
+ EXTRA_DIST += $(bsondoc_DATA)
+ 
+-- 
+2.7.4
+

@@ -1,0 +1,28 @@
+Index: Python-2.7.4/Lib/test/test_wait4.py
+===================================================================
+--- Python-2.7.4.orig/Lib/test/test_wait4.py	2013-04-06 16:02:33.000000000 +0200
++++ Python-2.7.4/Lib/test/test_wait4.py	2013-05-02 10:40:56.000000000 +0200
+@@ -2,6 +2,7 @@
+ """
+ 
+ import os
++import sys
+ import time
+ from test.fork_wait import ForkWait
+ from test.test_support import run_unittest, reap_children, get_attribute
+@@ -13,10 +14,14 @@
+ 
+ class Wait4Test(ForkWait):
+     def wait_impl(self, cpid):
++        option = os.WNOHANG
++        if sys.platform.startswith('aix'):
++            # wait4 is broken on AIX and will always return 0 with WNOHANG
++            option = 0
+         for i in range(10):
+             # wait4() shouldn't hang, but some of the buildbots seem to hang
+             # in the forking tests.  This is an attempt to fix the problem.
+-            spid, status, rusage = os.wait4(cpid, os.WNOHANG)
++            spid, status, rusage = os.wait4(cpid, option)
+             if spid == cpid:
+                 break
+             time.sleep(1.0)

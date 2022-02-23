@@ -1,0 +1,70 @@
+From 413b9f70fcde7a42aab99429b7f86199a872ecf3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 7 May 2019 10:11:17 +0200
+Subject: [PATCH 1/2] libgo: remove -fno-section-anchors on AIX
+
+Change-Id: I978c711a68a9d5946651781da6fd83af4e5a7cee
+---
+ libgo/configure    | 12 ++----------
+ libgo/configure.ac |  8 --------
+ 2 files changed, 2 insertions(+), 18 deletions(-)
+
+diff --git a/libgo/configure b/libgo/configure
+index 06b68b0f..9661cb5a 100755
+--- a/libgo/configure
++++ b/libgo/configure
+@@ -4560,14 +4560,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+ 
+-case ${host} in
+-  *-*-aix*)
+-    # static hash tables crashes on AIX when libgo is built with O2
+-    CFLAGS="$CFLAGS -fno-section-anchors"
+-    GOCFLAGS="$GOCFLAGS -fno-section-anchors"
+-    ;;
+-esac
+-
+ 
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
+ $as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
+@@ -11344,7 +11336,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11347 "configure"
++#line 11339 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11450,7 +11442,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11453 "configure"
++#line 11445 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+diff --git a/libgo/configure.ac b/libgo/configure.ac
+index 03c07fe8..a361a7a4 100644
+--- a/libgo/configure.ac
++++ b/libgo/configure.ac
+@@ -30,14 +30,6 @@ m4_rename_force([glibgo_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+ 
+ AC_SUBST(CFLAGS)
+ 
+-case ${host} in
+-  *-*-aix*)
+-    # static hash tables crashes on AIX when libgo is built with O2
+-    CFLAGS="$CFLAGS -fno-section-anchors"
+-    GOCFLAGS="$GOCFLAGS -fno-section-anchors"
+-    ;;
+-esac
+-
+ AM_MAINTAINER_MODE
+ 
+ AC_PROG_LD
+-- 
+2.17.1
+

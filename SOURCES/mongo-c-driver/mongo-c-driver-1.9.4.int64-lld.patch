@@ -1,0 +1,15 @@
+--- ./tests/test-mongoc-cursor.c.ORIGIN	2018-01-22 16:46:41 -0600
++++ ./tests/test-mongoc-cursor.c	2018-01-22 16:47:12 -0600
+@@ -187,10 +187,10 @@
+       mongoc_cursor_destroy (cursor);
+ 
+       if (limits[i] > 0) {
+-         opts = tmp_bson ("{'limit': {'$numberLong': '%d'}}", limits[i]);
++         opts = tmp_bson ("{'limit': {'$numberLong': '%lld'}}", limits[i]);
+       } else {
+          opts =
+-            tmp_bson ("{'singleBatch': true, 'limit': {'$numberLong': '%d'}}",
++            tmp_bson ("{'singleBatch': true, 'limit': {'$numberLong': '%lld'}}",
+                       -limits[i]);
+       }
+ 

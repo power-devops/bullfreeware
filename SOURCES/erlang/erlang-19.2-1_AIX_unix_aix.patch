@@ -1,0 +1,50 @@
+--- ./lib/os_mon/src/cpu_sup.erl.origin	2017-01-20 14:27:34 +0100
++++ ./lib/os_mon/src/cpu_sup.erl	2017-01-20 14:29:00 +0100
+@@ -162,6 +162,7 @@
+ 	#state{os_type = {unix, Flavor}} = State) 
+ 	when Flavor == sunos;
+ 	     Flavor == linux;
++	     Flavor == aix;
+ 	     Flavor == freebsd;
+ 	     Flavor == darwin ->
+     case measurement_server_call(State#state.server, {?util, D, PC, Client}) of
+@@ -236,6 +237,7 @@
+ 								Sys == sunos;
+ 								Sys == dragonfly;
+ 								Sys == openbsd;
++								Sys == aix;
+ 								Sys == freebsd;
+ 								Sys == darwin ->
+     port_server_call(P, Request);
+--- ./lib/os_mon/src/disksup.erl.origin	2017-01-20 14:29:01 +0100
++++ ./lib/os_mon/src/disksup.erl	2017-01-20 14:30:20 +0100
+@@ -276,6 +276,9 @@
+ check_disk_space({unix, freebsd}, Port, Threshold) ->
+     Result = my_cmd("/bin/df -k -l", Port),
+     check_disks_solaris(skip_to_eol(Result), Threshold);
++check_disk_space({unix, aix}, Port, Threshold) ->
++    Result = my_cmd("/bin/df -k -l", Port),
++    check_disks_solaris(skip_to_eol(Result), Threshold);
+ check_disk_space({unix, openbsd}, Port, Threshold) ->
+     Result = my_cmd("/bin/df -k -l", Port),
+     check_disks_solaris(skip_to_eol(Result), Threshold);
+--- ./lib/os_mon/src/memsup.erl.origin	2017-01-20 14:30:20 +0100
++++ ./lib/os_mon/src/memsup.erl	2017-01-20 14:31:38 +0100
+@@ -616,6 +616,7 @@
+ 			   {unix, dragonfly} -> false;
+ 			   {unix, linux} -> false;
+ 			   {unix, openbsd} -> true;
++			   {unix, aix} -> true;
+ 			   {unix, netbsd} -> true;
+ 			   {unix, sunos} -> true;
+ 			   {win32, _OSname} -> false
+--- ./lib/stdlib/src/filename.erl.origin	2017-01-20 14:31:39 +0100
++++ ./lib/stdlib/src/filename.erl	2017-01-20 14:33:23 +0100
+@@ -1130,6 +1130,7 @@
+ basedir_os_type() ->
+     case os:type() of
+         {unix,darwin} -> darwin;
++        {unix,aix}    -> aix;
+         {win32,_}     -> windows;
+         _             -> linux
+     end.

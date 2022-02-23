@@ -1,0 +1,11 @@
+--- ./source3/smbd/msdfs.c_orig	2018-09-20 15:13:34 +0000
++++ ./source3/smbd/msdfs.c	2018-09-20 15:16:20 +0000
+@@ -572,7 +572,7 @@
+ 			SMB_STRUCT_STAT *sbufp)
+ {
+ 	int referral_len = 0;
+-#if defined(HAVE_BROKEN_READLINK)
++#if defined(HAVE_BROKEN_READLINK) || defined(_AIX)
+ 	char link_target_buf[PATH_MAX];
+ #else
+ 	char link_target_buf[7];

@@ -1,0 +1,166 @@
+diff -Nur orig64bit/Lib/distutils/command/build_ext.py aix64bit/Lib/distutils/command/build_ext.py
+--- orig64bit/Lib/distutils/command/build_ext.py	2017-07-08 05:33:27 +0200
++++ aix64bit/Lib/distutils/command/build_ext.py	2017-08-09 15:37:50 +0200
+@@ -261,12 +261,12 @@
+         # Finally add the user include and library directories if requested
+         if self.user:
+             user_include = os.path.join(USER_BASE, "include")
+-            user_lib = os.path.join(USER_BASE, "lib")
++            user_lib = os.path.join(USER_BASE, "lib64")
+             if os.path.isdir(user_include):
+                 self.include_dirs.append(user_include)
+-            if os.path.isdir(user_lib):
+-                self.library_dirs.append(user_lib)
+-                self.rpath.append(user_lib)
++            if os.path.isdir(user_lib64):
++                self.library_dirs.append(user_lib64)
++                self.rpath.append(user_lib64)
+ 
+         if isinstance(self.parallel, str):
+             try:
+diff -Nur orig64bit/Lib/distutils/command/install.py aix64bit/Lib/distutils/command/install.py
+--- orig64bit/Lib/distutils/command/install.py	2017-07-08 05:33:27 +0200
++++ aix64bit/Lib/distutils/command/install.py	2017-08-09 15:38:06 +0200
+@@ -30,14 +30,14 @@
+ INSTALL_SCHEMES = {
+     'unix_prefix': {
+         'purelib': '$base/lib/python$py_version_short/site-packages',
+-        'platlib': '$platbase/lib/python$py_version_short/site-packages',
++        'platlib': '$platbase/lib64/python$py_version_short/site-packages',
+         'headers': '$base/include/python$py_version_short$abiflags/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+         },
+     'unix_home': {
+         'purelib': '$base/lib/python',
+-        'platlib': '$base/lib/python',
++        'platlib': '$base/lib64/python',
+         'headers': '$base/include/python/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+diff -Nur orig64bit/Lib/site.py aix64bit/Lib/site.py
+--- orig64bit/Lib/site.py	2017-07-08 05:33:27 +0200
++++ aix64bit/Lib/site.py	2017-08-09 15:38:46 +0200
+@@ -304,11 +304,15 @@
+         seen.add(prefix)
+ 
+         if os.sep == '/':
++            sitepackages.append(os.path.join(prefix, "lib64",
++                                        "python%d.%d" % sys.version_info[:2],
++                                        "site-packages"))
+             sitepackages.append(os.path.join(prefix, "lib",
+                                         "python%d.%d" % sys.version_info[:2],
+                                         "site-packages"))
+         else:
+             sitepackages.append(prefix)
++            sitepackages.append(os.path.join(prefix, "lib64", "site-packages"))
+             sitepackages.append(os.path.join(prefix, "lib", "site-packages"))
+         if sys.platform == "darwin":
+             # for framework builds *only* we add the standard Apple
+diff -Nur orig64bit/Lib/sysconfig.py aix64bit/Lib/sysconfig.py
+--- orig64bit/Lib/sysconfig.py	2017-07-08 05:33:27 +0200
++++ aix64bit/Lib/sysconfig.py	2017-08-09 15:39:07 +0200
+@@ -21,9 +21,9 @@
+ _INSTALL_SCHEMES = {
+     'posix_prefix': {
+         'stdlib': '{installed_base}/lib/python{py_version_short}',
+-        'platstdlib': '{platbase}/lib/python{py_version_short}',
++        'platstdlib': '{platbase}/lib64/python{py_version_short}',
+         'purelib': '{base}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{platbase}/lib/python{py_version_short}/site-packages',
++        'platlib': '{platbase}/lib64/python{py_version_short}/site-packages',
+         'include':
+             '{installed_base}/include/python{py_version_short}{abiflags}',
+         'platinclude':
+@@ -33,9 +33,9 @@
+         },
+     'posix_home': {
+         'stdlib': '{installed_base}/lib/python',
+-        'platstdlib': '{base}/lib/python',
++        'platstdlib': '{base}/lib64/python',
+         'purelib': '{base}/lib/python',
+-        'platlib': '{base}/lib/python',
++        'platlib': '{base}/lib64/python',
+         'include': '{installed_base}/include/python',
+         'platinclude': '{installed_base}/include/python',
+         'scripts': '{base}/bin',
+@@ -62,9 +62,9 @@
+         },
+     'posix_user': {
+         'stdlib': '{userbase}/lib/python{py_version_short}',
+-        'platstdlib': '{userbase}/lib/python{py_version_short}',
++        'platstdlib': '{userbase}/lib64/python{py_version_short}',
+         'purelib': '{userbase}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{userbase}/lib/python{py_version_short}/site-packages',
++        'platlib': '{userbase}/lib64/python{py_version_short}/site-packages',
+         'include': '{userbase}/include/python{py_version_short}',
+         'scripts': '{userbase}/bin',
+         'data': '{userbase}',
+diff -Nur orig64bit/Lib/test/test_site.py aix64bit/Lib/test/test_site.py
+--- orig64bit/Lib/test/test_site.py	2017-07-08 05:33:27 +0200
++++ aix64bit/Lib/test/test_site.py	2017-08-30 18:32:12 +0200
+@@ -269,8 +269,8 @@
+         dirs = site.getsitepackages()
+         if os.sep == '/':
+             # OS X, Linux, FreeBSD, etc
+-            self.assertEqual(len(dirs), 1)
+-            wanted = os.path.join('xoxo', 'lib',
++            self.assertEqual(len(dirs), 2)
++            wanted = os.path.join('xoxo', 'lib64',
+                                   'python%d.%d' % sys.version_info[:2],
+                                   'site-packages')
+             self.assertEqual(dirs[0], wanted)
+diff -Nur orig64bit/Makefile.pre.in aix64bit/Makefile.pre.in
+--- orig64bit/Makefile.pre.in	2017-07-08 05:33:27 +0200
++++ aix64bit/Makefile.pre.in	2017-08-09 15:39:50 +0200
+@@ -133,7 +133,7 @@
+ MANDIR=		@mandir@
+ INCLUDEDIR=	@includedir@
+ CONFINCLUDEDIR=	$(exec_prefix)/include
+-SCRIPTDIR=	$(prefix)/lib
++SCRIPTDIR=	$(prefix)/lib64
+ ABIFLAGS=	@ABIFLAGS@
+ 
+ # Detailed destination directories
+diff -Nur orig64bit/Modules/getpath.c aix64bit/Modules/getpath.c
+--- orig64bit/Modules/getpath.c	2017-07-08 05:33:27 +0200
++++ aix64bit/Modules/getpath.c	2017-08-09 15:40:08 +0200
+@@ -787,7 +787,7 @@
+     else {
+         wcsncpy(calculate->zip_path, calculate->prefix, MAXPATHLEN);
+     }
+-    joinpath(calculate->zip_path, L"lib/python00.zip");
++    joinpath(calculate->zip_path, L"lib64/python00.zip");
+ 
+     /* Replace "00" with version */
+     size_t bufsz = wcslen(calculate->zip_path);
+@@ -912,7 +912,7 @@
+     if (!calculate->prefix) {
+         return DECODE_LOCALE_ERR("EXEC_PREFIX define", len);
+     }
+-    calculate->lib_python = Py_DecodeLocale("lib/python" VERSION, &len);
++    calculate->lib_python = Py_DecodeLocale("lib64/python" VERSION, &len);
+     if (!calculate->lib_python) {
+         return DECODE_LOCALE_ERR("EXEC_PREFIX define", len);
+     }
+diff -Nur orig64bit/setup.py aix64bit/setup.py
+--- orig64bit/setup.py	2017-07-08 05:33:27 +0200
++++ aix64bit/setup.py	2017-08-09 15:40:40 +0200
+@@ -420,7 +420,7 @@
+ 
+         if multiarch_path_component != '':
+             add_dir_to_list(self.compiler.library_dirs,
+-                            '/usr/lib/' + multiarch_path_component)
++                            '/opt/freeware/lib64/' + multiarch_path_component)
+             add_dir_to_list(self.compiler.include_dirs,
+                             '/usr/include/' + multiarch_path_component)
+             return
+@@ -441,7 +441,7 @@
+                 with open(tmpfile) as fp:
+                     multiarch_path_component = fp.readline().strip()
+                 add_dir_to_list(self.compiler.library_dirs,
+-                                '/usr/lib/' + multiarch_path_component)
++                                '/opt/freeware/lib64/' + multiarch_path_component)
+                 add_dir_to_list(self.compiler.include_dirs,
+                                 '/usr/include/' + multiarch_path_component)
+         finally:

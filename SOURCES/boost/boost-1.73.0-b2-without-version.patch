@@ -1,0 +1,67 @@
+--- ./tools/build/src/tools/gcc.jam.orig	2020-05-12 16:11:41 -0500
++++ ./tools/build/src/tools/gcc.jam	2020-05-18 09:58:12 -0500
+@@ -952,7 +952,7 @@
+     # AIX 4.x and AIX 6.x. For details about the AIX linker see:
+     # http://download.boulder.ibm.com/ibmdl/pub/software/dw/aix/es-aix_ll.pdf
+     #
+-    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-brtl -Wl,-bnoipath -Wl,-lpthread -Wl,-latomic ;
++    toolset.flags gcc.link OPTIONS <target-os>aix : -Wl,-bnoipath -Wl,-lpthread -Wl,-latomic ;
+ 
+     # See note [1]
+     toolset.flags gcc.link OPTIONS <target-os>aix/<runtime-link>static : -static ;
+@@ -1131,7 +1131,15 @@
+ # Differs from 'link' above only by -shared.
+ actions link.dll bind LIBRARIES
+ {
+-    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" "$(.IMPLIB-COMMAND)$(<[1])" -o "$(<[-1])" $(HAVE_SONAME)-Wl,$(SONAME_OPTION)$(SPACE)-Wl,$(<[-1]:D=) -shared $(START-GROUP) "$(>)" "$(LIBRARIES)" $(FINDLIBS-ST-PFX) -l$(FINDLIBS-ST) $(FINDLIBS-SA-PFX) -l$(FINDLIBS-SA) $(END-GROUP) $(OPTIONS) $(USER_OPTIONS)
++    (
++    FILE=$(<[-1]);
++    if [ "$FILE" == "${FILE%%.a*}" ]; then
++      "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -o "$(<[-1])" -shared $(START-GROUP) "$(>)" "$(LIBRARIES)" $(FINDLIBS-ST-PFX) -l$(FINDLIBS-ST) $(FINDLIBS-SA-PFX) -l$(FINDLIBS-SA) $(END-GROUP) $(OPTIONS) $(USER_OPTIONS) ;
++    else
++      "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -o "${FILE%%.a*}.so${FILE##*.a}" -shared $(START-GROUP) "$(>)" "$(LIBRARIES)" $(FINDLIBS-ST-PFX) -l$(FINDLIBS-ST) $(FINDLIBS-SA-PFX) -l$(FINDLIBS-SA) $(END-GROUP) $(OPTIONS) $(USER_OPTIONS) ;
++      ar -X32_64 -qc "$(<[-1])" "${FILE%%.a*}.so${FILE##*.a}"
++    fi
++    )
+ }
+ 
+ ###
+--- ./tools/build/src/tools/types/lib.jam.orig	2020-05-18 15:17:06 -0500
++++ ./tools/build/src/tools/types/lib.jam	2020-05-14 15:39:44 -0500
+@@ -30,7 +30,7 @@
+ type.register LIB ;
+ 
+ # FIXME: should not register both extensions on both platforms.
+-type.register STATIC_LIB : a lib : LIB ;
++type.register STATIC_LIB : static.a : LIB ;
+ 
+ # The 'lib' prefix is used everywhere
+ type.set-generated-target-prefix STATIC_LIB : : lib ;
+@@ -41,6 +41,10 @@
+ # Except with gcc.
+ type.set-generated-target-suffix STATIC_LIB : <toolset>gcc <target-os>windows : a ;
+ 
++# AIX has .a for both shared and static.
++# b2 does not accept...
++type.set-generated-target-suffix STATIC_LIB : <target-os>aix : static.a ;
++
+ # Use xxx.lib for import libs
+ type IMPORT_LIB : : STATIC_LIB ;
+ type.set-generated-target-prefix IMPORT_LIB : : "" ;
+@@ -50,7 +54,7 @@
+ type.set-generated-target-prefix IMPORT_LIB : <toolset>gcc : lib ;
+ type.set-generated-target-suffix IMPORT_LIB : <toolset>gcc : dll.a ;
+ 
+-type.register SHARED_LIB : so dll dylib : LIB ;
++type.register SHARED_LIB : so dll dylib a : LIB ;
+ 
+ # Both mingw and cygwin use libxxx.dll naming scheme.
+ # On Linux, use "lib" prefix
+@@ -66,6 +70,7 @@
+ type.set-generated-target-suffix SHARED_LIB : <target-os>windows : dll ;
+ type.set-generated-target-suffix SHARED_LIB : <target-os>cygwin : dll ;
+ type.set-generated-target-suffix SHARED_LIB : <target-os>darwin : dylib ;
++type.set-generated-target-suffix SHARED_LIB : <target-os>aix : a ;
+ 
+ type SEARCHED_LIB : : LIB ;
+ # This is needed so that when we create a target of SEARCHED_LIB

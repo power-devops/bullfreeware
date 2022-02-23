@@ -1,0 +1,232 @@
+From 0b5712f10badc55c43ad189d24ce25eb194aa976 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Dec 2020 11:02:28 +0100
+Subject: [PATCH] pkg/fileutils: fix flock for AIX
+
+---
+ pkg/fileutil/lock_fcntl.go   | 62 ++++++++++++++++++++++++++++++++++++
+ pkg/fileutil/lock_flock.go   |  2 +-
+ pkg/fileutil/lock_solaris.go | 62 ------------------------------------
+ pkg/fileutil/lock_unix.go    |  2 +-
+ pkg/fileutil/sync.go         |  2 +-
+ pkg/fileutil/sync_aix.go     | 31 ++++++++++++++++++
+ 6 files changed, 96 insertions(+), 65 deletions(-)
+ create mode 100644 pkg/fileutil/lock_fcntl.go
+ delete mode 100644 pkg/fileutil/lock_solaris.go
+ create mode 100644 pkg/fileutil/sync_aix.go
+
+diff --git a/pkg/fileutil/lock_fcntl.go b/pkg/fileutil/lock_fcntl.go
+new file mode 100644
+index 0000000..16a24a7
+--- /dev/null
++++ b/pkg/fileutil/lock_fcntl.go
+@@ -0,0 +1,62 @@
++// Copyright 2015 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++// +build solaris aix
++
++package fileutil
++
++import (
++	"os"
++	"syscall"
++)
++
++func TryLockFile(path string, flag int, perm os.FileMode) (*LockedFile, error) {
++	var lock syscall.Flock_t
++	lock.Start = 0
++	lock.Len = 0
++	lock.Pid = 0
++	lock.Type = syscall.F_WRLCK
++	lock.Whence = 0
++	lock.Pid = 0
++	f, err := os.OpenFile(path, flag, perm)
++	if err != nil {
++		return nil, err
++	}
++	if err := syscall.FcntlFlock(f.Fd(), syscall.F_SETLK, &lock); err != nil {
++		f.Close()
++		if err == syscall.EAGAIN {
++			err = ErrLocked
++		}
++		return nil, err
++	}
++	return &LockedFile{f}, nil
++}
++
++func LockFile(path string, flag int, perm os.FileMode) (*LockedFile, error) {
++	var lock syscall.Flock_t
++	lock.Start = 0
++	lock.Len = 0
++	lock.Pid = 0
++	lock.Type = syscall.F_WRLCK
++	lock.Whence = 0
++	f, err := os.OpenFile(path, flag, perm)
++	if err != nil {
++		return nil, err
++	}
++	if err = syscall.FcntlFlock(f.Fd(), syscall.F_SETLKW, &lock); err != nil {
++		f.Close()
++		return nil, err
++	}
++	return &LockedFile{f}, nil
++}
+diff --git a/pkg/fileutil/lock_flock.go b/pkg/fileutil/lock_flock.go
+index 542550b..25665c8 100644
+--- a/pkg/fileutil/lock_flock.go
++++ b/pkg/fileutil/lock_flock.go
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-// +build !windows,!plan9,!solaris
++// +build !windows,!plan9,!solaris,!aix
+ 
+ package fileutil
+ 
+diff --git a/pkg/fileutil/lock_solaris.go b/pkg/fileutil/lock_solaris.go
+deleted file mode 100644
+index 352ca55..0000000
+--- a/pkg/fileutil/lock_solaris.go
++++ /dev/null
+@@ -1,62 +0,0 @@
+-// Copyright 2015 The etcd Authors
+-//
+-// Licensed under the Apache License, Version 2.0 (the "License");
+-// you may not use this file except in compliance with the License.
+-// You may obtain a copy of the License at
+-//
+-//     http://www.apache.org/licenses/LICENSE-2.0
+-//
+-// Unless required by applicable law or agreed to in writing, software
+-// distributed under the License is distributed on an "AS IS" BASIS,
+-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-// See the License for the specific language governing permissions and
+-// limitations under the License.
+-
+-// +build solaris
+-
+-package fileutil
+-
+-import (
+-	"os"
+-	"syscall"
+-)
+-
+-func TryLockFile(path string, flag int, perm os.FileMode) (*LockedFile, error) {
+-	var lock syscall.Flock_t
+-	lock.Start = 0
+-	lock.Len = 0
+-	lock.Pid = 0
+-	lock.Type = syscall.F_WRLCK
+-	lock.Whence = 0
+-	lock.Pid = 0
+-	f, err := os.OpenFile(path, flag, perm)
+-	if err != nil {
+-		return nil, err
+-	}
+-	if err := syscall.FcntlFlock(f.Fd(), syscall.F_SETLK, &lock); err != nil {
+-		f.Close()
+-		if err == syscall.EAGAIN {
+-			err = ErrLocked
+-		}
+-		return nil, err
+-	}
+-	return &LockedFile{f}, nil
+-}
+-
+-func LockFile(path string, flag int, perm os.FileMode) (*LockedFile, error) {
+-	var lock syscall.Flock_t
+-	lock.Start = 0
+-	lock.Len = 0
+-	lock.Pid = 0
+-	lock.Type = syscall.F_WRLCK
+-	lock.Whence = 0
+-	f, err := os.OpenFile(path, flag, perm)
+-	if err != nil {
+-		return nil, err
+-	}
+-	if err = syscall.FcntlFlock(f.Fd(), syscall.F_SETLKW, &lock); err != nil {
+-		f.Close()
+-		return nil, err
+-	}
+-	return &LockedFile{f}, nil
+-}
+diff --git a/pkg/fileutil/lock_unix.go b/pkg/fileutil/lock_unix.go
+index ed01164..59b25f3 100644
+--- a/pkg/fileutil/lock_unix.go
++++ b/pkg/fileutil/lock_unix.go
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-// +build !windows,!plan9,!solaris,!linux
++// +build !windows,!plan9,!solaris,!linux,!aix
+ 
+ package fileutil
+ 
+diff --git a/pkg/fileutil/sync.go b/pkg/fileutil/sync.go
+index 54dd41f..da32dec 100644
+--- a/pkg/fileutil/sync.go
++++ b/pkg/fileutil/sync.go
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-// +build !linux,!darwin
++// +build !linux,!darwin,!aix
+ 
+ package fileutil
+ 
+diff --git a/pkg/fileutil/sync_aix.go b/pkg/fileutil/sync_aix.go
+new file mode 100644
+index 0000000..cce39e2
+--- /dev/null
++++ b/pkg/fileutil/sync_aix.go
+@@ -0,0 +1,31 @@
++// Copyright 2016 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++// +build aix
++
++package fileutil
++
++import "os"
++
++// file.Sync() does not work on directories or if the file was opened in read-only mode on AIX.
++func Fsync(f *os.File) error {
++	f.Sync()
++	return nil
++}
++
++// file.Sync() does not work on directories or if the file was opened in read-only mode on AIX.
++func Fdatasync(f *os.File) error {
++	f.Sync()
++	return nil
++}
+-- 
+2.25.0
+

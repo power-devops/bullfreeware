@@ -1,0 +1,40 @@
+diff --git a/configure b/configure
+index 4289fa8..104ec4e 100755
+--- a/configure
++++ b/configure
+@@ -16117,7 +16117,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -19608,7 +19611,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name" ;;
++                  *) LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -70493,7 +70493,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do

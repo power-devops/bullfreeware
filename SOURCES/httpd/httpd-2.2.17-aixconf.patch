@@ -1,0 +1,48 @@
+Index: httpd-2.2.17/srclib/apr-util/configure
+===================================================================
+--- httpd-2.2.17.orig/srclib/apr-util/configure	2010-10-14 20:45:26.000000000 +0200
++++ httpd-2.2.17/srclib/apr-util/configure	2011-03-03 10:33:28.000000000 +0100
+@@ -3652,7 +3652,7 @@
+   fi
+ 
+         ;;
+-    *-ibm-aix4*|*-ibm-aix5.1*)
++    *-ibm-aix4*|*-ibm-aix5*|*-ibm-aix6*)
+ 
+   if test -z "$apu_iconv_inbuf_const"; then
+     test "x$silent" != "xyes" && echo "  setting apu_iconv_inbuf_const to \"1\""
+Index: httpd-2.2.17/srclib/apr/configure
+===================================================================
+--- httpd-2.2.17.orig/srclib/apr/configure	2010-10-14 20:45:19.000000000 +0200
++++ httpd-2.2.17/srclib/apr/configure	2011-03-03 10:30:17.000000000 +0100
+@@ -4624,7 +4624,7 @@
+   fi
+ 
+ 	        ;;
+-            *-ibm-aix5*)
++            *-ibm-aix5*|*-ibm-aix6*)
+ 
+   if test "x$CPPFLAGS" = "x"; then
+     test "x$silent" != "xyes" && echo "  setting CPPFLAGS to \"-D_USE_IRS\""
+@@ -38783,7 +38783,7 @@
+          pid_t_fmt='#define APR_PID_T_FMT "ld"'
+        fi
+        ;;
+-   *aix4*|*aix5*)
++   *aix4*|*aix5*|*aix6*)
+        ssize_t_fmt="ld"
+        size_t_fmt="lu"
+        ;;
+Index: httpd-2.2.17/srclib/apr/configure.in
+===================================================================
+--- httpd-2.2.17.orig/srclib/apr/configure.in	2009-11-16 08:45:28.000000000 +0100
++++ httpd-2.2.17/srclib/apr/configure.in	2011-03-03 10:34:04.000000000 +0100
+@@ -1645,7 +1645,7 @@
+          pid_t_fmt='#define APR_PID_T_FMT "ld"'
+        fi
+        ;;
+-   *aix4*|*aix5*)
++   *aix4*|*aix5*|*aix6*)
+        ssize_t_fmt="ld"
+        size_t_fmt="lu"
+        ;;

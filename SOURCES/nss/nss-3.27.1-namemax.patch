@@ -1,0 +1,23 @@
+diff -Nur nss-3.27.1.orig/nss/lib/freebl/unix_rand.c nss-3.27.1/nss/lib/freebl/unix_rand.c
+--- nss-3.27.1.orig/nss/lib/freebl/unix_rand.c	2016-10-03 16:55:58 +0200
++++ nss-3.27.1/nss/lib/freebl/unix_rand.c	2016-10-18 10:43:53 +0200
+@@ -1070,7 +1070,7 @@
+     struct dirent *entry;
+ #if defined(__sun)
+     char firstName[256];
+-#else
++#elif !defined(_AIX)
+     char firstName[NAME_MAX + 1];
+ #endif
+     const char *name = NULL;
+@@ -1085,6 +1085,10 @@
+     if (fd == NULL) {
+         return 1;
+     }
++#if defined(_AIX)
++    long nameMax = fpathconf(fd, _PC_NAME_MAX);
++    char firstName[nameMax];
++#endif
+ 
+     firstName[0] = '\0';
+     for (i = 0; i <= fileToRead; i++) {

@@ -1,0 +1,32 @@
+--- ./lib/Makefile.ORIGIN	2019-11-26 18:14:55 +0100
++++ ./lib/Makefile	2019-11-26 18:17:04 +0100
+@@ -118,8 +118,13 @@
+ 	$(Q)$(CC) $(FLAGS) -DLZ4_DLL_EXPORT=1 -shared $^ -o dll/$@.dll -Wl,--out-implib,dll/$(LIBLZ4_EXP)
+   else
+     ifeq ($(shell uname), AIX)
+-	CreateExportList liblz4.exp liblz4.a
+-	$(Q)$(CC) -qmkshrobj liblz4.a -o $@ -bE:liblz4.exp -bernotok
++	$(XLCCPATH)/CreateExportList liblz4.exp liblz4.a
++	echo "CC: ${CC}"
++ifeq ($(CC),gcc)
++	$(Q)$(CC)  $(CFLAGS) -shared    liblz4.a -o $@ -Wl,-bE:liblz4.exp -Wl,-bernotok
++else
++	$(Q)$(CC)            -qmkshrobj liblz4.a -o $@     -bE:liblz4.exp     -bernotok
++endif
+ 	/usr/bin/rm -f liblz4.exp
+ 	/usr/bin/rm -f liblz4.a
+     else
+--- ./lib/Makefile.ORIGIN	2019-11-27 18:19:12 +0100
++++ ./lib/Makefile	2019-11-27 18:19:23 +0100
+@@ -121,9 +121,9 @@
+ 	$(XLCCPATH)/CreateExportList liblz4.exp liblz4.a
+ 	echo "CC: ${CC}"
+ ifeq ($(CC),gcc)
+-	$(Q)$(CC)  $(CFLAGS) -shared    liblz4.a -o $@ -Wl,-bE:liblz4.exp -Wl,-bernotok
++	$(Q)$(CC)  $(CFLAGS) -shared    liblz4.a -o $@ -Wl,-bE:liblz4.exp -Wl,-bernotok -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib
+ else
+-	$(Q)$(CC)            -qmkshrobj liblz4.a -o $@     -bE:liblz4.exp     -bernotok
++	$(Q)$(CC)            -qmkshrobj liblz4.a -o $@     -bE:liblz4.exp     -bernotok     -blibpath:/opt/freeware/lib:/usr/lib:/lib
+ endif
+ 	/usr/bin/rm -f liblz4.exp
+ 	/usr/bin/rm -f liblz4.a

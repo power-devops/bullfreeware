@@ -1,0 +1,32 @@
+From f681e5867de63f1c8ca692023cf86e4c884fdae7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 29 Jul 2021 13:14:47 +0200
+Subject: [PATCH] gas: ensure XCOFF DWARF subsection are initialized to 0
+
+debug_abbrev doesn't use end_exp to compute its size. However, it must
+be NULL. Otherwise, ppc_xcoff_end might try to access uninitialized
+memory.
+
+gas/
+	* config/tc-ppc.c (ppc_dwsect): Use XCNEW instead of XNEW when creating
+	a new subsection.
+---
+ gas/config/tc-ppc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index 8c3b0a8e7cc..1327eabf98d 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -4723,7 +4723,7 @@ ppc_dwsect (int ignore ATTRIBUTE_UNUSED)
+   else
+     {
+       /* Create a new dw subsection.  */
+-      subseg = XNEW (struct dw_subsection);
++      subseg = XCNEW (struct dw_subsection);
+ 
+       if (opt_label == NULL)
+         {
+-- 
+2.33.0
+

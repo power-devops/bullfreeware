@@ -1,0 +1,50 @@
+From d894cfd104086ddf68c286e67a5fb2e02eb43b7b Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Thu, 29 Aug 2019 11:21:20 -0400
+Subject: [PATCH] Bash-5.0 patch 11: fix quoted null character removal in
+ operands of conditional ([[) commands
+
+---
+ patchlevel.h | 2 +-
+ subst.c      | 6 +++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/patchlevel.h b/patchlevel.h
+index 8002af70..772676c8 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 10
++#define PATCHLEVEL 11
+ 
+ #endif /* _PATCHLEVEL_H_ */
+diff --git a/subst.c b/subst.c
+index 95591878..fd6db240 100644
+--- a/subst.c
++++ b/subst.c
+@@ -3625,7 +3625,9 @@ remove_backslashes (string)
+    this case, we quote the string specially for the globbing code.  If
+    SPECIAL is 2, this is an rhs argument for the =~ operator, and should
+    be quoted appropriately for regcomp/regexec.  The caller is responsible
+-   for removing the backslashes if the unquoted word is needed later. */   
++   for removing the backslashes if the unquoted word is needed later. In
++   any case, since we don't perform word splitting, we need to do quoted
++   null character removal. */
+ char *
+ cond_expand_word (w, special)
+      WORD_DESC *w;
+@@ -3646,6 +3648,8 @@ cond_expand_word (w, special)
+     {
+       if (special == 0)			/* LHS */
+ 	{
++	  if (l->word)
++	    word_list_remove_quoted_nulls (l);
+ 	  dequote_list (l);
+ 	  r = string_list (l);
+ 	}
+-- 
+2.21.0
+

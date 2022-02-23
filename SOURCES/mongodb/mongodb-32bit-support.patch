@@ -1,0 +1,59 @@
+diff --git a/src/mongo/bson/bsonobjbuilder.h b/src/mongo/bson/bsonobjbuilder.h
+index 6162495c1c..8c0bece154 100644
+--- a/src/mongo/bson/bsonobjbuilder.h
++++ b/src/mongo/bson/bsonobjbuilder.h
+@@ -350,7 +350,7 @@ public:
+         return append(fieldName, d);
+     }
+ 
+-    BSONObjBuilder& appendNumber(StringData fieldName, size_t n) {
++    BSONObjBuilder& appendNumber(StringData fieldName, uint64_t n) {
+         static const size_t maxInt = (1 << 30);
+         if (n < maxInt)
+             append(fieldName, static_cast<int>(n));
+@@ -359,6 +359,18 @@ public:
+         return *this;
+     }
+ 
++    /**
++     * Implement appendNumber for uint64_t and size_t on 32-bit platforms where
++     * these types differs. Typically for
++     * 32b: size_t ~ unsigned int; uint64_t ~ unsigned long long;
++     * 64b: size_t ~ unsigned long; uint64_t ~ unsigned long;
++     */
++    inline BSONObjBuilder& appendNumber(
++        StringData fieldName,
++        std::conditional<!std::is_same<uint64_t, size_t>::value, size_t, unsigned int>::type n) {
++        return appendNumber(fieldName, static_cast<uint64_t>(n));
++    }
++
+     BSONObjBuilder& appendNumber(StringData fieldName, Decimal128 decNumber) {
+         return append(fieldName, decNumber);
+     }
+diff --git a/src/mongo/db/storage/storage_options.cpp b/src/mongo/db/storage/storage_options.cpp
+index dfbb776656..02d9f18520 100644
+--- a/src/mongo/db/storage/storage_options.cpp
++++ b/src/mongo/db/storage/storage_options.cpp
+@@ -41,7 +41,7 @@ StorageGlobalParams::StorageGlobalParams() {
+ }
+ 
+ void StorageGlobalParams::reset() {
+-    engine = "wiredTiger";
++    engine = "mmapv1";
+     engineSetByUser = false;
+     dbpath = kDefaultDbPath;
+     upgrade = false;
+diff --git a/src/mongo/platform/overflow_arithmetic.h b/src/mongo/platform/overflow_arithmetic.h
+index a213bf479f..0fcce4b138 100644
+--- a/src/mongo/platform/overflow_arithmetic.h
++++ b/src/mongo/platform/overflow_arithmetic.h
+@@ -143,7 +143,8 @@ inline bool mongoSignedAddOverflow64(long long lhs, long long rhs, long long* su
+     return __builtin_add_overflow(lhs, rhs, sum);
+ }
+ 
+-inline bool mongoUnsignedAddOverflow64(unsigned long lhs, unsigned long rhs, unsigned long* sum) {
++// 32b arch: invalid conversion from 'size_t*' {aka 'unsigned int*'} to 'long unsigned int*'
++inline bool mongoUnsignedAddOverflow64(std::size_t lhs, std::size_t rhs, std::size_t* sum) {
+     return __builtin_add_overflow(lhs, rhs, sum);
+ }
+ 

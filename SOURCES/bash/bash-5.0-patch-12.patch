@@ -1,0 +1,56 @@
+From b0852fb54efbcee630847fcfdc435133f82043b9 Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Fri, 7 Feb 2020 15:16:28 -0500
+Subject: [PATCH] Bash-5.0 patch 12: fix problems moving back beyond start of
+ history
+
+---
+ lib/readline/misc.c | 5 ++++-
+ patchlevel.h        | 2 +-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/lib/readline/misc.c b/lib/readline/misc.c
+index 64b1457d..42005b0c 100644
+--- a/lib/readline/misc.c
++++ b/lib/readline/misc.c
+@@ -576,6 +576,7 @@ int
+ rl_get_previous_history (int count, int key)
+ {
+   HIST_ENTRY *old_temp, *temp;
++  int had_saved_line;
+ 
+   if (count < 0)
+     return (rl_get_next_history (-count, key));
+@@ -588,6 +589,7 @@ rl_get_previous_history (int count, int key)
+     _rl_history_saved_point = (rl_point == rl_end) ? -1 : rl_point;
+ 
+   /* If we don't have a line saved, then save this one. */
++  had_saved_line = _rl_saved_line_for_history != 0;
+   rl_maybe_save_line ();
+ 
+   /* If the current line has changed, save the changes. */
+@@ -611,7 +613,8 @@ rl_get_previous_history (int count, int key)
+ 
+   if (temp == 0)
+     {
+-      rl_maybe_unsave_line ();
++      if (had_saved_line == 0)
++        _rl_free_saved_history_line ();
+       rl_ding ();
+     }
+   else
+diff --git a/patchlevel.h b/patchlevel.h
+index 772676c8..93dbe0db 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 11
++#define PATCHLEVEL 12
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.25.1
+

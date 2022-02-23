@@ -1,0 +1,16 @@
+--- ./Makefile.ORIG	2020-03-24 11:54:06 +0100
++++ ./Makefile	2020-11-27 18:57:55 +0100
+@@ -68,9 +68,13 @@
+ ifeq (darwin,$(PLATFORM))
+ LDFLAGS_LIB += -Wl,-install_name,$(LIBDIR)/$(SONAME)
+ else
++ifeq (aix,$(PLATFORM))
++LDFLAGS_LIB +=
++else
+ # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
+ LDFLAGS_LIB += -Wl,-soname=$(SONAME)
+ endif
++endif
+ 
+ test: test_g test_fast
+ 	$(HELPER) ./test_g$(BINEXT)

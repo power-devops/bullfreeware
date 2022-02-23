@@ -1,0 +1,11 @@
+--- ./include/violite.h.ORIGIN	2019-06-04 11:47:24 -0500
++++ ./include/violite.h	2019-06-04 11:47:27 -0500
+@@ -49,7 +49,7 @@
+ 
+ /* Simple vio interface in C;  The functions are implemented in violite.c */
+ 
+-#if !defined(_WIN32) && !defined(HAVE_KQUEUE) && !defined(__SUNPRO_CC)
++#if !defined(_WIN32) && !defined(HAVE_KQUEUE) && !defined(__SUNPRO_CC) && !defined(_AIX)
+ #define USE_PPOLL_IN_VIO
+ #endif
+ 

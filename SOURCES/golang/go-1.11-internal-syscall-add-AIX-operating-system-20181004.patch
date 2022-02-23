@@ -1,0 +1,26 @@
+From d6d010a891ced70995c34221c093de875f0c6ff2 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:21:58 +0200
+Subject: [PATCH] internal/syscall: add AIX operating system
+
+This commit adds AIX operating system to internal/syscall package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: I5c3a9d4403ca170a7e894e06e68b83387d09b816
+---
+
+diff --git a/src/internal/syscall/unix/nonblocking.go b/src/internal/syscall/unix/nonblocking.go
+index 1db3394..233b668 100644
+--- a/src/internal/syscall/unix/nonblocking.go
++++ b/src/internal/syscall/unix/nonblocking.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package unix
+ 

@@ -1,0 +1,34 @@
+--- old/libguile/socket.c	2016-08-05 15:15:43 +0200
++++ new/libguile/socket.c	2016-08-05 15:15:09 +0200
+@@ -284,12 +284,11 @@
+   const char *result;
+ 
+   af = scm_to_int (family);
+-  SCM_ASSERT_RANGE (1, family,
+-		    af == AF_INET
+ #ifdef HAVE_IPV6
+-		    || af == AF_INET6
++  SCM_ASSERT_RANGE (1, family, af == AF_INET || af == AF_INET6);
++#else
++  SCM_ASSERT_RANGE (1, family, af == AF_INET );
+ #endif
+-		    );
+   if (af == AF_INET)
+     {
+       scm_t_uint32 addr4;
+@@ -335,12 +334,11 @@
+   int rv, eno;
+ 
+   af = scm_to_int (family);
+-  SCM_ASSERT_RANGE (1, family,
+-		    af == AF_INET
+ #ifdef HAVE_IPV6
+-		    || af == AF_INET6
++  SCM_ASSERT_RANGE (1, family, af == AF_INET || af == AF_INET6);
++#else
++  SCM_ASSERT_RANGE (1, family, af == AF_INET );
+ #endif
+-		    );
+ 
+   src = scm_to_locale_string (address);
+   rv = inet_pton (af, src, dst);

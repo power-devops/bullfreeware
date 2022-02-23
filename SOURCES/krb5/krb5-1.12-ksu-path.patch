@@ -1,0 +1,22 @@
+From d5f00c7819b307be9ed2ca4bf2ac9b273fc04c84 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Tue, 23 Aug 2016 16:32:09 -0400
+Subject: [PATCH] krb5-1.12-ksu-path.patch
+
+Set the default PATH to the one set by login.
+---
+ src/clients/ksu/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/clients/ksu/Makefile.in b/src/clients/ksu/Makefile.in
+index 5755bb58a..9d58f29b5 100644
+--- a/src/clients/ksu/Makefile.in
++++ b/src/clients/ksu/Makefile.in
+@@ -1,6 +1,6 @@
+ mydir=clients$(S)ksu
+ BUILDTOP=$(REL)..$(S)..
+-DEFINES = -DGET_TGT_VIA_PASSWD -DPRINC_LOOK_AHEAD -DCMD_PATH='"/bin /local/bin"'
++DEFINES = -DGET_TGT_VIA_PASSWD -DPRINC_LOOK_AHEAD -DCMD_PATH='"/usr/local/sbin /usr/local/bin /sbin /bin /usr/sbin /usr/bin"'
+ 
+ KSU_LIBS=@KSU_LIBS@
+ PAM_LIBS=@PAM_LIBS@

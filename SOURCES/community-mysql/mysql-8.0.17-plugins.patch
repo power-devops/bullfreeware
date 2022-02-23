@@ -1,0 +1,364 @@
+--- /dev/null	2019-08-27 15:05:00 -0500
++++ ./extra/AIX/server.exp	2019-08-27 11:07:42 -0500
+@@ -0,0 +1,20 @@
++#!
++_mysql_plugin_interface_version_
++_mysql_plugin_declarations_
++srv_session_service
++command_service
++srv_session_info_service
++thd_alloc_service
++thd_wait_service
++my_thread_scheduler_service
++my_plugin_log_service
++mysql_string_service
++mysql_malloc_service
++mysql_password_policy_service
++mysql_parser_service
++rpl_transaction_ctx_service
++transaction_write_set_service
++security_context_service
++mysql_locking_service
++mysql_keyring_service
++plugin_registry_service
+--- ./cmake/plugin.cmake.ORIGIN	2019-08-29 10:13:11 -0500
++++ ./cmake/plugin.cmake	2019-08-30 14:37:35 -0500
+@@ -208,6 +208,13 @@
+     ENDIF()
+     ADD_DEPENDENCIES(${target} GenError ${ARG_DEPENDENCIES})
+ 
++    IF(AIX)
++      ADD_DEPENDENCIES(${target} mysqld_symbols)
++      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
++      message("  * mysqld_symbols: target: ${target}")
++      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/server.exp")
++    ENDIF()
++
+      IF(NOT ARG_MODULE_ONLY)
+       # set cached variable, e.g with checkbox in GUI
+       SET(${with_var} OFF CACHE BOOL "Link ${plugin} statically to the server" 
+--- ./sql/CMakeLists.txt.ORIGIN	2019-08-29 09:42:12 -0500
++++ ./sql/CMakeLists.txt	2019-08-30 14:36:57 -0500
+@@ -862,6 +862,32 @@
+   ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
+ #	target_link_options(mysqld PUBLIC "-Wl,-berok")
+ 
++IF(AIX)
++  # For mysqld
++# 8.0.17 Dependency targets myisam_sys,mysys_ssl of mysqld_symbols do not exist
++# 8.0.17 some libs have been moved from archive_output_directory to sql
++# 8.0.17 symbols from deleted libmysys_ssl are now in libmysys
++# 8.0.17 symbols from deleted libmyisam_sys are now in libmyisam_library
++# 8.0.16/7 require symbol _ZN10binary_log4Uuid5parseEPKcm in libbinlogevents
++  add_custom_target(mysqld_symbols
++    COMMAND printf "#! .\\n" > ./libmysqld.exp.1
++    COMMAND CreateExportList   ./libmysqld.exp.2 ../archive_output_directory/libdbug.a ../archive_output_directory/libmysys.a ../archive_output_directory/libmytime.a ../archive_output_directory/libstrings.a ../archive_output_directory/libvio.a ../components/mysql_server/component_mysql_server.a ../extra/icu/source/common/libicuuc.a ../extra/icu/source/i18n/libicui18n.a ../extra/icu/source/stubdata/libicustubdata.a ../extra/libevent/lib/libevent.a ../libbinlogevents/lib/libbinlogevents.a ../plugin/fulltext/libngram_parser.a ../plugin/x/libmysqlx.a ../plugin/x/protocol/libmysqlxmessages_lite.a ../sql/libbinlog.a ../sql/libmaster.a ../sql/librpl.a ../sql/libslave.a ../sql/libsql_dd.a ../sql/libsql_gis.a ../sql/libsql_main.a ../storage/archive/libarchive.a ../storage/blackhole/libblackhole.a ../storage/csv/libcsv.a ../storage/federated/libfederated.a ../storage/heap/libheap.a ../storage/innobase/libinnobase.a ../storage/myisam/libmyisam.a ../storage/myisam/libmyisam_library.a ../storage/myisammrg/libmyisammrg.a ../storage/perfschema/libperfschema.a ../storage/temptable/libtemptable.a  -X64
++    COMMAND cat ./libmysqld.exp.1 ./libmysqld.exp.2 > ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++    COMMAND rm  ./libmysqld.exp.1 ./libmysqld.exp.2
++    VERBATIM
++  )
++  ADD_DEPENDENCIES(mysqld_symbols archive binlog blackhole component_mysql_server csv dbug event federated heap icui18n icustubdata icuuc innobase master myisam myisam_library myisammrg mysqlx mysqlxmessages_lite mysys mytime ngram_parser perfschema rpl slave sql_dd sql_gis sql_main strings temptable vio)
++  ADD_DEPENDENCIES(mysqld mysqld_symbols)
++  TARGET_LINK_OPTIONS(mysqld PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
++
++  # For auth_test_plugin.so loaded by mysql & mysqltest
++  add_custom_target(auth_plugins_symbols
++    COMMAND cat ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp | grep -v -f ${CMAKE_SOURCE_DIR}/extra/AIX/auth_plugins.not > ${CMAKE_SOURCE_DIR}/build/sql/auth_plugins.exp
++    VERBATIM
++  )
++  ADD_DEPENDENCIES(auth_plugins_symbols mysqld_symbols)
++ENDIF()
++
+ SET_TARGET_PROPERTIES(mysqld PROPERTIES INSTALL_RPATH "${RPATH_LIBDIR}")
+ 
+ OPTION(DEBUG_EXTNAME "Build server as mysqld-debug (debug builds only)" OFF)
+--- ./cmake/plugin.cmake.ORIGIN2	2019-09-03 15:02:11 -0500
++++ ./cmake/plugin.cmake	2019-09-03 15:03:04 -0500
+@@ -209,10 +209,18 @@
+     ADD_DEPENDENCIES(${target} GenError ${ARG_DEPENDENCIES})
+ 
+     IF(AIX)
+-      ADD_DEPENDENCIES(${target} mysqld_symbols)
+-      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
+-      message("  * mysqld_symbols: target: ${target}")
+       TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/server.exp")
++      message("  * server.exp          : target: ${target}")
++# For TEST_ONLY plugins targets ? More generic.
++      IF(NOT "${target}" STREQUAL auth_test_plugin)
++        ADD_DEPENDENCIES(${target} mysqld_symbols)
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
++        message("  * mysqld_symbols      : target: ${target}")
++      ELSE()
++        ADD_DEPENDENCIES(auth_test_plugin  auth_plugins_symbols)
++        TARGET_LINK_OPTIONS(auth_test_plugin PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/build/sql/auth_plugins.exp")
++        message("  * auth_plugins_symbols: target: ${target}")
++      ENDIF()
+     ENDIF()
+ 
+      IF(NOT ARG_MODULE_ONLY)
+--- /dev/null	2019-09-03 15:03:32 -0500
++++ ./extra/AIX/auth_plugins.not	2019-09-03 14:19:57 -0500
+@@ -0,0 +1,12 @@
++_Z20basename_prefix_evalPKc
++_Z20basename_prefix_findPKci
++_ZN8LogEvent11set_messageEPKcPc
++_ZN8LogEvent11source_fileEPKc
++_ZN8LogEvent11source_lineEx
++_ZN8LogEvent4prioEx
++_ZN8LogEvent6subsysEPKc
++_ZN8LogEvent7errcodeEx
++_ZN8LogEvent8functionEPKc
++_ZN8LogEvent9componentEPKc
++_ZN8LogEventC1Ev
++_ZN8LogEventD1Ev
+--- /dev/null	2019-09-04 11:17:52 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.keyring_udf.exp	2019-09-04 11:16:35 -0500
+@@ -0,0 +1,26 @@
++#!
++keyring_key_store_init
++keyring_key_store_deinit
++keyring_key_store
++keyring_key_fetch_init
++keyring_key_fetch_deinit
++keyring_key_fetch
++keyring_key_type_fetch_init
++keyring_key_type_fetch_deinit
++keyring_key_type_fetch
++keyring_key_length_fetch_init
++keyring_key_length_fetch_deinit
++keyring_key_length_fetch
++keyring_key_remove_init
++keyring_key_remove_deinit
++keyring_key_remove
++keyring_key_generate_init
++keyring_key_generate_deinit
++keyring_key_generate
++VERSION
++PSIZE
++st_mysql_plugin
++_mysql_plugin_interface_version_
++_mysql_sizeof_struct_st_plugin_
++st_mysql_plugin
++_mysql_plugin_declarations_
+--- ./plugin/keyring_udf/CMakeLists.txt.ORIGIN	2019-09-04 11:18:54 -0500
++++ ./plugin/keyring_udf/CMakeLists.txt	2019-09-04 11:20:28 -0500
+@@ -26,6 +26,8 @@
+                  keyring_udf.cc
+                  MODULE_ONLY
+                  MODULE_OUTPUT_NAME "keyring_udf")
+-target_link_options(keyring_udf PUBLIC "-Wl,-berok")
++IF(AIX)
++  TARGET_LINK_OPTIONS(keyring_udf PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.keyring_udf.exp")
++ENDIF()
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- ./plugin/rewriter/CMakeLists.txt.ORIGIN	2019-09-04 11:44:24 -0500
++++ ./plugin/rewriter/CMakeLists.txt	2019-09-04 11:45:09 -0500
+@@ -29,7 +29,10 @@
+ 
+ MYSQL_ADD_PLUGIN(rewriter ${REWRITER_SOURCES}
+                  MODULE_ONLY MODULE_OUTPUT_NAME "rewriter")
+-target_link_options(rewriter PUBLIC "-Wl,-berok")
++IF(AIX)
++  TARGET_LINK_OPTIONS(rewriter PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.rewriter.exp")
++ENDIF()
++
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+ ADD_DEFINITIONS(-DLOG_COMPONENT_TAG="Rewriter")
+--- /dev/null	2019-09-04 11:53:03 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.rewriter.exp	2019-09-04 11:41:59 -0500
+@@ -0,0 +1,4 @@
++#!
++load_rewrite_rules_init
++load_rewrite_rules
++load_rewrite_rules_deinit
+--- /dev/null	2019-09-04 15:50:01 -0500
++++ ./extra/AIX/client.exp	2019-09-04 15:41:12 -0500
+@@ -0,0 +1,2 @@
++#!
++_mysql_client_plugin_declaration_
+--- plugin/auth/CMakeLists.txt.ORIGIN	2019-09-03 14:35:00 -0500
++++ ./plugin/auth/CMakeLists.txt	2019-09-04 15:40:11 -0500
+@@ -22,6 +22,7 @@
+ 
+ MYSQL_ADD_PLUGIN(auth dialog.cc 
+   MODULE_ONLY TEST_ONLY)
++
+ MYSQL_ADD_PLUGIN(auth_test_plugin test_plugin.cc 
+   MODULE_ONLY TEST_ONLY)
+ 
+@@ -37,6 +38,15 @@
+ MYSQL_ADD_PLUGIN(mysql_no_login mysql_no_login.cc 
+   MODULE_ONLY)
+ 
++IF(AIX)
++  TARGET_LINK_OPTIONS(auth		PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++  TARGET_LINK_OPTIONS(auth_test_plugin	PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++  TARGET_LINK_OPTIONS(qa_auth_interface	PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++  TARGET_LINK_OPTIONS(qa_auth_server	PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++  TARGET_LINK_OPTIONS(qa_auth_client	PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++  TARGET_LINK_OPTIONS(mysql_no_login	PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/client.exp")
++ENDIF()
++
+ CHECK_CXX_SOURCE_COMPILES(
+ "#ifndef _GNU_SOURCE
+ #define _GNU_SOURCE
+--- /dev/null	2019-09-04 17:49:17 -0500
++++ ./plugin/test_service_sql_api/test_session_attach.aix	2019-09-04 17:51:33 -0500
+@@ -0,0 +1 @@
++cat $1 | awk 'BEGIN{print "#!"}{if(E==1)print $1;if($1=="EXPORTS")E=1}'
+--- ./plugin/test_service_sql_api/CMakeLists.txt.ORIGIN	2019-09-04 17:06:22 -0500
++++ ./plugin/test_service_sql_api/CMakeLists.txt	2019-09-04 17:48:34 -0500
+@@ -44,7 +44,14 @@
+ 
+ MYSQL_ADD_PLUGIN(test_session_attach test_session_attach.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_session_attach")
+-target_link_options(test_session_attach PUBLIC "-Wl,-berok")
++IF(AIX)
++  add_custom_target(test_session_attach_symbols
++  COMMAND sh ${CMAKE_SOURCE_DIR}/plugin/test_service_sql_api/test_session_attach.aix ${CMAKE_SOURCE_DIR}/plugin/test_service_sql_api/test_session_attach.def > ${CMAKE_SOURCE_DIR}/build/plugin/test_service_sql_api/attach.exp
++  VERBATIM
++  )
++  ADD_DEPENDENCIES(test_session_attach test_session_attach_symbols)
++  TARGET_LINK_OPTIONS(test_session_attach PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/build/plugin/test_service_sql_api/attach.exp")
++ENDIF()
+ 
+ IF(NOT DISABLE_SHARED)
+   IF(WIN32)
+--- /dev/null   2019-09-17 11:43:09 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.version_token.exp 2019-09-17 11:36:49 -0500
+@@ -0,0 +1,18 @@
++#!
++version_tokens_set
++version_tokens_delete
++version_tokens_delete_init
++version_tokens_edit
++version_tokens_edit_init
++version_tokens_lock_exclusive
++version_tokens_lock_exclusive_init
++version_tokens_lock_shared
++version_tokens_lock_shared_init
++version_tokens_set
++version_tokens_set_init
++version_tokens_show
++version_tokens_show_deinit
++version_tokens_show_init
++version_tokens_unlock
++version_tokens_unlock_init
++
+--- ./plugin/version_token/CMakeLists.txt.ORIGIN	2019-09-11 17:28:04 -0500
++++ ./plugin/version_token/CMakeLists.txt	2019-09-18 13:46:05 -0500
+@@ -22,6 +22,8 @@
+ 
+ MYSQL_ADD_PLUGIN(version_token version_token.cc
+   MODULE_ONLY)
+-target_link_options(version_token PUBLIC "-Wl,-berok")
++IF(AIX)
++  TARGET_LINK_OPTIONS(version_token PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.version_token.exp")
++ENDIF()
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- /dev/null   2019-09-17 14:50:00 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.locking_service.exp       2019-09-17 14:50:23 -0500
+@@ -0,0 +1,7 @@
++#!
++service_get_read_locks
++service_get_read_locks_init
++service_get_write_locks
++service_get_write_locks_init
++service_release_locks
++service_release_locks_init
+--- ./sql/CMakeLists.txt.ORIGIN	2019-09-13 17:21:06 -0500
++++ ./sql/CMakeLists.txt	2019-09-18 13:57:31 -0500
+@@ -1047,7 +1047,9 @@
+ 
+ MYSQL_ADD_PLUGIN(locking_service locking_service_udf.cc
+                  MODULE_ONLY MODULE_OUTPUT_NAME "locking_service")
+-target_link_options(locking_service PUBLIC "-Wl,-berok")
++IF(AIX)
++  TARGET_LINK_OPTIONS(locking_service PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.locking_service.exp")
++ENDIF()
+ IF(NOT DISABLE_SHARED)
+   IF(WIN32)
+     SET_TARGET_PROPERTIES(locking_service
+--- /dev/null   2019-09-17 16:28:53 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.test_udf_services.exp     2019-09-17 16:24:57 -0500
+@@ -0,0 +1,3 @@
++#!
++test_udf_services_udf
++test_udf_services_udf_init
+--- ./plugin/udf_services/CMakeLists.txt.ORIGIN	2019-06-25 05:23:30 -0500
++++ ./plugin/udf_services/CMakeLists.txt	2019-09-18 14:01:22 -0500
+@@ -21,3 +21,6 @@
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+ 
+ MYSQL_ADD_PLUGIN(test_udf_services test_udf_services.cc TEST_ONLY MODULE_ONLY)
++IF(AIX)
++  TARGET_LINK_OPTIONS(test_udf_services PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.test_udf_services.exp")
++ENDIF()
+--- ./plugin/replication_observers_example/CMakeLists.txt.ORIGIN	2019-09-11 17:28:04 -0500
++++ ./plugin/replication_observers_example/CMakeLists.txt	2019-09-18 13:41:38 -0500
+@@ -22,6 +22,7 @@
+ 
+ MYSQL_ADD_PLUGIN(replication_observers_example replication_observers_example.cc
+   MODULE_ONLY TEST_ONLY MODULE_OUTPUT_NAME "replication_observers_example_plugin")
+-target_link_options(replication_observers_example PUBLIC "-Wl,-berok")
++target_link_libraries(replication_observers_example binlogevents_static)
++target_link_libraries(replication_observers_example z)
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- ./sql/CMakeLists.txt.ORIGIN	2019-09-18 13:57:31 -0500
++++ ./sql/CMakeLists.txt	2019-09-18 16:23:16 -0500
+@@ -1043,7 +1043,7 @@
+       "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/udf_example.def")
+   ENDIF()
+ ENDIF()
+-target_link_options(udf_example PUBLIC "-Wl,-berok")
++TARGET_LINK_OPTIONS(udf_example PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/PLUGIN_EXPORT.udf_example.exp")
+ 
+ MYSQL_ADD_PLUGIN(locking_service locking_service_udf.cc
+                  MODULE_ONLY MODULE_OUTPUT_NAME "locking_service")
+--- /dev/null	2019-09-20 17:56:44 -0500
++++ ./extra/AIX/PLUGIN_EXPORT.udf_example.exp	2019-09-20 17:35:53 -0500
+@@ -0,0 +1,33 @@
++#!
++myfunc_argument_name
++myfunc_argument_name_init
++avgcost
++avgcost_add
++avgcost_clear
++avgcost_deinit
++avgcost_init
++check_const_len
++check_const_len_init
++is_const
++is_const_init
++lookup
++lookup_deinit
++lookup_init
++metaphon
++metaphon_deinit
++metaphon_init
++myfunc_double
++myfunc_double_init
++myfunc_int
++myfunc_int_init
++my_median
++my_median_add
++my_median_clear
++my_median_deinit
++my_median_init
++reverse_lookup
++reverse_lookup_deinit
++reverse_lookup_init
++sequence
++sequence_deinit
++sequence_init
+--- ./extra/AIX/server.exp.ORIGIN	2019-10-24 15:56:50 +0200
++++ ./extra/AIX/server.exp	2019-10-24 15:57:11 +0200
+@@ -18,3 +18,4 @@
+ mysql_locking_service
+ mysql_keyring_service
+ plugin_registry_service
++create_instance

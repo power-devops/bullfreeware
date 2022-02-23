@@ -1,0 +1,10 @@
+--- config.mak.uname.ORIGIN	2019-06-21 13:56:18 +0200
++++ config.mak.uname	2019-06-21 13:58:44 +0200
+@@ -282,6 +282,7 @@
+ 		INLINE = ''
+ 	endif
+ 	GIT_TEST_CMP = cmp
++	AR = /usr/bin/ar -X32_64
+ endif
+ ifeq ($(uname_S),GNU)
+ 	# GNU/Hurd

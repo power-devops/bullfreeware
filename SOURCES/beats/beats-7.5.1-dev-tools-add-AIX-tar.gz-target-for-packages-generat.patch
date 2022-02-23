@@ -1,0 +1,73 @@
+From d33755b5a6d0371ae02ee801eeef8085ce33b4c1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 7 Jan 2020 15:36:35 +0100
+Subject: [PATCH 4/5] dev-tools: add AIX tar.gz target for packages generation
+
+---
+ dev-tools/mage/pkgtypes.go       |  5 +++++
+ dev-tools/mage/platforms.go      |  1 +
+ dev-tools/packaging/packages.yml | 13 +++++++++++++
+ 3 files changed, 19 insertions(+)
+
+diff --git a/dev-tools/mage/pkgtypes.go b/dev-tools/mage/pkgtypes.go
+index 1be456d2e..7446f158b 100644
+--- a/dev-tools/mage/pkgtypes.go
++++ b/dev-tools/mage/pkgtypes.go
+@@ -172,6 +172,11 @@ var OSArchNames = map[string]map[PackageType]map[string]string{
+ 			"amd64": "amd64",
+ 		},
+ 	},
++	"aix": map[PackageType]map[string]string{
++		TarGz: map[string]string{
++			"ppc64": "ppc",
++		},
++	},
+ }
+ 
+ // getOSArchName returns the architecture name to use in a package.
+diff --git a/dev-tools/mage/platforms.go b/dev-tools/mage/platforms.go
+index 8dbfc1c7b..27ce69aae 100644
+--- a/dev-tools/mage/platforms.go
++++ b/dev-tools/mage/platforms.go
+@@ -27,6 +27,7 @@ import (
+ // BuildPlatforms is a list of GOOS/GOARCH pairs supported by Go.
+ // The list originated from 'go tool dist list -json'.
+ var BuildPlatforms = BuildPlatformList{
++	{"aix/ppc64", CGOSupported},
+ 	{"android/386", CGOSupported},
+ 	{"android/amd64", CGOSupported},
+ 	{"android/arm", CGOSupported},
+diff --git a/dev-tools/packaging/packages.yml b/dev-tools/packaging/packages.yml
+index e918ea85e..9696c5cf0 100644
+--- a/dev-tools/packaging/packages.yml
++++ b/dev-tools/packaging/packages.yml
+@@ -255,6 +255,11 @@ specs:
+       spec:
+         <<: *docker_spec
+ 
++    - os: aix
++      types: [tgz]
++      spec:
++        <<: *binary_spec
++
+   # Elastic Beat with Apache License (OSS) and binary taken the current
+   # directory.
+   elastic_beat_oss:
+@@ -301,6 +306,14 @@ specs:
+         <<: *apache_license_for_binaries
+         name: '{{.BeatName}}-oss'
+ 
++    - os: aix
++      types: [tgz]
++      spec:
++        <<: *binary_spec
++        <<: *apache_license_for_binaries
++        name: '{{.BeatName}}-oss'
++
++
+   # Elastic Beat with Elastic License and binary taken the current directory.
+   elastic_beat_xpack:
+     ###
+-- 
+2.22.0
+

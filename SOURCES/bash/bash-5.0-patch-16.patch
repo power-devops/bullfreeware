@@ -1,0 +1,53 @@
+From 6c6454cb18d7cd30b3b26d5ba6479431e599f3ed Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Fri, 7 Feb 2020 15:20:38 -0500
+Subject: [PATCH] Bash-5.0 patch 16: bash waits too long to reap /dev/fd
+ process substitutions with loops and group commands
+
+---
+ execute_cmd.c | 16 ++++++++++++++++
+ patchlevel.h  |  2 +-
+ 2 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/execute_cmd.c b/execute_cmd.c
+index f1d74bfe..3864986d 100644
+--- a/execute_cmd.c
++++ b/execute_cmd.c
+@@ -1103,6 +1103,22 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
+       free ((void *)ofifo_list);
+       discard_unwind_frame ("internal_fifos");
+     }
++# if defined (HAVE_DEV_FD)
++  /* Reap process substitutions at the end of loops */
++  switch (command->type)
++    {
++    case cm_while:
++    case cm_until:
++    case cm_for:
++    case cm_group:
++#    if defined (ARITH_FOR_COMMAND)
++    case cm_arith_for:
++#    endif
++      reap_procsubs ();
++    default:
++      break;
++    }
++#  endif /* HAVE_DEV_FD */
+ #endif
+ 
+   /* Invert the return value if we have to */
+diff --git a/patchlevel.h b/patchlevel.h
+index 6e9ed3fc..9074f4dd 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 15
++#define PATCHLEVEL 16
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.25.1
+

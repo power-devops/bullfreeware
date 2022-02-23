@@ -1,0 +1,13 @@
+--- ./t/pty_get_winsize.t.orig	2021-01-22 09:02:35.000000000 +0000
++++ ./t/pty_get_winsize.t	2021-11-16 10:45:42.414831201 +0000
+@@ -5,8 +5,8 @@
+ 
+ use Test::More;
+ 
+-if ( $^O =~ m!^(solaris|nto)$! ) {
+-    plan skip_all => 'Problems on Solaris and QNX with this test';
++if ( $^O =~ m!^(solaris|nto|aix)$! ) {
++    plan skip_all => 'Problems on Solaris, QNX and AIX with this test';
+ }
+ else {
+     plan tests => 1;

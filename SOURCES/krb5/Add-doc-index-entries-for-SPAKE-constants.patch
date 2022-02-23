@@ -1,0 +1,31 @@
+From 0ff94a373749e83fb9c2c5c6fa6d5788b2b63460 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 27 Mar 2018 00:49:43 -0400
+Subject: [PATCH] Add doc index entries for SPAKE constants
+
+ticket: 8647
+(cherry picked from commit c010c9031753f356bb380e8a1324cc34721f8221)
+---
+ doc/appdev/refs/macros/index.rst | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/doc/appdev/refs/macros/index.rst b/doc/appdev/refs/macros/index.rst
+index dba818b26..47c6d4413 100644
+--- a/doc/appdev/refs/macros/index.rst
++++ b/doc/appdev/refs/macros/index.rst
+@@ -190,6 +190,7 @@ Public
+    KRB5_KEYUSAGE_PA_SAM_CHALLENGE_CKSUM.rst
+    KRB5_KEYUSAGE_PA_SAM_CHALLENGE_TRACKID.rst
+    KRB5_KEYUSAGE_PA_SAM_RESPONSE.rst
++   KRB5_KEYUSAGE_SPAKE.rst
+    KRB5_KEYUSAGE_TGS_REP_ENCPART_SESSKEY.rst
+    KRB5_KEYUSAGE_TGS_REP_ENCPART_SUBKEY.rst
+    KRB5_KEYUSAGE_TGS_REQ_AD_SESSKEY.rst
+@@ -274,6 +275,7 @@ Public
+    KRB5_PADATA_SAM_RESPONSE.rst
+    KRB5_PADATA_SAM_RESPONSE_2.rst
+    KRB5_PADATA_SESAME.rst
++   KRB5_PADATA_SPAKE.rst
+    KRB5_PADATA_SVR_REFERRAL_INFO.rst
+    KRB5_PADATA_TGS_REQ.rst
+    KRB5_PADATA_USE_SPECIFIED_KVNO.rst

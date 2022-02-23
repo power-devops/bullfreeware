@@ -1,0 +1,147 @@
+*** ./scheduler/log.c.ORIG	Sat Feb  4 22:47:47 2012
+--- ./scheduler/log.c	Sat Feb  4 22:48:07 2012
+***************
+*** 424,429 ****
+--- 424,433 ----
+   * 'cupsdLogJob()' - Log a job message.
+   */
+  
++ #ifndef va_copy
++ # define va_copy(__list1,__list2) ((void)(__list1 = __list2))
++ #endif
++ 
+  int					/* O - 1 on success, 0 on error */
+  cupsdLogJob(cupsd_job_t *job,		/* I - Job */
+              int         level,		/* I - Log level */
+*** ./cups/libcups_s.exp.ORIG	Thu Jul 26 00:23:36 2012
+--- ./cups/libcups_s.exp	Thu Jul 26 00:31:59 2012
+***************
+*** 1,11 ****
+--- 1,15 ----
+  _cups_debug_fd
++ _cupsArrayNewStrings
+  _cupsBufferGet
+  _cupsBufferRelease
++ _cupsFileCheck
++ _cupsFileCheckFilter
+  _cupsGet1284Values
+  _cupsGetDests
+  _cupsGetPassword
+  _cupsGlobals
+  _cupsLangPrintError
++ _cupsLangPrintFilter
+  _cupsLangPrintf
+  _cupsLangPuts
+  _cupsLangString
+***************
+*** 15,20 ****
+--- 19,26 ----
+  _cupsMessageFree
+  _cupsMessageLoad
+  _cupsMessageLookup
++ _cupsMutexLock
++ _cupsMutexUnlock
+  _cupsNextDelay
+  _cupsSetError
+  _cupsSetLocale
+***************
+*** 37,44 ****
+--- 43,54 ----
+  _cupsStrRetain
+  _cupsStrScand
+  _cupsStrStatistics
++ _cupsThreadCreate
+  _cups_getifaddrs
+  _cups_freeifaddrs
++ _cups_isspace
++ _cups_strcasecmp
++ _cups_strncasecmp
+  _cups_strcpy
+  _cups_strlcat
+  _cups_strlcpy
+***************
+*** 47,58 ****
+  _httpAssembleUUID
+  _httpBIOMethods
+  _httpCreate
+  _httpEncodeURI
+  _httpPeek
+  _httpResolveURI
+- _httpSetTimeout
+  _httpWait
+  _ippFindOption
+  _ppdFreeLanguages
+  _ppdGetEncoding
+  _ppdGetLanguages
+--- 57,82 ----
+  _httpAssembleUUID
+  _httpBIOMethods
+  _httpCreate
++ _httpDisconnect
+  _httpEncodeURI
+  _httpPeek
+  _httpResolveURI
+  _httpWait
+  _ippFindOption
++ _ppdCacheCreateWithFile
++ _ppdCacheCreateWithPPD
++ _ppdCacheDestroy
++ _ppdCacheGetBin
++ _ppdCacheGetFinishingOptions
++ _ppdCacheGetFinishingValues
++ _ppdCacheGetInputSlot
++ _ppdCacheGetMediaType
++ _ppdCacheGetOutputBin
++ _ppdCacheGetPageSize
++ _ppdCacheGetSize
++ _ppdCacheGetSource
++ _ppdCacheGetType
++ _ppdCacheWriteFile
+  _ppdFreeLanguages
+  _ppdGetEncoding
+  _ppdGetLanguages
+***************
+*** 62,70 ****
+  _ppdOpen
+  _ppdOpenFile
+  _ppdParseOptions
+- _pwgCreateWithFile
+- _pwgDestroy
+- _pwgWriteFile
+  _pwgGenerateSize
+  _pwgInitSize
+  _pwgMediaForLegacy
+--- 86,91 ----
+***************
+*** 71,85 ****
+  _pwgMediaForPPD
+  _pwgMediaForPWG
+  _pwgMediaForSize
+- _pwgCreateWithPPD
+- _pwgGetBin
+- _pwgGetInputSlot
+- _pwgGetMediaType
+- _pwgGetOutputBin
+- _pwgGetPageSize
+- _pwgGetSize
+- _pwgGetSource
+- _pwgGetType
+  _pwgInputSlotForSource
+  _pwgMediaTypeForType
+  _pwgPageSizeForMedia
+--- 92,97 ----
+*** ./cups/request.c.ORIG	Mon Mar 18 23:38:56 2013
+--- ./cups/request.c	Mon Mar 18 23:39:39 2013
+***************
+*** 974,979 ****
+--- 974,983 ----
+   * '_cupsConnect()' - Get the default server connection...
+   */
+  
++ #ifdef _AIX
++ #define MSG_DONTWAIT MSG_NONBLOCK
++ #endif
++ 
+  http_t *				/* O - HTTP connection */
+  _cupsConnect(void)
+  {

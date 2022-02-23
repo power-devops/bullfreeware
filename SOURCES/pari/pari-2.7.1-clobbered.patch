@@ -1,0 +1,69 @@
+--- src/basemath/bibli1.c
++++ src/basemath/bibli1.c
+@@ -1498,7 +1498,7 @@ cholesky_norm_ek(GEN q, long k)
+  * If (check != NULL) consider only vectors passing the check, and assumes
+  *   we only want the smallest possible vectors */
+ static GEN
+-smallvectors(GEN q, GEN BORNE, long maxnum, FP_chk_fun *CHECK)
++smallvectors(GEN q, GEN BORNE, const long maxnum, FP_chk_fun *CHECK)
+ {
+   long N = lg(q), n = N-1, i, j, k, s, stockmax, checkcnt = 1;
+   pari_sp av, av1, lim;
+@@ -1724,9 +1724,9 @@ END:
+  * If check is non-NULL keep x only if check(x).
+  * If a is a vector, assume a[1] is the LLL-reduced Cholesky form of q */
+ GEN
+-fincke_pohst(GEN a, GEN B0, long stockmax, long PREC, FP_chk_fun *CHECK)
++fincke_pohst(GEN a, GEN B0, const long stockmax, long PREC, FP_chk_fun *CHECK)
+ {
+-  pari_sp av = avma;
++  VOLATILE pari_sp av = avma;
+   VOLATILE long i,j,l;
+   VOLATILE GEN r,rinv,rinvtrans,u,v,res,z,vnorm,rperm,perm,uperm, bound = B0;
+ 
+--- src/gp/gp.c
++++ src/gp/gp.c
+@@ -1298,7 +1298,7 @@ parse_key_val(char *src, char **ps, char
+ static void
+ gp_initrc(pari_stack *p_A)
+ {
+-  FILE *file = gprc_get();
++  FILE * VOLATILE file = gprc_get();
+   Buffer *b;
+   filtre_t F;
+   VOLATILE long c = 0;
+@@ -1696,7 +1696,8 @@ break_loop(int numerr)
+ {
+   filtre_t F;
+   Buffer *b;
+-  int sigint = numerr<0, go_on = sigint;
++  int sigint = numerr<0;
++  VOLATILE int go_on = sigint;
+   struct gp_context rec;
+   const char *prompt, *msg;
+   char promptbuf[MAX_PROMPT_LEN + 24];
+--- src/headers/parinf.h
++++ src/headers/parinf.h
+@@ -140,7 +140,7 @@ typedef struct {
+   GEN U; /* base change matrix from generators to bid.gen */
+ } zlog_S;
+ 
+-GEN fincke_pohst(GEN a,GEN BOUND,long stockmax,long PREC, FP_chk_fun *CHECK);
++GEN fincke_pohst(GEN a,GEN BOUND,const long stockmax,long PREC, FP_chk_fun *CHECK);
+ void remake_GM(GEN nf, nffp_t *F, long prec);
+ GEN nfbasic_to_nf(nfbasic_t *T, GEN ro, long prec);
+ 
+--- src/modules/stark.c
++++ src/modules/stark.c
+@@ -2866,9 +2866,10 @@ quadray_init(GEN *pD, GEN f, GEN *pbnf,
+ /* compute the polynomial over Q of the Hilbert class field of
+    Q(sqrt(D)) where D is a positive fundamental discriminant */
+ static GEN
+-quadhilbertreal(GEN D, long prec)
++quadhilbertreal(GEN D, long baseprec)
+ {
+   pari_sp av = avma;
++  VOLATILE long prec = baseprec;
+   long newprec;
+   GEN bnf;
+   VOLATILE GEN bnr, dtQ, data, nf, cyc, M;

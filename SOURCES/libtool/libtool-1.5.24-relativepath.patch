@@ -1,0 +1,14 @@
+diff -up libtool-1.5.24/libltdl/ltdl.c.relativepath libtool-1.5.24/libltdl/ltdl.c
+--- libtool-1.5.24/libltdl/ltdl.c.relativepath	2007-06-01 07:04:54.000000000 +0200
++++ libtool-1.5.24/libltdl/ltdl.c	2007-07-24 12:56:22.000000000 +0200
+@@ -3225,7 +3225,9 @@ try_dlopen (phandle, filename)
+ 	}
+       if (!file)
+ 	{
+-	  file = fopen (filename, LT_READTEXT_MODE);
++	  /* don't open .la files in current directory, root might get tricked to run a binary in a prepared directory */
++	  if(!strncmp((filename + strlen(filename) - 3), LTDL_ARCHIVE_EXT,3) || strstr(filename,"/"))
++	    file = fopen (filename, LT_READTEXT_MODE);
+ 	}
+ 
+       /* If we didn't find the file by now, it really isn't there.  Set

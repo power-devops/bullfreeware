@@ -1,0 +1,59 @@
+--- ./cmake/plugin.cmake.orig	2019-10-08 17:13:39.866865687 +0200
++++ ./cmake/plugin.cmake	2019-10-09 13:44:04.893518531 +0200
+@@ -195,6 +195,12 @@
+ 
+     TARGET_LINK_LIBRARIES (${target} mysqlservices ${ARG_LINK_LIBRARIES})
+ 
++    IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++        MESSAGE("Plugin ${target} will import and export.")
++        ADD_DEPENDENCIES(${target} symbols_import services_export)
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/libmariadbd.imp")
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/libmysqlservices.exp")
++    ENDIF()
+     # Server plugins use symbols defined in mysqld executable.
+     # Some operating systems like Windows and OSX and are pretty strict about 
+     # unresolved symbols. Others are less strict and allow unresolved symbols
+--- ./libmariadb/cmake/plugins.cmake.orig	2019-10-08 17:13:51.459865154 +0200
++++ ./libmariadb/cmake/plugins.cmake	2019-10-08 17:05:52.325887164 +0200
+@@ -63,6 +63,10 @@
+         set(CC_PLUGIN_SOURCES ${CC_PLUGIN_SOURCES} ${CC_BINARY_DIR}/win/${target}.rc ${CC_SOURCE_DIR}/plugins/plugin.def)
+       endif()
+       add_library(${CC_PLUGIN_TARGET} MODULE ${CC_PLUGIN_SOURCES})
++      IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++        ADD_DEPENDENCIES(${CC_PLUGIN_TARGET} symbols_import)
++        TARGET_LINK_OPTIONS(${CC_PLUGIN_TARGET} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/libmariadbd.imp")
++      ENDIF()
+       target_link_libraries(${CC_PLUGIN_TARGET} ${CC_PLUGIN_LIBRARIES})
+       set_target_properties(${CC_PLUGIN_TARGET} PROPERTIES PREFIX "")
+       if (NOT "${CC_PLUGIN_INCLUDES}" STREQUAL "")
+--- ./cmake/ctest.cmake.orig	2019-10-08 16:31:03.000000000 +0200
++++ ./cmake/ctest.cmake	2019-10-08 16:31:03.000000000 +0200
+@@ -19,6 +19,9 @@
+     ADD_EXECUTABLE(${name}-t "${name}-t.${ARG_EXT}")
+     TARGET_LINK_LIBRARIES(${name}-t mytap ${ARG_LINK_LIBRARIES})
+     MY_ADD_TEST(${name})
++    IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++      TARGET_LINK_OPTIONS(${name}-t PRIVATE "-Wl,-berok")
++    ENDIF()
+   ENDFOREACH()
+ ENDMACRO()
+ 
+--- ./libservices/CMakeLists.txt.orig	2019-10-09 13:40:43.038611659 +0200
++++ ./libservices/CMakeLists.txt	2019-10-21 16:30:11.094521029 +0200
+@@ -42,3 +42,16 @@
+ 
+ ADD_CONVENIENCE_LIBRARY(mysqlservices ${MYSQLSERVICES_SOURCES})
+ INSTALL(TARGETS mysqlservices DESTINATION ${INSTALL_LIBDIR} COMPONENT Development)
++
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  add_custom_target(services_export
++    COMMAND nm -X32_64 -e libmysqlservices.a | grep " D " | grep -v "\\." > D.exp
++    COMMAND printf "{print $1}" > awk.txt
++    COMMAND awk -f awk.txt D.exp | sort | uniq > D2.exp
++    COMMAND printf "#! .\\n" > head.txt
++    COMMAND cat head.txt D2.exp > ${CMAKE_SOURCE_DIR}/libmysqlservices.exp
++    COMMAND rm D.exp awk.txt D2.exp head.txt
++    VERBATIM
++  )
++  ADD_DEPENDENCIES(services_export mysqlservices)
++ENDIF()

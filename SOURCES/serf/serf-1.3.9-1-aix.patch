@@ -1,0 +1,15 @@
+--- 32bit/SConstruct.orig	2017-06-16 01:25:43 -0500
++++ 32bit/SConstruct	2017-06-16 01:26:06 -0500
+@@ -347,10 +347,10 @@
+                LIBPATH=['$OPENSSL/out32dll'])
+ else:
+   if os.path.isdir(apr):
+-    apr = os.path.join(apr, 'bin', 'apr-1-config')
++    apr = os.path.join(apr, 'bin', 'apr-1-config_32')
+     env['APR'] = apr
+   if os.path.isdir(apu):
+-    apu = os.path.join(apu, 'bin', 'apu-1-config')
++    apu = os.path.join(apu, 'bin', 'apu-1-config_32')
+     env['APU'] = apu
+ 
+   ### we should use --cc, but that is giving some scons error about an implict

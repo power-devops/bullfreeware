@@ -1,0 +1,65 @@
+From 66b264d2c1119ffefd7cd99def02b9f533651678 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 20 Feb 2019 17:01:15 +0100
+Subject: [PATCH] runtime: fix TestSigStackSwapping on aix/ppc64
+
+This commit fixes TestSigStackSwapping by increasing the signal stack
+size. This is needed because SIGSTKSZ is too small when VMX is used on
+AIX.
+
+Change-Id: Ic2b5faa65745228d0768383b3d6ebd4b6f9f532c
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164012
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/testdata/testprogcgo/sigstack.go b/src/runtime/testdata/testprogcgo/sigstack.go
+index 492dfef..21b668d 100644
+--- a/src/runtime/testdata/testprogcgo/sigstack.go
++++ b/src/runtime/testdata/testprogcgo/sigstack.go
+@@ -17,11 +17,18 @@
+ #include <stdlib.h>
+ #include <sys/mman.h>
+ 
++#ifdef _AIX
++// On AIX, SIGSTKSZ is too small to handle Go sighandler.
++#define CSIGSTKSZ 0x4000
++#else
++#define CSIGSTKSZ SIGSTKSZ
++#endif
++
+ extern void SigStackCallback();
+ 
+ static void* WithSigStack(void* arg __attribute__((unused))) {
+ 	// Set up an alternate system stack.
+-	void* base = mmap(0, SIGSTKSZ, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
++	void* base = mmap(0, CSIGSTKSZ, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+ 	if (base == MAP_FAILED) {
+ 		perror("mmap failed");
+ 		abort();
+@@ -29,7 +36,7 @@
+ 	stack_t st = {}, ost = {};
+ 	st.ss_sp = (char*)base;
+ 	st.ss_flags = 0;
+-	st.ss_size = SIGSTKSZ;
++	st.ss_size = CSIGSTKSZ;
+ 	if (sigaltstack(&st, &ost) < 0) {
+ 		perror("sigaltstack failed");
+ 		abort();
+@@ -42,13 +49,13 @@
+ 	if (ost.ss_flags & SS_DISABLE) {
+ 		// Darwin libsystem has a bug where it checks ss_size
+ 		// even if SS_DISABLE is set. (The kernel gets it right.)
+-		ost.ss_size = SIGSTKSZ;
++		ost.ss_size = CSIGSTKSZ;
+ 	}
+ 	if (sigaltstack(&ost, NULL) < 0) {
+ 		perror("sigaltstack restore failed");
+ 		abort();
+ 	}
+-	mprotect(base, SIGSTKSZ, PROT_NONE);
++	mprotect(base, CSIGSTKSZ, PROT_NONE);
+ 	return NULL;
+ }
+ 

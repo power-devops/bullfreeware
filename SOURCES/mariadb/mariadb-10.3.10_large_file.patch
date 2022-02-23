@@ -1,0 +1,11 @@
+--- ./cmake/os/AIX.cmake.ORIG	2018-10-16 11:25:08 -0500
++++ ./cmake/os/AIX.cmake	2018-10-16 11:26:28 -0500
+@@ -15,7 +15,7 @@
+ 
+ 
+ #Enable 64 bit file offsets
+-SET(_LARGE_FILES 1)
++#SET(_LARGE_FILES 1)
+ 
+ # Fix xlC oddity - it complains about same inline function defined multiple times
+ # in different compilation units  

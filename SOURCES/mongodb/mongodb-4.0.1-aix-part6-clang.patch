@@ -1,0 +1,15 @@
+--- ./SConstruct.ORIGIN	2019-05-17 17:02:20 -0500
++++ ./SConstruct	2019-05-17 17:02:43 -0500
+@@ -1741,8 +1741,10 @@
+                 PROGLINKFLAGS=['-pie'],
+             )
+ 
+-    # -Winvalid-pch Warn if a precompiled header (see Precompiled Headers) is found in the search path but can't be used.
+-    env.Append( CCFLAGS=["-fno-omit-frame-pointer",
++    # Not for XL CLANG on AIX
++    if not env.TargetOSIs('aix'):
++        # -Winvalid-pch Warn if a precompiled header (see Precompiled Headers) is found in the search path but can't be used.
++        env.Append( CCFLAGS=["-fno-omit-frame-pointer",
+                          "-fno-strict-aliasing",
+                          "-ggdb",
+                          "-pthread",

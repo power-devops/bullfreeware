@@ -1,0 +1,11 @@
+--- ./sql/sql_yacc_ora.cc.orig	2018-10-17 12:37:19 -0500
++++ ./sql/sql_yacc_ora.cc	2018-10-17 12:38:51 -0500
+@@ -822,7 +822,7 @@
+     QUARTER_SYM = 834,
+     QUERY_SYM = 835,
+     QUICK = 836,
+-    RAW = 837,
++    RAW_VALUE = 837,
+     READ_ONLY_SYM = 838,
+     REBUILD_SYM = 839,
+     RECOVER_SYM = 840,

@@ -1,0 +1,14 @@
+# This patch helps automating the tests, allowing each test suite to run even if
+# the previous suite failed.
+diff -Nur libxml2-2.9.4-orig/Makefile.in libxml2-2.9.4-aix/Makefile.in
+--- libxml2-2.9.4-orig/Makefile.in	2016-05-23 10:00:36 +0200
++++ libxml2-2.9.4-aix/Makefile.in	2016-06-14 10:57:39 +0200
+@@ -1907,7 +1907,7 @@
+ runtests:
+ 	[ -d test   ] || $(LN_S) $(srcdir)/test   .
+ 	[ -d result ] || $(LN_S) $(srcdir)/result .
+-	$(CHECKER) ./runtest$(EXEEXT) && $(CHECKER) ./testrecurse$(EXEEXT) &&$(CHECKER) ./testapi$(EXEEXT) && $(CHECKER) ./testchar$(EXEEXT)&& $(CHECKER) ./testdict$(EXEEXT) && $(CHECKER) ./runxmlconf$(EXEEXT)
++	$(CHECKER) ./runtest$(EXEEXT) ; $(CHECKER) ./testrecurse$(EXEEXT) ; $(CHECKER) ./testapi$(EXEEXT) ; $(CHECKER) ./testchar$(EXEEXT) ; $(CHECKER) ./testdict$(EXEEXT) ; $(CHECKER) ./runxmlconf$(EXEEXT)
+ 	@(if [ "$(PYTHON_SUBDIR)" != "" ] ; then cd python ; \
+ 	    $(MAKE) tests ; fi)
+ 

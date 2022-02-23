@@ -1,0 +1,11 @@
+--- old/Makefile.in	2016-09-20 12:06:52 +0200
++++ new/Makefile.in	2016-09-20 12:07:41 +0200
+@@ -22,7 +22,7 @@
+ VERSION = @VERSION@
+ SCREEN = screen-$(VERSION)
+ 
+-GIT_REV = "`git describe --always 2>/dev/null`"
++GIT_REV = 
+ DEFS = @DEFS@ -DGIT_REV=\"$(GIT_REV)\"
+ 
+ ETCSCREENRC = @ETCSCREENRC@

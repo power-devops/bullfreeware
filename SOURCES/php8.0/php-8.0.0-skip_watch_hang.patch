@@ -1,0 +1,12 @@
+--- ./sapi/phpdbg/tests/watch_006.phpt.orig	2020-12-07 11:05:30 +0100
++++ ./sapi/phpdbg/tests/watch_006.phpt	2020-12-07 11:08:22 +0100
+@@ -2,6 +2,9 @@
+ Test multiple watch elements pointing to the same watchpoint
+ --SKIPIF--
+ <?php
++if (strtolower(substr(PHP_OS, 0, 3)) == 'aix' && PHP_INT_SIZE == 4) {
++    die("skip This tests hang on AIX in 32 bits. On other OS, XFAIL 'There may be flaws in the implementation of watchpoints that cause failures'");
++}
+ if (PHP_INT_SIZE == 4) {
+     die("xfail There may be flaws in the implementation of watchpoints that cause failures");
+ }

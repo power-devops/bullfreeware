@@ -1,0 +1,9 @@
+--- keystone-0.2.1.orig/setup.py	2013-07-29 11:38:45 +0200
++++ keystone-0.2.1/setup.py	2012-03-03 20:19:32 +0100
+@@ -1,5 +1,5 @@
+ from distribute_setup import use_setuptools
+-use_setuptools('0.6.15')
++#use_setuptools('0.6.15')
+ 
+ from setuptools import setup, find_packages
+ from sys import version_info

@@ -1,0 +1,44 @@
+--- ./plugin/auth_socket/auth_socket.c.orig	2019-10-08 16:31:04.000000000 +0200
++++ ./plugin/auth_socket/auth_socket.c	2019-10-08 16:31:04.000000000 +0200
+@@ -47,6 +47,12 @@
+ #define uid cr_uid
+ #define ucred xucred
+ 
++#elif defined HAVE_PEERCRED_STRUCT
++#define level SOL_SOCKET
++#define SO_PEERCRED SO_PEERID
++#define uid euid
++#define ucred peercred_struct
++ 
+ #else
+ #error impossible
+ #endif
+--- ./plugin/auth_socket/CMakeLists.txt.orig    2020-06-10 11:09:49.000000000 +0200
++++ ./plugin/auth_socket/CMakeLists.txt 2020-06-10 11:10:43.000000000 +0200
+@@ -83,12 +83,26 @@
+   SET(ok 1)
+ ELSE()
+ 
++# AIX also!
++CHECK_CXX_SOURCE_COMPILES(
++"#include <sys/socket.h>
++int main() {
++  struct peercred_struct cred;
++  getsockopt(0, SOL_SOCKET, SO_PEERID, &cred, 0);
++  }" HAVE_PEERCRED_STRUCT)
++
++IF (HAVE_PEERCRED_STRUCT)
++  ADD_DEFINITIONS(-DHAVE_PEERCRED_STRUCT)
++  SET(ok 1)
++ELSE()
++
+ # Who else? Anyone?
+ # C'mon, show your creativity, be different! ifdef's are fun, aren't they?
+ 
+ ENDIF()
+ ENDIF()
+ ENDIF()
++ENDIF()
+ ENDIF()
+ 
+ IF(ok)

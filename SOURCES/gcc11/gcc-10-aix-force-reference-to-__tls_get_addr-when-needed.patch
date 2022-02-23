@@ -1,0 +1,63 @@
+From c5547c14990823b041ccdd5e2f671817e8347d89 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 11 Aug 2021 10:07:39 +0200
+Subject: [PATCH] aix: force reference to __tls_get_addr when needed
+
+64bit XCOFF files will generated TLS access, with local-exec or
+global-exec models, by an access to R13. Thus, there isn't
+any reference to a TLS symbol.
+The problem is that it allows programs with TLS to be compiled and
+linked even without -pthread. Most of the time, it will result in
+a segfault when trying to access a TLS variable. But sometimes, it
+might create a memory corruption.
+This patch forces a reference to __tls_get_addr() to ensure link
+will fail without -pthread.
+---
+ gcc/config/rs6000/rs6000.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/config/rs6000/rs6000.c b/gcc/config/rs6000/rs6000.c
+index 2de5a96e1b6..cdb34feddbd 100644
+--- a/gcc/config/rs6000/rs6000.c
++++ b/gcc/config/rs6000/rs6000.c
+@@ -127,6 +127,12 @@ scalar_int_mode rs6000_pmode;
+ bool rs6000_passes_ieee128 = false;
+ #endif
+ 
++/* Programs with __thread might be able to link in 64bit on AIX,
++   even without -pthread when exec models are used.
++   In order to avoid that, a .ref to __tls_get_addr must be
++   added.  */
++static bool xcoff_tls_exec_model_detected = false;
++
+ /* Generate the manged name (i.e. U10__float128) used in GCC 8.1, and not the
+    name used in current releases (i.e. u9__ieee128).  */
+ static bool ieee128_mangling_gcc_8_1;
+@@ -9395,7 +9401,10 @@ rs6000_legitimize_tls_address_aix (rtx addr, enum tls_model model)
+       emit_insn (gen_tls_get_tpointer (tlsreg));
+     }
+   else
+-    tlsreg = gen_rtx_REG (DImode, 13);
++    {
++      xcoff_tls_exec_model_detected = true;
++      tlsreg = gen_rtx_REG (DImode, 13);
++    }
+ 
+   /* Load the TOC value into temporary register.  */
+   tmpreg = gen_reg_rtx (Pmode);
+@@ -21106,6 +21115,12 @@ rs6000_xcoff_file_end (void)
+ {
+   switch_to_section (text_section);
+   fputs ("_section_.text:\n", asm_out_file);
++  if (xcoff_tls_exec_model_detected)
++    {
++      /* Add a .ref to __tls_get_addr to ensure that link
++         fails if -pthread is provided.  */
++      fputs ("\t.ref __tls_get_addr\n", asm_out_file);
++    }
+   switch_to_section (data_section);
+   fputs (TARGET_32BIT
+ 	 ? "\t.long _section_.text\n" : "\t.llong _section_.text\n",
+-- 
+2.31.1
+

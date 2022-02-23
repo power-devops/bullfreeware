@@ -1,0 +1,19 @@
+--- ./src/include/port/atomics/arch-ppc.h.ORIGIN	2018-02-27 18:25:50 -0600
++++ ./src/include/port/atomics/arch-ppc.h	2018-02-27 18:31:25 -0600
+@@ -13,7 +13,15 @@
+  *-------------------------------------------------------------------------
+  */
+ 
+-#if defined(__GNUC__)
++// On AIX & with XLC, without the patch "|| defined(__xlc__)",
++//   pg_memory_barrier_impl is defined in port/atomics/fallback.h as:
++//		#define pg_memory_barrier_impl pg_spinlock_barrier
++//   where pg_spinlock_barrier issues a kill(0) to effect the barrier.
++// Not so good for performance !!!
++
++//  On AIX & with GCC (__GNUC__), it is OK: the following definitions are used
++
++#if defined(__GNUC__) || defined(__xlc__)
+ 
+ /*
+  * lwsync orders loads with respect to each other, and similarly with stores.

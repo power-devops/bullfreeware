@@ -1,0 +1,10 @@
+--- tcsh-6.14.00/tw.parse.c.lsF	2005-06-20 18:56:57.000000000 +0200
++++ tcsh-6.14.00/tw.parse.c	2005-06-20 18:57:03.000000000 +0200
+@@ -2088,6 +2088,7 @@
+ 		    Char f = items[i][w - 1];
+ 		    items[i][w - 1] = 0;
+ 		    print_with_color(items[i], w - 1, f);
++		    items[i][w - 1] = f;
+ 		}
+ 		else {
+ 		    /* Print filename followed by '/' or '*' or ' ' */

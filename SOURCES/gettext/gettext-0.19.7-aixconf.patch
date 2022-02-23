@@ -1,0 +1,95 @@
+Index: gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/config.guess
+===================================================================
+--- gettext-0.18.3.orig/gettext-tools/examples/hello-c++-kde/admin/config.guess	2012-12-04 07:28:58.000000000 +0100
++++ gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/config.guess	2013-09-02 12:36:28.000000000 +0200
+@@ -533,7 +533,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit 0 ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/libtool.m4.in
+===================================================================
+--- gettext-0.18.3.orig/gettext-tools/examples/hello-c++-kde/admin/libtool.m4.in	2012-12-04 07:28:58.000000000 +0100
++++ gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/libtool.m4.in	2013-09-02 12:38:53.000000000 +0200
+@@ -1018,7 +1018,7 @@
+   soname_spec='${libname}${release}.so$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   version_type=linux
+   if test "$host_cpu" = ia64; then
+     # AIX 5 supports IA64
+@@ -1881,7 +1881,7 @@
+ # whether `pass_all' will *always* work, you probably want this one.
+ 
+ case $host_os in
+-aix4* | aix5*)
++aix4* | aix5* | aix6* | aix7*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+@@ -2458,7 +2458,7 @@
+     # FIXME: insert proper C++ library support
+     _LT_AC_TAGVAR(ld_shlibs, $1)=no
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6* | aix7*)
+     if test "$host_cpu" = ia64; then
+       # On IA64, the linker does run time linking by default, so we don't
+       # have to do anything special.
+@@ -3971,7 +3971,7 @@
+     esac
+   else
+     case $host_os in
+-      aix4* | aix5*)
++      aix4* | aix5* | aix6* | aix7*)
+ 	# All AIX code is PIC.
+ 	if test "$host_cpu" = ia64; then
+ 	  # AIX 5 now supports IA64 processor
+@@ -4338,7 +4338,7 @@
+ ifelse([$1],[CXX],[
+   _LT_AC_TAGVAR(export_symbols_cmds, $1)='$NM $libobjs $convenience | $global_symbol_pipe | sed '\''s/.* //'\'' | sort | uniq > $export_symbols'
+   case $host_os in
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6* | aix7*)
+     # If we're using GNU nm, then we don't want the "-C" option.
+     # -C means demangle to AIX nm, but means don't demangle with GNU nm
+     if $NM -V 2>&1 | egrep '(GNU)' > /dev/null; then
+@@ -4410,7 +4410,7 @@
+ 
+     # See if GNU ld supports shared libraries.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6* | aix7*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+ 	_LT_AC_TAGVAR(ld_shlibs, $1)=no
+@@ -4612,7 +4612,7 @@
+       fi
+       ;;
+ 
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6* | aix7*)
+       if test "$host_cpu" = ia64; then
+ 	# On IA64, the linker does run time linking by default, so we don't
+ 	# have to do anything special.
+Index: gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/ltmain.sh
+===================================================================
+--- gettext-0.18.3.orig/gettext-tools/examples/hello-c++-kde/admin/ltmain.sh	2012-12-04 07:28:58.000000000 +0100
++++ gettext-0.18.3/gettext-tools/examples/hello-c++-kde/admin/ltmain.sh	2013-09-02 12:41:09.000000000 +0200
+@@ -3924,8 +3924,8 @@
+       # Otherwise, things like the -L path to libgcc.a are accidentally hardcoded by ld.
+       # This does not apply on AIX for ia64, which uses a SysV linker.
+       case "$host" in
+-        ia64-*-aix5*) ;;
+-        *-*-aix4* | *-*-aix5*)
++        ia64-*-aix5* | ia64-*-aix6* | ia64-*-aix7*) ;;
++        *-*-aix4* | *-*-aix5* | *-*-aix6* | *-*-aix7*)
+                    compile_command=`$echo "X$compile_command $wl-brtl" | $Xsed -e "s/\$CC/\$CC $wl-bnolibpath/1"`
+                    finalize_command=`$echo "X$finalize_command $wl-brtl" | $Xsed -e "s/\$CC/\$CC $wl-bnolibpath/1"` ;;
+       esac

@@ -1,0 +1,16 @@
+--- ./certdata2pem.py	2020-06-05 17:27:08 +0200
++++ ./certdata2pem.py	2021-04-19 11:51:08 +0200
+@@ -141,6 +141,13 @@
+             # and os.path.exists()
+             bname = bname.encode('utf-8').decode('string_escape')
+ 
++        # On AIX, need to remove accents
++        if "aix" in sys.platform:
++            import unicodedata
++            bname = ''.join(c for c in unicodedata.normalize('NFD', bname.decode('utf-8', 'ignore'))
++                  if unicodedata.category(c) != 'Mn')
++            bname = bname.encode('latin-1', 'ignore')
++ 
+         fname = bname + b'.crt'
+         if os.path.exists(fname):
+             print("Found duplicate certificate name %s, renaming." % bname)

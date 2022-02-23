@@ -1,0 +1,26 @@
+Index: gotools/Makefile.am
+===================================================================
+--- a/gotools/Makefile.am	(revision 271281)
++++ b/gotools/Makefile.am	(working copy)
+@@ -41,7 +41,7 @@ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ 
+ AM_GOCFLAGS = -I $(libgodir)
+-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L /opt/freeware/lib
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ 
+ libgosrcdir = $(srcdir)/../libgo/go
+Index: Makefile.in
+===================================================================
+--- a/gotools/Makefile.in	(revision 271281)
++++ b/gotools/Makefile.in	(working copy)
+@@ -346,7 +346,7 @@ LIBGOTOOL = $(libgodir)/libgotool.a
+ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ AM_GOCFLAGS = -I $(libgodir)
+-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L /opt/freeware/lib
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ libgosrcdir = $(srcdir)/../libgo/go
+ cmdsrcdir = $(libgosrcdir)/cmd

@@ -1,0 +1,30 @@
+--- ./src/appl/simple/client/sim_client.c.ORIGIN	2017-08-30 15:02:04 +0200
++++ ./src/appl/simple/client/sim_client.c	2017-08-30 15:04:30 +0200
+@@ -62,7 +62,11 @@
+ main(int argc, char *argv[])
+ {
+     int sock, i;
+-    unsigned int len;
++#ifdef __64BIT__
++    unsigned int  len;
++#else
++    unsigned long len;
++#endif /* __64BIT__ */
+     int flags = 0;                      /* flags for sendto() */
+     struct servent *serv;
+     struct hostent *host;
+--- ./src/appl/simple/server/sim_server.c.ORIGIN	2017-08-30 15:05:14 +0200
++++ ./src/appl/simple/server/sim_server.c	2017-08-30 15:05:16 +0200
+@@ -64,7 +64,11 @@
+ main(int argc, char *argv[])
+ {
+     int sock, i;
+-    unsigned int len;
++#ifdef __64BIT__
++    unsigned int  len;
++#else
++    unsigned long len;
++#endif /* __64BIT__ */
+     int flags = 0;                      /* for recvfrom() */
+     int on = 1;
+     struct servent *serv;

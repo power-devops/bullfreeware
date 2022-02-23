@@ -1,0 +1,20 @@
+--- ./src/lib/krb5/os/localaddr.c.ORIGIN	2017-08-23 15:13:19 +0200
++++ ./src/lib/krb5/os/localaddr.c	2017-08-23 17:20:11 +0200
+@@ -861,6 +861,9 @@
+     int numifs = -1;
+ #endif
+ 
++    *bufp = NULL;
++    *np = 0;
++
+     /* At least on NetBSD, an ifreq can hold an IPv4 address, but
+        isn't big enough for an IPv6 or ethernet address.  So add a
+        little more space.  */
+@@ -1030,6 +1033,7 @@
+     /*@=moduncon@*/
+ 
+     if (pass2fn) {
++//#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+         for (i = 0; i + sizeof(struct ifreq) <= n; i+= ifreq_size(*ifr) ) {
+             ifr = (struct ifreq *)((caddr_t) buf+i);
+ 

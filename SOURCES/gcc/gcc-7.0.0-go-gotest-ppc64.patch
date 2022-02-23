@@ -1,0 +1,30 @@
+--- ./libgo/testsuite/gotest.ORIGIN	2017-06-02 14:22:08 -0500
++++ ./libgo/testsuite/gotest	2017-06-02 14:21:44 -0500
+@@ -413,6 +413,27 @@
+ sed -n 's/^\/\/ gotest: //p' $gofiles | sh
+ GC="$holdGC -fno-section-anchors"
+ 
++# For libgcc_s.a 32/64bit on AIX
++# On AIX, go1 is 32bit. So this is needed when testing ppc64.
++if [ "$goos" == "aix" ]
++then
++	LIBGCC32DIR=`echo $GC | cut -d" " -f1 | xargs dirname`
++
++	realGC=$GC
++	runGC()
++	{
++		LIBPATH=$LIBGCC32DIR $realGC $*
++	}
++	GC=runGC
++
++	realGL=$GL
++	runGL()
++	{
++		LIBPATH=$LIBGCC32DIR $realGL $*
++	}
++	GL=runGL
++fi
++
+ case "x$pkgfiles" in
+ x)
+ 	pkgbasefiles=`ls *.go | grep -v _test.go 2>/dev/null`

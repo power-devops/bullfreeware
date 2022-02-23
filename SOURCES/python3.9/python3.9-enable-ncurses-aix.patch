@@ -1,0 +1,22 @@
+--- ./setup.py_orig	2021-08-10 12:11:27 +0000
++++ ./setup.py	2021-08-10 13:06:11 +0000
+@@ -1002,8 +1002,8 @@
+             curses_library = 'ncursesw'
+         # Issue 36210: OSS provided ncurses does not link on AIX
+         # Use IBM supplied 'curses' for successful build of _curses
+-        elif AIX and self.compiler.find_library_file(self.lib_dirs, 'curses'):
+-            curses_library = 'curses'
++        # elif AIX and self.compiler.find_library_file(self.lib_dirs, 'curses'):
++        #    curses_library = 'curses'
+         elif self.compiler.find_library_file(self.lib_dirs, 'ncurses'):
+             curses_library = 'ncurses'
+         elif self.compiler.find_library_file(self.lib_dirs, 'curses'):
+@@ -1100,7 +1100,7 @@
+ 
+         # If the curses module is enabled, check for the panel module
+         # _curses_panel needs some form of ncurses
+-        skip_curses_panel = True if AIX else False
++        skip_curses_panel = False
+         if (curses_enabled and not skip_curses_panel and
+                 self.compiler.find_library_file(self.lib_dirs, panel_library)):
+             self.add(Extension('_curses_panel', ['_curses_panel.c'],

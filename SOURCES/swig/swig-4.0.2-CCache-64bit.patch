@@ -1,0 +1,22 @@
+--- ./CCache/test.sh.ORIGIN	2021-01-07 18:05:34 +0100
++++ ./CCache/test.sh	2021-01-07 18:06:47 +0100
+@@ -4,7 +4,7 @@
+ # tridge@samba.org
+ 
+ if test -n "$CC"; then
+- COMPILER="$CC"
++ COMPILER="$CC $CFLAGS"
+ else
+  COMPILER=cc
+ fi
+--- ./CCache/Makefile.in.ORIGIN	2021-01-07 17:57:39 +0100
++++ ./CCache/Makefile.in	2021-01-07 17:58:20 +0100
+@@ -65,7 +65,7 @@
+ 	rm -f $(srcdir)/$(PACKAGE_NAME).1 $(srcdir)/web/$(PACKAGE_NAME)-man.html
+ 
+ test: test.sh
+-	SWIG_LIB='$(SWIG_LIB)' PATH=../..:$$PATH SWIG='$(SWIG)' CC='$(CC)' NOSOFTLINKSTEST='$(NOSOFTLINKSTEST)' CCACHE='../$(PACKAGE_NAME)' CCACHE_PROG=$(PROGRAM_NAME) $(srcdir)/test.sh
++	SWIG_LIB='$(SWIG_LIB)' PATH=../..:$$PATH SWIG='$(SWIG)' CC='$(CC)' CFLAGS='$(CFLAGS)' NOSOFTLINKSTEST='$(NOSOFTLINKSTEST)' CCACHE='../$(PACKAGE_NAME)' CCACHE_PROG=$(PROGRAM_NAME) $(srcdir)/test.sh
+ 
+ check: test
+ 

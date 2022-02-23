@@ -1,0 +1,26 @@
+Index: httpd-2.2.25/srclib/apr/build/apr_hints.m4
+===================================================================
+--- httpd-2.2.25.orig/srclib/apr/build/apr_hints.m4	2012-10-19 20:14:44.000000000 +0200
++++ httpd-2.2.25/srclib/apr/build/apr_hints.m4	2013-08-21 13:50:26.000000000 +0200
+@@ -65,7 +65,7 @@
+             *-ibm-aix4.3)
+ 	        APR_ADDTO(CPPFLAGS, [-D_USE_IRS])
+ 	        ;;
+-            *-ibm-aix5*)
++            *-ibm-aix[567]*)
+ 	        APR_ADDTO(CPPFLAGS, [-D_USE_IRS])
+ 	        ;;
+             *-ibm-aix4.3.*)
+Index: httpd-2.2.25/srclib/apr/configure.in
+===================================================================
+--- httpd-2.2.25.orig/srclib/apr/configure.in	2011-05-20 19:39:54.000000000 +0200
++++ httpd-2.2.25/srclib/apr/configure.in	2013-08-21 13:52:49.000000000 +0200
+@@ -1709,7 +1709,7 @@
+          pid_t_fmt='#define APR_PID_T_FMT "ld"'
+        fi
+        ;;
+-   *aix4*|*aix5*)
++   *aix4*|*aix5*|*aix6*|*aix7*)
+        ssize_t_fmt="ld"
+        size_t_fmt="lu"
+        ;;

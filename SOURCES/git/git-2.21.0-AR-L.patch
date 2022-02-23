@@ -1,0 +1,20 @@
+--- ./Makefile.ORIGIN	2019-02-27 17:33:40 +0100
++++ ./Makefile	2019-02-27 17:34:28 +0100
+@@ -562,7 +562,7 @@
+ export prefix bindir sharedir sysconfdir gitwebdir perllibdir localedir
+ 
+ CC = cc
+-AR = ar
++AR = /usr/bin/ar -X32_64
+ RM = rm -f
+ DIFF = diff
+ TAR = tar
+@@ -1136,7 +1136,7 @@
+ 		# the runtime dynamic library path.
+ 		CC_LD_DYNPATH = -Wl,-rpath,
+ 	else
+-		CC_LD_DYNPATH = -R
++		CC_LD_DYNPATH = -L
+ 	endif
+ endif
+ 

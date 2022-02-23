@@ -1,0 +1,13 @@
+--- ./src/libmongoc/src/mongoc/mongoc-socket.h.orig	2019-11-28 13:40:06.000000000 +0100
++++ ./src/libmongoc/src/mongoc/mongoc-socket.h	2019-11-28 13:40:14.000000000 +0100
+@@ -38,10 +38,6 @@
+ #include <sys/un.h>
+ #endif
+ 
+-#if defined(_AIX) && !defined(HAVE_SA_SS_FAMILY)
+-# define ss_family __ss_family
+-#endif
+-
+ #include "mongoc/mongoc-iovec.h"
+ 
+ 

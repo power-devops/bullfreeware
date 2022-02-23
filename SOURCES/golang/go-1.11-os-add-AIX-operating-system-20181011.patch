@@ -1,0 +1,442 @@
+From 4dee2a60091d794ef6881fa200e4e797c198edb6 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:57:27 +0200
+Subject: [PATCH] os: add AIX operating system
+
+This commit adds AIX operating system to os package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: Ieb9a2b3ac5b9abd3b5ab68eb732c17b6256d624d
+---
+
+diff --git a/src/os/dir_unix.go b/src/os/dir_unix.go
+index 79d61c7..7a3ef47 100644
+--- a/src/os/dir_unix.go
++++ b/src/os/dir_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/env_unix_test.go b/src/os/env_unix_test.go
+index f7b67eb..89430b3 100644
+--- a/src/os/env_unix_test.go
++++ b/src/os/env_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package os_test
+ 
+diff --git a/src/os/error_posix.go b/src/os/error_posix.go
+index 3c81b41..0478ba6 100644
+--- a/src/os/error_posix.go
++++ b/src/os/error_posix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package os
+ 
+diff --git a/src/os/error_unix.go b/src/os/error_unix.go
+index a9d798b..bb6bbcc 100644
+--- a/src/os/error_unix.go
++++ b/src/os/error_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/error_unix_test.go b/src/os/error_unix_test.go
+index 8db9867..c47af56 100644
+--- a/src/os/error_unix_test.go
++++ b/src/os/error_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os_test
+ 
+diff --git a/src/os/exec/exec_posix_test.go b/src/os/exec/exec_posix_test.go
+index 865b6c3..46799cd 100644
+--- a/src/os/exec/exec_posix_test.go
++++ b/src/os/exec/exec_posix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package exec_test
+ 
+diff --git a/src/os/exec/lp_unix.go b/src/os/exec/lp_unix.go
+index e098ff8..799e0b4 100644
+--- a/src/os/exec/lp_unix.go
++++ b/src/os/exec/lp_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package exec
+ 
+diff --git a/src/os/exec/lp_unix_test.go b/src/os/exec/lp_unix_test.go
+index d467acf..e4656ca 100644
+--- a/src/os/exec/lp_unix_test.go
++++ b/src/os/exec/lp_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package exec
+ 
+diff --git a/src/os/exec_posix.go b/src/os/exec_posix.go
+index e837e1c..1e60365 100644
+--- a/src/os/exec_posix.go
++++ b/src/os/exec_posix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package os
+ 
+diff --git a/src/os/exec_unix.go b/src/os/exec_unix.go
+index b07543e..abae5a2 100644
+--- a/src/os/exec_unix.go
++++ b/src/os/exec_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/executable_path.go b/src/os/executable_path.go
+index 057e6a7..7b8b836 100644
+--- a/src/os/executable_path.go
++++ b/src/os/executable_path.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build openbsd
++// +build aix openbsd
+ 
+ package os
+ 
+diff --git a/src/os/file_posix.go b/src/os/file_posix.go
+index 7cfafc8..544d0ad 100644
+--- a/src/os/file_posix.go
++++ b/src/os/file_posix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package os
+ 
+diff --git a/src/os/file_unix.go b/src/os/file_unix.go
+index cb90b70..0ca34b0 100644
+--- a/src/os/file_unix.go
++++ b/src/os/file_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/os_unix_test.go b/src/os/os_unix_test.go
+index 1077d78..0317f72 100644
+--- a/src/os/os_unix_test.go
++++ b/src/os/os_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package os_test
+ 
+diff --git a/src/os/path_unix.go b/src/os/path_unix.go
+index b2e0bca..3cb0e3a 100644
+--- a/src/os/path_unix.go
++++ b/src/os/path_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/pipe_bsd.go b/src/os/pipe_bsd.go
+index 9735988..dc4c951 100644
+--- a/src/os/pipe_bsd.go
++++ b/src/os/pipe_bsd.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly js,wasm nacl solaris
++// +build aix darwin dragonfly js,wasm nacl solaris
+ 
+ package os
+ 
+diff --git a/src/os/signal/internal/pty/pty.go b/src/os/signal/internal/pty/pty.go
+index c4c1567..c1c7fcf 100644
+--- a/src/os/signal/internal/pty/pty.go
++++ b/src/os/signal/internal/pty/pty.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux,!android netbsd openbsd
++// +build aix darwin dragonfly freebsd linux,!android netbsd openbsd
+ // +build cgo
+ 
+ // Package pty is a simple pseudo-terminal package for Unix systems,
+diff --git a/src/os/signal/signal_test.go b/src/os/signal/signal_test.go
+index 3d79c7a..ecb05fd 100644
+--- a/src/os/signal/signal_test.go
++++ b/src/os/signal/signal_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package signal
+ 
+diff --git a/src/os/signal/signal_unix.go b/src/os/signal/signal_unix.go
+index 28fbb54..7fa634f 100644
+--- a/src/os/signal/signal_unix.go
++++ b/src/os/signal/signal_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package signal
+ 
+diff --git a/src/os/stat_aix.go b/src/os/stat_aix.go
+new file mode 100644
+index 0000000..ac1a52f
+--- /dev/null
++++ b/src/os/stat_aix.go
+@@ -0,0 +1,51 @@
++// Copyright 2009 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package os
++
++import (
++	"syscall"
++	"time"
++)
++
++func fillFileStatFromSys(fs *fileStat, name string) {
++	fs.name = basename(name)
++	fs.size = int64(fs.sys.Size)
++	fs.modTime = stTimespecToTime(fs.sys.Mtim)
++	fs.mode = FileMode(fs.sys.Mode & 0777)
++	switch fs.sys.Mode & syscall.S_IFMT {
++	case syscall.S_IFBLK:
++		fs.mode |= ModeDevice
++	case syscall.S_IFCHR:
++		fs.mode |= ModeDevice | ModeCharDevice
++	case syscall.S_IFDIR:
++		fs.mode |= ModeDir
++	case syscall.S_IFIFO:
++		fs.mode |= ModeNamedPipe
++	case syscall.S_IFLNK:
++		fs.mode |= ModeSymlink
++	case syscall.S_IFREG:
++		// nothing to do
++	case syscall.S_IFSOCK:
++		fs.mode |= ModeSocket
++	}
++	if fs.sys.Mode&syscall.S_ISGID != 0 {
++		fs.mode |= ModeSetgid
++	}
++	if fs.sys.Mode&syscall.S_ISUID != 0 {
++		fs.mode |= ModeSetuid
++	}
++	if fs.sys.Mode&syscall.S_ISVTX != 0 {
++		fs.mode |= ModeSticky
++	}
++}
++
++func stTimespecToTime(ts syscall.StTimespec_t) time.Time {
++	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
++}
++
++// For testing.
++func atime(fi FileInfo) time.Time {
++	return stTimespecToTime(fi.Sys().(*syscall.Stat_t).Atim)
++}
+diff --git a/src/os/stat_unix.go b/src/os/stat_unix.go
+index 856b499..4f85dce 100644
+--- a/src/os/stat_unix.go
++++ b/src/os/stat_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/sys_aix.go b/src/os/sys_aix.go
+new file mode 100644
+index 0000000..51d7322
+--- /dev/null
++++ b/src/os/sys_aix.go
+@@ -0,0 +1,26 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package os
++
++import "syscall"
++
++// gethostname cannot be used because it needs BSD library
++// Therefore, we do as in gccgo.
++
++func hostname() (name string, err error) {
++	var u syscall.Utsname
++	if errno := syscall.Uname(&u); errno != nil {
++		return "", NewSyscallError("uname", errno)
++	}
++	b := make([]byte, len(u.Nodename))
++	i := 0
++	for ; i < len(u.Nodename); i++ {
++		if u.Nodename[i] == 0 {
++			break
++		}
++		b[i] = byte(u.Nodename[i])
++	}
++	return string(b[:i]), nil
++}
+diff --git a/src/os/sys_unix.go b/src/os/sys_unix.go
+index 3c63c10..8491bad 100644
+--- a/src/os/sys_unix.go
++++ b/src/os/sys_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package os
+ 
+diff --git a/src/os/user/cgo_lookup_unix.go b/src/os/user/cgo_lookup_unix.go
+index ccb2278..856ed28 100644
+--- a/src/os/user/cgo_lookup_unix.go
++++ b/src/os/user/cgo_lookup_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd !android,linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd !android,linux netbsd openbsd solaris
+ // +build cgo,!osusergo
+ 
+ package user
+diff --git a/src/os/user/lookup_stubs.go b/src/os/user/lookup_stubs.go
+index 9fc03c6..61bf1dc 100644
+--- a/src/os/user/lookup_stubs.go
++++ b/src/os/user/lookup_stubs.go
+@@ -65,8 +65,8 @@
+ }
+ 
+ func listGroups(*User) ([]string, error) {
+-	if runtime.GOOS == "android" {
+-		return nil, errors.New("user: GroupIds not implemented on Android")
++	if runtime.GOOS == "android" || runtime.GOOS == "aix" {
++		return nil, errors.New(fmt.Sprintf("user: GroupIds not implemented on %s", runtime.GOOS))
+ 	}
+ 	return nil, errors.New("user: GroupIds requires cgo")
+ }
+diff --git a/src/os/user/lookup_unix.go b/src/os/user/lookup_unix.go
+index c4e9ba1..be62f4d 100644
+--- a/src/os/user/lookup_unix.go
++++ b/src/os/user/lookup_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm !android,linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm !android,linux nacl netbsd openbsd solaris
+ // +build !cgo osusergo
+ 
+ package user
+diff --git a/src/os/user/lookup_unix_test.go b/src/os/user/lookup_unix_test.go
+index 02c88ab..65fe065 100644
+--- a/src/os/user/lookup_unix_test.go
++++ b/src/os/user/lookup_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd !android,linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd !android,linux nacl netbsd openbsd solaris
+ // +build !cgo
+ 
+ package user
+diff --git a/src/os/wait_unimp.go b/src/os/wait_unimp.go
+index 3d8210f..d070604 100644
+--- a/src/os/wait_unimp.go
++++ b/src/os/wait_unimp.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly js,wasm nacl netbsd openbsd solaris
++// +build aix darwin dragonfly js,wasm nacl netbsd openbsd solaris
+ 
+ package os
+ 

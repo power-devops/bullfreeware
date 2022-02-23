@@ -1,0 +1,133 @@
+--- ./mysql-test/unstable-tests.orig	2019-06-18 12:31:07.632446979 +0200
++++ ./mysql-test/unstable-tests	2019-06-19 16:26:43.972001247 +0200
+@@ -257,15 +257,15 @@
+ 
+ #-----------------------------------------------------------------------
+ 
+-innodb_gis.alter_spatial_index                                     : MDEV-13745 - Server crash
+-innodb_gis.kill_server                                             : MDEV-16941 - Checksum mismatch
+-innodb_gis.rtree_compress2                                         : MDEV-16269 - Wrong result
++# innodb_gis.alter_spatial_index                                     : MDEV-13745 - Server crash
++# innodb_gis.kill_server                                             : MDEV-16941 - Checksum mismatch
++# innodb_gis.rtree_compress2                                         : MDEV-16269 - Wrong result
+ innodb_gis.rtree_concurrent_srch                                   : MDEV-15284 - Wrong result with embedded
+-innodb_gis.rtree_purge                                             : MDEV-15275 - Timeout
+-innodb_gis.rtree_recovery                                          : MDEV-15274 - Error on check
+-innodb_gis.rtree_split                                             : MDEV-14208 - Too many arguments
+-innodb_gis.rtree_undo                                              : MDEV-14456 - Timeout in include file
+-innodb_gis.types                                                   : MDEV-15679 - Table is marked as crashed
++# innodb_gis.rtree_purge                                             : MDEV-15275 - Timeout
++# innodb_gis.rtree_recovery                                          : MDEV-15274 - Error on check
++# innodb_gis.rtree_split                                             : MDEV-14208 - Too many arguments
++# innodb_gis.rtree_undo                                              : MDEV-14456 - Timeout in include file
++# innodb_gis.types                                                   : MDEV-15679 - Table is marked as crashed
+ 
+ #-----------------------------------------------------------------------
+ 
+@@ -376,8 +376,8 @@
+ main.mysql_upgrade_ssl                                             : MDEV-13492 - Unknown SSL error
+ main.olap                                                          : Modified in 10.3.15
+ main.old-mode                                                      : MDEV-19373 - Wrong result; modified in 10.3.14
+-main.openssl_1                                                     : MDEV-13492 - Unknown SSL error
+-main.openssl_6975                                                  : MDEV-17184 - Failures with OpenSSL 1.1.1
++# main.openssl_1                                                     : MDEV-13492 - Unknown SSL error
++# main.openssl_6975                                                  : MDEV-17184 - Failures with OpenSSL 1.1.1
+ main.order_by                                                      : Modified in 10.3.15
+ main.order_by_optimizer_innodb                                     : MDEV-10683 - Wrong result
+ main.partition                                                     : Modified in 10.3.14
+@@ -402,9 +402,9 @@
+ main.sp-security                                                   : MDEV-10607 - sporadic "can't connect"
+ main.sp_trans                                                      : Modified in 10.3.14
+ main.sp-ucs2                                                       : Modified in 10.3.14
+-main.ssl                                                           : MDEV-17184 - Failures with OpenSSL 1.1.1
+-main.ssl_ca                                                        : MDEV-10895 - SSL connection error on Power
+-main.ssl_cipher                                                    : MDEV-17184 - Failures with OpenSSL 1.1.1
++# main.ssl                                                           : MDEV-17184 - Failures with OpenSSL 1.1.1
++# main.ssl_ca                                                        : MDEV-10895 - SSL connection error on Power
++# main.ssl_cipher                                                    : MDEV-17184 - Failures with OpenSSL 1.1.1
+ main.ssl_connect                                                   : MDEV-13492 - Unknown SSL error
+ main.ssl_crl                                                       : MDEV-19119 - Wrong error code; modified in 10.3.14
+ main.ssl_crl_clients                                               : Modified in 10.3.14
+@@ -833,14 +833,7 @@
+ 
+ #-----------------------------------------------------------------------
+ 
+-versioning.alter                                                   : Modified in 10.3.14
+-versioning.foreign                                                 : Modified in 10.3.14
+-versioning.partition                                               : Modified in 10.3.14
+-versioning.partition_innodb                                        : Modified in 10.3.14
+-versioning.rpl                                                     : Modified in 10.3.14
+-versioning.rpl_row                                                 : Added in 10.3.14
+-versioning.trx_id                                                  : Modified in 10.3.14
+-versioning.update                                                  : Modified in 10.3.14
++versioning.*                                                       :  Pass all unstable tests
+ 
+ #-----------------------------------------------------------------------
+ 
+@@ -852,3 +845,66 @@
+ #-----------------------------------------------------------------------
+ 
+ wsrep_info.plugin                                                  : MDEV-13569 - No nodes coming from prim view
++
++## From Fedora
++# The SSL test are failing correctly. Fro more explanation, see:
++# https://jira.mariadb.org/browse/MDEV-8404?focusedCommentId=84275&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-84275
++main.ssl_7937                                : #1399847
++main.ssl_crl_clients                         : #1399847
++main.ssl_cert_verify                         :
++
++main.ssl_8k_key                              :
++
++# From 10.3.9
++main.openssl_1                               :
++main.openssl_6975                            :
++main.ssl                                     :
++main.ssl_cipher                              :
++
++# 
++perfschema.nesting                           : #1399847
++perfschema.socket_summary_by_instance_func   : #1399847
++perfschema.socket_summary_by_event_name_func :
++
++# ------------------------------
++# Tests that fails because of 'Self Signed Certificate in the Certificate Chain'
++perfschema.cnf_option                        :
++
++rpl.rpl_row_img_blobs                        :
++rpl.rpl_row_img_eng_min                      :
++rpl.rpl_row_img_eng_noblob                   :
++
++sys_vars.slave_parallel_threads_basic        :
++
++# ------------------------------
++# Fails since 10.1.12
++innodb.innodb_defrag_binlog                  :
++
++# on x86_64 after 10.2.12 and 10.2.13 after some unidentified change in Rawhide buildroot
++mroonga/storage.index_multiple_column_range_all_used_less_than                               :
++mroonga/storage.index_multiple_column_range_all_used_less_than_or_equal                      :
++mroonga/storage.index_multiple_column_range_partially_used_have_prefix_less_than             :
++mroonga/storage.index_multiple_column_range_partially_used_have_prefix_less_than_or_equal    :
++mroonga/storage.index_multiple_column_range_partially_used_no_prefix_less_than               :
++mroonga/storage.index_multiple_column_range_partially_used_no_prefix_less_than_or_equal      :
++mroonga/storage.optimization_order_limit_optimized_datetime_less_than                        :
++mroonga/storage.optimization_order_limit_optimized_datetime_less_than_or_equal               :
++
++# Fails everywhere since 10.2.15
++main.userstat                                :
++
++# Fails on x86_64 since 10.2.15
++rocksdb.bulk_load_errors                     :
++rocksdb.index_merge_rocksdb                  :
++rocksdb.index_merge_rocksdb2                 :
++rocksdb.read_only_tx                         :
++rocksdb_rpl.mdev12179                        :
++rocksdb.shutdown                             :
++rocksdb.2pc_group_commit                     :
++
++# Fails on ppc and arm since 10.2.15
++innodb_gis.rtree_compress2                   :
++parts.partition_alter4_innodb                :
++
++# Fails from 10.3.9
++encryption.innodb-redo-badkey :

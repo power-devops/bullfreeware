@@ -1,0 +1,13 @@
+--- a/64bit/Makefile.ORIGIN	2019-06-21 11:07:29 +0200
++++ b/64bit/Makefile	2019-06-21 11:08:59 +0200
+@@ -1158,8 +1158,8 @@
+ # Set CFLAGS, LDFLAGS and other *FLAGS variables. These might be
+ # tweaked by config.* below as well as the command-line, both of
+ # which'll override these defaults.
+-CFLAGS = -g -O2 -Wall
+-LDFLAGS =
++CFLAGS = -g -O2 -Wall -maix64 -mcmodel=large
++LDFLAGS = -L/opt/freeware/lib64 -L/opt/freeware/lib
+ BASIC_CFLAGS = -I.
+ BASIC_LDFLAGS =
+ 

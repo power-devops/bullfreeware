@@ -1,0 +1,34 @@
+Fall back to TCP on kdc-unresolvable/unreachable errors.  We still have
+to wait for UDP to fail, so this might not be ideal.  RT #5868.
+
+diff -up krb5-1.8/src/lib/krb5/os/changepw.c.kpasswd_tcp krb5-1.8/src/lib/krb5/os/changepw.c
+--- krb5-1.8/src/lib/krb5/os/changepw.c.kpasswd_tcp	2009-12-02 13:06:19.000000000 -0500
++++ krb5-1.8/src/lib/krb5/os/changepw.c	2010-03-05 11:02:39.000000000 -0500
+@@ -270,11 +270,22 @@ change_set_password(krb5_context context
+                                    NULL,
+                                    NULL
+              ))) {
+-
+-            /*
+-             * Here we may want to switch to TCP on some errors.
+-             * right?
+-             */
++            /* if we're not using a stream socket, and it's an error which
++             * might reasonably be specific to a datagram "connection", try
++             * again with a stream socket */
++            if (!useTcp) {
++                switch (code) {
++                case KRB5_KDC_UNREACH:
++                case KRB5_REALM_CANT_RESOLVE:
++                case KRB5KRB_ERR_RESPONSE_TOO_BIG:
++                /* should we do this for more result codes than these? */
++                    krb5int_free_addrlist (&al);
++                    useTcp = 1;
++                    continue;
++                default:
++                    break;
++                }
++            }
+             break;
+         }
+ 

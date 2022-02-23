@@ -1,0 +1,2019 @@
+diff -Nur gcc-7-20170323.orig/libgo/Makefile.am gcc-7-20170323/libgo/Makefile.am
+--- gcc-7-20170323.orig/libgo/Makefile.am	2017-01-23 08:00:30 +0100
++++ gcc-7-20170323/libgo/Makefile.am	2017-03-24 10:36:21 +0100
+@@ -46,8 +46,17 @@
+ 	-I $(srcdir)/../libgcc -I $(srcdir)/../libbacktrace \
+ 	-I $(MULTIBUILDTOP)../../gcc/include
+ 
++AM_LDFLAGS =
++
+ if USING_SPLIT_STACK
+-AM_LDFLAGS = -XCClinker $(SPLIT_STACK)
++AM_LDFLAGS += -XCClinker $(SPLIT_STACK)
++endif
++
++if LIBGO_IS_AIX
++# Using an import file for libgo avoid requiring to use the -brtl flag
++# when builing a go program
++AM_LDFLAGS += -Wl,-bbigtoc -Wl,-bI:$(srcdir)/libgo.imp
++EXTRA_libgo_la_DEPENDENCIES = libgo.imp
+ endif
+ 
+ # Multilib support.
+@@ -419,6 +428,9 @@
+ if LIBGO_IS_NETBSD
+ runtime_getncpu_file = runtime/getncpu-bsd.c
+ else
++if LIBGO_IS_AIX
++runtime_getncpu_file = runtime/getncpu-aix.c
++else
+ runtime_getncpu_file = runtime/getncpu-none.c
+ endif
+ endif
+@@ -426,6 +438,7 @@
+ endif
+ endif
+ endif
++endif
+ 
+ runtime_files = \
+ 	runtime/aeshash.c \
+@@ -560,6 +573,9 @@
+ 	$(SHELL) $(srcdir)/mvifdiff.sh tmp-sigtab.go sigtab.go
+ 	$(STAMP) $@
+ 
++# _Complex_lock and _Reader_lock are Go translations of some AIX system
++# types and should not be exported back to C
++# sigset conflicts with system type sigset on AIX, so we need to rename it
+ runtime.inc: s-runtime-inc; @true
+ s-runtime-inc: runtime.lo Makefile
+ 	rm -f runtime.inc.tmp2
+@@ -567,7 +583,12 @@
+ 	for pattern in '_[GP][a-z]' _Max _Lock _Sig _Trace _MHeap _Num; do \
+ 	  grep "#define $$pattern" runtime.inc.tmp >> runtime.inc.tmp2; \
+ 	done
+-	$(SHELL) $(srcdir)/mvifdiff.sh runtime.inc.tmp2 runtime.inc
++	for TYPE in _Complex_lock _Reader_lock; do \
++	  sed -e '/struct '$${TYPE}' {/,/^}/s/^.*$$//' runtime.inc.tmp2 > runtime.inc.tmp3; \
++	  mv runtime.inc.tmp3 runtime.inc.tmp2; \
++	done
++	sed -e 's/sigset/sigset_go/' runtime.inc.tmp2 > runtime.inc.tmp3
++	$(SHELL) $(srcdir)/mvifdiff.sh runtime.inc.tmp3 runtime.inc
+ 	$(STAMP) $@
+ 
+ noinst_DATA = zstdpkglist.go
+@@ -579,7 +600,7 @@
+ 	echo 'package main' > zstdpkglist.go.tmp
+ 	echo "" >> zstdpkglist.go.tmp
+ 	echo 'var stdpkg = map[string]bool{' >> zstdpkglist.go.tmp
+-	echo $(libgo_go_objs) 'unsafe.lo' 'runtime/cgo.lo' | sed 's/\.lo /\": true,\n/g' | grep -v _c | sed 's/\.lo/\": true,/' | sed 's/^/\t\"/' | sort -u >> zstdpkglist.go.tmp
++	echo $(libgo_go_objs) 'unsafe.lo' 'runtime/cgo.lo' | sed 's|[a-z0-9_/]*_c\.lo||g' | sed 's|\([a-z0-9_/]*\)\.lo|"\1": true,|g' >> zstdpkglist.go.tmp
+ 	echo '}' >> zstdpkglist.go.tmp
+ 	$(SHELL) $(srcdir)/mvifdiff.sh zstdpkglist.go.tmp zstdpkglist.go
+ 	$(STAMP) $@
+diff -Nur gcc-7-20170323.orig/libgo/Makefile.in gcc-7-20170323/libgo/Makefile.in
+--- gcc-7-20170323.orig/libgo/Makefile.in	2017-01-23 08:00:30 +0100
++++ gcc-7-20170323/libgo/Makefile.in	2017-03-24 10:37:55 +0100
+@@ -62,8 +62,13 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ target_triplet = @target@
+-@GOC_IS_LLGO_TRUE@am__append_1 = libgo-llgo.la libgobegin-llgo.a
+-@GOC_IS_LLGO_FALSE@am__append_2 = libgo.la libgobegin.a
++@USING_SPLIT_STACK_TRUE@am__append_1 = -XCClinker $(SPLIT_STACK)
++
++# Using an import file for libgo avoid requiring to use the -brtl flag
++# when builing a go program
++@LIBGO_IS_AIX_TRUE@am__append_2 = -Wl,-bbigtoc -Wl,-bI:$(srcdir)/libgo.imp
++@GOC_IS_LLGO_TRUE@am__append_3 = libgo-llgo.la libgobegin-llgo.a
++@GOC_IS_LLGO_FALSE@am__append_4 = libgo.la libgobegin.a
+ subdir = .
+ DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
+ 	$(top_srcdir)/configure $(am__configure_deps) \
+@@ -183,7 +188,8 @@
+ @LIBGO_IS_LINUX_FALSE@am__objects_2 = thread-sema.lo
+ @LIBGO_IS_LINUX_TRUE@am__objects_2 = thread-linux.lo
+ @LIBGO_IS_RTEMS_TRUE@am__objects_3 = rtems-task-variable-add.lo
+-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@am__objects_4 = getncpu-none.lo
++@LIBGO_IS_AIX_FALSE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@am__objects_4 = getncpu-none.lo
++@LIBGO_IS_AIX_TRUE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@am__objects_4 = getncpu-aix.lo
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_TRUE@@LIBGO_IS_SOLARIS_FALSE@am__objects_4 = getncpu-bsd.lo
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@am__objects_4 = getncpu-bsd.lo
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@am__objects_4 = getncpu-solaris.lo
+@@ -463,7 +469,8 @@
+ 	-I $(srcdir)/../libgcc -I $(srcdir)/../libbacktrace \
+ 	-I $(MULTIBUILDTOP)../../gcc/include
+ 
+-@USING_SPLIT_STACK_TRUE@AM_LDFLAGS = -XCClinker $(SPLIT_STACK)
++AM_LDFLAGS = $(am__append_1) $(am__append_2)
++@LIBGO_IS_AIX_TRUE@EXTRA_libgo_la_DEPENDENCIES = libgo.imp
+ 
+ # Multilib support.
+ MAKEOVERRIDES = 
+@@ -767,7 +774,8 @@
+ @LIBGO_IS_RTEMS_TRUE@rtems_task_variable_add_file = runtime/rtems-task-variable-add.c
+ @LIBGO_IS_LINUX_FALSE@runtime_thread_files = runtime/thread-sema.c
+ @LIBGO_IS_LINUX_TRUE@runtime_thread_files = runtime/thread-linux.c
+-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@runtime_getncpu_file = runtime/getncpu-none.c
++@LIBGO_IS_AIX_FALSE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@runtime_getncpu_file = runtime/getncpu-none.c
++@LIBGO_IS_AIX_TRUE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_FALSE@@LIBGO_IS_SOLARIS_FALSE@runtime_getncpu_file = runtime/getncpu-aix.c
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_NETBSD_TRUE@@LIBGO_IS_SOLARIS_FALSE@runtime_getncpu_file = runtime/getncpu-bsd.c
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@runtime_getncpu_file = runtime/getncpu-bsd.c
+ @LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_IRIX_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@runtime_getncpu_file = runtime/getncpu-solaris.c
+@@ -1136,7 +1144,7 @@
+ 	$(toolexeclibgorpc_DATA) $(toolexeclibgoruntime_DATA) \
+ 	$(toolexeclibgosync_DATA) $(toolexeclibgotesting_DATA) \
+ 	$(toolexeclibgotext_DATA) $(toolexeclibgotexttemplate_DATA) \
+-	$(toolexeclibgounicode_DATA) $(am__append_1) $(am__append_2)
++	$(toolexeclibgounicode_DATA) $(am__append_3) $(am__append_4)
+ 
+ # Pass -ffp-contract=off, or 386-specific options, when building the
+ # math package.  MATH_FLAG is defined in configure.ac.
+@@ -1482,6 +1490,7 @@
+ 
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aeshash.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/env_posix.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getncpu-aix.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getncpu-bsd.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getncpu-irix.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getncpu-linux.Plo@am__quote@
+@@ -1968,6 +1977,13 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o getncpu-none.lo `test -f 'runtime/getncpu-none.c' || echo '$(srcdir)/'`runtime/getncpu-none.c
+ 
++getncpu-aix.lo: runtime/getncpu-aix.c
++@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT getncpu-aix.lo -MD -MP -MF $(DEPDIR)/getncpu-aix.Tpo -c -o getncpu-aix.lo `test -f 'runtime/getncpu-aix.c' || echo '$(srcdir)/'`runtime/getncpu-aix.c
++@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/getncpu-aix.Tpo $(DEPDIR)/getncpu-aix.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/getncpu-aix.c' object='getncpu-aix.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o getncpu-aix.lo `test -f 'runtime/getncpu-aix.c' || echo '$(srcdir)/'`runtime/getncpu-aix.c
++
+ getncpu-bsd.lo: runtime/getncpu-bsd.c
+ @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT getncpu-bsd.lo -MD -MP -MF $(DEPDIR)/getncpu-bsd.Tpo -c -o getncpu-bsd.lo `test -f 'runtime/getncpu-bsd.c' || echo '$(srcdir)/'`runtime/getncpu-bsd.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/getncpu-bsd.Tpo $(DEPDIR)/getncpu-bsd.Plo
+@@ -3198,6 +3214,9 @@
+ 	$(SHELL) $(srcdir)/mvifdiff.sh tmp-sigtab.go sigtab.go
+ 	$(STAMP) $@
+ 
++# _Complex_lock and _Reader_lock are Go translations of some AIX system
++# types and should not be exported back to C
++# sigset conflicts with system type sigset on AIX, so we need to rename it
+ runtime.inc: s-runtime-inc; @true
+ s-runtime-inc: runtime.lo Makefile
+ 	rm -f runtime.inc.tmp2
+@@ -3205,7 +3224,12 @@
+ 	for pattern in '_[GP][a-z]' _Max _Lock _Sig _Trace _MHeap _Num; do \
+ 	  grep "#define $$pattern" runtime.inc.tmp >> runtime.inc.tmp2; \
+ 	done
+-	$(SHELL) $(srcdir)/mvifdiff.sh runtime.inc.tmp2 runtime.inc
++	for TYPE in _Complex_lock _Reader_lock; do \
++	  sed -e '/struct '$${TYPE}' {/,/^}/s/^.*$$//' runtime.inc.tmp2 > runtime.inc.tmp3; \
++	  mv runtime.inc.tmp3 runtime.inc.tmp2; \
++	done
++	sed -e 's/sigset/sigset_go/' runtime.inc.tmp2 > runtime.inc.tmp3
++	$(SHELL) $(srcdir)/mvifdiff.sh runtime.inc.tmp3 runtime.inc
+ 	$(STAMP) $@
+ 
+ # Generate the list of go std packages that were included in libgo
+@@ -3215,7 +3239,7 @@
+ 	echo 'package main' > zstdpkglist.go.tmp
+ 	echo "" >> zstdpkglist.go.tmp
+ 	echo 'var stdpkg = map[string]bool{' >> zstdpkglist.go.tmp
+-	echo $(libgo_go_objs) 'unsafe.lo' 'runtime/cgo.lo' | sed 's/\.lo /\": true,\n/g' | grep -v _c | sed 's/\.lo/\": true,/' | sed 's/^/\t\"/' | sort -u >> zstdpkglist.go.tmp
++	echo $(libgo_go_objs) 'unsafe.lo' 'runtime/cgo.lo' | sed 's|[a-z0-9_/]*_c\.lo||g' | sed 's|\([a-z0-9_/]*\)\.lo|"\1": true,|g' >> zstdpkglist.go.tmp
+ 	echo '}' >> zstdpkglist.go.tmp
+ 	$(SHELL) $(srcdir)/mvifdiff.sh zstdpkglist.go.tmp zstdpkglist.go
+ 	$(STAMP) $@
+diff -Nur gcc-7-20170323.orig/libgo/config.h.in gcc-7-20170323/libgo/config.h.in
+--- gcc-7-20170323.orig/libgo/config.h.in	2017-01-04 08:00:14 +0100
++++ gcc-7-20170323/libgo/config.h.in	2017-03-24 10:35:08 +0100
+@@ -259,6 +259,9 @@
+ /* Define to 1 if you have the `sync_file_range' function. */
+ #undef HAVE_SYNC_FILE_RANGE
+ 
++/* Define to 1 if you have the `syscall' function. */
++#undef HAVE_SYSCALL
++
+ /* Define to 1 if you have the <syscall.h> header file. */
+ #undef HAVE_SYSCALL_H
+ 
+diff -Nur gcc-7-20170323.orig/libgo/configure gcc-7-20170323/libgo/configure
+--- gcc-7-20170323.orig/libgo/configure	2017-01-24 08:00:22 +0100
++++ gcc-7-20170323/libgo/configure	2017-03-24 10:37:53 +0100
+@@ -646,6 +646,8 @@
+ GOOS
+ LIBGO_IS_BSD_FALSE
+ LIBGO_IS_BSD_TRUE
++LIBGO_IS_AIX_FALSE
++LIBGO_IS_AIX_TRUE
+ LIBGO_IS_SOLARIS_FALSE
+ LIBGO_IS_SOLARIS_TRUE
+ LIBGO_IS_RTEMS_FALSE
+@@ -4327,6 +4329,14 @@
+ 
+ 
+ 
++case ${host} in
++  *-*-aix*)
++    # static hash tables crashes on AIX when libgo is built with O2
++    CFLAGS="$CFLAGS -fno-section-anchors"
++    GOCFLAGS="$GOCFLAGS -fno-section-anchors"
++    ;;
++esac
++
+ 
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
+ $as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
+@@ -11104,7 +11114,7 @@
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11107 "configure"
++#line 11117 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11210,7 +11220,7 @@
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11213 "configure"
++#line 11223 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -13507,7 +13517,7 @@
+ # All known GOOS values.  This is the union of all operating systems
+ # supported by the gofrontend and all operating systems supported by
+ # the gc toolchain.
+-ALLGOOS="android darwin dragonfly freebsd irix linux netbsd openbsd plan9 rtems solaris windows"
++ALLGOOS="aix android darwin dragonfly freebsd irix linux netbsd openbsd plan9 rtems solaris windows"
+ 
+ is_darwin=no
+ is_freebsd=no
+@@ -13518,6 +13528,7 @@
+ is_dragonfly=no
+ is_rtems=no
+ is_solaris=no
++is_aix=no
+ GOOS=unknown
+ case ${host} in
+   *-*-darwin*)   is_darwin=yes;  GOOS=darwin ;;
+@@ -13529,6 +13540,7 @@
+   *-*-dragonfly*) is_dragonfly=yes; GOOS=dragonfly ;;
+   *-*-rtems*)    is_rtems=yes;   GOOS=rtems ;;
+   *-*-solaris2*) is_solaris=yes; GOOS=solaris ;;
++  *-*-aix*)      is_aix=yes;     GOOS=aix ;;
+ esac
+  if test $is_darwin = yes; then
+   LIBGO_IS_DARWIN_TRUE=
+@@ -13602,6 +13614,14 @@
+   LIBGO_IS_SOLARIS_FALSE=
+ fi
+ 
++ if test $is_aix = yes; then
++  LIBGO_IS_AIX_TRUE=
++  LIBGO_IS_AIX_FALSE='#'
++else
++  LIBGO_IS_AIX_TRUE='#'
++  LIBGO_IS_AIX_FALSE=
++fi
++
+  if test $is_darwin = yes -o $is_dragonfly = yes -o $is_freebsd = yes -o $is_netbsd = yes -o $is_openbsd = yes; then
+   LIBGO_IS_BSD_TRUE=
+   LIBGO_IS_BSD_FALSE='#'
+@@ -14868,7 +14888,7 @@
+ fi
+ 
+ 
+-for ac_func in accept4 dup3 epoll_create1 faccessat fallocate fchmodat fchownat futimesat getxattr inotify_add_watch inotify_init inotify_init1 inotify_rm_watch listxattr mkdirat mknodat open64 openat pipe2 removexattr renameat setxattr sync_file_range splice tee unlinkat unshare utimensat
++for ac_func in accept4 dup3 epoll_create1 faccessat fallocate fchmodat fchownat futimesat getxattr inotify_add_watch inotify_init inotify_init1 inotify_rm_watch listxattr mkdirat mknodat open64 openat pipe2 removexattr renameat setxattr sync_file_range splice syscall tee unlinkat unshare utimensat
+ do :
+   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+@@ -15753,6 +15773,10 @@
+   as_fn_error "conditional \"LIBGO_IS_SOLARIS\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
++if test -z "${LIBGO_IS_AIX_TRUE}" && test -z "${LIBGO_IS_AIX_FALSE}"; then
++  as_fn_error "conditional \"LIBGO_IS_AIX\" was never defined.
++Usually this means the macro was only invoked conditionally." "$LINENO" 5
++fi
+ if test -z "${LIBGO_IS_BSD_TRUE}" && test -z "${LIBGO_IS_BSD_FALSE}"; then
+   as_fn_error "conditional \"LIBGO_IS_BSD\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+diff -Nur gcc-7-20170323.orig/libgo/configure.ac gcc-7-20170323/libgo/configure.ac
+--- gcc-7-20170323.orig/libgo/configure.ac	2017-01-24 08:00:21 +0100
++++ gcc-7-20170323/libgo/configure.ac	2017-03-24 10:35:08 +0100
+@@ -31,6 +31,14 @@
+ 
+ AC_SUBST(CFLAGS)
+ 
++case ${host} in
++  *-*-aix*)
++    # static hash tables crashes on AIX when libgo is built with O2
++    CFLAGS="$CFLAGS -fno-section-anchors"
++    GOCFLAGS="$GOCFLAGS -fno-section-anchors"
++    ;;
++esac
++
+ AM_MAINTAINER_MODE
+ 
+ AC_PROG_LD
+@@ -146,7 +154,7 @@
+ # All known GOOS values.  This is the union of all operating systems
+ # supported by the gofrontend and all operating systems supported by
+ # the gc toolchain.
+-ALLGOOS="android darwin dragonfly freebsd irix linux netbsd openbsd plan9 rtems solaris windows"
++ALLGOOS="aix android darwin dragonfly freebsd irix linux netbsd openbsd plan9 rtems solaris windows"
+ 
+ is_darwin=no
+ is_freebsd=no
+@@ -157,6 +165,7 @@
+ is_dragonfly=no
+ is_rtems=no
+ is_solaris=no
++is_aix=no
+ GOOS=unknown
+ case ${host} in
+   *-*-darwin*)   is_darwin=yes;  GOOS=darwin ;;
+@@ -168,6 +177,7 @@
+   *-*-dragonfly*) is_dragonfly=yes; GOOS=dragonfly ;;
+   *-*-rtems*)    is_rtems=yes;   GOOS=rtems ;;
+   *-*-solaris2*) is_solaris=yes; GOOS=solaris ;;
++  *-*-aix*)      is_aix=yes;     GOOS=aix ;;
+ esac
+ AM_CONDITIONAL(LIBGO_IS_DARWIN, test $is_darwin = yes)
+ AM_CONDITIONAL(LIBGO_IS_FREEBSD, test $is_freebsd = yes)
+@@ -178,6 +188,7 @@
+ AM_CONDITIONAL(LIBGO_IS_DRAGONFLY, test $is_dragonfly = yes)
+ AM_CONDITIONAL(LIBGO_IS_RTEMS, test $is_rtems = yes)
+ AM_CONDITIONAL(LIBGO_IS_SOLARIS, test $is_solaris = yes)
++AM_CONDITIONAL(LIBGO_IS_AIX, test $is_aix = yes)
+ AM_CONDITIONAL(LIBGO_IS_BSD, test $is_darwin = yes -o $is_dragonfly = yes -o $is_freebsd = yes -o $is_netbsd = yes -o $is_openbsd = yes)
+ AC_SUBST(GOOS)
+ AC_SUBST(ALLGOOS)
+@@ -601,7 +612,7 @@
+ AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
+ AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
+ 
+-AC_CHECK_FUNCS(accept4 dup3 epoll_create1 faccessat fallocate fchmodat fchownat futimesat getxattr inotify_add_watch inotify_init inotify_init1 inotify_rm_watch listxattr mkdirat mknodat open64 openat pipe2 removexattr renameat setxattr sync_file_range splice tee unlinkat unshare utimensat)
++AC_CHECK_FUNCS(accept4 dup3 epoll_create1 faccessat fallocate fchmodat fchownat futimesat getxattr inotify_add_watch inotify_init inotify_init1 inotify_rm_watch listxattr mkdirat mknodat open64 openat pipe2 removexattr renameat setxattr sync_file_range splice syscall tee unlinkat unshare utimensat)
+ AC_TYPE_OFF_T
+ AC_CHECK_TYPES([loff_t])
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/crypto/rand/eagain.go gcc-7-20170323/libgo/go/crypto/rand/eagain.go
+--- gcc-7-20170323.orig/libgo/go/crypto/rand/eagain.go	2016-11-17 05:16:05 +0100
++++ gcc-7-20170323/libgo/go/crypto/rand/eagain.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package rand
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/crypto/rand/rand_unix.go gcc-7-20170323/libgo/go/crypto/rand/rand_unix.go
+--- gcc-7-20170323.orig/libgo/go/crypto/rand/rand_unix.go	2016-11-17 05:16:12 +0100
++++ gcc-7-20170323/libgo/go/crypto/rand/rand_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris
+ 
+ // Unix cryptographically secure pseudorandom number
+ // generator.
+diff -Nur gcc-7-20170323.orig/libgo/go/crypto/x509/root_aix.go gcc-7-20170323/libgo/go/crypto/x509/root_aix.go
+--- gcc-7-20170323.orig/libgo/go/crypto/x509/root_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/crypto/x509/root_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,8 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package x509
++
++// Possible certificate files; stop after finding one.
++var certFiles []string
+diff -Nur gcc-7-20170323.orig/libgo/go/crypto/x509/root_unix.go gcc-7-20170323/libgo/go/crypto/x509/root_unix.go
+--- gcc-7-20170323.orig/libgo/go/crypto/x509/root_unix.go	2016-11-17 05:17:10 +0100
++++ gcc-7-20170323/libgo/go/crypto/x509/root_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package x509
+ 
+@@ -16,6 +16,7 @@
+ var certDirectories = []string{
+ 	"/etc/ssl/certs",               // SLES10/SLES11, https://golang.org/issue/12139
+ 	"/system/etc/security/cacerts", // Android
++	"/var/ssl/certs",               // AIX
+ }
+ 
+ func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate, err error) {
+diff -Nur gcc-7-20170323.orig/libgo/go/go/build/syslist.go gcc-7-20170323/libgo/go/go/build/syslist.go
+--- gcc-7-20170323.orig/libgo/go/go/build/syslist.go	2017-01-16 08:02:40 +0100
++++ gcc-7-20170323/libgo/go/go/build/syslist.go	2017-03-24 10:35:08 +0100
+@@ -4,5 +4,5 @@
+ 
+ package build
+ 
+-const goosList = "android darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris windows zos "
++const goosList = "aix android darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris windows zos "
+ const goarchList = "386 amd64 amd64p32 arm armbe arm64 arm64be alpha m68k ppc64 ppc64le mips mipsle mips64 mips64le mips64p32 mips64p32le mipso32 mipsn32 mipsn64 mipso64 ppc s390 s390x sparc sparc64 "
+diff -Nur gcc-7-20170323.orig/libgo/go/mime/type_unix.go gcc-7-20170323/libgo/go/mime/type_unix.go
+--- gcc-7-20170323.orig/libgo/go/mime/type_unix.go	2016-11-17 05:19:11 +0100
++++ gcc-7-20170323/libgo/go/mime/type_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package mime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/addrselect.go gcc-7-20170323/libgo/go/net/addrselect.go
+--- gcc-7-20170323.orig/libgo/go/net/addrselect.go	2017-01-16 08:02:20 +0100
++++ gcc-7-20170323/libgo/go/net/addrselect.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Minimal RFC 6724 address selection.
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/cgo_aix.go gcc-7-20170323/libgo/go/net/cgo_aix.go
+--- gcc-7-20170323.orig/libgo/go/net/cgo_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/net/cgo_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,13 @@
++// Copyright 2011 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build cgo,!netgo
++
++package net
++
++import (
++	"syscall"
++)
++
++const cgoAddrInfoFlags = syscall.AI_CANONNAME
+diff -Nur gcc-7-20170323.orig/libgo/go/net/cgo_resnew.go gcc-7-20170323/libgo/go/net/cgo_resnew.go
+--- gcc-7-20170323.orig/libgo/go/net/cgo_resnew.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/cgo_resnew.go	2017-03-24 10:35:08 +0100
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin linux,!android netbsd solaris
++// +build aix darwin linux,!android netbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/cgo_sockold.go gcc-7-20170323/libgo/go/net/cgo_sockold.go
+--- gcc-7-20170323.orig/libgo/go/net/cgo_sockold.go	2016-11-17 05:19:12 +0100
++++ gcc-7-20170323/libgo/go/net/cgo_sockold.go	2017-03-24 10:35:08 +0100
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd netbsd openbsd
++// +build aix darwin dragonfly freebsd netbsd openbsd
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/cgo_unix.go gcc-7-20170323/libgo/go/net/cgo_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/cgo_unix.go	2017-01-16 08:02:40 +0100
++++ gcc-7-20170323/libgo/go/net/cgo_unix.go	2017-03-24 10:35:08 +0100
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/cgo_unix_test.go gcc-7-20170323/libgo/go/net/cgo_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/net/cgo_unix_test.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/cgo_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/conf.go gcc-7-20170323/libgo/go/net/conf.go
+--- gcc-7-20170323.orig/libgo/go/net/conf.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/conf.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/dial_unix_test.go gcc-7-20170323/libgo/go/net/dial_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/net/dial_unix_test.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/dial_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/dnsclient_unix.go gcc-7-20170323/libgo/go/net/dnsclient_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/dnsclient_unix.go	2017-01-16 08:02:39 +0100
++++ gcc-7-20170323/libgo/go/net/dnsclient_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // DNS client: see RFC 1035.
+ // Has to be linked into package net for Dial.
+diff -Nur gcc-7-20170323.orig/libgo/go/net/dnsclient_unix_test.go gcc-7-20170323/libgo/go/net/dnsclient_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/net/dnsclient_unix_test.go	2017-01-16 08:02:41 +0100
++++ gcc-7-20170323/libgo/go/net/dnsclient_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/dnsconfig_unix.go gcc-7-20170323/libgo/go/net/dnsconfig_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/dnsconfig_unix.go	2017-01-16 08:02:39 +0100
++++ gcc-7-20170323/libgo/go/net/dnsconfig_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Read system DNS config from /etc/resolv.conf
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/dnsconfig_unix_test.go gcc-7-20170323/libgo/go/net/dnsconfig_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/net/dnsconfig_unix_test.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/dnsconfig_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/fd_poll_runtime.go gcc-7-20170323/libgo/go/net/fd_poll_runtime.go
+--- gcc-7-20170323.orig/libgo/go/net/fd_poll_runtime.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/fd_poll_runtime.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd windows solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd windows solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/fd_posix.go gcc-7-20170323/libgo/go/net/fd_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/fd_posix.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/fd_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/fd_unix.go gcc-7-20170323/libgo/go/net/fd_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/fd_unix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/fd_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/file_unix.go gcc-7-20170323/libgo/go/net/file_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/file_unix.go	2016-11-17 05:18:17 +0100
++++ gcc-7-20170323/libgo/go/net/file_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/hook_unix.go gcc-7-20170323/libgo/go/net/hook_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/hook_unix.go	2016-11-17 05:18:59 +0100
++++ gcc-7-20170323/libgo/go/net/hook_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/interface_stub.go gcc-7-20170323/libgo/go/net/interface_stub.go
+--- gcc-7-20170323.orig/libgo/go/net/interface_stub.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/interface_stub.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build nacl
++// +build aix nacl
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/internal/socktest/switch_unix.go gcc-7-20170323/libgo/go/net/internal/socktest/switch_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/internal/socktest/switch_unix.go	2016-11-17 05:17:59 +0100
++++ gcc-7-20170323/libgo/go/net/internal/socktest/switch_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package socktest
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/iprawsock_posix.go gcc-7-20170323/libgo/go/net/iprawsock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/iprawsock_posix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/iprawsock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/ipsock_posix.go gcc-7-20170323/libgo/go/net/ipsock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/ipsock_posix.go	2017-01-16 08:02:20 +0100
++++ gcc-7-20170323/libgo/go/net/ipsock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/lookup_unix.go gcc-7-20170323/libgo/go/net/lookup_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/lookup_unix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/lookup_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/main_unix_test.go gcc-7-20170323/libgo/go/net/main_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/net/main_unix_test.go	2016-11-17 05:19:13 +0100
++++ gcc-7-20170323/libgo/go/net/main_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/nss.go gcc-7-20170323/libgo/go/net/nss.go
+--- gcc-7-20170323.orig/libgo/go/net/nss.go	2016-11-17 05:17:44 +0100
++++ gcc-7-20170323/libgo/go/net/nss.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/port_unix.go gcc-7-20170323/libgo/go/net/port_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/port_unix.go	2017-01-16 08:02:40 +0100
++++ gcc-7-20170323/libgo/go/net/port_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris nacl
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris nacl
+ 
+ // Read system port mappings from /etc/services
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sendfile_stub.go gcc-7-20170323/libgo/go/net/sendfile_stub.go
+--- gcc-7-20170323.orig/libgo/go/net/sendfile_stub.go	2016-11-17 05:17:59 +0100
++++ gcc-7-20170323/libgo/go/net/sendfile_stub.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin nacl netbsd openbsd
++// +build aix darwin nacl netbsd openbsd
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sock_posix.go gcc-7-20170323/libgo/go/net/sock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/sock_posix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/sock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sock_stub.go gcc-7-20170323/libgo/go/net/sock_stub.go
+--- gcc-7-20170323.orig/libgo/go/net/sock_stub.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/sock_stub.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build nacl solaris
++// +build aix nacl solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sockopt_aix.go gcc-7-20170323/libgo/go/net/sockopt_aix.go
+--- gcc-7-20170323.orig/libgo/go/net/sockopt_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/net/sockopt_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,17 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package net
++
++func setDefaultSockopts(s, family, sotype int, ipv6only bool) error {
++	return syscall.ENOPROTOOPT
++}
++
++func setDefaultListenerSockopts(s int) error {
++	return syscall.ENOPROTOOPT
++}
++
++func setDefaultMulticastSockopts(s int) error {
++	return syscall.ENOPROTOOPT
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sockopt_posix.go gcc-7-20170323/libgo/go/net/sockopt_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/sockopt_posix.go	2016-11-17 05:19:13 +0100
++++ gcc-7-20170323/libgo/go/net/sockopt_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sockoptip_aix.go gcc-7-20170323/libgo/go/net/sockoptip_aix.go
+--- gcc-7-20170323.orig/libgo/go/net/sockoptip_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/net/sockoptip_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,15 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package net
++
++import "syscall"
++
++func setIPv4MulticastInterface(fd *netFD, ifi *Interface) error {
++	return syscall.ENOPROTOOPT
++}
++
++func setIPv4MulticastLoopback(fd *netFD, v bool) error {
++	return syscall.ENOPROTOOPT
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sockoptip_posix.go gcc-7-20170323/libgo/go/net/sockoptip_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/sockoptip_posix.go	2016-11-17 05:19:12 +0100
++++ gcc-7-20170323/libgo/go/net/sockoptip_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/sys_cloexec.go gcc-7-20170323/libgo/go/net/sys_cloexec.go
+--- gcc-7-20170323.orig/libgo/go/net/sys_cloexec.go	2016-11-17 05:18:17 +0100
++++ gcc-7-20170323/libgo/go/net/sys_cloexec.go	2017-03-24 10:35:08 +0100
+@@ -5,7 +5,7 @@
+ // This file implements sysSocket and accept for platforms that do not
+ // provide a fast path for setting SetNonblock and CloseOnExec.
+ 
+-// +build darwin dragonfly nacl netbsd openbsd solaris
++// +build aix darwin dragonfly nacl netbsd openbsd solaris
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/tcpsock_posix.go gcc-7-20170323/libgo/go/net/tcpsock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/tcpsock_posix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/tcpsock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/tcpsockopt_posix.go gcc-7-20170323/libgo/go/net/tcpsockopt_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/tcpsockopt_posix.go	2016-11-17 05:18:46 +0100
++++ gcc-7-20170323/libgo/go/net/tcpsockopt_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/tcpsockopt_unix.go gcc-7-20170323/libgo/go/net/tcpsockopt_unix.go
+--- gcc-7-20170323.orig/libgo/go/net/tcpsockopt_unix.go	2016-11-17 05:18:22 +0100
++++ gcc-7-20170323/libgo/go/net/tcpsockopt_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build freebsd linux netbsd
++// +build aix freebsd linux netbsd
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/udpsock_posix.go gcc-7-20170323/libgo/go/net/udpsock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/udpsock_posix.go	2017-01-16 08:02:20 +0100
++++ gcc-7-20170323/libgo/go/net/udpsock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/net/unixsock_posix.go gcc-7-20170323/libgo/go/net/unixsock_posix.go
+--- gcc-7-20170323.orig/libgo/go/net/unixsock_posix.go	2017-01-16 08:02:24 +0100
++++ gcc-7-20170323/libgo/go/net/unixsock_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package net
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/dir_gccgo.go gcc-7-20170323/libgo/go/os/dir_gccgo.go
+--- gcc-7-20170323.orig/libgo/go/os/dir_gccgo.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/os/dir_gccgo.go	2017-03-24 10:35:08 +0100
+@@ -6,6 +6,7 @@
+ 
+ import (
+ 	"io"
++	"runtime"
+ 	"sync/atomic"
+ 	"syscall"
+ 	"unsafe"
+@@ -81,6 +82,11 @@
+ 		syscall.Entersyscall()
+ 		i := libc_readdir_r(file.dirinfo.dir, entryDirent, pr)
+ 		syscall.Exitsyscall()
++		// On AIX when readdir_r hits EOF it sets dirent to nil and returns 9.
++		//  https://www.ibm.com/support/knowledgecenter/ssw_aix_71/com.ibm.aix.basetrf2/readdir_r.htm
++		if runtime.GOOS == "aix" && i == 9 && dirent == nil {
++			break
++		}
+ 		if i != 0 {
+ 			return names, NewSyscallError("readdir_r", i)
+ 		}
+diff -Nur gcc-7-20170323.orig/libgo/go/os/dir_largefile.go gcc-7-20170323/libgo/go/os/dir_largefile.go
+--- gcc-7-20170323.orig/libgo/go/os/dir_largefile.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/dir_largefile.go	2017-03-24 10:35:08 +0100
+@@ -5,7 +5,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux solaris,386 solaris,sparc
++// +build aix linux solaris,386 solaris,sparc
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/dir_regfile.go gcc-7-20170323/libgo/go/os/dir_regfile.go
+--- gcc-7-20170323.orig/libgo/go/os/dir_regfile.go	2016-11-17 05:09:49 +0100
++++ gcc-7-20170323/libgo/go/os/dir_regfile.go	2017-03-24 10:35:08 +0100
+@@ -5,6 +5,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// +build !aix
+ // +build !linux
+ // +build !solaris !386
+ // +build !solaris !sparc
+diff -Nur gcc-7-20170323.orig/libgo/go/os/dir_unix.go gcc-7-20170323/libgo/go/os/dir_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/dir_unix.go	2017-01-16 08:00:31 +0100
++++ gcc-7-20170323/libgo/go/os/dir_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/error_unix.go gcc-7-20170323/libgo/go/os/error_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/error_unix.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/os/error_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/exec/lp_unix.go gcc-7-20170323/libgo/go/os/exec/lp_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/exec/lp_unix.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/exec/lp_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package exec
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/exec_posix.go gcc-7-20170323/libgo/go/os/exec_posix.go
+--- gcc-7-20170323.orig/libgo/go/os/exec_posix.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/exec_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/exec_unix.go gcc-7-20170323/libgo/go/os/exec_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/exec_unix.go	2016-11-17 05:09:49 +0100
++++ gcc-7-20170323/libgo/go/os/exec_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/executable_procfs.go gcc-7-20170323/libgo/go/os/executable_procfs.go
+--- gcc-7-20170323.orig/libgo/go/os/executable_procfs.go	2017-01-16 08:00:31 +0100
++++ gcc-7-20170323/libgo/go/os/executable_procfs.go	2017-03-24 10:35:08 +0100
+@@ -2,13 +2,14 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux netbsd openbsd dragonfly nacl
++// +build aix linux netbsd openbsd dragonfly nacl
+ 
+ package os
+ 
+ import (
+ 	"errors"
+ 	"runtime"
++	"syscall"
+ )
+ 
+ // We query the executable path at init time to avoid the problem of
+@@ -27,6 +28,8 @@
+ 		procfn = "/proc/curproc/file"
+ 	case "dragonfly":
+ 		procfn = "/proc/curproc/file"
++	case "aix":
++		procfn = "/proc/" + itoa(syscall.Getpid()) + "/object/a.out"
+ 	}
+ 	return Readlink(procfn)
+ }()
+diff -Nur gcc-7-20170323.orig/libgo/go/os/file_posix.go gcc-7-20170323/libgo/go/os/file_posix.go
+--- gcc-7-20170323.orig/libgo/go/os/file_posix.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/os/file_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/file_unix.go gcc-7-20170323/libgo/go/os/file_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/file_unix.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/os/file_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/path_unix.go gcc-7-20170323/libgo/go/os/path_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/path_unix.go	2017-01-16 08:00:31 +0100
++++ gcc-7-20170323/libgo/go/os/path_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/pipe_bsd.go gcc-7-20170323/libgo/go/os/pipe_bsd.go
+--- gcc-7-20170323.orig/libgo/go/os/pipe_bsd.go	2016-11-17 05:09:49 +0100
++++ gcc-7-20170323/libgo/go/os/pipe_bsd.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/signal/signal_test.go gcc-7-20170323/libgo/go/os/signal/signal_test.go
+--- gcc-7-20170323.orig/libgo/go/os/signal/signal_test.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/signal/signal_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package signal
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/signal/signal_unix.go gcc-7-20170323/libgo/go/os/signal/signal_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/signal/signal_unix.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/signal/signal_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package signal
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/stat.go gcc-7-20170323/libgo/go/os/stat.go
+--- gcc-7-20170323.orig/libgo/go/os/stat.go	2016-11-17 05:09:51 +0100
++++ gcc-7-20170323/libgo/go/os/stat.go	2017-03-24 10:35:08 +0100
+@@ -2,6 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// +build !aix
+ // +build !darwin
+ // +build !freebsd
+ // +build !linux
+diff -Nur gcc-7-20170323.orig/libgo/go/os/stat_atim.go gcc-7-20170323/libgo/go/os/stat_atim.go
+--- gcc-7-20170323.orig/libgo/go/os/stat_atim.go	2016-11-17 05:10:21 +0100
++++ gcc-7-20170323/libgo/go/os/stat_atim.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux openbsd solaristag
++// +build aix linux openbsd solaristag
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/stat_unix.go gcc-7-20170323/libgo/go/os/stat_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/stat_unix.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/os/stat_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/sys_uname.go gcc-7-20170323/libgo/go/os/sys_uname.go
+--- gcc-7-20170323.orig/libgo/go/os/sys_uname.go	2016-11-17 05:10:21 +0100
++++ gcc-7-20170323/libgo/go/os/sys_uname.go	2017-03-24 10:35:08 +0100
+@@ -4,7 +4,7 @@
+ 
+ // For systems which only store the hostname in uname (Solaris).
+ 
+-// +build solaris irix rtems
++// +build aix solaris irix rtems
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/sys_unix.go gcc-7-20170323/libgo/go/os/sys_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/sys_unix.go	2016-11-17 05:10:21 +0100
++++ gcc-7-20170323/libgo/go/os/sys_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build dragonfly linux netbsd openbsd solaris
++// +build aix dragonfly linux netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/os/user/decls_aix.go gcc-7-20170323/libgo/go/os/user/decls_aix.go
+--- gcc-7-20170323.orig/libgo/go/os/user/decls_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/os/user/decls_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,24 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package user
++
++import "syscall"
++
++// Declarations for the libc functions on AIX.
++
++//extern getpwnam_r
++func libc_getpwnam_r(name *byte, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int
++
++//extern getpwuid_r
++func libc_getpwuid_r(uid syscall.Uid_t, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int
++
++//extern getgrnam_r
++func libc_getgrnam_r(name *byte, grp *syscall.Group, buf *byte, buflen syscall.Size_t, result **syscall.Group) int
++
++//extern getgrgid_r
++func libc_getgrgid_r(gid syscall.Gid_t, grp *syscall.Group, buf *byte, buflen syscall.Size_t, result **syscall.Group) int
++
++//extern getgrset
++func libc_getgrset(user *byte) *byte
+diff -Nur gcc-7-20170323.orig/libgo/go/os/user/listgroups_aix.go gcc-7-20170323/libgo/go/os/user/listgroups_aix.go
+--- gcc-7-20170323.orig/libgo/go/os/user/listgroups_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/os/user/listgroups_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,11 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package user
++
++import "fmt"
++
++func listGroups(u *User) ([]string, error) {
++	return nil, fmt.Errorf("user: list groups for %s: not supported on AIX", u.Username)
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/os/user/lookup_unix.go gcc-7-20170323/libgo/go/os/user/lookup_unix.go
+--- gcc-7-20170323.orig/libgo/go/os/user/lookup_unix.go	2016-11-17 05:10:21 +0100
++++ gcc-7-20170323/libgo/go/os/user/lookup_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd !android,linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd !android,linux netbsd openbsd solaris
+ // +build cgo
+ 
+ package user
+diff -Nur gcc-7-20170323.orig/libgo/go/os/wait_unimp.go gcc-7-20170323/libgo/go/os/wait_unimp.go
+--- gcc-7-20170323.orig/libgo/go/os/wait_unimp.go	2016-11-17 05:09:49 +0100
++++ gcc-7-20170323/libgo/go/os/wait_unimp.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build dragonfly nacl netbsd openbsd solaris
++// +build aix dragonfly nacl netbsd openbsd solaris
+ 
+ package os
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/path/filepath/path_unix.go gcc-7-20170323/libgo/go/path/filepath/path_unix.go
+--- gcc-7-20170323.orig/libgo/go/path/filepath/path_unix.go	2017-01-16 08:02:40 +0100
++++ gcc-7-20170323/libgo/go/path/filepath/path_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package filepath
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/crash_unix_test.go gcc-7-20170323/libgo/go/runtime/crash_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/runtime/crash_unix_test.go	2017-01-16 08:00:36 +0100
++++ gcc-7-20170323/libgo/go/runtime/crash_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime_test
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/env_posix.go gcc-7-20170323/libgo/go/runtime/env_posix.go
+--- gcc-7-20170323.orig/libgo/go/runtime/env_posix.go	2016-11-17 05:11:28 +0100
++++ gcc-7-20170323/libgo/go/runtime/env_posix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/lock_sema.go gcc-7-20170323/libgo/go/runtime/lock_sema.go
+--- gcc-7-20170323.orig/libgo/go/runtime/lock_sema.go	2017-01-10 08:00:13 +0100
++++ gcc-7-20170323/libgo/go/runtime/lock_sema.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin nacl netbsd openbsd plan9 solaris windows
++// +build aix darwin nacl netbsd openbsd plan9 solaris windows
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/netpoll.go gcc-7-20170323/libgo/go/runtime/netpoll.go
+--- gcc-7-20170323.orig/libgo/go/runtime/netpoll.go	2017-01-16 08:00:32 +0100
++++ gcc-7-20170323/libgo/go/runtime/netpoll.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/netpoll_aix.go gcc-7-20170323/libgo/go/runtime/netpoll_aix.go
+--- gcc-7-20170323.orig/libgo/go/runtime/netpoll_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/runtime/netpoll_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,26 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Fake network poller for AIX
++// TODO : this is just stubs to allow building, implementation required
++
++package runtime
++
++func netpollinit() {
++}
++
++func netpollopen(fd uintptr, pd *pollDesc) int32 {
++	return 0
++}
++
++func netpollclose(fd uintptr) int32 {
++	return 0
++}
++
++func netpollarm(pd *pollDesc, mode int) {
++}
++
++func netpoll(block bool) *g {
++	return nil
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/os_aix.go gcc-7-20170323/libgo/go/runtime/os_aix.go
+--- gcc-7-20170323.orig/libgo/go/runtime/os_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/runtime/os_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,98 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package runtime
++
++import "unsafe"
++
++type mOS struct {
++	waitsema uintptr // semaphore for parking on locks
++}
++
++//extern malloc
++func libc_malloc(uintptr) unsafe.Pointer
++
++//go:noescape
++//extern sem_init
++func sem_init(sem *semt, pshared int32, value uint32) int32
++
++//go:noescape
++//extern sem_wait
++func sem_wait(sem *semt) int32
++
++//go:noescape
++//extern sem_post
++func sem_post(sem *semt) int32
++
++//go:noescape
++//extern sem_timedwait
++func sem_timedwait(sem *semt, timeout *timespec) int32
++
++//go:noescape
++//extern clock_gettime
++func clock_gettime(clock_id int64, timeout *timespec) int32
++
++//go:nosplit
++func semacreate(mp *m) {
++	if mp.mos.waitsema != 0 {
++		return
++	}
++
++	var sem *semt
++
++	// Call libc's malloc rather than malloc. This will
++	// allocate space on the C heap. We can't call malloc
++	// here because it could cause a deadlock.
++	sem = (*semt)(libc_malloc(unsafe.Sizeof(*sem)))
++	if sem_init(sem, 0, 0) != 0 {
++		throw("sem_init")
++	}
++	mp.mos.waitsema = uintptr(unsafe.Pointer(sem))
++}
++
++//go:nosplit
++func semasleep(ns int64) int32 {
++	_m_ := getg().m
++	if ns >= 0 {
++		const CLOCK_REALTIME int64 = 9
++		var ts timespec
++
++		if clock_gettime(CLOCK_REALTIME, &ts) != 0 {
++			throw("clock_gettime")
++		}
++		ts.tv_sec += timespec_sec_t(ns / 1000000000)
++		ts.tv_nsec += timespec_nsec_t((int64(ts.tv_nsec) + ns) % 1000000000)
++		if ts.tv_nsec >= 1000000000 {
++			ts.tv_sec += timespec_sec_t(1)
++			ts.tv_nsec -= timespec_nsec_t(1000000000)
++		}
++
++		if sem_timedwait((*semt)(unsafe.Pointer(_m_.mos.waitsema)), &ts) != 0 {
++			err := errno()
++			if err == _ETIMEDOUT || err == _EAGAIN || err == _EINTR {
++				return -1
++			}
++			throw("sem_timedwait")
++		}
++		return 0
++	}
++	for {
++		r1 := sem_wait((*semt)(unsafe.Pointer(_m_.mos.waitsema)))
++		if r1 == 0 {
++			break
++		}
++		if errno() == _EINTR {
++			continue
++		}
++		throw("sem_wait")
++	}
++	return 0
++}
++
++//go:nosplit
++func semawakeup(mp *m) {
++	if sem_post((*semt)(unsafe.Pointer(mp.mos.waitsema))) != 0 {
++		throw("sem_post")
++	}
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/runtime_unix_test.go gcc-7-20170323/libgo/go/runtime/runtime_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/runtime/runtime_unix_test.go	2016-11-17 05:11:44 +0100
++++ gcc-7-20170323/libgo/go/runtime/runtime_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -6,7 +6,7 @@
+ // We need a fast system call to provoke the race,
+ // and Close(-1) is nearly universally fast.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd plan9
++// +build aix darwin dragonfly freebsd linux netbsd openbsd plan9
+ 
+ package runtime_test
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/signal_gccgo.go gcc-7-20170323/libgo/go/runtime/signal_gccgo.go
+--- gcc-7-20170323.orig/libgo/go/runtime/signal_gccgo.go	2017-03-01 08:00:10 +0100
++++ gcc-7-20170323/libgo/go/runtime/signal_gccgo.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/signal_sighandler.go gcc-7-20170323/libgo/go/runtime/signal_sighandler.go
+--- gcc-7-20170323.orig/libgo/go/runtime/signal_sighandler.go	2017-01-16 08:00:33 +0100
++++ gcc-7-20170323/libgo/go/runtime/signal_sighandler.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/runtime/signal_unix.go gcc-7-20170323/libgo/go/runtime/signal_unix.go
+--- gcc-7-20170323.orig/libgo/go/runtime/signal_unix.go	2017-01-27 08:00:33 +0100
++++ gcc-7-20170323/libgo/go/runtime/signal_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package runtime
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/env_unix.go gcc-7-20170323/libgo/go/syscall/env_unix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/env_unix.go	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/env_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ // Unix environment variables.
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/exec_bsd.go gcc-7-20170323/libgo/go/syscall/exec_bsd.go
+--- gcc-7-20170323.orig/libgo/go/syscall/exec_bsd.go	2016-11-17 05:20:45 +0100
++++ gcc-7-20170323/libgo/go/syscall/exec_bsd.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd netbsd openbsd solaris
+ 
+ package syscall
+ 
+@@ -235,6 +235,10 @@
+ 
+ 	// Set the controlling TTY to Ctty
+ 	if sys.Setctty {
++		if TIOCSCTTY == 0 {
++			err1 = ENOSYS
++			goto childerror
++		}
+ 		_, err1 = raw_ioctl(sys.Ctty, TIOCSCTTY, 0)
+ 		if err1 != 0 {
+ 			goto childerror
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/exec_unix.go gcc-7-20170323/libgo/go/syscall/exec_unix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/exec_unix.go	2017-01-16 08:03:13 +0100
++++ gcc-7-20170323/libgo/go/syscall/exec_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Fork, exec, wait, etc.
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/exec_unix_test.go gcc-7-20170323/libgo/go/syscall/exec_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/syscall/exec_unix_test.go	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/exec_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall_test
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/export_unix_test.go gcc-7-20170323/libgo/go/syscall/export_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/syscall/export_unix_test.go	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/export_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_aix.go gcc-7-20170323/libgo/go/syscall/libcall_aix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,11 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package syscall
++
++func raw_ptrace(request int, pid int, addr *byte, data *byte) Errno {
++	return ENOSYS
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_largefile.go gcc-7-20170323/libgo/go/syscall/libcall_posix_largefile.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_largefile.go	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_posix_largefile.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux solaris,386 solaris,sparc
++// +build aix linux solaris,386 solaris,sparc
+ 
+ // POSIX library calls on systems which use the largefile interface.
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_regfile.go gcc-7-20170323/libgo/go/syscall/libcall_posix_regfile.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_regfile.go	2016-11-17 05:20:45 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_posix_regfile.go	2017-03-24 10:35:08 +0100
+@@ -2,6 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// +build !aix
+ // +build !linux
+ // +build !solaris !386
+ // +build !solaris !sparc
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_utimesnano.go gcc-7-20170323/libgo/go/syscall/libcall_posix_utimesnano.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_posix_utimesnano.go	2016-11-17 05:21:19 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_posix_utimesnano.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd openbsd netbsd solaris
++// +build aix darwin dragonfly freebsd openbsd netbsd solaris
+ 
+ // General POSIX version of UtimesNano.
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_wait4.go gcc-7-20170323/libgo/go/syscall/libcall_wait4.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_wait4.go	2016-11-17 05:21:19 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_wait4.go	2017-03-24 10:35:08 +0100
+@@ -2,6 +2,8 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// +build !aix
++
+ // For systems with the wait4 library call.
+ 
+ package syscall
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/libcall_wait4_aix.go gcc-7-20170323/libgo/go/syscall/libcall_wait4_aix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/libcall_wait4_aix.go	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/go/syscall/libcall_wait4_aix.go	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,26 @@
++// Copyright 2009 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Handle AIX's wait4 specific behavior
++
++package syscall
++
++//sys  wait4(pid Pid_t, status *_C_int, options int, rusage *Rusage) (wpid Pid_t, err error)
++//wait4(pid Pid_t, status *_C_int, options _C_int, rusage *Rusage) Pid_t
++
++func Wait4(pid int, wstatus *WaitStatus, options int, rusage *Rusage) (wpid int, err error) {
++	var status _C_int
++	var r Pid_t
++	err = ERESTART
++	// AIX wait4 may return with ERESTART errno, while the processus is still
++	// active.
++	for err == ERESTART {
++		r, err = wait4(Pid_t(pid), &status, options, rusage)
++	}
++	wpid = int(r)
++	if wstatus != nil {
++		*wstatus = WaitStatus(status)
++	}
++	return
++}
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/mmap_unix_test.go gcc-7-20170323/libgo/go/syscall/mmap_unix_test.go
+--- gcc-7-20170323.orig/libgo/go/syscall/mmap_unix_test.go	2016-11-17 05:20:45 +0100
++++ gcc-7-20170323/libgo/go/syscall/mmap_unix_test.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd
++// +build aix darwin dragonfly freebsd linux netbsd openbsd
+ 
+ package syscall_test
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/sockcmsg_unix.go gcc-7-20170323/libgo/go/syscall/sockcmsg_unix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/sockcmsg_unix.go	2017-01-16 08:02:52 +0100
++++ gcc-7-20170323/libgo/go/syscall/sockcmsg_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Socket control messages
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/socket_bsd.go gcc-7-20170323/libgo/go/syscall/socket_bsd.go
+--- gcc-7-20170323.orig/libgo/go/syscall/socket_bsd.go	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/socket_bsd.go	2017-03-24 10:35:08 +0100
+@@ -4,10 +4,12 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd openbsd netbsd
++// +build aix darwin dragonfly freebsd openbsd netbsd
+ 
+ package syscall
+ 
++import "unsafe"
++
+ const SizeofSockaddrInet4 = 16
+ const SizeofSockaddrInet6 = 28
+ const SizeofSockaddrUnix = 110
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/syscall_unix.go gcc-7-20170323/libgo/go/syscall/syscall_unix.go
+--- gcc-7-20170323.orig/libgo/go/syscall/syscall_unix.go	2017-01-16 08:03:13 +0100
++++ gcc-7-20170323/libgo/go/syscall/syscall_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/timestruct.go gcc-7-20170323/libgo/go/syscall/timestruct.go
+--- gcc-7-20170323.orig/libgo/go/syscall/timestruct.go	2017-01-16 08:03:13 +0100
++++ gcc-7-20170323/libgo/go/syscall/timestruct.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/syscall/wait.c gcc-7-20170323/libgo/go/syscall/wait.c
+--- gcc-7-20170323.orig/libgo/go/syscall/wait.c	2016-11-17 05:21:06 +0100
++++ gcc-7-20170323/libgo/go/syscall/wait.c	2017-03-24 10:35:08 +0100
+@@ -12,6 +12,10 @@
+ 
+ #include "runtime.h"
+ 
++#ifndef WCOREDUMP
++#define WCOREDUMP(status) (((status) & 0200) != 0)
++#endif
++
+ extern _Bool Exited (uint32_t *w)
+   __asm__ (GOSYM_PREFIX "syscall.Exited.N18_syscall.WaitStatus");
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/time/sys_unix.go gcc-7-20170323/libgo/go/time/sys_unix.go
+--- gcc-7-20170323.orig/libgo/go/time/sys_unix.go	2016-11-17 05:13:55 +0100
++++ gcc-7-20170323/libgo/go/time/sys_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package time
+ 
+diff -Nur gcc-7-20170323.orig/libgo/go/time/zoneinfo_unix.go gcc-7-20170323/libgo/go/time/zoneinfo_unix.go
+--- gcc-7-20170323.orig/libgo/go/time/zoneinfo_unix.go	2017-01-16 08:00:54 +0100
++++ gcc-7-20170323/libgo/go/time/zoneinfo_unix.go	2017-03-24 10:35:08 +0100
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin,386 darwin,amd64 dragonfly freebsd linux,!android nacl netbsd openbsd solaris
++// +build aix darwin,386 darwin,amd64 dragonfly freebsd linux,!android nacl netbsd openbsd solaris
+ 
+ // Parse "zoneinfo" time zone file.
+ // This is a fairly standard file format used on OS X, Linux, BSD, Sun, and others.
+diff -Nur gcc-7-20170323.orig/libgo/libgo.imp gcc-7-20170323/libgo/libgo.imp
+--- gcc-7-20170323.orig/libgo/libgo.imp	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/libgo.imp	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,6 @@
++#! .
++__go_init_main
++__go_end
++.main.main
++_etext
++_edata
+diff -Nur gcc-7-20170323.orig/libgo/match.sh gcc-7-20170323/libgo/match.sh
+--- gcc-7-20170323.orig/libgo/match.sh	2017-01-16 08:03:13 +0100
++++ gcc-7-20170323/libgo/match.sh	2017-03-24 10:35:08 +0100
+@@ -113,7 +113,7 @@
+ 	"") ;;
+ 	$goarch) ;;
+ 	$goos) ;;
+-	android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
++	aix | android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
+ 	    tag1=nonmatchingtag
+ 	    ;;
+ 	386 | amd64 | amd64p32 | arm | armbe | arm64 | arm64be | alpha | ia64 | m68k | ppc64 | ppc64le | mips | mipsle | mips64 | mips64le | mips64p32 | mips64p32le | mipso32 | mipsn32 | mipsn64 | mipso64 | ppc | s390 | s390x | sparc | sparc64)
+@@ -125,7 +125,7 @@
+ 	"") ;;
+ 	$goarch) ;;
+ 	$goos) ;;
+-	android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
++	aix | android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
+ 	    tag2=nonmatchingtag
+ 	    ;;
+ 	386 | amd64 | amd64p32 | arm | armbe | arm64 | arm64be | alpha | ia64 | m68k | ppc64 | ppc64le | mips | mipsle | mips64 | mips64le | mips64p32 | mips64p32le | mipso32 | mipsn32 | mipsn64 | mipso64 | ppc | s390 | s390x | sparc | sparc64)
+diff -Nur gcc-7-20170323.orig/libgo/mkrsysinfo.sh gcc-7-20170323/libgo/mkrsysinfo.sh
+--- gcc-7-20170323.orig/libgo/mkrsysinfo.sh	2016-11-18 11:34:02 +0100
++++ gcc-7-20170323/libgo/mkrsysinfo.sh	2017-03-24 10:35:08 +0100
+@@ -30,6 +30,12 @@
+       -e 's/\([^a-zA-Z0-9_]\)_timespec\([^a-zA-Z0-9_]\)/\1timespec\2/g' \
+     >> ${OUT}
+ 
++# On AIX, the _arpcom struct, is filtered by the above grep sequence, as it as
++# a field of type _in6_addr, but other types depend on _arpcom, so we need to
++# put it back.
++grep '^type _arpcom ' gen-sysinfo.go | \
++  sed -e 's/_in6_addr/[16]byte/' >> ${OUT}
++
+ # The time structures need special handling: we need to name the
+ # types, so that we can cast integers to the right types when
+ # assigning to the structures.
+diff -Nur gcc-7-20170323.orig/libgo/mksysinfo.sh gcc-7-20170323/libgo/mksysinfo.sh
+--- gcc-7-20170323.orig/libgo/mksysinfo.sh	2016-11-17 05:09:46 +0100
++++ gcc-7-20170323/libgo/mksysinfo.sh	2017-03-24 10:35:08 +0100
+@@ -42,6 +42,12 @@
+       -e 's/\([^a-zA-Z0-9_]\)_timestruc_t\([^a-zA-Z0-9_]\)/\1Timestruc\2/g' \
+     >> ${OUT}
+ 
++# On AIX, the _arpcom struct, is filtered by the above grep sequence, as it as
++# a field of type _in6_addr, but other types depend on _arpcom, so we need to
++# put it back.
++grep '^type _arpcom ' gen-sysinfo.go | \
++  sed -e 's/_in6_addr/[16]byte/' >> ${OUT}
++
+ # The errno constants.  These get type Errno.
+   egrep '#define E[A-Z0-9_]+ ' errno.i | \
+   sed -e 's/^#define \(E[A-Z0-9_]*\) .*$/const \1 = Errno(_\1)/' >> ${OUT}
+@@ -656,6 +662,11 @@
+ grep '^const _NI_' gen-sysinfo.go | \
+   sed -e 's/^\(const \)_\(NI_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+ 
++# If nothing else defined EAI_OVERFLOW, make sure it has a value.
++if ! grep "const EAI_OVERFLOW " ${OUT} >/dev/null 2>&1; then
++  echo "const EAI_OVERFLOW = 0" >> ${OUT}
++fi
++
+ # The passwd struct.
+ grep '^type _passwd ' gen-sysinfo.go | \
+     sed -e 's/_passwd/Passwd/' \
+@@ -870,6 +881,11 @@
+   fi
+ fi
+ 
++# If nothing else defined TIOCSCTTY, make sure it has a value.
++if ! grep "const TIOCSCTTY " ${OUT} >/dev/null 2>&1; then
++  echo "const TIOCSCTTY = 0" >> ${OUT}
++fi
++
+ # The nlmsghdr struct.
+ grep '^type _nlmsghdr ' gen-sysinfo.go | \
+     sed -e 's/_nlmsghdr/NlMsghdr/' \
+diff -Nur gcc-7-20170323.orig/libgo/runtime/getncpu-aix.c gcc-7-20170323/libgo/runtime/getncpu-aix.c
+--- gcc-7-20170323.orig/libgo/runtime/getncpu-aix.c	1970-01-01 01:00:00 +0100
++++ gcc-7-20170323/libgo/runtime/getncpu-aix.c	2017-03-24 10:35:08 +0100
+@@ -0,0 +1,15 @@
++// Copyright 2012 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++#include <sys/types.h>
++#include <sys/systemcfg.h>
++
++#include "runtime.h"
++#include "defs.h"
++
++int32_t
++getproccount(void)
++{
++	return _system_configuration.ncpus;
++}
+diff -Nur gcc-7-20170323.orig/libgo/runtime/go-fieldtrack.c gcc-7-20170323/libgo/runtime/go-fieldtrack.c
+--- gcc-7-20170323.orig/libgo/runtime/go-fieldtrack.c	2017-01-16 08:00:30 +0100
++++ gcc-7-20170323/libgo/runtime/go-fieldtrack.c	2017-03-24 10:35:08 +0100
+@@ -27,11 +27,19 @@
+    map[string]bool.  */
+ 
+ extern const char _etext[] __attribute__ ((weak));
++extern const char _edata[] __attribute__ ((weak));
++#ifdef _AIX
++// Following symbols do not exist on AIX
++const char *__etext = NULL;
++const char *__data_start = NULL;
++const char *__edata = NULL;
++const char *__bss_start = NULL;
++#else
+ extern const char __etext[] __attribute__ ((weak));
+ extern const char __data_start[] __attribute__ ((weak));
+-extern const char _edata[] __attribute__ ((weak));
+ extern const char __edata[] __attribute__ ((weak));
+ extern const char __bss_start[] __attribute__ ((weak));
++#endif
+ 
+ extern void *mapassign (const struct __go_map_type *, void *hmap,
+ 			const void *key)
+diff -Nur gcc-7-20170323.orig/libgo/runtime/go-libmain.c gcc-7-20170323/libgo/runtime/go-libmain.c
+--- gcc-7-20170323.orig/libgo/runtime/go-libmain.c	2017-01-04 08:00:14 +0100
++++ gcc-7-20170323/libgo/runtime/go-libmain.c	2017-03-24 10:35:08 +0100
+@@ -24,7 +24,12 @@
+    and calls exported Go functions as needed.  */
+ 
+ static void die (const char *, int);
+-static void initfn (int, char **, char **);
++/* .init_array section does not exist in AIX XCOFF.
++   -Wl,-binitfini:__go_init option will be required to build go
++   libraries and make sure __go_init is called when the library is
++   loaded. This requires __go_init to be exported.  */
++
++void __go_init (int, char **, char **);
+ static void *gostart (void *);
+ 
+ /* Used to pass arguments to the thread that runs the Go startup.  */
+@@ -34,6 +39,7 @@
+   char **argv;
+ };
+ 
++#ifndef _AIX
+ /* We use .init_array so that we can get the command line arguments.
+    This obviously assumes .init_array support; different systems may
+    require other approaches.  */
+@@ -42,7 +48,8 @@
+ 
+ static initarrayfn initarray[1]
+ __attribute__ ((section (".init_array"), used)) =
+-  { initfn };
++  { __go_init };
++#endif
+ 
+ /* This function is called at program startup time.  It starts a new
+    thread to do the actual Go startup, so that program startup is not
+@@ -50,8 +57,8 @@
+    functions will wait for initialization to complete if
+    necessary.  */
+ 
+-static void
+-initfn (int argc, char **argv, char** env __attribute__ ((unused)))
++void
++__go_init (int argc, char **argv, char** env __attribute__ ((unused)))
+ {
+   int err;
+   pthread_attr_t attr;
+diff -Nur gcc-7-20170323.orig/libgo/runtime/go-nosys.c gcc-7-20170323/libgo/runtime/go-nosys.c
+--- gcc-7-20170323.orig/libgo/runtime/go-nosys.c	2016-11-17 05:09:17 +0100
++++ gcc-7-20170323/libgo/runtime/go-nosys.c	2017-03-24 10:35:08 +0100
+@@ -492,6 +492,15 @@
+ 
+ #endif /* ! HAVE_STRERROR_R */
+ 
++#ifndef HAVE_SYSCALL
++int
++syscall(int number, ...)
++{
++  errno = ENOSYS;
++  return -1;
++}
++#endif
++
+ #ifndef HAVE_WAIT4
+ 
+ /* Some old systems do not have wait4.  This is a replacement that
+diff -Nur gcc-7-20170323.orig/libgo/runtime/malloc.goc gcc-7-20170323/libgo/runtime/malloc.goc
+--- gcc-7-20170323.orig/libgo/runtime/malloc.goc	2017-01-16 08:00:30 +0100
++++ gcc-7-20170323/libgo/runtime/malloc.goc	2017-03-24 10:35:08 +0100
+@@ -39,6 +39,10 @@
+ #ifdef __aarch64__
+ #define HeapBase(i) ((void*)(uintptr)(0x40ULL<<32))
+ #define HeapBaseOptions 1
++#elif defined(_AIX)
++// mmap adresses range start at 0x07000000_00000000 on AIX for 64 bits processes
++#define HeapBase(i) ((void*)(uintptr)(0x70ULL<<52))
++#define HeapBaseOptions 1
+ #else
+ #define HeapBase(i) ((void*)(uintptr)(i<<40|0x00c0ULL<<32))
+ #define HeapBaseOptions 0x80
+@@ -498,10 +502,15 @@
+ 		// away from the running binary image and then round up
+ 		// to a MB boundary.
+ 
++#ifdef _AIX
++		// mmap adresses range start at 0x30000000 on AIX for 32 bits processes
++		end = 0x30000000U;
++#else
+ 		end = 0;
+ 		pend = &__go_end;
+ 		if(pend != nil)
+ 			end = *pend;
++#endif
+ 		p = (byte*)ROUND(end + (1<<18), 1<<20);
+ 		p_size = bitmap_size + spans_size + arena_size + PageSize;
+ 		p = runtime_SysReserve(p, p_size, &reserved);
+diff -Nur gcc-7-20170323.orig/libgo/runtime/mem.c gcc-7-20170323/libgo/runtime/mem.c
+--- gcc-7-20170323.orig/libgo/runtime/mem.c	2016-11-17 05:09:17 +0100
++++ gcc-7-20170323/libgo/runtime/mem.c	2017-03-24 10:35:08 +0100
+@@ -222,6 +222,12 @@
+ 		return;
+ 	}
+ 
++#ifdef _AIX
++	// AIX does not allow mapping a range that is already mapped.
++	// So always unmap first even if it is already unmapped.
++	runtime_munmap(v, n);
++#endif
++
+ 	p = runtime_mmap(v, n, PROT_READ|PROT_WRITE, MAP_ANON|MAP_FIXED|MAP_PRIVATE, fd, 0);
+ 	if(p == MAP_FAILED && errno == ENOMEM)
+ 		runtime_throw("runtime: out of memory");
+diff -Nur gcc-7-20170323.orig/libgo/testsuite/gotest gcc-7-20170323/libgo/testsuite/gotest
+--- gcc-7-20170323.orig/libgo/testsuite/gotest	2017-01-16 08:00:31 +0100
++++ gcc-7-20170323/libgo/testsuite/gotest	2017-03-24 10:35:08 +0100
+@@ -311,7 +311,7 @@
+ 	    "") ;;
+ 	    $goarch) ;;
+ 	    $goos) ;;
+-	    android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
++	    aix | android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
+ 		tag1=nonmatchingtag
+ 		;;
+ 	    386 | amd64 | amd64p32 | arm | armbe | arm64 | arm64be | alpha | ia64 | m68k | ppc64 | ppc64le | mips | mipsle | mips64 | mips64le | mips64p32 | mips64p32le | mipso32 | mipsn32 | mipsn64 | mipso64 | ppc | s390 | s390x | sparc | sparc64)
+@@ -323,7 +323,7 @@
+ 	    "") ;;
+ 	    $goarch) ;;
+ 	    $goos) ;;
+-	    android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
++	    aix | android | darwin | dragonfly | freebsd | linux | nacl | netbsd | openbsd | plan9 | solaris | windows)
+ 		tag2=nonmatchingtag
+ 		;;
+ 	    386 | amd64 | amd64p32 | arm | armbe | arm64 | arm64be | alpha | ia64 | m68k | ppc64 | ppc64le | mips | mipsle | mips64 | mips64le | mips64p32 | mips64p32le | mipso32 | mipsn32 | mipsn64 | mipso64 | ppc | s390 | s390x | sparc | sparc64)

@@ -1,0 +1,28 @@
+diff --git a/configure b/configure
+index ed6a2f3..4289fa8 100755
+--- a/configure
++++ b/configure
+@@ -35041,7 +35041,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  gl_cv_func_working_getdelim=yes
++  case "$host_os" in
++    aix*) gl_cv_func_working_getdelim=no;;
++    *) gl_cv_func_working_getdelim=yes;;
++  esac
+ else
+   gl_cv_func_working_getdelim=no
+ fi
+@@ -35741,7 +35744,10 @@ else
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+-  am_cv_func_working_getline=yes
++  case "$host_os" in
++    aix*) am_cv_func_working_getline=no;;
++    *) am_cv_func_working_getline=yes;;
++  esac
+ else
+   am_cv_func_working_getline=no
+ fi

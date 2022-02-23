@@ -1,0 +1,39 @@
+From 0b09941f99d8acf5c559e7afe36bf8ab19a9b5f8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 21 Apr 2021 16:20:08 +0200
+Subject: [PATCH] libbacktrace: open with pid first
+
+Exchange /proc/self/exe and /proc/pid/object/a.out.
+This is a workaround for a bug when using a non-pthread libbacktrace
+in a pthread Go. errno won't be set correctly.
+---
+ libbacktrace/fileline.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/libbacktrace/fileline.c b/libbacktrace/fileline.c
+index 0472f4721..62588f3a7 100644
+--- a/libbacktrace/fileline.c
++++ b/libbacktrace/fileline.c
+@@ -205,15 +205,15 @@ fileline_initialize (struct backtrace_state *state,
+ 	  filename = getexecname ();
+ 	  break;
+ 	case 2:
+-	  filename = "/proc/self/exe";
++	  snprintf (buf, sizeof (buf), "/proc/%ld/object/a.out",
++		    (long) getpid ());
++	  filename = buf;
+ 	  break;
+ 	case 3:
+ 	  filename = "/proc/curproc/file";
+ 	  break;
+ 	case 4:
+-	  snprintf (buf, sizeof (buf), "/proc/%ld/object/a.out",
+-		    (long) getpid ());
+-	  filename = buf;
++	  filename = "/proc/self/exe";
+ 	  break;
+ 	case 5:
+ 	  filename = sysctl_exec_name1 (state, error_callback, data);
+-- 
+2.25.0
+

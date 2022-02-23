@@ -1,0 +1,19 @@
+--- ./src/util/profile/prof_parse.c.ORIG	2018-05-03 16:34:47 +0200
++++ ./src/util/profile/prof_parse.c	2018-05-24 15:45:19 +0200
+@@ -241,7 +241,15 @@
+     }
+     return 1;
+ }
+-#ifndef _WIN32
++
++#ifdef _AIX
++static int valid_name_scandir(struct dirent *d)
++{
++    return valid_name(d->d_name);
++}
++#endif
++
++#if !defined(_WIN32) && !defined(_AIX)
+ static int valid_name_scandir(const struct dirent *d)
+ {
+     return valid_name(d->d_name);

@@ -1,0 +1,12 @@
+--- openldap-2.0.11/libraries/libldap/init.c	Tue Jul  3 16:17:14 2001
++++ openldap-2.0.11/libraries/libldap/init.c	Tue Jul  3 16:17:22 2001
+@@ -278,9 +278,6 @@
+ 	if(path != NULL) {
+ 		LDAP_FREE(path);
+ 	}
+-
+-	/* try file */
+-	openldap_ldap_init_w_conf(file, 1);
+ }
+ 
+ static void openldap_ldap_init_w_env(

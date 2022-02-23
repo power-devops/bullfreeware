@@ -1,0 +1,35 @@
+--- ./src/bson/bson-memory.c.ORIGIN	2018-04-17 15:39:03 +0200
++++ ./src/bson/bson-memory.c	2018-04-17 15:40:59 +0200
+@@ -17,6 +17,8 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#include <stdio.h>
++#include <errno.h>
+ 
+ #include "bson-atomic.h"
+ #include "bson-config.h"
+@@ -66,6 +68,7 @@
+ 
+    if (BSON_LIKELY (num_bytes)) {
+       if (BSON_UNLIKELY (!(mem = gMemVtable.malloc (num_bytes)))) {
++         fprintf (stderr, "Failure to allocate memory in bson_malloc(). errno: %d.\n", errno);
+          abort ();
+       }
+    }
+@@ -103,6 +106,7 @@
+ 
+    if (BSON_LIKELY (num_bytes)) {
+       if (BSON_UNLIKELY (!(mem = gMemVtable.calloc (1, num_bytes)))) {
++         fprintf (stderr, "Failure to allocate memory in bson_malloc0(). errno: %d.\n", errno);
+          abort ();
+       }
+    }
+@@ -150,6 +154,7 @@
+    mem = gMemVtable.realloc (mem, num_bytes);
+ 
+    if (BSON_UNLIKELY (!mem)) {
++      fprintf (stderr, "Failure to re-allocate memory in bson_realloc(). errno: %d.\n", errno);
+       abort ();
+    }
+ 

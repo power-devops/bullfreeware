@@ -1,0 +1,73 @@
+--- ./ctdb/config/ctdbd_wrapper_orig	2018-12-17 16:56:47 +0000
++++ ./ctdb/config/ctdbd_wrapper	2018-12-17 16:59:36 +0000
+@@ -8,6 +8,12 @@
+     exit 1
+ }
+ 
++if [ "$(uname)" == "AIX" ]; then
++pkill(){
++   kill "$1" `ps -ef | grep "$3" | grep -v grep | /usr/bin/awk '{print $2}'`
++}
++fi
++
+ [ $# -eq 1 ] || usage
+ 
+ action="$1"
+@@ -49,7 +55,7 @@
+     return 1
+ }
+ 
+-stop()
++stop2()
+ {
+ 	$CTDB shutdown
+ 
+@@ -74,7 +80,7 @@
+ 
+ case "$action" in
+     start) start ;;
+-    stop)  stop  ;;
++    stop)  stop2  ;;
+     *)
+ 	echo "usage: $0 {start|stop}"
+ 	exit 1
+--- ./ctdb/config/functions_orig	2018-12-17 16:56:53 +0000
++++ ./ctdb/config/functions	2018-12-17 17:01:20 +0000
+@@ -28,6 +28,19 @@
+     CTDB_HELPER_BINDIR="/usr/local/libexec/ctdb"
+ fi
+ 
++if [ "$(uname)" == "AIX" ]; then
++killall(){
++    args=''
++    for var in "$@"; do
++       [ "$var" != '-q' ] && args="$args $var"
++    done
++    kill_proc $args 2>/dev/null
++}
++kill_proc(){
++   kill "$1" `ps -ef | grep -w "$2" | grep -v grep | /usr/bin/awk '{print $2}'`
++}
++fi
++
+ #######################################
+ # pull in a system config file, if any
+ 
+@@ -200,7 +213,7 @@
+ # simulate /sbin/service (niced) on platforms that don't have it
+ nice_service()
+ {
+-    _nice="nice"
++    _nice="/usr/bin/nice"
+     _service "$@"
+ }
+ 
+@@ -377,7 +390,7 @@
+ 			echo "$service_name not listening on TCP port $_p"
+ 			return 1
+ 			;;
+-		98)
++		98|67)
+ 			# Couldn't bind, something already listening, next port
+ 			continue
+ 			;;

@@ -1,0 +1,154 @@
+From 93eded02976e1bdfaddf3403fa415393f5b90378 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 11 Oct 2018 14:35:29 +0200
+Subject: [PATCH] internal/syscall/unix, net: improve interface_aix.go
+
+This commit improves the interface_aix.go file, based on feedbacks about
+CL 138724.
+
+To retrieve MTU, ioctl is needed. It's implemented inside
+internal/syscall/unix.
+
+Change-Id: Ic583d26b93935a32a5f1eb5a2170b86e80a4a85e
+Reviewed-on: https://go-review.googlesource.com/c/142157
+Run-TryBot: Brad Fitzpatrick <bradfitz@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/go/build/deps_test.go b/src/go/build/deps_test.go
+index 7b3f25f..27edf78 100644
+--- a/src/go/build/deps_test.go
++++ b/src/go/build/deps_test.go
+@@ -317,7 +317,7 @@
+ 	"net": {
+ 		"L0", "CGO",
+ 		"context", "math/rand", "os", "reflect", "sort", "syscall", "time",
+-		"internal/nettrace", "internal/poll",
++		"internal/nettrace", "internal/poll", "internal/syscall/unix",
+ 		"internal/syscall/windows", "internal/singleflight", "internal/race",
+ 		"golang_org/x/net/dns/dnsmessage", "golang_org/x/net/lif", "golang_org/x/net/route",
+ 	},
+diff --git a/src/internal/syscall/unix/asm_aix_ppc64.s b/src/internal/syscall/unix/asm_aix_ppc64.s
+new file mode 100644
+index 0000000..9e82e3e
+--- /dev/null
++++ b/src/internal/syscall/unix/asm_aix_ppc64.s
+@@ -0,0 +1,12 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++#include "textflag.h"
++
++//
++// System calls for aix/ppc64 are implemented in syscall/syscall_aix.go
++//
++
++TEXT ·syscall6(SB),NOSPLIT,$0
++	JMP	syscall·syscall6(SB)
+diff --git a/src/internal/syscall/unix/ioctl_aix.go b/src/internal/syscall/unix/ioctl_aix.go
+new file mode 100644
+index 0000000..19d56c3
+--- /dev/null
++++ b/src/internal/syscall/unix/ioctl_aix.go
+@@ -0,0 +1,25 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package unix
++
++import (
++	"syscall"
++	"unsafe"
++)
++
++//go:cgo_import_dynamic libc_ioctl ioctl "libc.a/shr_64.o"
++//go:linkname libc_ioctl libc_ioctl
++var libc_ioctl uintptr
++
++// Implemented in syscall/syscall_aix.go.
++func syscall6(trap, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err syscall.Errno)
++
++func Ioctl(fd int, cmd int, args uintptr) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_ioctl)), 3, uintptr(fd), uintptr(cmd), uintptr(args), 0, 0, 0)
++	if e1 != 0 {
++		err = e1
++	}
++	return
++}
+diff --git a/src/net/interface_aix.go b/src/net/interface_aix.go
+index 8b70206..9a8b5bb 100644
+--- a/src/net/interface_aix.go
++++ b/src/net/interface_aix.go
+@@ -5,12 +5,12 @@
+ package net
+ 
+ import (
+-	//"os"
++	"internal/syscall/unix"
+ 	"syscall"
+ 	"unsafe"
+ )
+ 
+-type RawSockaddrDatalink struct {
++type rawSockaddrDatalink struct {
+ 	Len    uint8
+ 	Family uint8
+ 	Index  uint16
+@@ -21,6 +21,11 @@
+ 	Data   [120]byte
+ }
+ 
++type ifreq struct {
++	Name [16]uint8
++	Ifru [16]byte
++}
++
+ const _KINFO_RT_IFLIST = (0x1 << 8) | 3 | (1 << 30)
+ 
+ const _RTAX_NETMASK = 2
+@@ -30,12 +35,12 @@
+ func getIfList() ([]byte, error) {
+ 	needed, err := syscall.Getkerninfo(_KINFO_RT_IFLIST, 0, 0, 0)
+ 	if err != nil {
+-		return nil, nil // XXX
++		return nil, err
+ 	}
+ 	tab := make([]byte, needed)
+ 	_, err = syscall.Getkerninfo(_KINFO_RT_IFLIST, uintptr(unsafe.Pointer(&tab[0])), uintptr(unsafe.Pointer(&needed)), 0)
+ 	if err != nil {
+-		return nil, nil // XXX
++		return nil, err
+ 	}
+ 	return tab[:needed], nil
+ }
+@@ -57,12 +62,25 @@
+ 		}
+ 		if ifm.Type == syscall.RTM_IFINFO {
+ 			if ifindex == 0 || ifindex == int(ifm.Index) {
+-				sdl := (*RawSockaddrDatalink)(unsafe.Pointer(&tab[syscall.SizeofIfMsghdr]))
++				sdl := (*rawSockaddrDatalink)(unsafe.Pointer(&tab[syscall.SizeofIfMsghdr]))
+ 
+ 				ifi := &Interface{Index: int(ifm.Index), Flags: linkFlags(ifm.Flags)}
+ 				ifi.Name = string(sdl.Data[:sdl.Nlen])
+ 				ifi.HardwareAddr = sdl.Data[sdl.Nlen : sdl.Nlen+sdl.Alen]
+-				/* XXX MTU? */
++
++				// Retrieve MTU
++				ifr := &ifreq{}
++				copy(ifr.Name[:], ifi.Name)
++				sock, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
++				if err != nil {
++					return nil, err
++				}
++				err = unix.Ioctl(sock, syscall.SIOCGIFMTU, uintptr(unsafe.Pointer(ifr)))
++				if err != nil {
++					return nil, err
++				}
++				ifi.MTU = int(ifr.Ifru[0])<<24 | int(ifr.Ifru[1])<<16 | int(ifr.Ifru[2])<<8 | int(ifr.Ifru[3])
++
+ 				ift = append(ift, *ifi)
+ 				if ifindex == int(ifm.Index) {
+ 					break

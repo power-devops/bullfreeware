@@ -1,0 +1,14 @@
+Index: Python-2.7.6/Lib/test/test_fileio.py
+===================================================================
+--- Python-2.7.6.orig/Lib/test/test_fileio.py	2013-04-06 16:02:30.000000000 +0200
++++ Python-2.7.6/Lib/test/test_fileio.py	2013-05-02 10:52:59.000000000 +0200
+@@ -297,7 +297,8 @@
+                     self.assertEqual(f.writable(), True)
+                     if sys.platform != "darwin" and \
+                        'bsd' not in sys.platform and \
+-                       not sys.platform.startswith('sunos'):
++                       not sys.platform.startswith('sunos') and \
++                       not sys.platform.startswith('aix'):
+                         # Somehow /dev/tty appears seekable on some BSDs
+                         self.assertEqual(f.seekable(), False)
+                     self.assertEqual(f.isatty(), True)

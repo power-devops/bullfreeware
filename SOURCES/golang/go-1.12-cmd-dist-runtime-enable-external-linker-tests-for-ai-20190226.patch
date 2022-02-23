@@ -1,0 +1,45 @@
+From 4eb187c9fc80c5cf321260f17e3234cf3004e3f0 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Thu, 31 Jan 2019 12:36:30 -0600
+Subject: [PATCH 19/24] cmd/dist, runtime: enable external linker tests for
+ aix/ppc64
+
+---
+ src/cmd/dist/test.go          | 4 ++--
+ src/runtime/crash_cgo_test.go | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/cmd/dist/test.go b/src/cmd/dist/test.go
+index 74cee8f421..709015f167 100644
+--- a/src/cmd/dist/test.go
++++ b/src/cmd/dist/test.go
+@@ -1171,8 +1171,8 @@ func (t *tester) cgoTestSOSupported() bool {
+ 		// No exec facility on Android or iOS.
+ 		return false
+ 	}
+-	if goarch == "ppc64" {
+-		// External linking not implemented on ppc64 (issue #8912).
++	if goarch == "ppc64" && goos == "linux" {
++		// External linking not implemented on linux/ppc64 (issue #8912).
+ 		return false
+ 	}
+ 	if goarch == "mips64le" || goarch == "mips64" {
+diff --git a/src/runtime/crash_cgo_test.go b/src/runtime/crash_cgo_test.go
+index e0c8955e7d..07eba78c8a 100644
+--- a/src/runtime/crash_cgo_test.go
++++ b/src/runtime/crash_cgo_test.go
+@@ -90,9 +90,9 @@ func TestCgoExternalThreadSIGPROF(t *testing.T) {
+ 	case "plan9", "windows":
+ 		t.Skipf("no pthreads on %s", runtime.GOOS)
+ 	}
+-	if runtime.GOARCH == "ppc64" {
++	if runtime.GOARCH == "ppc64" && runtime.GOOS == "linux" {
+ 		// TODO(austin) External linking not implemented on
+-		// ppc64 (issue #8912)
++		// linux/ppc64 (issue #8912)
+ 		t.Skipf("no external linking on ppc64")
+ 	}
+ 
+-- 
+2.15.1
+

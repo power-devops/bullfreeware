@@ -1,0 +1,979 @@
+Index: gcc-4.4.0/boehm-gc/configure
+===================================================================
+--- gcc-4.4.0.orig/boehm-gc/configure	2009-03-01 18:49:31.000000000 +0100
++++ gcc-4.4.0/boehm-gc/configure	2009-07-06 15:20:13.000000000 +0200
+@@ -2738,7 +2738,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2796,9 +2796,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -3419,7 +3419,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -3477,9 +3477,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -7248,7 +7248,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -7306,9 +7306,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -16669,8 +16669,8 @@
+     ## :GOTCHA: we do not check anything but sys/dg_sys_info.h
+ if test $ac_is_dgux = yes; then
+     if test "$enable_full_debug" = "yes"; then
+-      CFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+-      CXXFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
++      CFLAGS="-mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
++      CXXFLAGS="-mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+     else
+       CFLAGS="-DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+       CXXFLAGS="-DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+Index: gcc-4.4.0/boehm-gc/configure.ac
+===================================================================
+--- gcc-4.4.0.orig/boehm-gc/configure.ac	2008-07-18 10:15:27.000000000 +0200
++++ gcc-4.4.0/boehm-gc/configure.ac	2009-07-06 15:20:13.000000000 +0200
+@@ -447,8 +447,8 @@
+     ## :GOTCHA: we do not check anything but sys/dg_sys_info.h
+ if test $ac_is_dgux = yes; then
+     if test "$enable_full_debug" = "yes"; then
+-      CFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+-      CXXFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
++      CFLAGS="-mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
++      CXXFLAGS="-mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+     else
+       CFLAGS="-DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+       CXXFLAGS="-DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
+Index: gcc-4.4.0/boehm-gc/digimars.mak
+===================================================================
+--- gcc-4.4.0.orig/boehm-gc/digimars.mak	2001-08-17 20:39:15.000000000 +0200
++++ gcc-4.4.0/boehm-gc/digimars.mak	2009-07-06 15:20:14.000000000 +0200
+@@ -4,7 +4,7 @@
+ 
+ 
+ DEFINES=-DNDEBUG -DSILENT -DGC_BUILD -D_WINDOWS -DGC_DLL -DALL_INTERIOR_POINTERS -D__STDC__ -DWIN32_THREADS
+-CFLAGS=-Iinclude $(DEFINES) -wx -g
++CFLAGS=-Iinclude $(DEFINES) -wx 
+ LFLAGS=/ma/implib/co
+ CC=sc
+ 
+@@ -61,7 +61,7 @@
+ 	sc -ogctest.exe tests\test.obj gc.lib
+ 
+ tests\test.obj : tests\test.c
+-	$(CC) -c -g -DNDEBUG -DSILENT -DGC_BUILD -D_WINDOWS -DGC_DLL \
++	$(CC) -c -DNDEBUG -DSILENT -DGC_BUILD -D_WINDOWS -DGC_DLL \
+ 	-DALL_INTERIOR_POINTERS -DWIN32_THREADS \
+ 	-Iinclude tests\test.c -otests\test.obj
+ 
+Index: gcc-4.4.0/config/acinclude.m4
+===================================================================
+--- gcc-4.4.0.orig/config/acinclude.m4	2008-07-30 16:57:07.000000000 +0200
++++ gcc-4.4.0/config/acinclude.m4	2009-07-06 15:20:10.000000000 +0200
+@@ -24,13 +24,13 @@
+   if test "$ac_test_CXXFLAGS" = set; then
+     CXXFLAGS="$ac_save_CXXFLAGS"
+   elif test $ac_cv_prog_cxx_g = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS=" -O2"
+   else
+     CXXFLAGS="-O2"
+   fi
+ else
+   GXX=
+-  test "${CXXFLAGS+set}" = set || CXXFLAGS="-g"
++  test "${CXXFLAGS+set}" = set || CXXFLAGS=""
+ fi
+ ])
+ 
+@@ -121,13 +121,13 @@
+   if test "$ac_test_CFLAGS" = set; then
+     CFLAGS="$ac_save_CFLAGS"
+   elif test $ac_cv_prog_cc_g = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS=" -O2"
+   else
+     CFLAGS="-O2"
+   fi
+ else
+   GXX=
+-  test "${CFLAGS+set}" = set || CFLAGS="-g"
++  test "${CFLAGS+set}" = set || CFLAGS=""
+ fi
+ ])
+ 
+@@ -677,7 +677,7 @@
+ ])
+ if test ${ac_cv_c_little_endian} = unknown; then
+ old_cflags=$CFLAGS
+-CFLAGS=-g
++CFLAGS=
+ AC_TRY_RUN([
+ main () {
+   /* Are we little or big endian?  From Harbison&Steele.  */
+Index: gcc-4.4.0/config/mt-d30v
+===================================================================
+--- gcc-4.4.0.orig/config/mt-d30v	2000-07-21 07:44:02.000000000 +0200
++++ gcc-4.4.0/config/mt-d30v	2009-07-06 15:20:10.000000000 +0200
+@@ -1,4 +1,4 @@
+ # Build libraries optimizing for space, not speed.
+ # Turn off warnings about symbols named the same as registers
+- CFLAGS_FOR_TARGET = -g -Os -Wa,-C
+- CXXFLAGS_FOR_TARGET = -g -Os -Wa,-C
++ CFLAGS_FOR_TARGET = -Os -Wa,-C
++ CXXFLAGS_FOR_TARGET = -Os -Wa,-C
+Index: gcc-4.4.0/config/mt-ospace
+===================================================================
+--- gcc-4.4.0.orig/config/mt-ospace	1999-09-04 17:09:22.000000000 +0200
++++ gcc-4.4.0/config/mt-ospace	2009-07-06 15:20:10.000000000 +0200
+@@ -1,3 +1,3 @@
+ # Build libraries optimizing for space, not speed.
+- CFLAGS_FOR_TARGET = -g -Os
+- CXXFLAGS_FOR_TARGET = -g -Os
++ CFLAGS_FOR_TARGET = -Os
++ CXXFLAGS_FOR_TARGET = -Os
+Index: gcc-4.4.0/fixincludes/configure
+===================================================================
+--- gcc-4.4.0.orig/fixincludes/configure	2008-12-18 21:04:55.000000000 +0100
++++ gcc-4.4.0/fixincludes/configure	2009-07-06 15:20:09.000000000 +0200
+@@ -2749,9 +2749,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/intl/configure
+===================================================================
+--- gcc-4.4.0.orig/intl/configure	2008-06-18 01:13:35.000000000 +0200
++++ gcc-4.4.0/intl/configure	2009-07-06 15:20:10.000000000 +0200
+@@ -2394,7 +2394,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2452,9 +2452,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libcpp/configure
+===================================================================
+--- gcc-4.4.0.orig/libcpp/configure	2009-04-21 11:08:08.000000000 +0200
++++ gcc-4.4.0/libcpp/configure	2009-07-06 15:20:11.000000000 +0200
+@@ -2182,7 +2182,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2240,9 +2240,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libdecnumber/configure
+===================================================================
+--- gcc-4.4.0.orig/libdecnumber/configure	2008-06-18 01:13:35.000000000 +0200
++++ gcc-4.4.0/libdecnumber/configure	2009-07-06 15:20:10.000000000 +0200
+@@ -1979,7 +1979,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2037,9 +2037,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libffi/configure
+===================================================================
+--- gcc-4.4.0.orig/libffi/configure	2009-04-21 11:08:08.000000000 +0200
++++ gcc-4.4.0/libffi/configure	2009-07-06 15:20:14.000000000 +0200
+@@ -2690,8 +2690,8 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
+-echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
++CFLAGS=""
++echo "$as_me:$LINENO: checking whether $CC accepts " >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+@@ -2748,9 +2748,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libgcc/configure
+===================================================================
+--- gcc-4.4.0.orig/libgcc/configure	2008-11-20 18:13:01.000000000 +0100
++++ gcc-4.4.0/libgcc/configure	2009-07-06 15:20:09.000000000 +0200
+@@ -2758,9 +2758,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libgomp/configure
+===================================================================
+--- gcc-4.4.0.orig/libgomp/configure	2009-04-21 11:08:08.000000000 +0200
++++ gcc-4.4.0/libgomp/configure	2009-07-06 15:20:09.000000000 +0200
+@@ -2874,9 +2874,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -10984,9 +10984,9 @@
+   FCFLAGS=$ac_save_FFLAGS
+ elif test $ac_cv_prog_fc_g = yes; then
+   if test "x$ac_cv_fc_compiler_gnu" = xyes; then
+-    FCFLAGS="-g -O2"
++    FCFLAGS="-O2"
+   else
+-    FCFLAGS="-g"
++    FCFLAGS=""
+   fi
+ else
+   if test "x$ac_cv_fc_compiler_gnu" = xyes; then
+@@ -11220,9 +11220,9 @@
+   FCFLAGS=$ac_save_FFLAGS
+ elif test $ac_cv_prog_fc_g = yes; then
+   if test "x$ac_cv_fc_compiler_gnu" = xyes; then
+-    FCFLAGS="-g -O2"
++    FCFLAGS="-O2"
+   else
+-    FCFLAGS="-g"
++    FCFLAGS=""
+   fi
+ else
+   if test "x$ac_cv_fc_compiler_gnu" = xyes; then
+Index: gcc-4.4.0/libiberty/configure
+===================================================================
+--- gcc-4.4.0.orig/libiberty/configure	2009-04-08 16:18:33.000000000 +0200
++++ gcc-4.4.0/libiberty/configure	2009-07-06 15:20:10.000000000 +0200
+@@ -2409,7 +2409,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2467,9 +2467,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libiberty/physmem.c
+===================================================================
+--- gcc-4.4.0.orig/libiberty/physmem.c	2005-05-10 17:33:18.000000000 +0200
++++ gcc-4.4.0/libiberty/physmem.c	2009-07-06 15:20:10.000000000 +0200
+@@ -300,6 +300,6 @@
+ 
+ /*
+ Local Variables:
+-compile-command: "gcc -DDEBUG -DHAVE_CONFIG_H -I.. -g -O -Wall -W physmem.c"
++compile-command: "gcc -DDEBUG -DHAVE_CONFIG_H -I.. -O -Wall -W physmem.c"
+ End:
+ */
+Index: gcc-4.4.0/libjava/aclocal.m4
+===================================================================
+--- gcc-4.4.0.orig/libjava/aclocal.m4	2009-04-21 11:08:08.000000000 +0200
++++ gcc-4.4.0/libjava/aclocal.m4	2009-07-06 15:20:13.000000000 +0200
+@@ -353,7 +353,7 @@
+ AC_CHECK_PROGS(GCJ, gcj, gcj)
+ test -z "$GCJ" && AC_MSG_ERROR([no acceptable gcj found in \$PATH])
+ if test "x${GCJFLAGS-unset}" = xunset; then
+-   GCJFLAGS="-g -O2"
++   GCJFLAGS="-O2"
+ fi
+ AC_SUBST(GCJFLAGS)
+ _AM_IF_OPTION([no-dependencies],, [_AM_DEPENDENCIES(GCJ)])
+Index: gcc-4.4.0/libjava/classpath/configure
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/configure	2009-03-16 13:08:23.000000000 +0100
++++ gcc-4.4.0/libjava/classpath/configure	2009-07-06 15:20:13.000000000 +0200
+@@ -3228,7 +3228,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -3286,9 +3286,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -12318,7 +12318,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -12376,9 +12376,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS=" -O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -13273,7 +13273,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -13331,9 +13331,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -13738,7 +13738,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -13796,9 +13796,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -29293,7 +29293,7 @@
+ 
+ ECJ_OPTS="-warn:-deprecation,serial,unusedImport"
+ JAVAC_OPTS="-Xlint:unchecked,cast,divzero,empty,finally,overrides"
+-GCJ_OPTS="-g"
++GCJ_OPTS=""
+ if test "x$JAVAPREFIX" = x; then
+         test "x$JAVAC" = x && for ac_prog in "ecj$EXEEXT $ECJ_OPTS" "ecj-3.3$EXEEXT $ECJ_OPTS" "ecj-3.2$EXEEXT $ECJ_OPTS" "javac$EXEEXT $JAVAC_OPTS" "gcj$EXEEXT -C"
+ do
+@@ -29662,7 +29662,7 @@
+ 
+ ECJ_OPTS="-warn:-deprecation,serial,unusedImport"
+ JAVAC_OPTS="-Xlint:unchecked,cast,divzero,empty,finally,overrides"
+-GCJ_OPTS="-g"
++GCJ_OPTS=""
+ if test "x$JAVAPREFIX" = x; then
+         test "x$JAVAC" = x && for ac_prog in "ecj$EXEEXT $ECJ_OPTS" "ecj-3.3$EXEEXT $ECJ_OPTS" "ecj-3.2$EXEEXT $ECJ_OPTS" "javac$EXEEXT $JAVAC_OPTS" "gcj$EXEEXT -C"
+ do
+Index: gcc-4.4.0/libjava/classpath/examples/Makefile.java2d.in
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/examples/Makefile.java2d.in	2006-08-15 01:12:35.000000000 +0200
++++ gcc-4.4.0/libjava/classpath/examples/Makefile.java2d.in	2009-07-06 15:20:12.000000000 +0200
+@@ -10,7 +10,7 @@
+ GTK_LIBS = @GTK_LIBS@
+ 
+ all: $(srcdir)/gnu/classpath/examples/java2d/bench.c $(srcdir)/gnu/classpath/examples/java2d/bench.h
+-	gcc -g -O0 -Wall -I$(srcdir)/gnu/classpath/examples/java2d $(GTK_CFLAGS) -L$(GTK_LIBS) \
++	gcc -O0 -Wall -I$(srcdir)/gnu/classpath/examples/java2d $(GTK_CFLAGS) -L$(GTK_LIBS) \
+ 	-o cairobench $(srcdir)/gnu/classpath/examples/java2d/bench.c
+ 
+ clean:
+Index: gcc-4.4.0/libjava/classpath/examples/Makefile.jawt.in
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/examples/Makefile.jawt.in	2005-09-23 21:36:46.000000000 +0200
++++ gcc-4.4.0/libjava/classpath/examples/Makefile.jawt.in	2009-07-06 15:20:12.000000000 +0200
+@@ -18,7 +18,7 @@
+ 	gcjh -jni gnu.classpath.examples.jawt.DemoJAWT -o DemoJAWT.h
+ 
+ libDemoJAWT.so: gnu/classpath/examples/jawt/DemoJAWT.c DemoJAWT.h
+-	gcc -g -O0 -Wall -I. -I/usr/X11R6/include -L. -L/usr/X11R6/lib \
++	gcc -O0 -Wall -I. -I/usr/X11R6/include -L. -L/usr/X11R6/lib \
+ 	-I$(includedir) -L$(pkglibdir) \
+ 	-lX11 -ljawtgnu -shared -o libDemoJAWT.so \
+ 	gnu/classpath/examples/jawt/DemoJAWT.c
+Index: gcc-4.4.0/libjava/classpath/lib/Makefile.gcj
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/lib/Makefile.gcj	2007-01-09 20:58:05.000000000 +0100
++++ gcc-4.4.0/libjava/classpath/lib/Makefile.gcj	2009-07-06 15:20:13.000000000 +0200
+@@ -25,7 +25,7 @@
+ -include Makefile.deps $(all_deps_files)
+ 
+ ## Like GCJ but include some common flags.
+-GCJF = $(GCJ) -fsource=1.5 -ftarget=1.5 -g -Wno-deprecated --encoding=UTF-8 \
++GCJF = $(GCJ) -fsource=1.5 -ftarget=1.5 -Wno-deprecated --encoding=UTF-8 \
+     --bootclasspath '' --classpath $(compile_classpath) \
+     -C -d .
+ 
+Index: gcc-4.4.0/libjava/classpath/tools/Makefile.am
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/tools/Makefile.am	2008-11-12 21:55:13.000000000 +0100
++++ gcc-4.4.0/libjava/classpath/tools/Makefile.am	2009-07-06 15:20:12.000000000 +0200
+@@ -357,8 +357,8 @@
+ if JAVA_MAINTAINER_MODE
+ ## Compile ASM separately as it is latin-1 encoded.
+ 	AC=`echo $(JCOMPILER) | sed -e 's/UTF-8/ISO-8859-1/g'`; \
+-	  $$AC -g -w -d $(srcdir)/asm @asm.lst
+-	$(JCOMPILER) $(USE_JAVAC_FLAGS) -g -d $(srcdir)/classes @classes.lst @vm-tools.lst
++	  $$AC -w -d $(srcdir)/asm @asm.lst
++	$(JCOMPILER) $(USE_JAVAC_FLAGS) -d $(srcdir)/classes @classes.lst @vm-tools.lst
+ endif
+ ## END GCJ LOCAL
+ ## Copy over tools resource files.
+Index: gcc-4.4.0/libjava/classpath/tools/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/tools/Makefile.in	2008-11-12 21:55:13.000000000 +0100
++++ gcc-4.4.0/libjava/classpath/tools/Makefile.in	2009-07-06 15:20:12.000000000 +0200
+@@ -1352,8 +1352,8 @@
+ 	fi
+ 	cat classes.lst asm.lst vm-tools.lst > all-classes.lst
+ @JAVA_MAINTAINER_MODE_TRUE@	AC=`echo $(JCOMPILER) | sed -e 's/UTF-8/ISO-8859-1/g'`; \
+-@JAVA_MAINTAINER_MODE_TRUE@	  $$AC -g -w -d $(srcdir)/asm @asm.lst
+-@JAVA_MAINTAINER_MODE_TRUE@	$(JCOMPILER) $(USE_JAVAC_FLAGS) -g -d $(srcdir)/classes @classes.lst @vm-tools.lst
++@JAVA_MAINTAINER_MODE_TRUE@	  $$AC -w -d $(srcdir)/asm @asm.lst
++@JAVA_MAINTAINER_MODE_TRUE@	$(JCOMPILER) $(USE_JAVAC_FLAGS) -d $(srcdir)/classes @classes.lst @vm-tools.lst
+ 	@list=`cd $(srcdir)/resource && find gnu/classpath/tools com/sun/tools/javac \
+ 	       sun/rmi/rmic $(GJDOC_EX) -name \*.properties -print -o -name \*.jav -print`; \
+ 	for p in $$list; do \
+Index: gcc-4.4.0/libjava/libltdl/acinclude.m4
+===================================================================
+--- gcc-4.4.0.orig/libjava/libltdl/acinclude.m4	2006-04-06 21:22:45.000000000 +0200
++++ gcc-4.4.0/libjava/libltdl/acinclude.m4	2009-07-06 15:20:13.000000000 +0200
+@@ -6108,7 +6108,7 @@
+ 
+ AC_DEFUN([LT_AC_PROG_GCJ],
+ [AC_CHECK_TOOL(GCJ, gcj, no)
+-  test "x${GCJFLAGS+set}" = xset || GCJFLAGS="-g -O2"
++  test "x${GCJFLAGS+set}" = xset || GCJFLAGS="-O2"
+   AC_SUBST(GCJFLAGS)
+ ])
+ 
+Index: gcc-4.4.0/libjava/libltdl/configure
+===================================================================
+--- gcc-4.4.0.orig/libjava/libltdl/configure	2008-06-18 01:13:35.000000000 +0200
++++ gcc-4.4.0/libjava/libltdl/configure	2009-07-06 15:20:13.000000000 +0200
+@@ -2675,7 +2675,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2733,9 +2733,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -5176,7 +5176,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -5234,9 +5234,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -5879,7 +5879,7 @@
+ if test "${ac_cv_prog_f77_g+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+-  FFLAGS=-g
++  FFLAGS=
+ cat >conftest.$ac_ext <<_ACEOF
+       program main
+ 
+@@ -5923,9 +5923,9 @@
+   FFLAGS=$ac_save_FFLAGS
+ elif test $ac_cv_prog_f77_g = yes; then
+   if test "x$ac_cv_f77_compiler_gnu" = xyes; then
+-    FFLAGS="-g -O2"
++    FFLAGS="-O2"
+   else
+-    FFLAGS="-g"
++    FFLAGS=""
+   fi
+ else
+   if test "x$ac_cv_f77_compiler_gnu" = xyes; then
+Index: gcc-4.4.0/libjava/testsuite/Makefile.am
+===================================================================
+--- gcc-4.4.0.orig/libjava/testsuite/Makefile.am	2007-12-17 18:06:44.000000000 +0100
++++ gcc-4.4.0/libjava/testsuite/Makefile.am	2009-07-06 15:20:12.000000000 +0200
+@@ -58,11 +58,11 @@
+ 	  testtmpdir=`echo $$test | sed -e 's,/,_,g'`T; \
+ 	  rm -rf $$testtmpdir; $(mkdir_p) $$testtmpdir; \
+ 	  if test -n "$$testdep"; then \
+-	    $(GCJ) -C -g -w --encoding=UTF-8 -bootclasspath \
++	    $(GCJ) -C -w --encoding=UTF-8 -bootclasspath \
+ 	      $(top_builddir)/libgcj-$(gcc_version).jar::$$testtmpdir \
+ 	      -d $$testtmpdir $(srcdir)/$$testdep || exit; \
+ 	  fi; \
+-	  $(GCJ) -C -g -w --encoding=UTF-8 -bootclasspath \
++	  $(GCJ) -C -w --encoding=UTF-8 -bootclasspath \
+ 	    $(top_builddir)/libgcj-$(gcc_version).jar:$$testtmpdir \
+ 	    -d $$testtmpdir $(srcdir)/$$test || exit; \
+ 	  case "$$test" in \
+Index: gcc-4.4.0/libjava/testsuite/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/libjava/testsuite/Makefile.in	2009-03-03 18:03:51.000000000 +0100
++++ gcc-4.4.0/libjava/testsuite/Makefile.in	2009-07-06 15:20:12.000000000 +0200
+@@ -619,11 +619,11 @@
+ @JAVA_MAINTAINER_MODE_TRUE@	  testtmpdir=`echo $$test | sed -e 's,/,_,g'`T; \
+ @JAVA_MAINTAINER_MODE_TRUE@	  rm -rf $$testtmpdir; $(mkdir_p) $$testtmpdir; \
+ @JAVA_MAINTAINER_MODE_TRUE@	  if test -n "$$testdep"; then \
+-@JAVA_MAINTAINER_MODE_TRUE@	    $(GCJ) -C -g -w --encoding=UTF-8 -bootclasspath \
++@JAVA_MAINTAINER_MODE_TRUE@	    $(GCJ) -C -w --encoding=UTF-8 -bootclasspath \
+ @JAVA_MAINTAINER_MODE_TRUE@	      $(top_builddir)/libgcj-$(gcc_version).jar::$$testtmpdir \
+ @JAVA_MAINTAINER_MODE_TRUE@	      -d $$testtmpdir $(srcdir)/$$testdep || exit; \
+ @JAVA_MAINTAINER_MODE_TRUE@	  fi; \
+-@JAVA_MAINTAINER_MODE_TRUE@	  $(GCJ) -C -g -w --encoding=UTF-8 -bootclasspath \
++@JAVA_MAINTAINER_MODE_TRUE@	  $(GCJ) -C -w --encoding=UTF-8 -bootclasspath \
+ @JAVA_MAINTAINER_MODE_TRUE@	    $(top_builddir)/libgcj-$(gcc_version).jar:$$testtmpdir \
+ @JAVA_MAINTAINER_MODE_TRUE@	    -d $$testtmpdir $(srcdir)/$$test || exit; \
+ @JAVA_MAINTAINER_MODE_TRUE@	  case "$$test" in \
+Index: gcc-4.4.0/libjava/testsuite/lib/libjava.exp
+===================================================================
+--- gcc-4.4.0.orig/libjava/testsuite/lib/libjava.exp	2008-12-02 19:04:30.000000000 +0100
++++ gcc-4.4.0/libjava/testsuite/lib/libjava.exp	2009-07-06 15:20:12.000000000 +0200
+@@ -110,9 +110,9 @@
+     }
+     set here [pwd]
+     cd $dirname
+-    send_log "byte compile: $javac -g [list $file] -d $objdir 2>@ stdout\n"
++    send_log "byte compile: $javac [list $file] -d $objdir 2>@ stdout\n"
+     if {[catch {
+-	set q [eval exec "$javac -g [list $file] -d $objdir 2>@ stdout"]
++	set q [eval exec "$javac [list $file] -d $objdir 2>@ stdout"]
+     } msg]} then {
+ 	send_log "couldn't compile $file: $msg\n"
+ 	set r 0
+Index: gcc-4.4.0/libjava/testsuite/libjava.jvmti/jvmti.exp
+===================================================================
+--- gcc-4.4.0.orig/libjava/testsuite/libjava.jvmti/jvmti.exp	2007-07-13 16:07:16.000000000 +0200
++++ gcc-4.4.0/libjava/testsuite/libjava.jvmti/jvmti.exp	2009-07-06 15:20:12.000000000 +0200
+@@ -11,7 +11,7 @@
+   set oname ${name}.o
+ 
+   # Find the generated header.
+-  lappend options "additional_flags=-g -I. -I.. -fdollars-in-identifiers"
++  lappend options "additional_flags=-I. -I.. -fdollars-in-identifiers"
+   # Find libgcj headers.
+   lappend options "additional_flags=-I$srcdir/.."
+   # Find jvmti.h, jvmti_md.h, jvmti-int.h, jvm.h requirements
+Index: gcc-4.4.0/libmudflap/configure
+===================================================================
+--- gcc-4.4.0.orig/libmudflap/configure	2009-03-01 18:49:31.000000000 +0100
++++ gcc-4.4.0/libmudflap/configure	2009-07-06 15:20:10.000000000 +0200
+@@ -2744,7 +2744,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2802,9 +2802,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+Index: gcc-4.4.0/libstdc++-v3/acinclude.m4
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/acinclude.m4	2009-02-23 21:42:53.000000000 +0100
++++ gcc-4.4.0/libstdc++-v3/acinclude.m4	2009-07-06 15:20:11.000000000 +0200
+@@ -169,7 +169,7 @@
+ 
+   # Check for -ffunction-sections -fdata-sections
+   AC_MSG_CHECKING([for g++ that supports -ffunction-sections -fdata-sections])
+-  CXXFLAGS='-g -Werror -ffunction-sections -fdata-sections'
++  CXXFLAGS='-Werror -ffunction-sections -fdata-sections'
+   AC_TRY_COMPILE([int foo; void bar() { };],, [ac_fdsections=yes], [ac_fdsections=no])
+   if test "$ac_test_CXXFLAGS" = set; then
+     CXXFLAGS="$ac_save_CXXFLAGS"
+Index: gcc-4.4.0/libstdc++-v3/configure
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/configure	2009-03-01 18:49:31.000000000 +0100
++++ gcc-4.4.0/libstdc++-v3/configure	2009-07-06 15:20:11.000000000 +0200
+@@ -3154,7 +3154,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -3212,9 +3212,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -3661,7 +3661,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -3719,9 +3719,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -6958,7 +6958,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -7016,9 +7016,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=""
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -14980,7 +14980,7 @@
+   # Check for -ffunction-sections -fdata-sections
+   echo "$as_me:$LINENO: checking for g++ that supports -ffunction-sections -fdata-sections" >&5
+ echo $ECHO_N "checking for g++ that supports -ffunction-sections -fdata-sections... $ECHO_C" >&6
+-  CXXFLAGS='-g -Werror -ffunction-sections -fdata-sections'
++  CXXFLAGS='-Werror -ffunction-sections -fdata-sections'
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -41954,7 +41954,7 @@
+   # Check for -ffunction-sections -fdata-sections
+   echo "$as_me:$LINENO: checking for g++ that supports -ffunction-sections -fdata-sections" >&5
+ echo $ECHO_N "checking for g++ that supports -ffunction-sections -fdata-sections... $ECHO_C" >&6
+-  CXXFLAGS='-g -Werror -ffunction-sections -fdata-sections'
++  CXXFLAGS='-Werror -ffunction-sections -fdata-sections'
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -77227,7 +77227,7 @@
+   # Check for -ffunction-sections -fdata-sections
+   echo "$as_me:$LINENO: checking for g++ that supports -ffunction-sections -fdata-sections" >&5
+ echo $ECHO_N "checking for g++ that supports -ffunction-sections -fdata-sections... $ECHO_C" >&6
+-  CXXFLAGS='-g -Werror -ffunction-sections -fdata-sections'
++  CXXFLAGS='-Werror -ffunction-sections -fdata-sections'
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+Index: gcc-4.4.0/libstdc++-v3/include/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/include/Makefile.in	2009-07-06 15:13:49.000000000 +0200
++++ gcc-4.4.0/libstdc++-v3/include/Makefile.in	2009-07-06 15:20:11.000000000 +0200
+@@ -199,6 +199,8 @@
+ VERSION = @VERSION@
+ WARN_FLAGS = @WARN_FLAGS@
+ WERROR = @WERROR@
++ac_ct_AR = @ac_ct_AR@
++ac_ct_AS = @ac_ct_AS@
+ ac_ct_CC = @ac_ct_CC@
+ ac_ct_CXX = @ac_ct_CXX@
+ ac_ct_DSYMUTIL = @ac_ct_DSYMUTIL@
+@@ -208,6 +210,8 @@
+ ac_ct_OBJDUMP = @ac_ct_OBJDUMP@
+ ac_ct_OTOOL = @ac_ct_OTOOL@
+ ac_ct_OTOOL64 = @ac_ct_OTOOL64@
++ac_ct_RANLIB = @ac_ct_RANLIB@
++ac_ct_STRIP = @ac_ct_STRIP@
+ am__leading_dot = @am__leading_dot@
+ am__tar = @am__tar@
+ am__untar = @am__untar@
+@@ -220,9 +224,6 @@
+ build_vendor = @build_vendor@
+ check_msgfmt = @check_msgfmt@
+ datadir = @datadir@
+-datarootdir = @datarootdir@
+-docdir = @docdir@
+-dvidir = @dvidir@
+ enable_shared = @enable_shared@
+ enable_static = @enable_static@
+ exec_prefix = @exec_prefix@
+@@ -242,25 +243,21 @@
+ host_cpu = @host_cpu@
+ host_os = @host_os@
+ host_vendor = @host_vendor@
+-htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
+ libtool_VERSION = @libtool_VERSION@
+-localedir = @localedir@
+ localstatedir = @localstatedir@
+ lt_ECHO = @lt_ECHO@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+ oldincludedir = @oldincludedir@
+-pdfdir = @pdfdir@
+ port_specific_symbol_files = @port_specific_symbol_files@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+-psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+Index: gcc-4.4.0/libstdc++-v3/scripts/testsuite_flags.in
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/scripts/testsuite_flags.in	2007-09-12 00:32:51.000000000 +0200
++++ gcc-4.4.0/libstdc++-v3/scripts/testsuite_flags.in	2009-07-06 15:20:11.000000000 +0200
+@@ -54,7 +54,7 @@
+       echo ${CC}
+       ;;
+     --cxxflags)
+-      CXXFLAGS_default="-g -O2 -D_GLIBCXX_ASSERT -fmessage-length=0"
++      CXXFLAGS_default="-O2 -D_GLIBCXX_ASSERT -fmessage-length=0"
+       CXXFLAGS_config="@SECTION_FLAGS@ @CXXFLAGS@ @EXTRA_CXX_FLAGS@"
+       echo ${CXXFLAGS_default} ${CXXFLAGS_config}
+       ;;
+Index: gcc-4.4.0/libstdc++-v3/testsuite/lib/libstdc++.exp
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/testsuite/lib/libstdc++.exp	2009-04-10 01:23:07.000000000 +0200
++++ gcc-4.4.0/libstdc++-v3/testsuite/lib/libstdc++.exp	2009-07-06 15:20:11.000000000 +0200
+@@ -191,7 +191,7 @@
+ 
+     # Default settings.
+     set cxx [transform "g++"]
+-    set cxxflags "-g -O2 -D_GLIBCXX_ASSERT -fmessage-length=0"
++    set cxxflags "-O2 -D_GLIBCXX_ASSERT -fmessage-length=0"
+     set cxxpchflags ""
+     set cxxldflags ""
+     set cc [transform "gcc"]
+Index: gcc-4.4.0/libtool.m4
+===================================================================
+--- gcc-4.4.0.orig/libtool.m4	2009-03-01 18:49:31.000000000 +0100
++++ gcc-4.4.0/libtool.m4	2009-07-06 15:20:09.000000000 +0200
+@@ -6975,7 +6975,7 @@
+ [m4_ifdef([AC_PROG_GCJ], [AC_PROG_GCJ],
+   [m4_ifdef([A][M_PROG_GCJ], [A][M_PROG_GCJ],
+     [AC_CHECK_TOOL(GCJ, gcj,)
+-      test "x${GCJFLAGS+set}" = xset || GCJFLAGS="-g -O2"
++      test "x${GCJFLAGS+set}" = xset || GCJFLAGS="-O2"
+       AC_SUBST(GCJFLAGS)])])[]dnl
+ ])
+ 
+Index: gcc-4.4.0/zlib/configure
+===================================================================
+--- gcc-4.4.0.orig/zlib/configure	2009-03-01 18:49:31.000000000 +0100
++++ gcc-4.4.0/zlib/configure	2009-07-06 15:20:13.000000000 +0200
+@@ -2769,7 +2769,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -2827,9 +2827,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=""
+   fi
+ else
+   if test "$GCC" = yes; then

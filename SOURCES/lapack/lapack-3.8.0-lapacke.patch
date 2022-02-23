@@ -1,0 +1,18 @@
+--- LAPACKE/src/Makefile.orig	2019-01-09 10:59:42 +0000
++++ LAPACKE/src/Makefile	2019-01-09 11:00:59 +0000
+@@ -1101,6 +1101,7 @@
+ lapacke_dsytrf_rook.o \
+ lapacke_dsytrf_rook_work.o \
+ lapacke_dsytrf_aa.o \
++lapacke_dsytrf_aa_work.o \
+ lapacke_dsytrf_aa_2stage.o \
+ lapacke_dsytrf_aa_2stage_work.o \
+ lapacke_dsytrf_rk.o \
+@@ -1661,6 +1662,7 @@
+ lapacke_ssytrf_rook.o \
+ lapacke_ssytrf_rook_work.o \
+ lapacke_ssytrf_aa.o \
++lapacke_ssytrf_aa_work.o \
+ lapacke_ssytrf_aa_2stage.o \
+ lapacke_ssytrf_aa_2stage_work.o \
+ lapacke_ssytrf_rk.o \

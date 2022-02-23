@@ -1,0 +1,19 @@
+*** Makefile.ORIG	Tue Mar 18 13:13:38 2008
+--- Makefile	Tue Mar 18 13:14:16 2008
+***************
+*** 38,44 ****
+  all: libbz2.a bzip2 bzip2recover test
+  
+  bzip2: libbz2.a bzip2.o
+! 	$(CC) $(CFLAGS) $(LDFLAGS) -o bzip2 bzip2.o -L. -lbz2
+  
+  bzip2recover: bzip2recover.o
+  	$(CC) $(CFLAGS) $(LDFLAGS) -o bzip2recover bzip2recover.o
+--- 38,44 ----
+  all: libbz2.a bzip2 bzip2recover test
+  
+  bzip2: libbz2.a bzip2.o
+! 	$(CC) $(CFLAGS) $(LDFLAGS) -o bzip2 bzip2.o -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib -L. -lbz2
+  
+  bzip2recover: bzip2recover.o
+  	$(CC) $(CFLAGS) $(LDFLAGS) -o bzip2recover bzip2recover.o

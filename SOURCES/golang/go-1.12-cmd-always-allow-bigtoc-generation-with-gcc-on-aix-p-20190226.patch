@@ -1,0 +1,84 @@
+From 94e727cdafe28c8a8c889928f0c6d470b6caa7b8 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Mon, 28 Jan 2019 11:19:06 -0600
+Subject: [PATCH 13/24] cmd: always allow bigtoc generation with gcc on
+ aix/ppc64
+
+Might not be needed but it's better to always have bigtoc enable.
+---
+ src/cmd/cgo/gcc.go               |  1 +
+ src/cmd/go/internal/work/exec.go |  5 +++++
+ src/cmd/link/internal/ld/lib.go  | 17 +++++++++++++++++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/src/cmd/cgo/gcc.go b/src/cmd/cgo/gcc.go
+index b5cf04cf4c..e15f598a65 100644
+--- a/src/cmd/cgo/gcc.go
++++ b/src/cmd/cgo/gcc.go
+@@ -1633,6 +1633,7 @@ func (p *Package) gccCmd() []string {
+ 	c = append(c, p.gccMachine()...)
+ 	if goos == "aix" {
+ 		c = append(c, "-maix64")
++		c = append(c, "-mcmodel=large")
+ 	}
+ 	c = append(c, "-") //read input from standard input
+ 	return c
+diff --git a/src/cmd/go/internal/work/exec.go b/src/cmd/go/internal/work/exec.go
+index bbcbdd7568..07b21aaf4f 100644
+--- a/src/cmd/go/internal/work/exec.go
++++ b/src/cmd/go/internal/work/exec.go
+@@ -2257,6 +2257,11 @@ func (b *Builder) compilerCmd(compiler []string, incdir, workdir string) []strin
+ 		}
+ 	}
+ 
++	if cfg.Goos == "aix" {
++		// mcmodel=large must always be enabled to allow large TOC.
++		a = append(a, "-mcmodel=large")
++	}
++
+ 	// disable ASCII art in clang errors, if possible
+ 	if b.gccSupportsFlag(compiler, "-fno-caret-diagnostics") {
+ 		a = append(a, "-fno-caret-diagnostics")
+diff --git a/src/cmd/link/internal/ld/lib.go b/src/cmd/link/internal/ld/lib.go
+index e84ad3c443..3d18482379 100644
+--- a/src/cmd/link/internal/ld/lib.go
++++ b/src/cmd/link/internal/ld/lib.go
+@@ -1151,6 +1151,10 @@ func (ctxt *Link) hostlink() {
+ 		// prevent ld to reorder .text functions to keep the same
+ 		// first/last functions for moduledata.
+ 		argv = append(argv, "-Wl,-bnoobjreorder")
++		// mcmodel=large is needed for every gcc generated files, but
++		// ld still need -bbigtoc in order to allow larger TOC.
++		argv = append(argv, "-mcmodel=large")
++		argv = append(argv, "-Wl,-bbigtoc")
+ 	}
+ 
+ 	switch ctxt.BuildMode {
+@@ -1385,11 +1389,24 @@ func (ctxt *Link) hostlink() {
+ 	// Filter out useless linker warnings caused by bugs outside Go.
+ 	// See also cmd/go/internal/work/exec.go's gccld method.
+ 	var save [][]byte
++	var skipLines int
+ 	for _, line := range bytes.SplitAfter(out, []byte("\n")) {
+ 		// golang.org/issue/26073 - Apple Xcode bug
+ 		if bytes.Contains(line, []byte("ld: warning: text-based stub file")) {
+ 			continue
+ 		}
++
++		if skipLines > 0 {
++			skipLines--
++			continue
++		}
++
++		// Remove TOC overflow warning on AIX.
++		if bytes.Contains(line, []byte("ld: 0711-783")) {
++			skipLines = 2
++			continue
++		}
++
+ 		save = append(save, line)
+ 	}
+ 	out = bytes.Join(save, nil)
+-- 
+2.15.1
+

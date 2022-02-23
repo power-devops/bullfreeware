@@ -1,0 +1,11 @@
+--- ocaml-3.04/tools/ocamlmklib.mlp.pix	Tue Dec 11 06:59:59 2001
++++ ocaml-3.04/tools/ocamlmklib.mlp	Thu Dec 13 14:04:36 2001
+@@ -82,7 +82,7 @@
+     else if starts_with s "-L" then
+      (c_opts := s :: !c_opts;
+       let l = chop_prefix s "-L" in
+-      if not (Filename.is_relative l) then rpath := l :: !rpath)
++      if not (Filename.is_relative l || l = "/usr/X11R6/lib" || l = "/usr/X11R6/lib64") then rpath := l :: !rpath)
+     else if s = "-ocamlc" then
+       ocamlc := next_arg ()
+     else if s = "-ocamlopt" then

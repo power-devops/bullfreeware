@@ -1,0 +1,37 @@
+From 9599c9853a0284789eb8f897a4b5374df694b672 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Mon, 17 Aug 2020 20:19:38 -0400
+Subject: [PATCH] aix: Support libsupc++ as a FAT library
+
+Build libstdc++++ static library libsupc++.a as a FAT 32/64 bit library.
+
+libstdc++-v3/ChangeLog:
+
+2020-08-18  David Edelsohn  <dje.gcc@gmail.com>
+	    Clement Chigot  <clement.chigot@atos.net>
+
+	* config/os/aix/t-aix: Add complementary mode object files to
+	libsupc++.a
+---
+ libstdc++-v3/config/os/aix/t-aix | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/libstdc++-v3/config/os/aix/t-aix b/libstdc++-v3/config/os/aix/t-aix
+index a5d58fab474..3e36bc8308e 100644
+--- a/libstdc++-v3/config/os/aix/t-aix
++++ b/libstdc++-v3/config/os/aix/t-aix
+@@ -2,8 +2,11 @@ ifeq ($(MULTIBUILDTOP),)
+ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then \
+     echo '64'; else echo '32'; fi)
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++STOBJS=$(shell ar -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a)
+ all-local:
+ 	ar -X$(BITS) rc src/.libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
+ 	ar -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc libsupc++/.libs/libsupc++.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
+ endif
+ 
+-- 
+2.25.0
+

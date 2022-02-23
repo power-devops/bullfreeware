@@ -1,0 +1,639 @@
+From 38dc177d3ac5b5a8cb6b7f9039144cbe8bd58036 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 25 Mar 2019 10:31:30 +0100
+Subject: [PATCH] runtime: create library startup for aix/ppc64
+
+As .init_array section aren't available on AIX, the Go runtime
+initialization is made with gcc constructor attribute.
+However, as cgo tool is building a binary in order to get imported
+C symbols, Go symbols imported for this initilization must be ignored.
+-Wl,-berok is mandatory otherwize ld will fail to create this binary,
+_rt0_aix_ppc64_lib and runtime_rt0_go aren't defined in runtime/cgo.
+These two symbols must also be ignored when creating _cgo_import.go.
+
+Change-Id: Icf2e0282f5b50de5fa82007439a428e6147efef1
+Reviewed-on: https://go-review.googlesource.com/c/go/+/169118
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/cgo/out.go b/src/cmd/cgo/out.go
+index 5d61a2f..5b3a7cb 100644
+--- a/src/cmd/cgo/out.go
++++ b/src/cmd/cgo/out.go
+@@ -336,6 +336,12 @@
+ 			fatalf("cannot load imported symbols from XCOFF file %s: %v", obj, err)
+ 		}
+ 		for _, s := range sym {
++			if s.Name == "runtime_rt0_go" || s.Name == "_rt0_ppc64_aix_lib" {
++				// These symbols are imported by runtime/cgo but
++				// must not be added to _cgo_import.go as there are
++				// Go symbols.
++				continue
++			}
+ 			fmt.Fprintf(stdout, "//go:cgo_import_dynamic %s %s %q\n", s.Name, s.Name, s.Library)
+ 		}
+ 		lib, err := f.ImportedLibraries()
+diff --git a/src/cmd/go/internal/work/security.go b/src/cmd/go/internal/work/security.go
+index 9e26ab8..8351e4c 100644
+--- a/src/cmd/go/internal/work/security.go
++++ b/src/cmd/go/internal/work/security.go
+@@ -171,6 +171,7 @@
+ 	re(`-Wl,--(no-)?allow-shlib-undefined`),
+ 	re(`-Wl,--(no-)?as-needed`),
+ 	re(`-Wl,-Bdynamic`),
++	re(`-Wl,-berok`),
+ 	re(`-Wl,-Bstatic`),
+ 	re(`-WL,-O([^@,\-][^,]*)?`),
+ 	re(`-Wl,-d[ny]`),
+diff --git a/src/runtime/cgo/callbacks_aix.go b/src/runtime/cgo/callbacks_aix.go
+index 7dafb6b..f4b6fe2 100644
+--- a/src/runtime/cgo/callbacks_aix.go
++++ b/src/runtime/cgo/callbacks_aix.go
+@@ -8,3 +8,4 @@
+ // longcall on cgo programs (cf gcc_aix_ppc64.c).
+ //go:cgo_export_static __cgo_topofstack
+ //go:cgo_export_static runtime.rt0_go
++//go:cgo_export_static _rt0_ppc64_aix_lib
+diff --git a/src/runtime/cgo/cgo.go b/src/runtime/cgo/cgo.go
+index 241a821..eb11c0e 100644
+--- a/src/runtime/cgo/cgo.go
++++ b/src/runtime/cgo/cgo.go
+@@ -20,6 +20,7 @@
+ #cgo !android,linux LDFLAGS: -lpthread
+ #cgo netbsd LDFLAGS: -lpthread
+ #cgo openbsd LDFLAGS: -lpthread
++#cgo aix LDFLAGS: -Wl,-berok
+ 
+ #cgo CFLAGS: -Wall -Werror
+ 
+diff --git a/src/runtime/cgo/gcc_aix_ppc64.c b/src/runtime/cgo/gcc_aix_ppc64.c
+index d54c0ff..f4f50b8 100644
+--- a/src/runtime/cgo/gcc_aix_ppc64.c
++++ b/src/runtime/cgo/gcc_aix_ppc64.c
+@@ -12,6 +12,7 @@
+  */
+ extern int __attribute__((longcall)) __cgo_topofstack(void);
+ extern int __attribute__((longcall)) runtime_rt0_go(int argc, char **argv);
++extern void __attribute__((longcall)) _rt0_ppc64_aix_lib(void);
+ 
+ int _cgo_topofstack(void) {
+ 	return __cgo_topofstack();
+@@ -20,3 +21,18 @@
+ int main(int argc, char **argv) {
+ 	return runtime_rt0_go(argc, argv);
+ }
++
++static void libinit(void) __attribute__ ((constructor));
++
++/*
++ * libinit aims to replace .init_array section which isn't available on aix.
++ * Using __attribute__ ((constructor)) let gcc handles this instead of
++ * adding special code in cmd/link.
++ * However, it will be called for every Go programs which has cgo.
++ * Inside _rt0_ppc64_aix_lib(), runtime.isarchive is checked in order
++ * to know if this program is a c-archive or a simple cgo program.
++ * If it's not set, _rt0_ppc64_ax_lib() returns directly.
++ */
++static void libinit() {
++	_rt0_ppc64_aix_lib();
++}
+diff --git a/src/runtime/os2_aix.go b/src/runtime/os2_aix.go
+index e2ae04a..2ec32fe 100644
+--- a/src/runtime/os2_aix.go
++++ b/src/runtime/os2_aix.go
+@@ -363,15 +363,34 @@
+ 	return c.r1, c.err
+ }
+ 
++func exit1(code int32)
++
+ //go:nosplit
+ func exit(code int32) {
+-	syscall1(&libc_exit, uintptr(code))
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		syscall1(&libc_exit, uintptr(code))
++		return
++	}
++	exit1(code)
+ }
+ 
++func write1(fd, p uintptr, n int32) int32
++
+ //go:nosplit
+ func write(fd uintptr, p unsafe.Pointer, n int32) int32 {
+-	r, _ := syscall3(&libc_write, uintptr(fd), uintptr(p), uintptr(n))
+-	return int32(r)
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		r, _ := syscall3(&libc_write, uintptr(fd), uintptr(p), uintptr(n))
++		return int32(r)
++	}
++	return write1(fd, uintptr(p), n)
+ 
+ }
+ 
+@@ -428,13 +447,24 @@
+ 	}
+ }
+ 
++func sigaction1(sig, new, old uintptr)
++
+ //go:nosplit
+ func sigaction(sig uintptr, new, old *sigactiont) {
+-	r, err := syscall3(&libc_sigaction, sig, uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
+-	if int32(r) == -1 {
+-		println("Sigaction failed for sig: ", sig, " with error:", hex(err))
+-		throw("syscall sigaction")
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// runtime.libpreinit.
++	if _g_ != nil {
++		r, err := syscall3(&libc_sigaction, sig, uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
++		if int32(r) == -1 {
++			println("Sigaction failed for sig: ", sig, " with error:", hex(err))
++			throw("syscall sigaction")
++		}
++		return
+ 	}
++
++	sigaction1(sig, uintptr(unsafe.Pointer(new)), uintptr(unsafe.Pointer(old)))
+ }
+ 
+ //go:nosplit
+@@ -574,16 +604,36 @@
+ 	return int32(r)
+ }
+ 
++func pthread_attr_init1(attr uintptr) int32
++
+ //go:nosplit
+ func pthread_attr_init(attr *pthread_attr) int32 {
+-	r, _ := syscall1(&libpthread_attr_init, uintptr(unsafe.Pointer(attr)))
+-	return int32(r)
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		r, _ := syscall1(&libpthread_attr_init, uintptr(unsafe.Pointer(attr)))
++		return int32(r)
++	}
++
++	return pthread_attr_init1(uintptr(unsafe.Pointer(attr)))
+ }
+ 
++func pthread_attr_setdetachstate1(attr uintptr, state int32) int32
++
+ //go:nosplit
+ func pthread_attr_setdetachstate(attr *pthread_attr, state int32) int32 {
+-	r, _ := syscall2(&libpthread_attr_setdetachstate, uintptr(unsafe.Pointer(attr)), uintptr(state))
+-	return int32(r)
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		r, _ := syscall2(&libpthread_attr_setdetachstate, uintptr(unsafe.Pointer(attr)), uintptr(state))
++		return int32(r)
++	}
++
++	return pthread_attr_setdetachstate1(uintptr(unsafe.Pointer(attr)), state)
+ }
+ 
+ //go:nosplit
+@@ -598,16 +648,36 @@
+ 	return int32(r)
+ }
+ 
++func pthread_attr_setstacksize1(attr uintptr, size uint64) int32
++
+ //go:nosplit
+ func pthread_attr_setstacksize(attr *pthread_attr, size uint64) int32 {
+-	r, _ := syscall2(&libpthread_attr_setstacksize, uintptr(unsafe.Pointer(attr)), uintptr(size))
+-	return int32(r)
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		r, _ := syscall2(&libpthread_attr_setstacksize, uintptr(unsafe.Pointer(attr)), uintptr(size))
++		return int32(r)
++	}
++
++	return pthread_attr_setstacksize1(uintptr(unsafe.Pointer(attr)), size)
+ }
+ 
++func pthread_create1(tid, attr, fn, arg uintptr) int32
++
+ //go:nosplit
+ func pthread_create(tid *pthread, attr *pthread_attr, fn *funcDescriptor, arg unsafe.Pointer) int32 {
+-	r, _ := syscall4(&libpthread_create, uintptr(unsafe.Pointer(tid)), uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(fn)), uintptr(arg))
+-	return int32(r)
++	_g_ := getg()
++
++	// Check the validity of g because without a g during
++	// newosproc0.
++	if _g_ != nil {
++		r, _ := syscall4(&libpthread_create, uintptr(unsafe.Pointer(tid)), uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(fn)), uintptr(arg))
++		return int32(r)
++	}
++
++	return pthread_create1(uintptr(unsafe.Pointer(tid)), uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(fn)), uintptr(arg))
+ }
+ 
+ // On multi-thread program, sigprocmask must not be called.
+diff --git a/src/runtime/os_aix.go b/src/runtime/os_aix.go
+index 45c7174..faec9ac 100644
+--- a/src/runtime/os_aix.go
++++ b/src/runtime/os_aix.go
+@@ -97,6 +97,66 @@
+ 	setupSystemConf()
+ }
+ 
++// newosproc0 is a version of newosproc that can be called before the runtime
++// is initialized.
++//
++// This function is not safe to use after initialization as it does not pass an M as fnarg.
++//
++//go:nosplit
++func newosproc0(stacksize uintptr, fn *funcDescriptor) {
++	var (
++		attr pthread_attr
++		oset sigset
++		tid  pthread
++	)
++
++	if pthread_attr_init(&attr) != 0 {
++		write(2, unsafe.Pointer(&failthreadcreate[0]), int32(len(failthreadcreate)))
++		exit(1)
++	}
++
++	if pthread_attr_setstacksize(&attr, threadStackSize) != 0 {
++		write(2, unsafe.Pointer(&failthreadcreate[0]), int32(len(failthreadcreate)))
++		exit(1)
++	}
++
++	if pthread_attr_setdetachstate(&attr, _PTHREAD_CREATE_DETACHED) != 0 {
++		write(2, unsafe.Pointer(&failthreadcreate[0]), int32(len(failthreadcreate)))
++		exit(1)
++	}
++
++	// Disable signals during create, so that the new thread starts
++	// with signals disabled. It will enable them in minit.
++	sigprocmask(_SIG_SETMASK, &sigset_all, &oset)
++	var ret int32
++	for tries := 0; tries < 20; tries++ {
++		// pthread_create can fail with EAGAIN for no reasons
++		// but it will be ok if it retries.
++		ret = pthread_create(&tid, &attr, fn, nil)
++		if ret != _EAGAIN {
++			break
++		}
++		usleep(uint32(tries+1) * 1000) // Milliseconds.
++	}
++	sigprocmask(_SIG_SETMASK, &oset, nil)
++	if ret != 0 {
++		write(2, unsafe.Pointer(&failthreadcreate[0]), int32(len(failthreadcreate)))
++		exit(1)
++	}
++
++}
++
++var failthreadcreate = []byte("runtime: failed to create new OS thread\n")
++
++// Called to do synchronous initialization of Go code built with
++// -buildmode=c-archive or -buildmode=c-shared.
++// None of the Go runtime is initialized.
++//go:nosplit
++//go:nowritebarrierrec
++func libpreinit() {
++	initsig(true)
++}
++
+ // Ms related functions
+ func mpreinit(mp *m) {
+ 	mp.gsignal = malg(32 * 1024) // AIX wants >= 8K
+@@ -213,7 +273,13 @@
+ //go:nosplit
+ //go:nowritebarrierrec
+ func setsigstack(i uint32) {
+-	throw("Not yet implemented\n")
++	var sa sigactiont
++	sigaction(uintptr(i), nil, &sa)
++	if sa.sa_flags&_SA_ONSTACK != 0 {
++		return
++	}
++	sa.sa_flags |= _SA_ONSTACK
++	sigaction(uintptr(i), &sa, nil)
+ }
+ 
+ //go:nosplit
+diff --git a/src/runtime/rt0_aix_ppc64.s b/src/runtime/rt0_aix_ppc64.s
+index 843494b..e06caa1 100644
+--- a/src/runtime/rt0_aix_ppc64.s
++++ b/src/runtime/rt0_aix_ppc64.s
+@@ -47,3 +47,153 @@
+ 	MOVD R12, CTR
+ 	BR (CTR)
+ 
++
++TEXT _rt0_ppc64_aix_lib(SB),NOSPLIT,$-8
++	// Start with standard C stack frame layout and linkage.
++	MOVD	LR, R0
++	MOVD	R0, 16(R1) // Save LR in caller's frame.
++	MOVW	CR, R0	   // Save CR in caller's frame
++	MOVD	R0, 8(R1)
++
++	MOVDU	R1, -344(R1) // Allocate frame.
++
++	// Preserve callee-save registers.
++	MOVD	R14, 48(R1)
++	MOVD	R15, 56(R1)
++	MOVD	R16, 64(R1)
++	MOVD	R17, 72(R1)
++	MOVD	R18, 80(R1)
++	MOVD	R19, 88(R1)
++	MOVD	R20, 96(R1)
++	MOVD	R21,104(R1)
++	MOVD	R22, 112(R1)
++	MOVD	R23, 120(R1)
++	MOVD	R24, 128(R1)
++	MOVD	R25, 136(R1)
++	MOVD	R26, 144(R1)
++	MOVD	R27, 152(R1)
++	MOVD	R28, 160(R1)
++	MOVD	R29, 168(R1)
++	MOVD	g, 176(R1) // R30
++	MOVD	R31, 184(R1)
++	FMOVD	F14, 192(R1)
++	FMOVD	F15, 200(R1)
++	FMOVD	F16, 208(R1)
++	FMOVD	F17, 216(R1)
++	FMOVD	F18, 224(R1)
++	FMOVD	F19, 232(R1)
++	FMOVD	F20, 240(R1)
++	FMOVD	F21, 248(R1)
++	FMOVD	F22, 256(R1)
++	FMOVD	F23, 264(R1)
++	FMOVD	F24, 272(R1)
++	FMOVD	F25, 280(R1)
++	FMOVD	F26, 288(R1)
++	FMOVD	F27, 296(R1)
++	FMOVD	F28, 304(R1)
++	FMOVD	F29, 312(R1)
++	FMOVD	F30, 320(R1)
++	FMOVD	F31, 328(R1)
++
++	// Synchronous initialization.
++	MOVD	$runtime·reginit(SB), R12
++	MOVD	R12, CTR
++	BL	(CTR)
++
++	MOVBZ	runtime·isarchive(SB), R3	// Check buildmode = c-archive
++	CMP		$0, R3
++	BEQ		done
++
++	MOVD	R14, _rt0_ppc64_aix_lib_argc<>(SB)
++	MOVD	R15, _rt0_ppc64_aix_lib_argv<>(SB)
++
++	MOVD	$runtime·libpreinit(SB), R12
++	MOVD	R12, CTR
++	BL	(CTR)
++
++	// Create a new thread to do the runtime initialization and return.
++	MOVD	_cgo_sys_thread_create(SB), R12
++	CMP	$0, R12
++	BEQ	nocgo
++	MOVD	$_rt0_ppc64_aix_lib_go(SB), R3
++	MOVD	$0, R4
++	MOVD	R2, 40(R1)
++	MOVD	8(R12), R2
++	MOVD	(R12), R12
++	MOVD	R12, CTR
++	BL	(CTR)
++	MOVD	40(R1), R2
++	BR	done
++
++nocgo:
++	MOVD	$0x800000, R12					   // stacksize = 8192KB
++	MOVD	R12, 8(R1)
++	MOVD	$_rt0_ppc64_aix_lib_go(SB), R12
++	MOVD	R12, 16(R1)
++	MOVD	$runtime·newosproc0(SB),R12
++	MOVD	R12, CTR
++	BL	(CTR)
++
++done:
++	// Restore saved registers.
++	MOVD	48(R1), R14
++	MOVD	56(R1), R15
++	MOVD	64(R1), R16
++	MOVD	72(R1), R17
++	MOVD	80(R1), R18
++	MOVD	88(R1), R19
++	MOVD	96(R1), R20
++	MOVD	104(R1), R21
++	MOVD	112(R1), R22
++	MOVD	120(R1), R23
++	MOVD	128(R1), R24
++	MOVD	136(R1), R25
++	MOVD	144(R1), R26
++	MOVD	152(R1), R27
++	MOVD	160(R1), R28
++	MOVD	168(R1), R29
++	MOVD	176(R1), g // R30
++	MOVD	184(R1), R31
++	FMOVD	196(R1), F14
++	FMOVD	200(R1), F15
++	FMOVD	208(R1), F16
++	FMOVD	216(R1), F17
++	FMOVD	224(R1), F18
++	FMOVD	232(R1), F19
++	FMOVD	240(R1), F20
++	FMOVD	248(R1), F21
++	FMOVD	256(R1), F22
++	FMOVD	264(R1), F23
++	FMOVD	272(R1), F24
++	FMOVD	280(R1), F25
++	FMOVD	288(R1), F26
++	FMOVD	296(R1), F27
++	FMOVD	304(R1), F28
++	FMOVD	312(R1), F29
++	FMOVD	320(R1), F30
++	FMOVD	328(R1), F31
++
++	ADD	$344, R1
++
++	MOVD	8(R1), R0
++	MOVFL	R0, $0xff
++	MOVD	16(R1), R0
++	MOVD	R0, LR
++	RET
++
++DATA	_rt0_ppc64_aix_lib_go+0(SB)/8, $__rt0_ppc64_aix_lib_go(SB)
++DATA	_rt0_ppc64_aix_lib_go+8(SB)/8, $TOC(SB)
++DATA	_rt0_ppc64_aix_lib_go+16(SB)/8, $0
++GLOBL	_rt0_ppc64_aix_lib_go(SB), NOPTR, $24
++
++TEXT __rt0_ppc64_aix_lib_go(SB),NOSPLIT,$0
++	MOVD	_rt0_ppc64_aix_lib_argc<>(SB), R3
++	MOVD	_rt0_ppc64_aix_lib_argv<>(SB), R4
++	MOVD	$runtime·rt0_go(SB), R12
++	MOVD	R12, CTR
++	BR	(CTR)
++
++DATA _rt0_ppc64_aix_lib_argc<>(SB)/8, $0
++GLOBL _rt0_ppc64_aix_lib_argc<>(SB),NOPTR, $8
++DATA _rt0_ppc64_aix_lib_argv<>(SB)/8, $0
++GLOBL _rt0_ppc64_aix_lib_argv<>(SB),NOPTR, $8
+diff --git a/src/runtime/symtab.go b/src/runtime/symtab.go
+index a753848..d61affa 100644
+--- a/src/runtime/symtab.go
++++ b/src/runtime/symtab.go
+@@ -445,6 +445,9 @@
+ 			for j := 0; j <= i; j++ {
+ 				print("\t", hex(datap.ftab[j].entry), " ", funcname(funcInfo{(*_func)(unsafe.Pointer(&datap.pclntable[datap.ftab[j].funcoff])), datap}), "\n")
+ 			}
++			if GOOS == "aix" && isarchive {
++				println("-Wl,-bnoobjreorder is mandatory on aix/ppc64 with c-archive")
++			}
+ 			throw("invalid runtime symbol table")
+ 		}
+ 	}
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index 65fcae0..9e1a95f 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -216,17 +216,22 @@
+ 	MOVD R0, R3
+ 	RET
+ 
++
++#define CSYSCALL()			\
++	MOVD	0(R12), R12		\
++	MOVD	R2, 40(R1)		\
++	MOVD	0(R12), R0		\
++	MOVD	8(R12), R2		\
++	MOVD	R0, CTR			\
++	BL	(CTR)			\
++	MOVD	40(R1), R2		\
++	BL runtime·reginit(SB)
++
++
+ // Runs on OS stack, called from runtime·osyield.
+ TEXT runtime·osyield1(SB),NOSPLIT,$0
+ 	MOVD	$libc_sched_yield(SB), R12
+-	MOVD	0(R12), R12
+-	MOVD	R2, 40(R1)
+-	MOVD	0(R12), R0
+-	MOVD	8(R12), R2
+-	MOVD	R0, CTR
+-	BL	(CTR)
+-	MOVD	40(R1), R2
+-	BL runtime·reginit(SB)
++	CSYSCALL()
+ 	RET
+ 
+ 
+@@ -236,26 +241,75 @@
+ 	MOVD	new+8(FP), R4
+ 	MOVD	old+16(FP), R5
+ 	MOVD	$libpthread_sigthreadmask(SB), R12
+-	MOVD	0(R12), R12
+-	MOVD	R2, 40(R1)
+-	MOVD	0(R12), R0
+-	MOVD	8(R12), R2
+-	MOVD	R0, CTR
+-	BL	(CTR)
+-	MOVD	40(R1), R2
+-	BL runtime·reginit(SB)
++	CSYSCALL()
+ 	RET
+ 
+ // Runs on OS stack, called from runtime·usleep.
+-TEXT runtime·usleep1(SB),NOSPLIT,$0-8
++TEXT runtime·usleep1(SB),NOSPLIT,$0-4
+ 	MOVW	us+0(FP), R3
+ 	MOVD	$libc_usleep(SB), R12
+-	MOVD	0(R12), R12
+-	MOVD	R2, 40(R1)
+-	MOVD	0(R12), R0
+-	MOVD	8(R12), R2
+-	MOVD	R0, CTR
+-	BL	(CTR)
+-	MOVD	40(R1), R2
+-	BL runtime·reginit(SB)
++	CSYSCALL()
++	RET
++
++// Runs on OS stack, called from runtime·exit.
++TEXT runtime·exit1(SB),NOSPLIT,$0-4
++	MOVW	code+0(FP), R3
++	MOVD	$libc_exit(SB), R12
++	CSYSCALL()
++	RET
++
++// Runs on OS stack, called from runtime·write.
++TEXT runtime·write1(SB),NOSPLIT,$0-28
++	MOVD	fd+0(FP), R3
++	MOVD	p+8(FP), R4
++	MOVW	n+16(FP), R5
++	MOVD	$libc_write(SB), R12
++	CSYSCALL()
++	MOVW	R3, ret+24(FP)
++	RET
++
++// Runs on OS stack, called from runtime·pthread_attr_init.
++TEXT runtime·pthread_attr_init1(SB),NOSPLIT,$0-12
++	MOVD	attr+0(FP), R3
++	MOVD	$libpthread_attr_init(SB), R12
++	CSYSCALL()
++	MOVW	R3, ret+8(FP)
++	RET
++
++// Runs on OS stack, called from runtime·pthread_attr_setstacksize.
++TEXT runtime·pthread_attr_setstacksize1(SB),NOSPLIT,$0-20
++	MOVD	attr+0(FP), R3
++	MOVD	size+8(FP), R4
++	MOVD	$libpthread_attr_setstacksize(SB), R12
++	CSYSCALL()
++	MOVW	R3, ret+16(FP)
++	RET
++
++// Runs on OS stack, called from runtime·pthread_setdetachstate.
++TEXT runtime·pthread_attr_setdetachstate1(SB),NOSPLIT,$0-20
++	MOVD	attr+0(FP), R3
++	MOVW	state+8(FP), R4
++	MOVD	$libpthread_attr_setdetachstate(SB), R12
++	CSYSCALL()
++	MOVW	R3, ret+16(FP)
++	RET
++
++// Runs on OS stack, called from runtime·pthread_create.
++TEXT runtime·pthread_create1(SB),NOSPLIT,$0-36
++	MOVD	tid+0(FP), R3
++	MOVD	attr+8(FP), R4
++	MOVD	fn+16(FP), R5
++	MOVD	arg+24(FP), R6
++	MOVD	$libpthread_create(SB), R12
++	CSYSCALL()
++	MOVW	R3, ret+32(FP)
++	RET
++
++// Runs on OS stack, called from runtime·sigaction.
++TEXT runtime·sigaction1(SB),NOSPLIT,$0-24
++	MOVD	sig+0(FP), R3
++	MOVD	new+8(FP), R4
++	MOVD	old+16(FP), R5
++	MOVD	$libc_sigaction(SB), R12
++	CSYSCALL()
+ 	RET

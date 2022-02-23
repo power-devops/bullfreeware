@@ -1,0 +1,23 @@
+Index: libiberty/Makefile.in
+===================================================================
+--- libiberty/Makefile.in	2007-03-03 20:29:51.000000000 +0100
++++ libiberty/Makefile.in	2008-02-12 20:22:14.-995041904 +0100
+@@ -58,7 +58,8 @@
+ AR = @AR@
+ AR_FLAGS = rc
+ 
+-CC = @CC@
++GCC = @CC@
++CC = $(GCC)
+ CFLAGS = @CFLAGS@
+ LIBCFLAGS = $(CFLAGS)
+ RANLIB = @RANLIB@
+@@ -340,7 +341,7 @@
+ # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+ # default multilib, so we have to take LIBCFLAGS into account as well,
+ # since it will be passed the multilib flags.
+-MULTIOSDIR = `$(CC) $(LIBCFLAGS) -print-multi-os-directory`
++MULTIOSDIR = `$(GCC) $(LIBCFLAGS) -print-multi-os-directory`
+ install_to_libdir: all
+ 	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+ 	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n

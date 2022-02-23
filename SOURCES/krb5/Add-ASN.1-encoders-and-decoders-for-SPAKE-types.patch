@@ -1,0 +1,866 @@
+From dd66546bde0bc868a9af2ac702c7466e7494b33b Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sat, 13 Jun 2015 16:04:53 -0400
+Subject: [PATCH] Add ASN.1 encoders and decoders for SPAKE types
+
+Add a new internal header k5-spake.h.  Add ASN.1 encoder and decoder
+functions and an internal free function for SPAKE types.  Add ASN.1
+tests and asn1c test vectors the new types.
+
+The additions to to make-vectors.c use C99 designated initializers in
+order to initialize unions.  This is okay since make-vectors.c is only
+compiled as part of "make test-vectors" and not as part of the regular
+build.
+
+(cherry picked from commit 78a09d95dff6915da4079bc611f4bb95f6a95f70)
+---
+ src/include/k5-spake.h               | 107 +++++++++++++++++++++++++++
+ src/lib/krb5/asn.1/asn1_k_encode.c   |  52 ++++++++++++-
+ src/lib/krb5/krb/kfree.c             |  40 ++++++++++
+ src/lib/krb5/libkrb5.exports         |   6 ++
+ src/tests/asn.1/Makefile.in          |   2 +-
+ src/tests/asn.1/krb5_decode_test.c   |  37 +++++++++
+ src/tests/asn.1/krb5_encode_test.c   |  29 ++++++++
+ src/tests/asn.1/ktest.c              |  97 ++++++++++++++++++++++++
+ src/tests/asn.1/ktest.h              |   9 +++
+ src/tests/asn.1/ktest_equal.c        |  49 ++++++++++++
+ src/tests/asn.1/ktest_equal.h        |   6 ++
+ src/tests/asn.1/make-vectors.c       |  56 ++++++++++++++
+ src/tests/asn.1/reference_encode.out |   6 ++
+ src/tests/asn.1/spake.asn1           |  44 +++++++++++
+ src/tests/asn.1/trval_reference.out  |  50 +++++++++++++
+ 15 files changed, 588 insertions(+), 2 deletions(-)
+ create mode 100644 src/include/k5-spake.h
+ create mode 100644 src/tests/asn.1/spake.asn1
+
+diff --git a/src/include/k5-spake.h b/src/include/k5-spake.h
+new file mode 100644
+index 000000000..ddb5d810d
+--- /dev/null
++++ b/src/include/k5-spake.h
+@@ -0,0 +1,107 @@
++/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
++/* include/k5-spake.h - SPAKE preauth mech declarations */
++/*
++ * Copyright (C) 2015 by the Massachusetts Institute of Technology.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ * * Redistributions of source code must retain the above copyright
++ *   notice, this list of conditions and the following disclaimer.
++ *
++ * * Redistributions in binary form must reproduce the above copyright
++ *   notice, this list of conditions and the following disclaimer in
++ *   the documentation and/or other materials provided with the
++ *   distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
++ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
++ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++/*
++ * The SPAKE preauth mechanism allows long-term client keys to be used for
++ * preauthentication without exposing them to offline dictionary attacks.  The
++ * negotiated key can also be used for second-factor authentication.  This
++ * header file declares structures and encoder/decoder functions for the
++ * mechanism's padata messages.
++ */
++
++#ifndef K5_SPAKE_H
++#define K5_SPAKE_H
++
++#include "k5-int.h"
++
++/* SPAKESecondFactor is contained within a SPAKEChallenge, SPAKEResponse, or
++ * EncryptedData message and contains a second-factor challenge or response. */
++typedef struct krb5_spake_factor_st {
++    int32_t type;
++    krb5_data *data;
++} krb5_spake_factor;
++
++/* SPAKESupport is sent from the client to the KDC to indicate which group the
++ * client supports. */
++typedef struct krb5_spake_support_st {
++    int32_t ngroups;
++    int32_t *groups;
++} krb5_spake_support;
++
++/* SPAKEChallenge is sent from the KDC to the client to communicate its group
++ * selection, public value, and second-factor challenge options. */
++typedef struct krb5_spake_challenge_st {
++    int32_t group;
++    krb5_data pubkey;
++    krb5_spake_factor **factors;
++} krb5_spake_challenge;
++
++/* SPAKEResponse is sent from the client to the KDC to communicate its public
++ * value and encrypted second-factor response. */
++typedef struct krb5_spake_response_st {
++    krb5_data pubkey;
++    krb5_enc_data factor;
++} krb5_spake_response;
++
++enum krb5_spake_msgtype {
++    SPAKE_MSGTYPE_UNKNOWN = -1,
++    SPAKE_MSGTYPE_SUPPORT = 0,
++    SPAKE_MSGTYPE_CHALLENGE = 1,
++    SPAKE_MSGTYPE_RESPONSE = 2,
++    SPAKE_MSGTYPE_ENCDATA = 3
++};
++
++/* PA-SPAKE is a choice among the message types which can appear in a PA-SPAKE
++ * padata element. */
++typedef struct krb5_pa_spake_st {
++    enum krb5_spake_msgtype choice;
++    union krb5_spake_message_choices {
++        krb5_spake_support support;
++        krb5_spake_challenge challenge;
++        krb5_spake_response response;
++        krb5_enc_data encdata;
++    } u;
++} krb5_pa_spake;
++
++krb5_error_code encode_krb5_spake_factor(const krb5_spake_factor *val,
++                                         krb5_data **code_out);
++krb5_error_code decode_krb5_spake_factor(const krb5_data *code,
++                                         krb5_spake_factor **val_out);
++void k5_free_spake_factor(krb5_context context, krb5_spake_factor *val);
++
++krb5_error_code encode_krb5_pa_spake(const krb5_pa_spake *val,
++                                     krb5_data **code_out);
++krb5_error_code decode_krb5_pa_spake(const krb5_data *code,
++                                     krb5_pa_spake **val_out);
++void k5_free_pa_spake(krb5_context context, krb5_pa_spake *val);
++
++#endif /* K5_SPAKE_H */
+diff --git a/src/lib/krb5/asn.1/asn1_k_encode.c b/src/lib/krb5/asn.1/asn1_k_encode.c
+index 3b23fe34a..29f6b903d 100644
+--- a/src/lib/krb5/asn.1/asn1_k_encode.c
++++ b/src/lib/krb5/asn.1/asn1_k_encode.c
+@@ -25,7 +25,7 @@
+  */
+ 
+ #include "asn1_encode.h"
+-#include <assert.h>
++#include "k5-spake.h"
+ 
+ DEFINT_IMMEDIATE(krb5_version, KVNO, KRB5KDC_ERR_BAD_PVNO);
+ 
+@@ -1817,3 +1817,53 @@ static const struct atype_info *secure_cookie_fields[] = {
+ DEFSEQTYPE(secure_cookie, krb5_secure_cookie, secure_cookie_fields);
+ MAKE_ENCODER(encode_krb5_secure_cookie, secure_cookie);
+ MAKE_DECODER(decode_krb5_secure_cookie, secure_cookie);
++
++DEFFIELD(spake_factor_0, krb5_spake_factor, type, 0, int32);
++DEFFIELD(spake_factor_1, krb5_spake_factor, data, 1, opt_ostring_data_ptr);
++static const struct atype_info *spake_factor_fields[] = {
++    &k5_atype_spake_factor_0, &k5_atype_spake_factor_1
++};
++DEFSEQTYPE(spake_factor, krb5_spake_factor, spake_factor_fields);
++DEFPTRTYPE(spake_factor_ptr, spake_factor);
++DEFNULLTERMSEQOFTYPE(seqof_spake_factor, spake_factor_ptr);
++DEFPTRTYPE(ptr_seqof_spake_factor, seqof_spake_factor);
++MAKE_ENCODER(encode_krb5_spake_factor, spake_factor);
++MAKE_DECODER(decode_krb5_spake_factor, spake_factor);
++
++DEFCNFIELD(spake_support_0, krb5_spake_support, groups, ngroups, 0,
++           cseqof_int32);
++static const struct atype_info *spake_support_fields[] = {
++    &k5_atype_spake_support_0
++};
++DEFSEQTYPE(spake_support, krb5_spake_support, spake_support_fields);
++
++DEFFIELD(spake_challenge_0, krb5_spake_challenge, group, 0, int32);
++DEFFIELD(spake_challenge_1, krb5_spake_challenge, pubkey, 1, ostring_data);
++DEFFIELD(spake_challenge_2, krb5_spake_challenge, factors, 2,
++         ptr_seqof_spake_factor);
++static const struct atype_info *spake_challenge_fields[] = {
++    &k5_atype_spake_challenge_0, &k5_atype_spake_challenge_1,
++    &k5_atype_spake_challenge_2
++};
++DEFSEQTYPE(spake_challenge, krb5_spake_challenge, spake_challenge_fields);
++
++DEFFIELD(spake_response_0, krb5_spake_response, pubkey, 0, ostring_data);
++DEFFIELD(spake_response_1, krb5_spake_response, factor, 1, encrypted_data);
++static const struct atype_info *spake_response_fields[] = {
++    &k5_atype_spake_response_0, &k5_atype_spake_response_1,
++};
++DEFSEQTYPE(spake_response, krb5_spake_response, spake_response_fields);
++
++DEFCTAGGEDTYPE(pa_spake_0, 0, spake_support);
++DEFCTAGGEDTYPE(pa_spake_1, 1, spake_challenge);
++DEFCTAGGEDTYPE(pa_spake_2, 2, spake_response);
++DEFCTAGGEDTYPE(pa_spake_3, 3, encrypted_data);
++static const struct atype_info *pa_spake_alternatives[] = {
++    &k5_atype_pa_spake_0, &k5_atype_pa_spake_1, &k5_atype_pa_spake_2,
++    &k5_atype_pa_spake_3
++};
++DEFCHOICETYPE(pa_spake_choice, union krb5_spake_message_choices,
++              enum krb5_spake_msgtype, pa_spake_alternatives);
++DEFCOUNTEDTYPE_SIGNED(pa_spake, krb5_pa_spake, u, choice, pa_spake_choice);
++MAKE_ENCODER(encode_krb5_pa_spake, pa_spake);
++MAKE_DECODER(decode_krb5_pa_spake, pa_spake);
+diff --git a/src/lib/krb5/krb/kfree.c b/src/lib/krb5/krb/kfree.c
+index a631807d3..e1ea1494a 100644
+--- a/src/lib/krb5/krb/kfree.c
++++ b/src/lib/krb5/krb/kfree.c
+@@ -51,6 +51,7 @@
+  */
+ 
+ #include "k5-int.h"
++#include "k5-spake.h"
+ #include <assert.h>
+ 
+ void KRB5_CALLCONV
+@@ -890,3 +891,42 @@ k5_free_secure_cookie(krb5_context context, krb5_secure_cookie *val)
+     k5_zapfree_pa_data(val->data);
+     free(val);
+ }
++
++void
++k5_free_spake_factor(krb5_context context, krb5_spake_factor *val)
++{
++    if (val == NULL)
++        return;
++    krb5_free_data(context, val->data);
++    free(val);
++}
++
++void
++k5_free_pa_spake(krb5_context context, krb5_pa_spake *val)
++{
++    krb5_spake_factor **f;
++
++    if (val == NULL)
++        return;
++    switch (val->choice) {
++    case SPAKE_MSGTYPE_SUPPORT:
++        free(val->u.support.groups);
++        break;
++    case SPAKE_MSGTYPE_CHALLENGE:
++        krb5_free_data_contents(context, &val->u.challenge.pubkey);
++        for (f = val->u.challenge.factors; f != NULL && *f != NULL; f++)
++            k5_free_spake_factor(context, *f);
++        free(val->u.challenge.factors);
++        break;
++    case SPAKE_MSGTYPE_RESPONSE:
++        krb5_free_data_contents(context, &val->u.response.pubkey);
++        krb5_free_data_contents(context, &val->u.response.factor.ciphertext);
++        break;
++    case SPAKE_MSGTYPE_ENCDATA:
++        krb5_free_data_contents(context, &val->u.encdata.ciphertext);
++        break;
++    default:
++        break;
++    }
++    free(val);
++}
+diff --git a/src/lib/krb5/libkrb5.exports b/src/lib/krb5/libkrb5.exports
+index ed6cad6ad..622bc3673 100644
+--- a/src/lib/krb5/libkrb5.exports
++++ b/src/lib/krb5/libkrb5.exports
+@@ -36,6 +36,7 @@ decode_krb5_pa_otp_req
+ decode_krb5_pa_otp_enc_req
+ decode_krb5_pa_pac_req
+ decode_krb5_pa_s4u_x509_user
++decode_krb5_pa_spake
+ decode_krb5_padata_sequence
+ decode_krb5_priv
+ decode_krb5_safe
+@@ -44,6 +45,7 @@ decode_krb5_sam_challenge_2_body
+ decode_krb5_sam_response_2
+ decode_krb5_secure_cookie
+ decode_krb5_setpw_req
++decode_krb5_spake_factor
+ decode_krb5_tgs_rep
+ decode_krb5_tgs_req
+ decode_krb5_ticket
+@@ -85,6 +87,7 @@ encode_krb5_pa_otp_challenge
+ encode_krb5_pa_otp_req
+ encode_krb5_pa_otp_enc_req
+ encode_krb5_pa_s4u_x509_user
++encode_krb5_pa_spake
+ encode_krb5_padata_sequence
+ encode_krb5_pkinit_supp_pub_info
+ encode_krb5_priv
+@@ -95,6 +98,7 @@ encode_krb5_sam_challenge_2_body
+ encode_krb5_sam_response_2
+ encode_krb5_secure_cookie
+ encode_krb5_sp80056a_other_info
++encode_krb5_spake_factor
+ encode_krb5_tgs_rep
+ encode_krb5_tgs_req
+ encode_krb5_ticket
+@@ -128,7 +132,9 @@ k5_free_kkdcp_message
+ k5_free_pa_otp_challenge
+ k5_free_pa_otp_req
+ k5_free_secure_cookie
++k5_free_pa_spake
+ k5_free_serverlist
++k5_free_spake_factor
+ k5_hostrealm_free_context
+ k5_init_trace
+ k5_is_string_numeric
+diff --git a/src/tests/asn.1/Makefile.in b/src/tests/asn.1/Makefile.in
+index fec4e109e..ec9c67495 100644
+--- a/src/tests/asn.1/Makefile.in
++++ b/src/tests/asn.1/Makefile.in
+@@ -9,7 +9,7 @@ SRCS= $(srcdir)/krb5_encode_test.c $(srcdir)/krb5_decode_test.c \
+ 
+ ASN1SRCS= $(srcdir)/krb5.asn1 $(srcdir)/pkix.asn1 $(srcdir)/otp.asn1 \
+ 	$(srcdir)/pkinit.asn1 $(srcdir)/pkinit-agility.asn1 \
+-	$(srcdir)/cammac.asn1
++	$(srcdir)/cammac.asn1 $(srcdir)/spake.asn1
+ 
+ all: krb5_encode_test krb5_decode_test krb5_decode_leak t_trval
+ 
+diff --git a/src/tests/asn.1/krb5_decode_test.c b/src/tests/asn.1/krb5_decode_test.c
+index f17f9b1f1..ee70fa4b9 100644
+--- a/src/tests/asn.1/krb5_decode_test.c
++++ b/src/tests/asn.1/krb5_decode_test.c
+@@ -25,6 +25,7 @@
+  */
+ 
+ #include "k5-int.h"
++#include "k5-spake.h"
+ #include "ktest.h"
+ #include "com_err.h"
+ #include "utility.h"
+@@ -1107,6 +1108,42 @@ int main(argc, argv)
+         ktest_empty_secure_cookie(&ref);
+     }
+ 
++    /****************************************************************/
++    /* decode_krb5_spake_factor */
++    {
++        setup(krb5_spake_factor,ktest_make_minimal_spake_factor);
++        decode_run("spake_factor","(optionals NULL)","30 05 A0 03 02 01 01",decode_krb5_spake_factor,ktest_equal_spake_factor,k5_free_spake_factor);
++        ktest_empty_spake_factor(&ref);
++    }
++    {
++        setup(krb5_spake_factor,ktest_make_maximal_spake_factor);
++        decode_run("spake_factor","","30 0E A0 03 02 01 02 A1 07 04 05 66 64 61 74 61",decode_krb5_spake_factor,ktest_equal_spake_factor,k5_free_spake_factor);
++        ktest_empty_spake_factor(&ref);
++    }
++
++    /****************************************************************/
++    /* decode_krb5_pa_spake */
++    {
++        setup(krb5_pa_spake,ktest_make_support_pa_spake);
++        decode_run("pa_spake","(support)","A0 0C 30 0A A0 08 30 06 02 01 01 02 01 02",decode_krb5_pa_spake,ktest_equal_pa_spake,k5_free_pa_spake);
++        ktest_empty_pa_spake(&ref);
++    }
++    {
++        setup(krb5_pa_spake,ktest_make_challenge_pa_spake);
++        decode_run("pa_spake","(challenge)","A1 2D 30 2B A0 03 02 01 01 A1 09 04 07 54 20 76 61 6C 75 65 A2 19 30 17 30 05 A0 03 02 01 01 30 0E A0 03 02 01 02 A1 07 04 05 66 64 61 74 61",decode_krb5_pa_spake,ktest_equal_pa_spake,k5_free_pa_spake);
++        ktest_empty_pa_spake(&ref);
++    }
++    {
++        setup(krb5_pa_spake,ktest_make_response_pa_spake);
++        decode_run("pa_spake","(response)","A2 34 30 32 A0 09 04 07 53 20 76 61 6C 75 65 A1 25 30 23 A0 03 02 01 00 A1 03 02 01 05 A2 17 04 15 6B 72 62 41 53 4E 2E 31 20 74 65 73 74 20 6D 65 73 73 61 67 65",decode_krb5_pa_spake,ktest_equal_pa_spake,k5_free_pa_spake);
++        ktest_empty_pa_spake(&ref);
++    }
++    {
++        setup(krb5_pa_spake,ktest_make_encdata_pa_spake);
++        decode_run("pa_spake","(encdata)","A3 25 30 23 A0 03 02 01 00 A1 03 02 01 05 A2 17 04 15 6B 72 62 41 53 4E 2E 31 20 74 65 73 74 20 6D 65 73 73 61 67 65",decode_krb5_pa_spake,ktest_equal_pa_spake,k5_free_pa_spake);
++        ktest_empty_pa_spake(&ref);
++    }
++
+ #ifndef DISABLE_PKINIT
+ 
+     /****************************************************************/
+diff --git a/src/tests/asn.1/krb5_encode_test.c b/src/tests/asn.1/krb5_encode_test.c
+index f5710b68c..3efbfb4c0 100644
+--- a/src/tests/asn.1/krb5_encode_test.c
++++ b/src/tests/asn.1/krb5_encode_test.c
+@@ -759,6 +759,35 @@ main(argc, argv)
+         encode_run(cookie, "secure_cookie", "", encode_krb5_secure_cookie);
+         ktest_empty_secure_cookie(&cookie);
+     }
++    /****************************************************************/
++    /* encode_krb5_spake_factor */
++    {
++        krb5_spake_factor factor;
++        ktest_make_minimal_spake_factor(&factor);
++        encode_run(factor, "spake_factor", "(optionals NULL)",
++                   encode_krb5_spake_factor);
++        ktest_empty_spake_factor(&factor);
++        ktest_make_maximal_spake_factor(&factor);
++        encode_run(factor, "spake_factor", "", encode_krb5_spake_factor);
++        ktest_empty_spake_factor(&factor);
++    }
++    /****************************************************************/
++    /* encode_krb5_pa_spake */
++    {
++        krb5_pa_spake pa_spake;
++        ktest_make_support_pa_spake(&pa_spake);
++        encode_run(pa_spake, "pa_spake", "(support)", encode_krb5_pa_spake);
++        ktest_empty_pa_spake(&pa_spake);
++        ktest_make_challenge_pa_spake(&pa_spake);
++        encode_run(pa_spake, "pa_spake", "(challenge)", encode_krb5_pa_spake);
++        ktest_empty_pa_spake(&pa_spake);
++        ktest_make_response_pa_spake(&pa_spake);
++        encode_run(pa_spake, "pa_spake", "(response)", encode_krb5_pa_spake);
++        ktest_empty_pa_spake(&pa_spake);
++        ktest_make_encdata_pa_spake(&pa_spake);
++        encode_run(pa_spake, "pa_spake", "(encdata)", encode_krb5_pa_spake);
++        ktest_empty_pa_spake(&pa_spake);
++    }
+ #ifndef DISABLE_PKINIT
+     /****************************************************************/
+     /* encode_krb5_pa_pk_as_req */
+diff --git a/src/tests/asn.1/ktest.c b/src/tests/asn.1/ktest.c
+index cf63f3f66..5bfdc5be2 100644
+--- a/src/tests/asn.1/ktest.c
++++ b/src/tests/asn.1/ktest.c
+@@ -1018,6 +1018,66 @@ ktest_make_sample_secure_cookie(krb5_secure_cookie *p)
+     p->time = SAMPLE_TIME;
+ }
+ 
++void
++ktest_make_minimal_spake_factor(krb5_spake_factor *p)
++{
++    p->type = 1;
++    p->data = NULL;
++}
++
++void
++ktest_make_maximal_spake_factor(krb5_spake_factor *p)
++{
++    p->type = 2;
++    p->data = ealloc(sizeof(*p->data));
++    krb5_data_parse(p->data, "fdata");
++}
++
++void
++ktest_make_support_pa_spake(krb5_pa_spake *p)
++{
++    krb5_spake_support *s = &p->u.support;
++
++    s->ngroups = 2;
++    s->groups = ealloc(s->ngroups * sizeof(*s->groups));
++    s->groups[0] = 1;
++    s->groups[1] = 2;
++    p->choice = SPAKE_MSGTYPE_SUPPORT;
++}
++
++void
++ktest_make_challenge_pa_spake(krb5_pa_spake *p)
++{
++    krb5_spake_challenge *c = &p->u.challenge;
++
++    c->group = 1;
++    krb5_data_parse(&c->pubkey, "T value");
++    c->factors = ealloc(3 * sizeof(*c->factors));
++    c->factors[0] = ealloc(sizeof(*c->factors[0]));
++    ktest_make_minimal_spake_factor(c->factors[0]);
++    c->factors[1] = ealloc(sizeof(*c->factors[1]));
++    ktest_make_maximal_spake_factor(c->factors[1]);
++    c->factors[2] = NULL;
++    p->choice = SPAKE_MSGTYPE_CHALLENGE;
++}
++
++void
++ktest_make_response_pa_spake(krb5_pa_spake *p)
++{
++    krb5_spake_response *r = &p->u.response;
++
++    krb5_data_parse(&r->pubkey, "S value");
++    ktest_make_sample_enc_data(&r->factor);
++    p->choice = SPAKE_MSGTYPE_RESPONSE;
++}
++
++void
++ktest_make_encdata_pa_spake(krb5_pa_spake *p)
++{
++    ktest_make_sample_enc_data(&p->u.encdata);
++    p->choice = SPAKE_MSGTYPE_ENCDATA;
++}
++
+ /****************************************************************/
+ /* destructors */
+ 
+@@ -1858,3 +1918,40 @@ ktest_empty_secure_cookie(krb5_secure_cookie *p)
+ {
+     ktest_empty_pa_data_array(p->data);
+ }
++
++void
++ktest_empty_spake_factor(krb5_spake_factor *p)
++{
++    krb5_free_data(NULL, p->data);
++    p->data = NULL;
++}
++
++void
++ktest_empty_pa_spake(krb5_pa_spake *p)
++{
++    krb5_spake_factor **f;
++
++    switch (p->choice) {
++    case SPAKE_MSGTYPE_SUPPORT:
++        free(p->u.support.groups);
++        break;
++    case SPAKE_MSGTYPE_CHALLENGE:
++        ktest_empty_data(&p->u.challenge.pubkey);
++        for (f = p->u.challenge.factors; *f != NULL; f++) {
++            ktest_empty_spake_factor(*f);
++            free(*f);
++        }
++        free(p->u.challenge.factors);
++        break;
++    case SPAKE_MSGTYPE_RESPONSE:
++        ktest_empty_data(&p->u.response.pubkey);
++        ktest_destroy_enc_data(&p->u.response.factor);
++        break;
++    case SPAKE_MSGTYPE_ENCDATA:
++        ktest_destroy_enc_data(&p->u.encdata);
++        break;
++    default:
++        break;
++    }
++    p->choice = SPAKE_MSGTYPE_UNKNOWN;
++}
+diff --git a/src/tests/asn.1/ktest.h b/src/tests/asn.1/ktest.h
+index 493303cc8..1413cfae1 100644
+--- a/src/tests/asn.1/ktest.h
++++ b/src/tests/asn.1/ktest.h
+@@ -28,6 +28,7 @@
+ #define __KTEST_H__
+ 
+ #include "k5-int.h"
++#include "k5-spake.h"
+ #include "kdb.h"
+ 
+ #define SAMPLE_USEC 123456
+@@ -124,6 +125,12 @@ void ktest_make_sample_kkdcp_message(krb5_kkdcp_message *p);
+ void ktest_make_minimal_cammac(krb5_cammac *p);
+ void ktest_make_maximal_cammac(krb5_cammac *p);
+ void ktest_make_sample_secure_cookie(krb5_secure_cookie *p);
++void ktest_make_minimal_spake_factor(krb5_spake_factor *p);
++void ktest_make_maximal_spake_factor(krb5_spake_factor *p);
++void ktest_make_support_pa_spake(krb5_pa_spake *p);
++void ktest_make_challenge_pa_spake(krb5_pa_spake *p);
++void ktest_make_response_pa_spake(krb5_pa_spake *p);
++void ktest_make_encdata_pa_spake(krb5_pa_spake *p);
+ 
+ /*----------------------------------------------------------------------*/
+ 
+@@ -209,6 +216,8 @@ void ktest_empty_ldap_seqof_key_data(krb5_context, ldap_seqof_key_data *p);
+ void ktest_empty_kkdcp_message(krb5_kkdcp_message *p);
+ void ktest_empty_cammac(krb5_cammac *p);
+ void ktest_empty_secure_cookie(krb5_secure_cookie *p);
++void ktest_empty_spake_factor(krb5_spake_factor *p);
++void ktest_empty_pa_spake(krb5_pa_spake *p);
+ 
+ extern krb5_context test_context;
+ extern char *sample_principal_name;
+diff --git a/src/tests/asn.1/ktest_equal.c b/src/tests/asn.1/ktest_equal.c
+index e8bb88944..714cc4398 100644
+--- a/src/tests/asn.1/ktest_equal.c
++++ b/src/tests/asn.1/ktest_equal.c
+@@ -853,6 +853,13 @@ ktest_equal_sequence_of_otp_tokeninfo(krb5_otp_tokeninfo **ref,
+     array_compare(ktest_equal_otp_tokeninfo);
+ }
+ 
++int
++ktest_equal_sequence_of_spake_factor(krb5_spake_factor **ref,
++                                     krb5_spake_factor **var)
++{
++    array_compare(ktest_equal_spake_factor);
++}
++
+ #ifndef DISABLE_PKINIT
+ 
+ static int
+@@ -1094,3 +1101,45 @@ ktest_equal_secure_cookie(krb5_secure_cookie *ref, krb5_secure_cookie *var)
+     p = p && ref->time == ref->time;
+     return p;
+ }
++
++int
++ktest_equal_spake_factor(krb5_spake_factor *ref, krb5_spake_factor *var)
++{
++    int p = TRUE;
++    if (ref == var) return TRUE;
++    else if (ref == NULL || var == NULL) return FALSE;
++    p = p && scalar_equal(type);
++    p = p && ptr_equal(data,ktest_equal_data);
++    return p;
++}
++
++int
++ktest_equal_pa_spake(krb5_pa_spake *ref, krb5_pa_spake *var)
++{
++    int p = TRUE;
++    if (ref == var) return TRUE;
++    else if (ref == NULL || var == NULL) return FALSE;
++    else if (ref->choice != var->choice) return FALSE;
++    switch (ref->choice) {
++    case SPAKE_MSGTYPE_SUPPORT:
++        p = p && scalar_equal(u.support.ngroups);
++        p = p && (memcmp(ref->u.support.groups,var->u.support.groups,
++                         ref->u.support.ngroups * sizeof(int32_t)) == 0);
++        break;
++    case SPAKE_MSGTYPE_CHALLENGE:
++        p = p && struct_equal(u.challenge.pubkey,ktest_equal_data);
++        p = p && ptr_equal(u.challenge.factors,
++                           ktest_equal_sequence_of_spake_factor);
++        break;
++    case SPAKE_MSGTYPE_RESPONSE:
++        p = p && struct_equal(u.response.pubkey,ktest_equal_data);
++        p = p && struct_equal(u.response.factor,ktest_equal_enc_data);
++        break;
++    case SPAKE_MSGTYPE_ENCDATA:
++        p = p && struct_equal(u.encdata,ktest_equal_enc_data);
++        break;
++    default:
++        break;
++    }
++    return p;
++}
+diff --git a/src/tests/asn.1/ktest_equal.h b/src/tests/asn.1/ktest_equal.h
+index c7b5d7467..cfa82ac6e 100644
+--- a/src/tests/asn.1/ktest_equal.h
++++ b/src/tests/asn.1/ktest_equal.h
+@@ -28,6 +28,7 @@
+ #define __KTEST_EQUAL_H__
+ 
+ #include "k5-int.h"
++#include "k5-spake.h"
+ #include "kdb.h"
+ 
+ /* int ktest_equal_structure(krb5_structure *ref, *var) */
+@@ -97,6 +98,8 @@ ktest_equal_sequence_of_algorithm_identifier(krb5_algorithm_identifier **ref,
+                                              krb5_algorithm_identifier **var);
+ int ktest_equal_sequence_of_otp_tokeninfo(krb5_otp_tokeninfo **ref,
+                                           krb5_otp_tokeninfo **var);
++int ktest_equal_sequence_of_spake_factor(krb5_spake_factor **ref,
++                                         krb5_spake_factor **var);
+ 
+ len_array(ktest_equal_array_of_enctype,krb5_enctype);
+ len_array(ktest_equal_array_of_data,krb5_data);
+@@ -152,4 +155,7 @@ int ktest_equal_cammac(krb5_cammac *ref, krb5_cammac *var);
+ int ktest_equal_secure_cookie(krb5_secure_cookie *ref,
+                               krb5_secure_cookie *var);
+ 
++generic(ktest_equal_spake_factor, krb5_spake_factor);
++generic(ktest_equal_pa_spake, krb5_pa_spake);
++
+ #endif
+diff --git a/src/tests/asn.1/make-vectors.c b/src/tests/asn.1/make-vectors.c
+index 3cb8a45ba..2fc85466b 100644
+--- a/src/tests/asn.1/make-vectors.c
++++ b/src/tests/asn.1/make-vectors.c
+@@ -40,6 +40,8 @@
+ #include <PA-OTP-REQUEST.h>
+ #include <PA-OTP-ENC-REQUEST.h>
+ #include <AD-CAMMAC.h>
++#include <SPAKESecondFactor.h>
++#include <PA-SPAKE.h>
+ 
+ static unsigned char buf[8192];
+ static size_t buf_pos;
+@@ -168,6 +170,36 @@ static struct other_verifiers overfs = { { verifiers, 2, 2 } };
+ static AD_CAMMAC_t cammac_2 = { { { (void *)adlist_2, 2, 2 } },
+                                 &vmac_1, &vmac_2, &overfs };
+ 
++/* SPAKESecondFactor */
++static SPAKESecondFactor_t factor_1 = { 1, NULL };
++static OCTET_STRING_t factor_data = { "fdata", 5 };
++static SPAKESecondFactor_t factor_2 = { 2, &factor_data };
++
++/* PA-SPAKE (support) */
++static Int32_t group_1 = 1, group_2 = 2, *groups[] = { &group_1, &group_2 };
++static PA_SPAKE_t pa_spake_1 = { PA_SPAKE_PR_support,
++                                 { .support = { { groups, 2, 2 } } } };
++
++/* PA-SPAKE (challenge) */
++static SPAKESecondFactor_t *factors[2] = { &factor_1, &factor_2 };
++static PA_SPAKE_t pa_spake_2 = { PA_SPAKE_PR_challenge,
++                                 { .challenge = { 1, { "T value", 7 },
++                                                  { factors, 2, 2 } } } };
++
++/* PA-SPAKE (response) */
++UInt32_t enctype_5 = 5;
++static PA_SPAKE_t pa_spake_3 = { PA_SPAKE_PR_response,
++                                 { .response = { { "S value", 7 },
++                                                 { 0, &enctype_5,
++                                                   { "krbASN.1 test message",
++                                                     21 } } } } };
++
++/* PA-SPAKE (encdata) */
++static PA_SPAKE_t pa_spake_4 = { PA_SPAKE_PR_encdata,
++                                 { .encdata = { 0, &enctype_5,
++                                                { "krbASN.1 test message",
++                                                  21 } } } };
++
+ static int
+ consume(const void *data, size_t size, void *dummy)
+ {
+@@ -272,6 +304,30 @@ main()
+     der_encode(&asn_DEF_AD_CAMMAC, &cammac_2, consume, NULL);
+     printbuf();
+ 
++    printf("\nMinimal SPAKESecondFactor:\n");
++    der_encode(&asn_DEF_SPAKESecondFactor, &factor_1, consume, NULL);
++    printbuf();
++
++    printf("\nMaximal SPAKESecondFactor:\n");
++    der_encode(&asn_DEF_SPAKESecondFactor, &factor_2, consume, NULL);
++    printbuf();
++
++    printf("\nPA-SPAKE (support):\n");
++    der_encode(&asn_DEF_PA_SPAKE, &pa_spake_1, consume, NULL);
++    printbuf();
++
++    printf("\nPA-SPAKE (challenge):\n");
++    der_encode(&asn_DEF_PA_SPAKE, &pa_spake_2, consume, NULL);
++    printbuf();
++
++    printf("\nPA-SPAKE (response):\n");
++    der_encode(&asn_DEF_PA_SPAKE, &pa_spake_3, consume, NULL);
++    printbuf();
++
++    printf("\nPA-SPAKE (encdata):\n");
++    der_encode(&asn_DEF_PA_SPAKE, &pa_spake_4, consume, NULL);
++    printbuf();
++
+     printf("\n");
+     return 0;
+ }
+diff --git a/src/tests/asn.1/reference_encode.out b/src/tests/asn.1/reference_encode.out
+index 824e0798b..a76deead2 100644
+--- a/src/tests/asn.1/reference_encode.out
++++ b/src/tests/asn.1/reference_encode.out
+@@ -72,3 +72,9 @@ encode_krb5_kkdcp_message: 30 82 01 FC A0 82 01 EC 04 82 01 E8 6A 82 01 E4 30 82
+ encode_krb5_cammac(optionals NULL): 30 12 A0 10 30 0E 30 0C A0 03 02 01 01 A1 05 04 03 61 64 31
+ encode_krb5_cammac: 30 81 F2 A0 1E 30 1C 30 0C A0 03 02 01 01 A1 05 04 03 61 64 31 30 0C A0 03 02 01 02 A1 05 04 03 61 64 32 A1 3D 30 3B A0 1A 30 18 A0 03 02 01 01 A1 11 30 0F 1B 06 68 66 74 73 61 69 1B 05 65 78 74 72 61 A1 03 02 01 05 A2 03 02 01 10 A3 13 30 11 A0 03 02 01 01 A1 0A 04 08 63 6B 73 75 6D 6B 64 63 A2 3D 30 3B A0 1A 30 18 A0 03 02 01 01 A1 11 30 0F 1B 06 68 66 74 73 61 69 1B 05 65 78 74 72 61 A1 03 02 01 05 A2 03 02 01 10 A3 13 30 11 A0 03 02 01 01 A1 0A 04 08 63 6B 73 75 6D 73 76 63 A3 52 30 50 30 13 A3 11 30 0F A0 03 02 01 01 A1 08 04 06 63 6B 73 75 6D 31 30 39 A0 1A 30 18 A0 03 02 01 01 A1 11 30 0F 1B 06 68 66 74 73 61 69 1B 05 65 78 74 72 61 A1 03 02 01 05 A2 03 02 01 10 A3 11 30 0F A0 03 02 01 01 A1 08 04 06 63 6B 73 75 6D 32
+ encode_krb5_secure_cookie: 30 2C 02 04 2D F8 02 25 30 24 30 10 A1 03 02 01 0D A2 09 04 07 70 61 2D 64 61 74 61 30 10 A1 03 02 01 0D A2 09 04 07 70 61 2D 64 61 74 61
++encode_krb5_spake_factor(optionals NULL): 30 05 A0 03 02 01 01
++encode_krb5_spake_factor: 30 0E A0 03 02 01 02 A1 07 04 05 66 64 61 74 61
++encode_krb5_pa_spake(support): A0 0C 30 0A A0 08 30 06 02 01 01 02 01 02
++encode_krb5_pa_spake(challenge): A1 2D 30 2B A0 03 02 01 01 A1 09 04 07 54 20 76 61 6C 75 65 A2 19 30 17 30 05 A0 03 02 01 01 30 0E A0 03 02 01 02 A1 07 04 05 66 64 61 74 61
++encode_krb5_pa_spake(response): A2 34 30 32 A0 09 04 07 53 20 76 61 6C 75 65 A1 25 30 23 A0 03 02 01 00 A1 03 02 01 05 A2 17 04 15 6B 72 62 41 53 4E 2E 31 20 74 65 73 74 20 6D 65 73 73 61 67 65
++encode_krb5_pa_spake(encdata): A3 25 30 23 A0 03 02 01 00 A1 03 02 01 05 A2 17 04 15 6B 72 62 41 53 4E 2E 31 20 74 65 73 74 20 6D 65 73 73 61 67 65
+diff --git a/src/tests/asn.1/spake.asn1 b/src/tests/asn.1/spake.asn1
+new file mode 100644
+index 000000000..50718d8ad
+--- /dev/null
++++ b/src/tests/asn.1/spake.asn1
+@@ -0,0 +1,44 @@
++KerberosV5SPAKE {
++        iso(1) identified-organization(3) dod(6) internet(1)
++        security(5) kerberosV5(2) modules(4) spake(8)
++} DEFINITIONS EXPLICIT TAGS ::= BEGIN
++
++IMPORTS
++    EncryptedData, Int32
++      FROM KerberosV5Spec2 { iso(1) identified-organization(3)
++        dod(6) internet(1) security(5) kerberosV5(2) modules(4)
++        krb5spec2(2) };
++        -- as defined in RFC 4120.
++
++SPAKESupport ::= SEQUENCE {
++    groups      [0] SEQUENCE (SIZE(1..MAX)) OF Int32,
++    ...
++}
++
++SPAKEChallenge ::= SEQUENCE {
++    group       [0] Int32,
++    pubkey      [1] OCTET STRING,
++    factors     [2] SEQUENCE (SIZE(1..MAX)) OF SPAKESecondFactor,
++    ...
++}
++
++SPAKESecondFactor ::= SEQUENCE {
++    type        [0] Int32,
++    data        [1] OCTET STRING OPTIONAL
++}
++
++SPAKEResponse ::= SEQUENCE {
++    pubkey      [0] OCTET STRING,
++    factor      [1] EncryptedData, -- SPAKESecondFactor
++    ...
++}
++
++PA-SPAKE ::= CHOICE {
++    support     [0] SPAKESupport,
++    challenge   [1] SPAKEChallenge,
++    response    [2] SPAKEResponse,
++    encdata     [3] EncryptedData,
++    ...
++}
++
++END
+diff --git a/src/tests/asn.1/trval_reference.out b/src/tests/asn.1/trval_reference.out
+index c27a0425b..e5c715924 100644
+--- a/src/tests/asn.1/trval_reference.out
++++ b/src/tests/asn.1/trval_reference.out
+@@ -1584,3 +1584,53 @@ encode_krb5_secure_cookie:
+ .  .  [Sequence/Sequence Of]
+ .  .  .  [1] [Integer] 13
+ .  .  .  [2] [Octet String] "pa-data"
++
++encode_krb5_spake_factor(optionals NULL):
++
++[Sequence/Sequence Of]
++.  [0] [Integer] 1
++
++encode_krb5_spake_factor:
++
++[Sequence/Sequence Of]
++.  [0] [Integer] 2
++.  [1] [Octet String] "fdata"
++
++encode_krb5_pa_spake(support):
++
++[CONT 0]
++.  [Sequence/Sequence Of]
++.  .  [0] [Sequence/Sequence Of]
++.  .  .  [Integer] 1
++.  .  .  [Integer] 2
++
++encode_krb5_pa_spake(challenge):
++
++[CONT 1]
++.  [Sequence/Sequence Of]
++.  .  [0] [Integer] 1
++.  .  [1] [Octet String] "T value"
++.  .  [2] [Sequence/Sequence Of]
++.  .  .  [Sequence/Sequence Of]
++.  .  .  .  [0] [Integer] 1
++.  .  .  [Sequence/Sequence Of]
++.  .  .  .  [0] [Integer] 2
++.  .  .  .  [1] [Octet String] "fdata"
++
++encode_krb5_pa_spake(response):
++
++[CONT 2]
++.  [Sequence/Sequence Of]
++.  .  [0] [Octet String] "S value"
++.  .  [1] [Sequence/Sequence Of]
++.  .  .  [0] [Integer] 0
++.  .  .  [1] [Integer] 5
++.  .  .  [2] [Octet String] "krbASN.1 test message"
++
++encode_krb5_pa_spake(encdata):
++
++[CONT 3]
++.  [Sequence/Sequence Of]
++.  .  [0] [Integer] 0
++.  .  [1] [Integer] 5
++.  .  [2] [Octet String] "krbASN.1 test message"

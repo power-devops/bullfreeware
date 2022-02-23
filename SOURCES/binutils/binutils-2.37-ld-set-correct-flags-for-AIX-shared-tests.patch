@@ -1,0 +1,26 @@
+From bcfaf04f4425576a550eb1f9ca4677cfa483e568 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 11 Mar 2021 11:08:17 +0100
+Subject: [PATCH] ld: set correct flags for AIX shared tests
+
+---
+ ld/testsuite/ld-shared/shared.exp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/ld/testsuite/ld-shared/shared.exp b/ld/testsuite/ld-shared/shared.exp
+index 655a56da99c..3c9b630171e 100644
+--- a/ld/testsuite/ld-shared/shared.exp
++++ b/ld/testsuite/ld-shared/shared.exp
+@@ -135,7 +135,8 @@ proc shared_test { progname testname main sh1 sh2 dat args } {
+     # On AIX, we need to use an export file.
+     set shared -shared
+     if { [istarget rs6000*-*-aix*] || [istarget powerpc*-*-aix*] } {
+-	set shared "-bM:SRE -bE:$tmpdir/xcoff.exp"
++	# TODO: shared is different when using XLC
++	set shared "-shared -Wl,-bE:$tmpdir/xcoff.exp"
+     }
+     if { [is_elf_format] && [check_shared_lib_support] } {
+ 	append shared " -Wl,-z,notext"
+-- 
+2.33.0
+

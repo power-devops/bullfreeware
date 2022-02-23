@@ -1,0 +1,95 @@
+From 934cb8492f1745c2883ba6be885e8729f92a258f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 30 Jul 2021 13:56:54 +0200
+Subject: [PATCH] gas: always add dummy symbols when creating XCOFF sections.
+
+Most of the algorithms for XCOFF in tc-ppc.c assume that
+the csects field of a ppc_xcoff_section isn't NULL.
+This was already made for most of the sections with the creation
+of a dummy symbol.
+This patch simply mades it default when creating a xcoff_section.
+
+gas/
+	* config/tc-ppc.c (ppc_init_xcoff_section): Always create
+	the dummy symbol.
+	(md_begin): Adjust ppc_init_xcoff_section call.
+	(ppc_comm): Likewise.
+	(ppc_change_csect): Likewise.
+---
+ gas/config/tc-ppc.c | 28 +++++++++++-----------------
+ 1 file changed, 11 insertions(+), 17 deletions(-)
+
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index 1327eabf98d..b7567083f66 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -1014,18 +1014,15 @@ ppc_xcoff_section_is_initialized (struct ppc_xcoff_section *section)
+ 
+ /* Initialize a ppc_xcoff_section.
+    Dummy symbols are used to ensure the position of .text over .data
+-   and .tdata.  These symbols won't be output.  */
++   and .tdata.  Moreover, they allow all algorithms here to be sure that
++   csects isn't NULL.  These symbols won't be output.  */
+ static void
+-ppc_init_xcoff_section (struct ppc_xcoff_section *s, segT seg,
+-			bool need_dummy)
++ppc_init_xcoff_section (struct ppc_xcoff_section *s, segT seg)
+ {
+   s->segment = seg;
+   s->next_subsegment = 2;
+-  if (need_dummy)
+-    {
+-      s->csects = symbol_make ("dummy\001");
+-      symbol_get_tc (s->csects)->within = s->csects;
+-    }
++  s->csects = symbol_make ("dummy\001");
++  symbol_get_tc (s->csects)->within = s->csects;
+ }
+ 
+ /* The current csect.  */
+@@ -1881,9 +1878,9 @@ md_begin (void)
+   /* Create XCOFF sections with .text in first, as it's creating dummy symbols
+      to serve as initial csects.  This forces the text csects to precede the
+      data csects.  These symbols will not be output.  */
+-  ppc_init_xcoff_section (&ppc_xcoff_text_section, text_section, true);
+-  ppc_init_xcoff_section (&ppc_xcoff_data_section, data_section, true);
+-  ppc_init_xcoff_section (&ppc_xcoff_bss_section, bss_section, true);
++  ppc_init_xcoff_section (&ppc_xcoff_text_section, text_section);
++  ppc_init_xcoff_section (&ppc_xcoff_data_section, data_section);
++  ppc_init_xcoff_section (&ppc_xcoff_bss_section, bss_section);
+ #endif
+ }
+ 
+@@ -4400,8 +4397,7 @@ ppc_comm (int lcomm)
+       section = &ppc_xcoff_tbss_section;
+       if (!ppc_xcoff_section_is_initialized (section))
+ 	{
+-	  ppc_init_xcoff_section (section,
+-				  subseg_new (".tbss", 0), false);
++	  ppc_init_xcoff_section (section, subseg_new (".tbss", 0));
+ 	  bfd_set_section_flags (section->segment,
+ 				 SEC_ALLOC | SEC_THREAD_LOCAL);
+ 	  seg_info (section->segment)->bss = 1;
+@@ -4558,8 +4554,7 @@ ppc_change_csect (symbolS *sym, offsetT align)
+ 	  /* Create .tdata section if not yet done.  */
+ 	  if (!ppc_xcoff_section_is_initialized (section))
+ 	    {
+-	      ppc_init_xcoff_section (section, subseg_new (".tdata", 0),
+-				      true);
++	      ppc_init_xcoff_section (section, subseg_new (".tdata", 0));
+ 	      bfd_set_section_flags (section->segment, SEC_ALLOC
+ 				     | SEC_LOAD | SEC_RELOC | SEC_DATA
+ 				     | SEC_THREAD_LOCAL);
+@@ -4570,8 +4565,7 @@ ppc_change_csect (symbolS *sym, offsetT align)
+ 	  /* Create .tbss section if not yet done.  */
+ 	  if (!ppc_xcoff_section_is_initialized (section))
+ 	    {
+-	      ppc_init_xcoff_section (section, subseg_new (".tbss", 0),
+-				      false);
++	      ppc_init_xcoff_section (section, subseg_new (".tbss", 0));
+ 	      bfd_set_section_flags (section->segment, SEC_ALLOC |
+ 				     SEC_THREAD_LOCAL);
+ 	      seg_info (section->segment)->bss = 1;
+-- 
+2.33.0
+

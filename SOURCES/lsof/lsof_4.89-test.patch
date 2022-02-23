@@ -1,0 +1,12 @@
+Index: lsof_4.89_src/tests/CkTestDB
+===================================================================
+--- lsof_4.89_src/tests/CkTestDB	2010-02-12 21:37:05.000000000 +0100
++++ lsof_4.89_src/tests/CkTestDB	2016-03-31 11:06:50.000000000 +0200
+@@ -115,6 +115,7 @@
+ END=0
+ while test $END = 0
+ do
++  exit 0
+   echo "" > /dev/tty
+   echo $EO "Do you want to continue (y|n) [n]? $EC" > /dev/tty
+   read ANS EXCESS

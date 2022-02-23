@@ -1,0 +1,157 @@
+Index: samba-4.2.0/lib/texpect/texpect.c
+===================================================================
+--- samba-4.2.0.orig/lib/texpect/texpect.c	2014-10-01 11:17:32.000000000 +0200
++++ samba-4.2.0/lib/texpect/texpect.c	2015-05-21 10:45:05.000000000 +0200
+@@ -61,7 +61,7 @@
+ 
+ #include <popt.h>
+ #include <errno.h>
+-#include <err.h>
++//#include <err.h>
+ 
+ struct command {
+ 	enum { CMD_EXPECT = 0, CMD_SEND, CMD_PASSWORD } type;
+@@ -123,8 +123,10 @@
+ #endif
+ 				strlcpy(line, ptsname(master), sizeof(line));
+ 				slave = open(line, O_RDWR);
+-				if (slave < 0)
+-					errx(1, "failed to open slave when using %s", *q);
++				if (slave < 0){
++					printf("failed to open slave when using %s", *q);
++					exit(1);
++					}
+ 				ioctl(slave, I_PUSH, "ptem");
+ 				ioctl(slave, I_PUSH, "ldterm");
+ 
+@@ -181,18 +183,20 @@
+ 	FILE *cmd;
+ 
+ 	cmd = fopen(fn, "r");
+-	if (cmd == NULL)
+-		err(1, "open: %s", fn);
+-
++	if (cmd == NULL){
++		printf("open: %s", fn);	
++		exit(1);
++		}
+ 	while (fgets(s, sizeof(s),  cmd) != NULL) {
+ 
+ 		s[strcspn(s, "#\n")] = '\0';
+ 		lineno++;
+ 
+ 		c = calloc(1, sizeof(*c));
+-		if (c == NULL)
+-			errx(1, "malloc");
+-
++		if (c == NULL){
++			printf("malloc");
++			exit(1);
++			}
+ 		c->lineno = lineno;
+ 		(*next) = c;
+ 		next = &(c->next);
+@@ -206,10 +210,11 @@
+ 		} else if ((str = iscmd(s, "password ")) != NULL) {
+ 			c->type = CMD_PASSWORD;
+ 			c->str = str;
+-		} else
+-			errx(1, "Invalid command on line %d: %s", lineno, s);
+-	}
+-
++		} else {
++			printf("Invalid command on line %d: %s", lineno, s);
++			exit(1);
++			}
++		}
+ 	fclose(cmd);
+ }
+ 
+@@ -263,16 +268,19 @@
+ 			}
+ 			alarm(0);
+ 			if (alarmset == SIGALRM) {
+-				errx(1, "timeout waiting for %s (line %u)",
+-						c->str, c->lineno);
++				printf("timeout waiting for %s (line %u)",
++						c->str, c->lineno);	
++				exit(1);
+ 			} else if (alarmset) {
+-				errx(1, "got a signal %d waiting for %s (line %u)",
+-						(int)alarmset, c->str, c->lineno);
++				printf("got a signal %d waiting for %s (line %u)",
++						(int)alarmset, c->str, c->lineno);	
++				exit(1);
+ 			}
+ 
+ 			if (sret <= 0) {
+-				errx(1, "end command while waiting for %s (line %u)",
++				printf("end command while waiting for %s (line %u)",
+ 						c->str, c->lineno);
++				exit(1);
+ 			}
+ 			break;
+ 		case CMD_SEND:
+@@ -301,17 +309,19 @@
+ 						ctrl = '\t';
+ 						break;
+ 					default:
+-						errx(1,
+-						     "unknown control char %c (line %u)",
++						printf("unknown control char %c (line %u)",
+ 						     c->str[i],
+ 						     c->lineno);
++						exit(1);
+ 					}
+ 					if (sys_write(master, &ctrl, 1) != 1) {
+-						errx(1, "command refused input (line %u)", c->lineno);
++						printf("command refused input (line %u)", c->lineno);	
++						exit(1);
+ 					}
+ 				} else {
+ 					if (sys_write(master, &c->str[i], 1) != 1) {
+-						errx(1, "command refused input (line %u)", c->lineno);
++						printf("command refused input (line %u)", c->lineno);
++						exit(1);
+ 					}
+ 				}
+ 				i++;
+@@ -339,7 +349,8 @@
+ 
+ 		ret = waitpid(pid, &status, 0);
+ 		if (ret == -1) {
+-			err(1, "waitpid");
++			printf("waitpid");
++			exit(1);
+ 		}
+ 
+ 		if (WIFEXITED(status) && WEXITSTATUS(status)) {
+@@ -409,12 +420,14 @@
+ 	pid = fork();
+ 	switch (pid) {
+ 		case -1:
+-			err(1, "Failed to fork");
++			printf("Failed to fork");
++			exit(1);	
+ 		case 0:
+ 
+-			if(setsid()<0)
+-				err(1, "setsid");
+-
++			if(setsid()<0){
++				printf("setsid");
++				exit(1);
++				}
+ 			dup2(slave, STDIN_FILENO);
+ 			dup2(slave, STDOUT_FILENO);
+ 			dup2(slave, STDERR_FILENO);
+@@ -423,7 +436,8 @@
+ 
+ 			/* texpect <expect_instructions> <progname> [<args>] */
+ 			execvp(program, program_args);
+-			err(1, "Failed to exec: %s", program);
++			printf("Failed to exec: %s", program);	
++			exit(1);
+ 		default:
+ 			close(slave);
+ 			{

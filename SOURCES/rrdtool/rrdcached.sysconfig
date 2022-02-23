@@ -1,0 +1,2 @@
+# Please read the manpage for more info about possible runtime options.
+RRDCACHED_OPTIONS="-l /var/lib/rrdcached/rrdcached.socket -w 300 -z 300"

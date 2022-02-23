@@ -1,0 +1,66 @@
+--- ocaml-3.09.2/configure.lib64	2006-03-30 05:00:19.000000000 -0500
++++ ocaml-3.09.2/configure	2006-09-20 11:03:45.000000000 -0400
+@@ -229,6 +229,34 @@ EOF
+             esac;;
+ esac
+ 
++# Determine library dir name
++
++case $host in
++*-*-linux*)
++  # Test if the compiler is 64bit
++  echo 'int i;' > conftest.c
++  ocaml_cv_cc_64bit_output=no
++  if $cc -c conftest.c; then
++    case `/usr/bin/file conftest.o` in
++    *"ELF 64"*)
++      ocaml_cv_cc_64bit_output=yes
++      ;;
++    esac
++  fi
++  rm -rf conftest*
++  ;;
++esac
++
++host_cpu=`uname -m`
++case $host_cpu:$ocaml_cv_cc_64bit_output in
++ppc64:yes | s390x:yes | sparc64:yes | x86_64:yes)
++  lib="lib64"
++  ;;
++*:*)
++  lib="lib"
++  ;;
++esac
++
+ # Configure the bytecode compiler
+ 
+ bytecc="$cc"
+@@ -1157,15 +1185,14 @@ done
+ if test "$x11_include" = "not found"; then
+   x11_try_lib_dir=''
+ else
+-  x11_try_lib_dir=`echo $x11_include | sed -e 's|include|lib|'`
++  x11_try_lib_dir=`echo $x11_include | sed -e "s|include|$lib|"`
+ fi
+ 
+ for dir in \
+     $x11_lib_dir          \
+     $x11_try_lib_dir      \
+                           \
+-    /usr/X11R6/lib64      \
+-    /usr/X11R6/lib        \
++    /usr/X11R6/$lib       \
+     /usr/lib/X11R6        \
+     /usr/local/X11R6/lib  \
+     /usr/local/lib/X11R6  \
+@@ -1246,8 +1246,8 @@
+     /usr/XFree86/lib/X11  \
+                           \
+     /usr/lib64            \
+-    /usr/lib              \
+-    /usr/local/lib        \
++    /usr/$lib             \
++    /usr/local/$lib       \
+     /usr/unsupported/lib  \
+     /usr/athena/lib       \
+     /usr/lpp/Xamples/lib  \

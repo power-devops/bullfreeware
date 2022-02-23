@@ -1,0 +1,12 @@
+--- ./extra/libevent/CMakeLists.txt.ORIGIN	2019-06-03 18:24:45 -0500
++++ ./extra/libevent/CMakeLists.txt	2019-06-03 18:25:47 -0500
+@@ -302,6 +302,9 @@
+ if(EVENT__HAVE_SYS_TIME_H)
+     list(APPEND CMAKE_EXTRA_INCLUDE_FILES sys/time.h)
+ endif()
++if(EVENT__HAVE_SYS_SELECT_H)
++    list(APPEND CMAKE_EXTRA_INCLUDE_FILES sys/select.h)
++endif()
+ CHECK_INCLUDE_FILE(sys/uio.h EVENT__HAVE_SYS_UIO_H)
+ CHECK_INCLUDE_FILES("sys/types.h;ifaddrs.h" EVENT__HAVE_IFADDRS_H)
+ CHECK_INCLUDE_FILE(mach/mach_time.h EVENT__HAVE_MACH_MACH_TIME_H)

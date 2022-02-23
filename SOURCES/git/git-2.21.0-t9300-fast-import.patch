@@ -1,0 +1,11 @@
+--- ./t/t9300-fast-import.sh.ORIGIN	2019-03-15 16:51:55 +0100
++++ ./t/t9300-fast-import.sh	2019-03-15 17:19:04 +0100
+@@ -27,7 +27,7 @@
+ file5_data='an inline file.
+   we should see it later.'
+ 
+-file6_data='#!/usr/bin/bash
++file6_data='#!/bin/sh
+ echo "$@"'
+ 
+ ###

@@ -1,0 +1,24 @@
+--- gcc-7.1.0/gotools/Makefile.am.ORIGIN        2017-05-12 14:26:56 +0200
++++ gcc-7.1.0/gotools/Makefile.am       2017-05-15 11:00:20 +0200
+@@ -39,6 +39,9 @@
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++ifeq ($(shell uname), "AIX")
++    AM_LDFLAGS += -Wl,-blibpath=$(libdir):/usr/lib:/lib
++endif
+ GOLINK = LIBPATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+
+ cmdsrcdir = $(srcdir)/../libgo/go/cmd
+--- gcc-7.1.0/gotools/Makefile.in.ORIGIN        2017-05-15 10:59:07 +0200
++++ gcc-7.1.0/gotools/Makefile.in       2017-05-15 10:58:43 +0200
+@@ -259,6 +259,9 @@
+ @NATIVE_TRUE@GOCOMPILER = $(GOC_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
++ifeq ($(shell uname), AIX)
++    AM_LDFLAGS += -Wl,-blibpath:$(libdir):/usr/lib:/lib
++endif
+ GOLINK = LIBPATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ cmdsrcdir = $(srcdir)/../libgo/go/cmd
+ go_cmd_go_files = \

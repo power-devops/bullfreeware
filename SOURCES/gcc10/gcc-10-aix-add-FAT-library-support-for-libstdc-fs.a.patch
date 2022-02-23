@@ -1,0 +1,48 @@
+From 0b9a7311274dfc19071c6db8d1e1e6fd05b59dd6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 1 Sep 2020 11:07:16 +0200
+Subject: [PATCH] aix: add FAT library support for libstdc++fs.a
+
+Make libstdc++fs.a a 32/64 bit FAT library.
+
+It is too complicated for the FAT library Makefile fragment to determine if
+--enable-libstdcxx-filesystem-ts has been enabled.  This patch checks the
+existence of libstdc++fs.a at build time and adds the complementary object
+file if it was built.
+
+libstdc++-v3/Changelog:
+
+2020-10-11  Clement Chigot  <clement.chigot@atos.net>
+
+	* config/os/aix/t-aix: Add complementary mode object file to
+	libstdc++fs.a
+---
+ libstdc++-v3/config/os/aix/t-aix | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/libstdc++-v3/config/os/aix/t-aix b/libstdc++-v3/config/os/aix/t-aix
+index 14d2ac740ec..6676620a7e9 100644
+--- a/libstdc++-v3/config/os/aix/t-aix
++++ b/libstdc++-v3/config/os/aix/t-aix
+@@ -3,10 +3,15 @@ BITS=$(shell if test -z "`$(CC) -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
+     echo '64'; else echo '32'; fi)
+ MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
+ ARX=$(shell echo $(AR) | sed -e 's/-X[^ ]*//g')
+-STOBJS=$(shell $(ARX) -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a)
++SUPOBJS=$(shell $(ARX) -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a)
++FSOBJS=$(shell $(ARX) -X$(BITS) t ../ppc$(BITS)/$(PACKAGE)-v3/src/filesystem/.libs/libstdc++fs.a 2>/dev/null)
+ all-local:
+ 	$(ARX) -X$(BITS) rc src/.libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
+ 	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
+-	$(ARX) -X$(BITS) rc libsupc++/.libs/libsupc++.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
+-	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(STOBJS)}
++	$(ARX) -X$(BITS) rc libsupc++/.libs/libsupc++.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(SUPOBJS)}
++	$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/libsupc++/.libs/libsupc++.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/libsupc++/,$(SUPOBJS)}
++	if test -n "$(FSOBJS)"; then \
++		$(ARX) -X$(BITS) rc src/filesystem/.libs/libstdc++fs.a ${addprefix ../ppc$(BITS)/$(PACKAGE)-v3/src/filesystem/,$(FSOBJS)}; \
++		$(ARX) -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/filesystem/.libs/libstdc++fs.a ${addprefix ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/filesystem/,$(FSOBJS)}; \
++	fi
+ endif
+-- 
+2.25.0
+

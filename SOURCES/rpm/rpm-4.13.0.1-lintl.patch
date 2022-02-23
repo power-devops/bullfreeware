@@ -1,0 +1,55 @@
+--- ./Makefile.in.orig	2017-01-24 04:40:27.000000000 -0600
++++ ./Makefile.in	2017-01-24 04:44:21.000000000 -0600
+@@ -689,33 +689,33 @@
+ rpm_SOURCES = rpmqv.c debug.h system.h
+ rpm_CPPFLAGS = $(AM_CPPFLAGS) -DIAM_RPMEIU -DIAM_RPMQ -DIAM_RPMV
+ rpm_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpmdb_SOURCES = rpmdb.c debug.h system.h
+ rpmdb_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmdb_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpmkeys_SOURCES = rpmkeys.c debug.h system.h
+ rpmkeys_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmkeys_LDADD = libcliutils.la lib/librpm.la rpmio/librpmio.la \
+-	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_NSS_LIB@ @WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpmsign_SOURCES = rpmsign.c debug.h system.h
+ rpmsign_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmsign_LDADD = libcliutils.la sign/librpmsign.la lib/librpm.la \
+ 	rpmio/librpmio.la @WITH_NSS_LIB@ @WITH_POPT_LIB@ \
+-	@WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpmbuild_SOURCES = rpmbuild.c debug.h system.h
+ rpmbuild_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmbuild_LDADD = build/librpmbuild.la lib/librpm.la \
+ 	rpmio/librpmio.la libcliutils.la @WITH_NSS_LIB@ @WITH_POPT_LIB@ \
+-	@WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpmspec_SOURCES = rpmspec.c debug.h system.h
+ rpmspec_CPPFLAGS = $(AM_CPPFLAGS)
+ rpmspec_LDADD = build/librpmbuild.la lib/librpm.la \
+ 	rpmio/librpmio.la libcliutils.la @WITH_NSS_LIB@ @WITH_POPT_LIB@ \
+-	@WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpm2cpio_SOURCES = rpm2cpio.c debug.h system.h
+ rpm2cpio_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_NSS_LIB@ \
+-	@WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty)
++	@WITH_POPT_LIB@ @WITH_ZLIB_LIB@ $(am__empty) -lintl
+ rpm2archive_SOURCES = rpm2archive.c debug.h system.h
+ rpm2archive_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_NSS_LIB@ \
+ 	@WITH_POPT_LIB@ @WITH_ZLIB_LIB@ @WITH_ARCHIVE_LIB@ \
+@@ -731,9 +731,9 @@
+ @LIBDWARF_TRUE@@LIBELF_TRUE@sepdebugcrcfix_SOURCES = tools/sepdebugcrcfix.c
+ @LIBDWARF_TRUE@@LIBELF_TRUE@sepdebugcrcfix_LDADD = @WITH_LIBELF_LIB@
+ rpmdeps_SOURCES = tools/rpmdeps.c
+-rpmdeps_LDADD = build/librpmbuild.la lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
++rpmdeps_LDADD = build/librpmbuild.la lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ rpmgraph_SOURCES = tools/rpmgraph.c
+-rpmgraph_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@
++rpmgraph_LDADD = lib/librpm.la rpmio/librpmio.la @WITH_POPT_LIB@ -lintl
+ dist_bin_SCRIPTS = scripts/gendiff
+ rpmconfig_DATA = rpmrc rpmpopt-$(VERSION)
+ noinst_DATA = macros platform $(am__append_9) $(am__append_10)

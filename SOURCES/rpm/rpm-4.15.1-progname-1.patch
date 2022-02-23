@@ -1,0 +1,322 @@
+--- ./rpm.c_orig	2020-04-13 07:54:43 +0000
++++ ./rpm.c	2020-04-13 08:04:38 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmcli.h>
+ #include <rpm/rpmlib.h>			/* RPMSIGTAG, rpmReadPackageFile .. */
+@@ -68,13 +69,13 @@
+     int ec = 0;
+     int i;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+     /* Set the major mode based on argv[0] */
+-    if (rstreq(xgetprogname(), "rpmquery"))	bigMode = MODE_QUERY;
+-    if (rstreq(xgetprogname(), "rpmverify")) bigMode = MODE_VERIFY;
++    if (rstreq(__progname, "rpmquery"))	bigMode = MODE_QUERY;
++    if (rstreq(__progname, "rpmverify")) bigMode = MODE_VERIFY;
+ 
+     /* Jumpstart option from argv[0] if necessary. */
+     switch (bigMode) {
+--- ./rpm2archive.c_orig	2020-04-13 07:56:06 +0000
++++ ./rpm2archive.c	2020-04-13 08:05:12 +0000
+@@ -1,6 +1,7 @@
+ /* rpmarchive: spit out the main archive portion of a package */
+ 
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmlib.h>		/* rpmReadPackageFile .. */
+ #include <rpm/rpmfi.h>
+@@ -189,7 +190,7 @@
+ {
+     int rc = 0, i;
+ 
+-    xsetprogname(argv[0]);	/* Portability call -- see system.h */
++    setprogname(argv[0]);	/* Portability call -- see system.h */
+     rpmReadConfigFiles(NULL, NULL);
+ 
+     if (argc > 1 && (rstreq(argv[1], "-h") || rstreq(argv[1], "--help"))) {
+--- ./rpm2cpio.c_orig	2020-04-13 07:56:33 +0000
++++ ./rpm2cpio.c	2020-04-13 08:05:42 +0000
+@@ -1,6 +1,7 @@
+ /* rpmarchive: spit out the main archive portion of a package */
+ 
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmlib.h>		/* rpmReadPackageFile .. */
+ #include <rpm/rpmtag.h>
+@@ -21,7 +22,7 @@
+     off_t payload_size;
+     FD_t gzdi;
+     
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     rpmReadConfigFiles(NULL, NULL);
+     if (argc == 1)
+--- ./rpmbuild.c_orig	2020-04-13 07:56:46 +0000
++++ ./rpmbuild.c	2020-04-13 08:06:06 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <errno.h>
+ #include <libgen.h>
+@@ -587,7 +588,7 @@
+ 
+     poptContext optCon = NULL;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+--- ./rpmdb.c_orig	2020-04-13 07:57:01 +0000
++++ ./rpmdb.c	2020-04-13 08:07:20 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <popt.h>
+ #include <rpm/rpmcli.h>
+@@ -91,7 +92,7 @@
+     poptContext optCon = NULL;
+     rpmts ts = NULL;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+--- ./rpmkeys.c_orig	2020-04-13 07:57:16 +0000
++++ ./rpmkeys.c	2020-04-13 08:08:12 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <popt.h>
+ #include <rpm/rpmcli.h>
+@@ -49,7 +50,7 @@
+     rpmts ts = NULL;
+     ARGV_const_t args = NULL;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+     
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+--- ./rpmsign.c_orig	2020-04-13 07:57:28 +0000
++++ ./rpmsign.c	2020-04-13 08:08:49 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ #include <errno.h>
+ #include <sys/wait.h>
+ #include <termios.h>
+@@ -149,7 +150,7 @@
+     poptContext optCon = NULL;
+     const char *arg;
+     
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+--- ./rpmspec.c_orig	2020-04-13 07:57:38 +0000
++++ ./rpmspec.c	2020-04-13 08:09:26 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmcli.h>
+ #include <rpm/rpmbuild.h>
+@@ -58,7 +59,7 @@
+     poptContext optCon;
+     int ec = 0;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+ 
+--- ./tools/elfdeps.c_orig	2020-04-13 07:58:01 +0000
++++ ./tools/elfdeps.c	2020-04-13 08:10:11 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <sys/types.h>
+ #include <sys/stat.h>
+@@ -370,7 +371,7 @@
+ 	POPT_TABLEEND
+     };
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = poptGetContext(argv[0], argc, (const char **) argv, opts, 0);
+     if (argc < 2 || poptGetNextOpt(optCon) == 0) {
+--- ./tools/rpmdeps.c_orig	2020-04-13 07:58:25 +0000
++++ ./tools/rpmdeps.c	2020-04-13 08:10:54 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmbuild.h>
+ #include <rpm/argv.h>
+@@ -76,7 +77,7 @@
+     int ec = 1;
+     char buf[BUFSIZ];
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+     if (optCon == NULL)
+--- ./tools/rpmgraph.c_orig	2020-04-13 07:58:46 +0000
++++ ./tools/rpmgraph.c	2020-04-13 08:11:53 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmcli.h>
+ #include <rpm/rpmlib.h>		/* rpmReadPackageFile */
+@@ -234,7 +235,7 @@
+     poptContext optCon;
+     int ec = 0;
+ 
+-    xsetprogname(argv[0]); /* Portability call -- see system.h */
++    setprogname(argv[0]); /* Portability call -- see system.h */
+ 
+     optCon = rpmcliInit(argc, argv, optionsTable);
+     if (optCon == NULL)
+--- ./lib/poptI.c_orig	2020-04-13 08:17:33 +0000
++++ ./lib/poptI.c	2020-04-13 08:18:02 +0000
+@@ -26,7 +26,7 @@
+ RPM_GNUC_NORETURN
+ static void argerror(const char * desc)
+ {
+-    fprintf(stderr, _("%s: %s\n"), xgetprogname(), desc);
++    fprintf(stderr, _("%s: %s\n"), __progname, desc);
+     exit(EXIT_FAILURE);
+ }
+ 
+--- ./cliutils.c_orig	2020-04-13 09:03:51 +0000
++++ ./cliutils.c	2020-04-13 09:04:31 +0000
+@@ -1,4 +1,5 @@
+ #include "system.h"
++const char *__progname;
+ #if HAVE_MCHECK_H
+ #include <mcheck.h>
+ #endif
+@@ -18,7 +19,7 @@
+ RPM_GNUC_NORETURN
+ void argerror(const char * desc)
+ {
+-    fprintf(stderr, _("%s: %s\n"), xgetprogname(), desc);
++    fprintf(stderr, _("%s: %s\n"), __progname, desc);
+     exit(EXIT_FAILURE);
+ }
+ 
+--- ./configure_orig	2020-04-13 07:11:08 +0000
++++ ./configure	2020-04-13 07:12:10 +0000
+@@ -25033,6 +25033,7 @@
+ int
+ main ()
+ {
++__progname = 0;
+ if (*__progname == 0) return 0;
+   ;
+   return 0;
+--- ./lib/poptALL.c_orig	2020-04-14 01:30:32 +0000
++++ ./lib/poptALL.c	2020-04-14 01:30:11 +0000
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include "system.h"
++const char *__progname;
+ 
+ #include <rpm/rpmcli.h>
+ #include <rpm/rpmlib.h>		/* rpmEVR, rpmReadConfigFiles etc */
+@@ -170,7 +171,7 @@
+ 	if (rpmcliPipeOutput) {
+ 	    fprintf(stderr,
+ 		    _("%s: error: more than one --pipe specified "
+-		      "(incompatible popt aliases?)\n"), xgetprogname());
++		      "(incompatible popt aliases?)\n"), __progname);
+ 	    exit(EXIT_FAILURE);
+ 	}
+ 	rpmcliPipeOutput = xstrdup(arg);
+@@ -297,6 +298,15 @@
+     int rc;
+     const char *ctx, *execPath;
+ 
++    setprogname(argv[0]);       /* Retrofit glibc __progname */
++
++    /* XXX glibc churn sanity */
++    if (__progname == NULL) {
++        if ((__progname = strrchr(argv[0], '/')) != NULL) __progname++;
++        else __progname = argv[0];
++    }
++
++
+ #if defined(ENABLE_NLS)
+     (void) setlocale(LC_ALL, "" );
+ 
+@@ -313,7 +323,7 @@
+     }
+ 
+     /* XXX hack to get popt working from build tree wrt lt-foo names */
+-    ctx = rstreqn(xgetprogname(), "lt-", 3) ? xgetprogname() + 3 : xgetprogname();
++    ctx = rstreqn(__progname, "lt-", 3) ? __progname + 3 : __progname;
+ 
+     optCon = poptGetContext(ctx, argc, (const char **)argv, optionsTable, 0);
+     {
+@@ -330,12 +340,12 @@
+     /* Process all options, whine if unknown. */
+     while ((rc = poptGetNextOpt(optCon)) > 0) {
+ 	fprintf(stderr, _("%s: option table misconfigured (%d)\n"),
+-		xgetprogname(), rc);
++		__progname, rc);
+ 	exit(EXIT_FAILURE);
+     }
+ 
+     if (rc < -1) {
+-	fprintf(stderr, "%s: %s: %s\n", xgetprogname(),
++	fprintf(stderr, "%s: %s: %s\n", __progname,
+ 		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+ 		poptStrerror(rc));
+ 	exit(EXIT_FAILURE);
+--- ./system.h_orig	2020-04-14 03:04:56 +0000
++++ ./system.h	2020-04-14 03:04:40 +0000
+@@ -98,17 +98,12 @@
+ 
+    setprogname(*pn) must be the first call in main() in order to set the name
+    as soon as possible. */
+-#if defined(HAVE_SETPROGNAME) /* BSD'ish systems */
+-# include <stdlib.h> /* Make sure this header is included */
+-# define xsetprogname(pn) setprogname(pn)
+-# define xgetprogname(pn) getprogname(pn)
+-#elif defined(HAVE___PROGNAME) /* glibc and others */
+-# define xsetprogname(pn)
+-  extern const char *__progname;
+-# define xgetprogname(pn) __progname
+-#else
+-# error "Did not find any sutable implementation of xsetprogname/xgetprogname"
+-#endif
++#define __progname      program_name
++#define setprogname(pn) \
++  { if ((__progname = strrchr(pn, '/')) != NULL) __progname++; \
++    else __progname = pn;               \
++  }
++extern const char *__progname;
+ 
+ /* Take care of NLS matters.  */
+ #if ENABLE_NLS

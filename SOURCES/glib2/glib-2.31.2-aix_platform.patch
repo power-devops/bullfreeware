@@ -1,0 +1,13 @@
+Index: glib-2.31.2/glib/glib-init.c
+===================================================================
+--- glib-2.31.2.orig/glib/glib-init.c	2011-11-18 10:51:54.000000000 +0100
++++ glib-2.31.2/glib/glib-init.c	2013-10-01 12:05:15.000000000 +0200
+@@ -246,7 +246,7 @@
+   return TRUE;
+ }
+ 
+-#elif defined (__GNUC__)
++#elif defined (__GNUC__) || defined(_AIX)
+ 
+ __attribute__ ((constructor)) static void
+ glib_init_ctor (void)

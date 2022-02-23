@@ -1,0 +1,65 @@
+From 77fa11dffb59334eb32502c53faf9946a7caa1fc Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 11 Apr 2019 16:26:38 +0200
+Subject: [PATCH] net: retrieve if unix network is available only once for AIX
+
+The previous version was executing "oslevel -s" everytime testableNetwork
+was called with unix/unixgram network. The current version retrieves if
+the network is possible only once at the beginning of the tests.
+
+This is clearly faster:
+ok      net     74.045s
+ok      net     5.098s
+
+Change-Id: I12549da27721f85c007cf17cab5cfdbfeb839cf6
+Reviewed-on: https://go-review.googlesource.com/c/go/+/171717
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/net/platform_test.go b/src/net/platform_test.go
+index 7e9ad70..10f55c9 100644
+--- a/src/net/platform_test.go
++++ b/src/net/platform_test.go
+@@ -14,6 +14,23 @@
+ 	"testing"
+ )
+ 
++var unixEnabledOnAIX bool
++
++func init() {
++	if runtime.GOOS == "aix" {
++		// Unix network isn't properly working on AIX 7.2 with
++		// Technical Level < 2.
++		// The information is retrieved only once in this init()
++		// instead of everytime testableNetwork is called.
++		out, _ := exec.Command("oslevel", "-s").Output()
++		if len(out) >= len("7200-XX-ZZ-YYMM") { // AIX 7.2, Tech Level XX, Service Pack ZZ, date YYMM
++			aixVer := string(out[:4])
++			tl, _ := strconv.Atoi(string(out[5:7]))
++			unixEnabledOnAIX = aixVer > "7200" || (aixVer == "7200" && tl >= 2)
++		}
++	}
++}
++
+ // testableNetwork reports whether network is testable on the current
+ // platform configuration.
+ func testableNetwork(network string) bool {
+@@ -38,15 +55,7 @@
+ 		case "android", "nacl", "plan9", "windows":
+ 			return false
+ 		case "aix":
+-			// Unix network isn't properly working on AIX 7.2 with Technical Level < 2
+-			out, err := exec.Command("oslevel", "-s").Output()
+-			if err != nil {
+-				return false
+-			}
+-			if tl, err := strconv.Atoi(string(out[5:7])); err != nil || tl < 2 {
+-				return false
+-			}
+-			return true
++			return unixEnabledOnAIX
+ 		}
+ 		// iOS does not support unix, unixgram.
+ 		if runtime.GOOS == "darwin" && (runtime.GOARCH == "arm" || runtime.GOARCH == "arm64") {

@@ -1,0 +1,344 @@
+--- ./src/mongo/db/write_concern_options.h.ORIGIN	2019-05-23 13:47:25 -0500
++++ ./src/mongo/db/write_concern_options.h	2019-05-23 13:48:29 -0500
+@@ -35,6 +35,10 @@
+ 
+ class Status;
+ 
++#ifdef FSYNC
++#undef FSYNC
++#endif
++
+ struct WriteConcernOptions {
+ public:
+     enum class SyncMode { UNSET, NONE, FSYNC, JOURNAL };
+--- ./src/mongo/platform/random.cpp.ORIGIN	2019-05-23 13:51:25 -0500
++++ ./src/mongo/platform/random.cpp	2019-05-23 13:52:16 -0500
+@@ -33,6 +33,7 @@
+ 
+ #include "mongo/platform/random.h"
+ 
++#include <stdio.h>
+ #include <string.h>
+ 
+ #ifdef _WIN32
+@@ -147,7 +148,7 @@
+     return stdx::make_unique<WinSecureRandom>();
+ }
+ 
+-#elif defined(__linux__) || defined(__sun) || defined(__APPLE__) || defined(__FreeBSD__)
++#elif defined(__linux__) || defined(__sun) || defined(__APPLE__) || defined(__FreeBSD__) || defined(_AIX)
+ 
+ class InputStreamSecureRandom : public SecureRandom {
+ public:
+--- ./src/mongo/util/time_support.cpp.ORIGIN	2019-05-23 13:56:02 -0500
++++ ./src/mongo/util/time_support.cpp	2019-05-23 13:58:43 -0500
+@@ -54,10 +54,43 @@
+ #include <mach/mach.h>
+ #endif
+ 
+-#ifdef __sun
++#if defined(__sun) || defined(_AIX)
+ // Some versions of Solaris do not have timegm defined, so fall back to our implementation when
+ // building on Solaris.  See SERVER-13446.
+-extern "C" time_t timegm(struct tm* const tmp);
++static int leapyear (int year)
++{
++    return ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0));
++}
++
++/*
++ * This is a simple implementation of timegm() which does what is needed
++ * by create_output() -- just turns the "struct tm" into a GMT time_t.
++ * It does not normalize any of the fields of the "struct tm", nor does
++ * it set tm_wday or tm_yday.
++ */
++time_t timegm (struct tm *tm)
++{
++    int monthlen[2][12] = {
++        { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
++        { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
++    };
++    int year, month, days;
++
++    days = 365 * (tm->tm_year - 70);
++    for (year = 70; year < tm->tm_year; year++) {
++        if (leapyear(1900 + year)) {
++            days++;
++        }
++    }
++
++    for (month = 0; month < tm->tm_mon; month++) {
++        days += monthlen[leapyear(1900 + year)][month];
++    }
++    days += tm->tm_mday - 1;
++
++    return ((((days * 24ll) + tm->tm_hour) * 60 + tm->tm_min) * 60 + tm->tm_sec);
++}
++
+ #endif
+ 
+ namespace mongo {
+--- ./src/mongo/db/storage/mmap_v1/mmap_posix.cpp.ORIGIN	2018-09-25 16:56:42.000000000 -0500
++++ ./src/mongo/db/storage/mmap_v1/mmap_posix.cpp	2019-05-23 15:55:00.000000000 -0500
+@@ -151,12 +151,20 @@
+             break;
+     }
+ 
++#ifdef _AIX
++    if (madvise((caddr_t)_p, _len, advice)) {
++#else
+     if (madvise(_p, _len, advice)) {
++#endif
+         error() << "madvise failed: " << errnoWithDescription();
+     }
+ }
+ MAdvise::~MAdvise() {
++#ifdef _AIX
++    madvise((caddr_t)_p, _len, MADV_NORMAL);
++#else
+     madvise(_p, _len, MADV_NORMAL);
++#endif
+ }
+ #endif
+ 
+@@ -207,7 +215,11 @@
+ 
+ #if !defined(__sun)
+     if (isOptionSet(SEQUENTIAL)) {
++#ifdef _AIX
++        if (madvise((caddr_t)view, length, MADV_SEQUENTIAL)) {
++#else
+         if (madvise(view, length, MADV_SEQUENTIAL)) {
++#endif
+             warning() << "map: madvise failed for " << filename << ' ' << errnoWithDescription()
+                       << endl;
+         }
+--- ./src/mongo/platform/stack_locator_aix.cpp.ORIGIN	1970-01-01 01:00:00 +0100
++++ ./src/mongo/platform/stack_locator_aix.cpp	2016-04-04 09:38:58 +0200
+@@ -0,0 +1,63 @@
++/**
++ *    Copyright (C) 2015 MongoDB Inc.
++ *
++ *    This program is free software: you can redistribute it and/or  modify
++ *    it under the terms of the GNU Affero General Public License, version 3,
++ *    as published by the Free Software Foundation.
++ *
++ *    This program is distributed in the hope that it will be useful,
++ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *    GNU Affero General Public License for more details.
++ *
++ *    You should have received a copy of the GNU Affero General Public License
++ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ *    As a special exception, the copyright holders give permission to link the
++ *    code of portions of this program with the OpenSSL library under certain
++ *    conditions as described in each individual source file and distribute
++ *    linked combinations including the program with the OpenSSL library. You
++ *    must comply with the GNU Affero General Public License in all respects for
++ *    all of the code used other than as permitted herein. If you modify file(s)
++ *    with this exception, you may extend this exception to your version of the
++ *    file(s), but you are not obligated to do so. If you do not wish to do so,
++ *    delete this exception statement from your version. If you delete this
++ *    exception statement from all source files in the program, then also delete
++ *    it in the license file.
++ */
++
++#include "mongo/platform/basic.h"
++
++#include "mongo/platform/stack_locator.h"
++
++#include <pthread.h>
++
++#include "mongo/util/assert_util.h"
++#include "mongo/util/scopeguard.h"
++
++namespace mongo {
++
++StackLocator::StackLocator() {
++    pthread_t self = pthread_self();
++    pthread_attr_t selfAttrs;
++    invariant(pthread_attr_init(&selfAttrs) == 0);
++    invariant(pthread_getattr_np(self, &selfAttrs) == 0);
++    ON_BLOCK_EXIT(pthread_attr_destroy, &selfAttrs);
++
++    void* base = nullptr;
++    size_t size = 0;
++
++    auto result = pthread_attr_getstack(&selfAttrs, &base, &size);
++
++    invariant(result == 0);
++    invariant(base != nullptr);
++    invariant(size != 0);
++
++    // TODO: Assumes a downward growing stack. Note here that
++    // getstack returns the stack *base*, being the bottom of the
++    // stack, so we need to add size to it.
++    _begin = base;
++    _end = static_cast<char*>(_begin) - size;
++}
++
++}  // namespace mongo
+--- ./src/third_party/s2/util/math/mathlimits.cc.ORIGIN       2015-12-02 20:01:34.000000000 +0100
++++ ./src/third_party/s2/util/math/mathlimits.cc 2015-12-08 16:29:30.000000000 +0100
+@@ -8,7 +8,7 @@
+
+ // MSVC++ 2005 thinks the header declaration was a definition, and
+ // erroneously flags these as a duplicate definition.
+-#ifdef COMPILER_MSVC
++#if defined(COMPILER_MSVC) || defined(_AIX)
+
+ #define DEF_COMMON_LIMITS(Type)
+ #define DEF_UNSIGNED_INT_LIMITS(Type)
+
+--- ./src/third_party/IntelRDFPMathLib20U1/LIBRARY/float128/op_system.h.ORIGIN	2019-05-23 17:22:04 -0500
++++ ./src/third_party/IntelRDFPMathLib20U1/LIBRARY/float128/op_system.h	2019-05-23 17:23:50 -0500
+@@ -44,6 +44,7 @@
+ #       undef  win64 
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define dos 1
+ #	define OP_SYSTEM dos
+@@ -62,6 +63,7 @@
+ #       undef   win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define vms 2
+ #	define OP_SYSTEM vms
+@@ -80,6 +82,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define wnt 3
+ #	define OP_SYSTEM wnt
+@@ -98,6 +101,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define linux 8
+ #	define OP_SYSTEM linux
+@@ -117,6 +121,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define osf 4
+ #	define OP_SYSTEM osf
+@@ -135,6 +140,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define hp_ux 5
+ #	define OP_SYSTEM hp_ux
+@@ -153,6 +159,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define unicos 6
+ #	define OP_SYSTEM unicos
+@@ -171,6 +178,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #	define ultrix 7
+ #	define OP_SYSTEM ultrix
+@@ -188,6 +196,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #       define win64 9
+ #       define OP_SYSTEM win64
+@@ -205,6 +214,7 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #       define darwin 10
+ #       define OP_SYSTEM darwin
+@@ -221,9 +231,27 @@
+ #       undef  win64
+ #       undef  darwin 
+ #       undef  interix 
++#       undef  aix 
+ 
+ #       define interix 11
+ #       define OP_SYSTEM interix
++
++#elif defined(_AIX)
++#       undef  dos
++#       undef  vms
++#       undef  wnt
++#       undef  osf
++#       undef  hp_ux
++#       undef  linux
++#       undef  unicos
++#       undef  ultrix
++#       undef  win64
++#       undef  darwin 
++#       undef  interix 
++#       undef  aix 
++
++#       define aix 11
++#       define OP_SYSTEM aix
+ #else
+ 
+ #	error Operating system must be specified.
+@@ -231,6 +259,7 @@
+ #endif
+ 
+ #define IS_UNIX ( \
++	OP_SYSTEM == aix || \
+ 	OP_SYSTEM == hp_ux || \
+ 	OP_SYSTEM == linux || \
+ 	OP_SYSTEM == osf || \
+--- ./src/third_party/mozjs-45/extract/js/src/gc/Memory.cpp.ORIGIN2	2019-05-24 15:32:19 -0500
++++ ./src/third_party/mozjs-45/extract/js/src/gc/Memory.cpp	2019-05-24 15:32:55 -0500
+@@ -715,7 +715,7 @@
+         return false;
+ 
+     MOZ_ASSERT(OffsetFromAligned(p, pageSize) == 0);
+-    int result = madvise(p, size, MADV_DONTNEED);
++    int result = madvise((caddr_t)p, size, MADV_DONTNEED);
+     return result != -1;
+ }
+ 
+--- ./src/mongo/db/startup_warnings_mongod.cpp.ORIGIN	2019-05-24 16:32:18 -0500
++++ ./src/mongo/db/startup_warnings_mongod.cpp	2019-05-24 16:33:13 -0500
+@@ -307,7 +307,7 @@
+     }
+ 
+ // Solaris does not have RLIMIT_NPROC & RLIMIT_MEMLOCK, these are exposed via getrctl(2) instead
+-#ifndef __sun
++#if ! ( defined(__sun) || defined(_AIX) )
+     // Check # of processes >= # of files/2
+     // Check we can lock at least 16 pages for the SecureAllocator
+     const double filesToProcsRatio = 2.0;
+--- ./src/mongo/shell/linenoise.cpp.ORIGIN	2019-05-27 19:23:49 -0500
++++ ./src/mongo/shell/linenoise.cpp	2019-05-27 19:25:30 -0500
+@@ -2776,7 +2776,7 @@
+ /* Save the history in the specified file. */
+ mongo::Status linenoiseHistorySave(const char* filename) {
+     FILE* fp;
+-#if _POSIX_C_SOURCE >= 1 || _XOPEN_SOURCE || _POSIX_SOURCE || defined(__APPLE__)
++#if (_POSIX_C_SOURCE >= 1) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || defined(__APPLE__)
+     int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+     if (fd == -1) {
+         return linenoiseFileError(mongo::ErrorCodes::FileOpenFailed, "open()", filename);

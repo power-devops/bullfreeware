@@ -1,0 +1,49 @@
+diff -crN ./shared-mime-info/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./shared-mime-info/Makefile.am
+*** ./shared-mime-info/Makefile.am	Mon Aug 30 20:10:59 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./shared-mime-info/Makefile.am	Thu Dec  9 10:13:20 2004
+***************
+*** 9,14 ****
+--- 9,16 ----
+  
+  bin_PROGRAMS = update-mime-database
+  update_mime_database_SOURCES = update-mime-database.c
++ update_mime_database_CFLAGS = $(ALL_CFLAGS)
++ update_mime_database_LDADD = $(ALL_LIBS)
+  
+  man_MANS = update-mime-database.1
+  
+***************
+*** 23,32 ****
+  	intltool-update.in		\
+  	shared-mime-info.pc.in
+  
+! CLEANFILES = intltool-extract intltool-merge intltool-update freedesktop.org.xml
+! 
+! CFLAGS = $(ALL_CFLAGS)
+! LDFLAGS = $(ALL_LIBS)
+  
+  pkgconfigdir = $(libdir)/pkgconfig
+  pkgconfig_DATA = shared-mime-info.pc
+--- 25,32 ----
+  	intltool-update.in		\
+  	shared-mime-info.pc.in
+  
+! CLEANFILES = freedesktop.org.xml
+! DISTCLEANFILES = intltool-extract intltool-merge intltool-update
+  
+  pkgconfigdir = $(libdir)/pkgconfig
+  pkgconfig_DATA = shared-mime-info.pc
+diff -crN ./shared-mime-info/po/Makefile.in.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./shared-mime-info/po/Makefile.in.in
+*** ./shared-mime-info/po/Makefile.in.in	Fri Nov  7 22:51:12 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./shared-mime-info/po/Makefile.in.in	Wed Oct 12 14:28:30 2005
+***************
+*** 11,16 ****
+--- 11,18 ----
+  #
+  # - Modified by jacob berkman <jacob@ximian.com> to install
+  #   Makefile.in.in and po2tbl.sed.in for use with glib-gettextize
++ # We have the following line for use by intltoolize:
++ # INTLTOOL_MAKEFILE
+  
+  GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
+  PACKAGE = @PACKAGE@

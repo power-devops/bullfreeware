@@ -1,0 +1,115 @@
+diff -ruNp orig/Lib/posixfile.py new/Lib/posixfile.py
+--- orig/Lib/posixfile.py	2013-04-06 16:02:28 +0200
++++ new/Lib/posixfile.py	2013-04-09 10:11:17 +0200
+@@ -185,7 +185,7 @@ class _posixfile_:
+                             'bsdos2', 'bsdos3', 'bsdos4'):
+             flock = struct.pack('lxxxxlxxxxlhh', \
+                   l_start, l_len, os.getpid(), l_type, l_whence)
+-        elif sys.platform in ('aix3', 'aix4'):
++        elif sys.platform in ('aix3', 'aix4', 'aix5', 'aix6', 'aix7'):
+             flock = struct.pack('hhlllii', \
+                   l_type, l_whence, l_start, l_len, 0, 0, 0)
+         else:
+@@ -201,7 +201,7 @@ class _posixfile_:
+                                 'bsdos2', 'bsdos3', 'bsdos4'):
+                 l_start, l_len, l_pid, l_type, l_whence = \
+                     struct.unpack('lxxxxlxxxxlhh', flock)
+-            elif sys.platform in ('aix3', 'aix4'):
++            elif sys.platform in ('aix3', 'aix4', 'aix5', 'aix6', 'aix7'):
+                 l_type, l_whence, l_start, l_len, l_sysid, l_pid, l_vfs = \
+                     struct.unpack('hhlllii', flock)
+             elif sys.platform == "linux2":
+diff -ruNp orig/Lib/test/test_fcntl.py new/Lib/test/test_fcntl.py
+--- orig/Lib/test/test_fcntl.py	2013-04-06 16:02:30 +0200
++++ new/Lib/test/test_fcntl.py	2013-04-09 10:11:17 +0200
+@@ -38,7 +38,7 @@ def get_lockdata():
+             pid_t = 'l'
+         lockdata = struct.pack(off_t + off_t + pid_t + 'hh', 0, 0, 0,
+                                fcntl.F_WRLCK, 0)
+-    elif sys.platform in ['aix3', 'aix4', 'hp-uxB', 'unixware7']:
++    elif sys.platform in ['aix3', 'aix4', 'aix5', 'aix6', 'aix7', 'hp-uxB', 'unixware7']:
+         lockdata = struct.pack('hhlllii', fcntl.F_WRLCK, 0, 0, 0, 0, 0, 0)
+     elif sys.platform in ['os2emx']:
+         lockdata = None
+diff -ruNp orig/Makefile.pre.in new/Makefile.pre.in
+--- orig/Makefile.pre.in	2013-04-06 16:02:34 +0200
++++ new/Makefile.pre.in	2013-04-09 10:11:17 +0200
+@@ -467,10 +467,10 @@ $(LIBRARY): $(LIBRARY_OBJS)
+ 
+ libpython$(VERSION).so: $(LIBRARY_OBJS)
+ 	if test $(INSTSONAME) != $(LDLIBRARY); then \
+-		$(BLDSHARED) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(LDFLAGS) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
+ 		$(LN) -f $(INSTSONAME) $@; \
+ 	else \
+-		$(BLDSHARED) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(LDFLAGS) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
+ 	fi
+ 
+ libpython$(VERSION).dylib: $(LIBRARY_OBJS)
+diff -ruNp orig/Modules/Setup.dist new/Modules/Setup.dist
+--- orig/Modules/Setup.dist	2013-04-06 16:02:34 +0200
++++ new/Modules/Setup.dist	2013-04-09 10:11:17 +0200
+@@ -153,7 +153,7 @@ GLHACK=-Dclear=__GLclear
+ # modules are to be built as shared libraries (see above for more
+ # detail; also note that *static* reverses this effect):
+ 
+-#*shared*
++*shared*
+ 
+ # GNU readline.  Unlike previous Python incarnations, GNU readline is
+ # now incorporated in an optional module, configured in the Setup file
+diff -ruNp orig/configure new/configure
+--- orig/configure	2013-04-06 16:02:41 +0200
++++ new/configure	2013-04-09 10:11:18 +0200
+@@ -3301,7 +3301,7 @@ $as_echo "#define _BSD_SOURCE 1" >>confd
+   # or has another value. By not (re)defining it, the defaults come in place.
+   AIX/4)
+     define_xopen_source=no;;
+-  AIX/5)
++  AIX/5|AIX/6|AIX/7)
+     if test `uname -r` -eq 1; then
+       define_xopen_source=no
+     fi
+@@ -5380,7 +5380,7 @@ $as_echo "#define Py_ENABLE_SHARED 1" >>
+ 	BLDLIBRARY='-L. -lpython$(VERSION)'
+ 	RUNSHARED='DYLD_LIBRARY_PATH=`pwd`:${DYLD_LIBRARY_PATH}'
+ 	;;
+-    AIX*)
++    aix*|AIX*)
+ 	LDLIBRARY='libpython$(VERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`:${LIBPATH}
+ 	;;
+diff -ruNp orig/configure.ac new/configure.ac
+--- orig/configure.ac	2013-04-06 16:02:41 +0200
++++ new/configure.ac	2013-04-09 10:13:47 +0200
+@@ -442,7 +442,7 @@ case $ac_sys_system/$ac_sys_release in
+   # or has another value. By not (re)defining it, the defaults come in place.
+   AIX/4)
+     define_xopen_source=no;;
+-  AIX/5)
++  AIX/5|AIX/6|AIX/7)
+     if test `uname -r` -eq 1; then
+       define_xopen_source=no
+     fi
+@@ -920,7 +920,7 @@ if test $enable_shared = "yes"; then
+ 	BLDLIBRARY='-L. -lpython$(VERSION)'
+ 	RUNSHARED='DYLD_LIBRARY_PATH=`pwd`:${DYLD_LIBRARY_PATH}'
+ 	;;
+-    AIX*)
++    aix*|AIX*)
+ 	LDLIBRARY='libpython$(VERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`:${LIBPATH}
+ 	;;
+diff -ruNp orig/setup.py new/setup.py
+--- orig/setup.py	2013-04-06 16:02:41 +0200
++++ new/setup.py	2013-04-09 10:21:36 +0200
+@@ -1893,7 +1893,7 @@ class PyBuildExt(build_ext):
+         libs.append('tk'+ version)
+         libs.append('tcl'+ version)
+ 
+-        if host_platform in ['aix3', 'aix4']:
++        if host_platform in ['aix3', 'aix4', 'aix5', 'aix6', 'aix7']:
+             libs.append('ld')
+ 
+         # Finally, link with the X11 libraries (not appropriate on cygwin)

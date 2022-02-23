@@ -1,0 +1,89 @@
+From 5feb0eff26f6e72bb776c856b98c7fb2ef456e0f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 3 Aug 2021 12:39:44 +0200
+Subject: [PATCH] Makefile: add AIX support
+
+For lib, AIX linker doesn't allow --soname.
+---
+ Makefile          | 2 +-
+ lib/Makefile      | 8 ++++++--
+ programs/Makefile | 2 +-
+ tests/Makefile    | 3 +--
+ 4 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index c1908f0..2c24261 100644
+--- a/Makefile
++++ b/Makefile
+@@ -148,7 +148,7 @@ clean:
+ #------------------------------------------------------------------------------
+ # make install is validated only for Linux, macOS, Hurd and some BSD targets
+ #------------------------------------------------------------------------------
+-ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD DragonFly NetBSD MSYS_NT Haiku))
++ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD DragonFly NetBSD MSYS_NT Haiku AIX))
+ 
+ HOST_OS = POSIX
+ 
+diff --git a/lib/Makefile b/lib/Makefile
+index 9109476..835fe1d 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -212,7 +212,11 @@ ifeq ($(UNAME), Darwin)
+   SHARED_EXT_VER = $(LIBVER).$(SHARED_EXT)
+   SONAME_FLAGS = -install_name $(LIBDIR)/libzstd.$(SHARED_EXT_MAJOR) -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER)
+ else
+-  SONAME_FLAGS = -Wl,-soname=libzstd.$(SHARED_EXT).$(LIBVER_MAJOR)
++  ifeq ($(UNAME), AIX)
++    SONAME_FLAGS =
++  else
++    SONAME_FLAGS = -Wl,-soname=libzstd.$(SHARED_EXT).$(LIBVER_MAJOR)
++  endif
+   SHARED_EXT = so
+   SHARED_EXT_MAJOR = $(SHARED_EXT).$(LIBVER_MAJOR)
+   SHARED_EXT_VER = $(SHARED_EXT).$(LIBVER)
+@@ -374,7 +378,7 @@ clean:
+ #-----------------------------------------------------------------------------
+ # make install is validated only for below listed environments
+ #-----------------------------------------------------------------------------
+-ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku))
++ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku AIX))
+ 
+ all: libzstd.pc
+ 
+diff --git a/programs/Makefile b/programs/Makefile
+index 599fb02..e4223d9 100644
+--- a/programs/Makefile
++++ b/programs/Makefile
+@@ -411,7 +411,7 @@ include $(wildcard $(DEPFILES))
+ #-----------------------------------------------------------------------------
+ # make install is validated only for Linux, macOS, BSD, Hurd and Solaris targets
+ #-----------------------------------------------------------------------------
+-ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku))
++ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS Haiku AIX))
+ 
+ HAVE_COLORNEVER = $(shell echo a | egrep --color=never a > /dev/null 2> /dev/null && echo 1 || echo 0)
+ EGREP_OPTIONS ?=
+diff --git a/tests/Makefile b/tests/Makefile
+index 8555300..44d224e 100644
+--- a/tests/Makefile
++++ b/tests/Makefile
+@@ -244,7 +244,7 @@ clean:
+ # valgrind tests are validated only for some posix platforms
+ #----------------------------------------------------------------------------------
+ UNAME := $(shell uname)
+-ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
++ifneq (,$(filter $(UNAME),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS AIX))
+ HOST_OS = POSIX
+ 
+ valgrindTest: VALGRIND = valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1
+@@ -263,7 +263,6 @@ valgrindTest: zstd datagen fuzzer fullbench
+ 
+ endif
+ 
+-
+ ifneq (,$(filter MINGW% MSYS%,$(UNAME)))
+   HOST_OS = MSYS
+ endif
+-- 
+2.31.1
+

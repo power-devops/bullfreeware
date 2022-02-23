@@ -1,0 +1,39 @@
+From 6dde1fd792ba4ce41fcce50fc1c66b38666d6924 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 28 Feb 2019 09:13:56 +0100
+Subject: [PATCH] runtime: disable TestGdbAutotmpTypes in short mode on aix/ppc64
+
+TestGdbAutotmpTypes takes more than one minute due to gdb performances.
+Therefore, it must be skipped in short mode.
+
+Change-Id: I253ebce62264cc7367c9b0f6ce9c5088a9994641
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164339
+Reviewed-by: Bryan C. Mills <bcmills@google.com>
+Run-TryBot: Bryan C. Mills <bcmills@google.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+---
+
+diff --git a/src/runtime/runtime-gdb_test.go b/src/runtime/runtime-gdb_test.go
+index d0f905e..d47c7c2 100644
+--- a/src/runtime/runtime-gdb_test.go
++++ b/src/runtime/runtime-gdb_test.go
+@@ -36,8 +36,6 @@
+ 		if runtime.GOARCH == "mips" {
+ 			t.Skip("skipping gdb tests on linux/mips; see https://golang.org/issue/25939")
+ 		}
+-	case "aix":
+-		t.Skip("gdb does not work on AIX; see https://golang.org/issue/28558")
+ 	case "freebsd":
+ 		t.Skip("skipping gdb tests on FreeBSD; see https://golang.org/issue/29508")
+ 	}
+@@ -396,6 +394,10 @@
+ 	t.Parallel()
+ 	checkGdbVersion(t)
+ 
++	if runtime.GOOS == "aix" && testing.Short() {
++		t.Skip("TestGdbAutotmpTypes is too slow on aix/ppc64")
++	}
++
+ 	dir, err := ioutil.TempDir("", "go-build")
+ 	if err != nil {
+ 		t.Fatalf("failed to create temp directory: %v", err)

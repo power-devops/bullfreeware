@@ -1,0 +1,8 @@
+--- ./source3/winbindd/wscript_build.ORIG	2017-03-07 10:09:03 +0100
++++ ./source3/winbindd/wscript_build	2017-11-29 14:47:00 +0100
+@@ -280,4 +280,5 @@
+                  LIBLSA
+                  ''',
+                  enabled=bld.env.build_winbind,
++                 ldflags='-bE:/opt/freeware/src/packages/SOURCES/samba_winbind_idmap_syms.exp',
+                  install_path='${SBINDIR}')

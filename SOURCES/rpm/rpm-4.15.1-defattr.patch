@@ -1,0 +1,21 @@
+--- ./lib/rpmfi.c_orig	2020-05-22 02:43:46 +0000
++++ ./lib/rpmfi.c	2020-05-22 02:47:34 +0000
+@@ -801,9 +801,16 @@
+ 	}
+ 
+ 	if (group && rpmugGid(group, &sb->st_gid)) {
+-	    if (warn)
++	    /* if (warn)
++                  Still we have our rpms built with the attribute (root, root),
++                  which is causing lot of below messages being displayed on the output
++                  if we apply this patch to recognise system group.
++                  Warning messages are per file which could be annonying.
++                  Better to supress this until we start building rpms with (root, system) 
++                  as patch to recognise system group on AIX has been commited.
++                  https://github.com/rpm-software-management/rpm/issues/210
+ 		rpmlog(RPMLOG_WARNING,
+-			_("group %s does not exist - using %s\n"), group, GID_0_GROUP);
++			_("group %s does not exist - using %s\n"), group, GID_0_GROUP); */
+ 	    sb->st_mode &= ~S_ISGID;	/* turn off sgid bit */
+ 	}
+ 

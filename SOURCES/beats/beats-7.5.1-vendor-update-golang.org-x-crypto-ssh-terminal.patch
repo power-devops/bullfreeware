@@ -1,0 +1,321 @@
+From 9b415f1f7d3cab5ede105a6c46f839f623d5f39e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 8 Jan 2020 08:47:44 +0100
+Subject: [PATCH] vendor: update golang.org/x/crypto/ssh/terminal
+
+---
+ golang.org/x/crypto/ssh/terminal/terminal.go  | 71 +++++++++++--------
+ golang.org/x/crypto/ssh/terminal/util.go      |  8 +--
+ golang.org/x/crypto/ssh/terminal/util_aix.go  | 12 ++++
+ .../x/crypto/ssh/terminal/util_plan9.go       |  2 +-
+ .../x/crypto/ssh/terminal/util_solaris.go     | 42 +++++------
+ .../x/crypto/ssh/terminal/util_windows.go     | 12 ++--
+ vendor.json                                   |  6 +-
+ 7 files changed, 87 insertions(+), 66 deletions(-)
+ create mode 100644 golang.org/x/crypto/ssh/terminal/util_aix.go
+
+diff --git a/golang.org/x/crypto/ssh/terminal/terminal.go b/golang.org/x/crypto/ssh/terminal/terminal.go
+index 9a88759..2f04ee5 100644
+--- a/golang.org/x/crypto/ssh/terminal/terminal.go
++++ b/golang.org/x/crypto/ssh/terminal/terminal.go
+@@ -7,6 +7,7 @@ package terminal
+ import (
+ 	"bytes"
+ 	"io"
++	"strconv"
+ 	"sync"
+ 	"unicode/utf8"
+ )
+@@ -159,6 +160,10 @@ func bytesToKey(b []byte, pasteActive bool) (rune, []byte) {
+ 			return keyClearScreen, b[1:]
+ 		case 23: // ^W
+ 			return keyDeleteWord, b[1:]
++		case 14: // ^N
++			return keyDown, b[1:]
++		case 16: // ^P
++			return keyUp, b[1:]
+ 		}
+ 	}
+ 
+@@ -267,34 +272,44 @@ func (t *Terminal) moveCursorToPos(pos int) {
+ }
+ 
+ func (t *Terminal) move(up, down, left, right int) {
+-	movement := make([]rune, 3*(up+down+left+right))
+-	m := movement
+-	for i := 0; i < up; i++ {
+-		m[0] = keyEscape
+-		m[1] = '['
+-		m[2] = 'A'
+-		m = m[3:]
+-	}
+-	for i := 0; i < down; i++ {
+-		m[0] = keyEscape
+-		m[1] = '['
+-		m[2] = 'B'
+-		m = m[3:]
+-	}
+-	for i := 0; i < left; i++ {
+-		m[0] = keyEscape
+-		m[1] = '['
+-		m[2] = 'D'
+-		m = m[3:]
+-	}
+-	for i := 0; i < right; i++ {
+-		m[0] = keyEscape
+-		m[1] = '['
+-		m[2] = 'C'
+-		m = m[3:]
+-	}
+-
+-	t.queue(movement)
++	m := []rune{}
++
++	// 1 unit up can be expressed as ^[[A or ^[A
++	// 5 units up can be expressed as ^[[5A
++
++	if up == 1 {
++		m = append(m, keyEscape, '[', 'A')
++	} else if up > 1 {
++		m = append(m, keyEscape, '[')
++		m = append(m, []rune(strconv.Itoa(up))...)
++		m = append(m, 'A')
++	}
++
++	if down == 1 {
++		m = append(m, keyEscape, '[', 'B')
++	} else if down > 1 {
++		m = append(m, keyEscape, '[')
++		m = append(m, []rune(strconv.Itoa(down))...)
++		m = append(m, 'B')
++	}
++
++	if right == 1 {
++		m = append(m, keyEscape, '[', 'C')
++	} else if right > 1 {
++		m = append(m, keyEscape, '[')
++		m = append(m, []rune(strconv.Itoa(right))...)
++		m = append(m, 'C')
++	}
++
++	if left == 1 {
++		m = append(m, keyEscape, '[', 'D')
++	} else if left > 1 {
++		m = append(m, keyEscape, '[')
++		m = append(m, []rune(strconv.Itoa(left))...)
++		m = append(m, 'D')
++	}
++
++	t.queue(m)
+ }
+ 
+ func (t *Terminal) clearLineToRight() {
+diff --git a/golang.org/x/crypto/ssh/terminal/util.go b/golang.org/x/crypto/ssh/terminal/util.go
+index 02dad48..3911040 100644
+--- a/golang.org/x/crypto/ssh/terminal/util.go
++++ b/golang.org/x/crypto/ssh/terminal/util.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux,!appengine netbsd openbsd
++// +build aix darwin dragonfly freebsd linux,!appengine netbsd openbsd
+ 
+ // Package terminal provides support functions for dealing with terminals, as
+ // commonly found on UNIX systems.
+@@ -25,7 +25,7 @@ type State struct {
+ 	termios unix.Termios
+ }
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns whether the given file descriptor is a terminal.
+ func IsTerminal(fd int) bool {
+ 	_, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
+ 	return err == nil
+@@ -108,9 +108,7 @@ func ReadPassword(fd int) ([]byte, error) {
+ 		return nil, err
+ 	}
+ 
+-	defer func() {
+-		unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
+-	}()
++	defer unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
+ 
+ 	return readPasswordLine(passwordReader(fd))
+ }
+diff --git a/golang.org/x/crypto/ssh/terminal/util_aix.go b/golang.org/x/crypto/ssh/terminal/util_aix.go
+new file mode 100644
+index 0000000..dfcd627
+--- /dev/null
++++ b/golang.org/x/crypto/ssh/terminal/util_aix.go
+@@ -0,0 +1,12 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package terminal
++
++import "golang.org/x/sys/unix"
++
++const ioctlReadTermios = unix.TCGETS
++const ioctlWriteTermios = unix.TCSETS
+diff --git a/golang.org/x/crypto/ssh/terminal/util_plan9.go b/golang.org/x/crypto/ssh/terminal/util_plan9.go
+index 799f049..9317ac7 100644
+--- a/golang.org/x/crypto/ssh/terminal/util_plan9.go
++++ b/golang.org/x/crypto/ssh/terminal/util_plan9.go
+@@ -21,7 +21,7 @@ import (
+ 
+ type State struct{}
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns whether the given file descriptor is a terminal.
+ func IsTerminal(fd int) bool {
+ 	return false
+ }
+diff --git a/golang.org/x/crypto/ssh/terminal/util_solaris.go b/golang.org/x/crypto/ssh/terminal/util_solaris.go
+index a2e1b57..3d5f06a 100644
+--- a/golang.org/x/crypto/ssh/terminal/util_solaris.go
++++ b/golang.org/x/crypto/ssh/terminal/util_solaris.go
+@@ -14,10 +14,10 @@ import (
+ 
+ // State contains the state of a terminal.
+ type State struct {
+-	state *unix.Termios
++	termios unix.Termios
+ }
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns whether the given file descriptor is a terminal.
+ func IsTerminal(fd int) bool {
+ 	_, err := unix.IoctlGetTermio(fd, unix.TCGETA)
+ 	return err == nil
+@@ -75,47 +75,43 @@ func ReadPassword(fd int) ([]byte, error) {
+ // restored.
+ // see http://cr.illumos.org/~webrev/andy_js/1060/
+ func MakeRaw(fd int) (*State, error) {
+-	oldTermiosPtr, err := unix.IoctlGetTermios(fd, unix.TCGETS)
++	termios, err := unix.IoctlGetTermios(fd, unix.TCGETS)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	oldTermios := *oldTermiosPtr
+-
+-	newTermios := oldTermios
+-	newTermios.Iflag &^= syscall.IGNBRK | syscall.BRKINT | syscall.PARMRK | syscall.ISTRIP | syscall.INLCR | syscall.IGNCR | syscall.ICRNL | syscall.IXON
+-	newTermios.Oflag &^= syscall.OPOST
+-	newTermios.Lflag &^= syscall.ECHO | syscall.ECHONL | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
+-	newTermios.Cflag &^= syscall.CSIZE | syscall.PARENB
+-	newTermios.Cflag |= syscall.CS8
+-	newTermios.Cc[unix.VMIN] = 1
+-	newTermios.Cc[unix.VTIME] = 0
+-
+-	if err := unix.IoctlSetTermios(fd, unix.TCSETS, &newTermios); err != nil {
++
++	oldState := State{termios: *termios}
++
++	termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
++	termios.Oflag &^= unix.OPOST
++	termios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
++	termios.Cflag &^= unix.CSIZE | unix.PARENB
++	termios.Cflag |= unix.CS8
++	termios.Cc[unix.VMIN] = 1
++	termios.Cc[unix.VTIME] = 0
++
++	if err := unix.IoctlSetTermios(fd, unix.TCSETS, termios); err != nil {
+ 		return nil, err
+ 	}
+ 
+-	return &State{
+-		state: oldTermiosPtr,
+-	}, nil
++	return &oldState, nil
+ }
+ 
+ // Restore restores the terminal connected to the given file descriptor to a
+ // previous state.
+ func Restore(fd int, oldState *State) error {
+-	return unix.IoctlSetTermios(fd, unix.TCSETS, oldState.state)
++	return unix.IoctlSetTermios(fd, unix.TCSETS, &oldState.termios)
+ }
+ 
+ // GetState returns the current state of a terminal which may be useful to
+ // restore the terminal after a signal.
+ func GetState(fd int) (*State, error) {
+-	oldTermiosPtr, err := unix.IoctlGetTermios(fd, unix.TCGETS)
++	termios, err := unix.IoctlGetTermios(fd, unix.TCGETS)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+-	return &State{
+-		state: oldTermiosPtr,
+-	}, nil
++	return &State{termios: *termios}, nil
+ }
+ 
+ // GetSize returns the dimensions of the given terminal.
+diff --git a/golang.org/x/crypto/ssh/terminal/util_windows.go b/golang.org/x/crypto/ssh/terminal/util_windows.go
+index 4933ac3..5cfdf8f 100644
+--- a/golang.org/x/crypto/ssh/terminal/util_windows.go
++++ b/golang.org/x/crypto/ssh/terminal/util_windows.go
+@@ -26,7 +26,7 @@ type State struct {
+ 	mode uint32
+ }
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns whether the given file descriptor is a terminal.
+ func IsTerminal(fd int) bool {
+ 	var st uint32
+ 	err := windows.GetConsoleMode(windows.Handle(fd), &st)
+@@ -64,13 +64,15 @@ func Restore(fd int, state *State) error {
+ 	return windows.SetConsoleMode(windows.Handle(fd), state.mode)
+ }
+ 
+-// GetSize returns the dimensions of the given terminal.
++// GetSize returns the visible dimensions of the given terminal.
++//
++// These dimensions don't include any scrollback buffer height.
+ func GetSize(fd int) (width, height int, err error) {
+ 	var info windows.ConsoleScreenBufferInfo
+ 	if err := windows.GetConsoleScreenBufferInfo(windows.Handle(fd), &info); err != nil {
+ 		return 0, 0, err
+ 	}
+-	return int(info.Size.X), int(info.Size.Y), nil
++	return int(info.Window.Right - info.Window.Left + 1), int(info.Window.Bottom - info.Window.Top + 1), nil
+ }
+ 
+ // ReadPassword reads a line of input from a terminal without local echo.  This
+@@ -89,9 +91,7 @@ func ReadPassword(fd int) ([]byte, error) {
+ 		return nil, err
+ 	}
+ 
+-	defer func() {
+-		windows.SetConsoleMode(windows.Handle(fd), old)
+-	}()
++	defer windows.SetConsoleMode(windows.Handle(fd), old)
+ 
+ 	var h windows.Handle
+ 	p, _ := windows.GetCurrentProcess()
+diff --git a/vendor.json b/vendor.json
+index 38eb1a6..ea6d6e4 100644
+--- a/vendor.json
++++ b/vendor.json
+@@ -3257,10 +3257,10 @@
+ 			"revisionTime": "2018-01-22T10:39:14Z"
+ 		},
+ 		{
+-			"checksumSHA1": "6U7dCaxxIMjf5V02iWgyAwppczw=",
++			"checksumSHA1": "Zsm3tvgRFJOt3afwwhrGymcSZgg=",
+ 			"path": "golang.org/x/crypto/ssh/terminal",
+-			"revision": "5119cf507ed5294cc409c092980c7497ee5d6fd2",
+-			"revisionTime": "2018-01-22T10:39:14Z"
++			"revision": "53104e6ec876ad4e22ad27cce588b01392043c1b",
++			"revisionTime": "2019-12-27T15:16:44Z"
+ 		},
+ 		{
+ 			"checksumSHA1": "uX2McdP4VcQ6zkAF0Q4oyd0rFtU=",
+-- 
+2.22.0
+

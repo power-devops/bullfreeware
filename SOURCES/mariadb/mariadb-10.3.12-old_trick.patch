@@ -1,0 +1,83 @@
+--- ./include/my_global.h.orig	2019-04-24 10:29:50.852000000 +0200
++++ ./include/my_global.h	2019-04-24 10:17:08.804000000 +0200
+@@ -140,13 +140,6 @@
+ #define default_shared_memory_base_name "MYSQL"
+ #endif /* _WIN32*/
+ 
+-
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ /*
+   The macros below are used to allow build of Universal/fat binaries of
+   MySQL and MySQL applications under darwin. 
+@@ -275,22 +268,6 @@
+ #endif
+ #endif /* !defined(__WIN__) */
+ 
+-/* Go around some bugs in different OS and compilers */
+-#ifdef _AIX			/* By soren@t.dk */
+-#define _H_STRINGS
+-#define _SYS_STREAM_H
+-/* #define _AIX32_CURSES */	/* XXX: this breaks AIX 4.3.3 (others?). */
+-#define ulonglong2double(A) my_ulonglong2double(A)
+-#define my_off_t2double(A)  my_ulonglong2double(A)
+-C_MODE_START
+-inline double my_ulonglong2double(unsigned long long A) { return (double)A; }
+-C_MODE_END
+-#endif /* _AIX */
+-
+-#ifdef UNDEF_HAVE_INITGROUPS			/* For AIX 4.3 */
+-#undef HAVE_INITGROUPS
+-#endif
+-
+ /* gcc/egcs issues */
+ 
+ #if defined(__GNUC) && defined(__EXCEPTIONS)
+@@ -300,16 +277,6 @@
+ #if defined(_lint) && !defined(lint)
+ #define lint
+ #endif
+-#if SIZEOF_LONG_LONG > 4 && !defined(_LONG_LONG)
+-#define _LONG_LONG 1		/* For AIX string library */
+-#endif
+-
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ 
+ #ifndef stdin
+ #include <stdio.h>
+@@ -337,13 +304,6 @@
+ #include <sys/types.h>
+ #endif
+ 
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+-
+ #ifdef HAVE_FCNTL_H
+ #include <fcntl.h>
+ #endif
+@@ -1196,12 +1156,6 @@
+ #define HAVE_EXTERNAL_CLIENT
+ #endif /* EMBEDDED_LIBRARY */
+ 
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ /*
+   Provide defaults for the CPU cache line size, if it has not been detected by
+   CMake using getconf

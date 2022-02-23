@@ -1,0 +1,27 @@
+--- ./configure_orig	2019-01-01 11:52:35 +0000
++++ ./configure	2019-01-01 11:56:21 +0000
+@@ -7447,24 +7447,6 @@
+   use_lfs=no
+ fi
+ 
+-if test "$use_lfs" = "yes"; then
+-# Two defines needed to enable largefile support on various platforms
+-# These may affect some typedefs
+-case $ac_sys_system/$ac_sys_release in
+-AIX*)
+-
+-$as_echo "#define _LARGE_FILES 1" >>confdefs.h
+-
+-    ;;
+-esac
+-
+-$as_echo "#define _LARGEFILE_SOURCE 1" >>confdefs.h
+-
+-
+-$as_echo "#define _FILE_OFFSET_BITS 64" >>confdefs.h
+-
+-fi
+-
+ # Add some code to confdefs.h so that the test for off_t works on SCO
+ cat >> confdefs.h <<\EOF
+ #if defined(SCO_DS)

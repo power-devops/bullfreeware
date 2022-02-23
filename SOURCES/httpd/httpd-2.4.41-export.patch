@@ -1,0 +1,12 @@
+--- ./server/Makefile.in.orig	2020-02-13 15:14:06 +0100
++++ ./server/Makefile.in	2020-02-13 15:15:16 +0100
+@@ -66,7 +66,8 @@
+ 	) | sed -e s,//,/,g | sort -u | grep -v "apr_atomic*64" > $@
+ 
+ exports.c: export_files
+-	$(AWK) -f $(top_srcdir)/build/make_exports.awk `cat $?` > $@
++	$(AWK) -f $(top_srcdir)/build/make_exports.awk `cat $?` > $@.in
++	grep -r -v 'apr_atomic_.*64 ' $@.in > $@
+ 
+ export_vars.h: export_files
+ 	$(AWK) -f $(top_srcdir)/build/make_var_export.awk `cat $?` > $@

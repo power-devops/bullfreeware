@@ -1,0 +1,28 @@
+--- ./lang/python/Makefile.in.32bit-pythons	2020-07-16 17:21:00 +0200
++++ ./lang/python/Makefile.in	2020-10-16 17:22:01 +0200
+@@ -321,13 +321,13 @@
+ PACKAGE_VERSION = @PACKAGE_VERSION@
+ PATH_SEPARATOR = @PATH_SEPARATOR@
+ PKG_CONFIG = @PKG_CONFIG@
+-PYTHON = @PYTHON@
+-PYTHONS = @PYTHONS@
++PYTHON = /opt/freeware/bin/python2_32
++PYTHONS = /opt/freeware/bin/python2_32 /opt/freeware/bin/python3_32
+ PYTHON_CPPFLAGS = @PYTHON_CPPFLAGS@
+ PYTHON_EXEC_PREFIX = @PYTHON_EXEC_PREFIX@
+ PYTHON_EXTRA_LDFLAGS = @PYTHON_EXTRA_LDFLAGS@
+ PYTHON_EXTRA_LIBS = @PYTHON_EXTRA_LIBS@
+-PYTHON_LDFLAGS = @PYTHON_LDFLAGS@
++PYTHON_LDFLAGS = "-L/opt/freeware/lib -lpython3.8"
+ PYTHON_PLATFORM = @PYTHON_PLATFORM@
+ PYTHON_PREFIX = @PYTHON_PREFIX@
+ PYTHON_SITE_PKG = @PYTHON_SITE_PKG@
+@@ -397,7 +397,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
+-pyexecdir = @pyexecdir@
++pyexecdir = /opt/freeware/lib/python3.8/site-packages
+ pythondir = @pythondir@
+ runstatedir = @runstatedir@
+ sbindir = @sbindir@

@@ -1,0 +1,98 @@
+From debccbb310f867b731879e147fb469949e6b3f89 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Dec 2020 10:48:55 +0100
+Subject: [PATCH 4/6] vendor/github.com/creack/pty: fix compilation for AIX
+
+---
+ vendor/github.com/creack/pty/ioctl.go     |  2 +-
+ vendor/github.com/creack/pty/ioctl_aix.go |  5 +++
+ vendor/github.com/creack/pty/util.go      |  2 +-
+ vendor/github.com/creack/pty/util_aix.go  | 44 +++++++++++++++++++++++
+ 4 files changed, 51 insertions(+), 2 deletions(-)
+ create mode 100644 vendor/github.com/creack/pty/ioctl_aix.go
+ create mode 100644 vendor/github.com/creack/pty/util_aix.go
+
+diff --git a/vendor/github.com/creack/pty/ioctl.go b/vendor/github.com/creack/pty/ioctl.go
+index c85cdcd..e577f03 100644
+--- a/vendor/github.com/creack/pty/ioctl.go
++++ b/vendor/github.com/creack/pty/ioctl.go
+@@ -1,4 +1,4 @@
+-// +build !windows,!solaris
++// +build !windows,!solaris,!aix
+ 
+ package pty
+ 
+diff --git a/vendor/github.com/creack/pty/ioctl_aix.go b/vendor/github.com/creack/pty/ioctl_aix.go
+new file mode 100644
+index 0000000..73a1d4d
+--- /dev/null
++++ b/vendor/github.com/creack/pty/ioctl_aix.go
+@@ -0,0 +1,5 @@
++package pty
++
++func ioctl(fd, cmd, ptr uintptr) error {
++	return ErrUnsupported
++}
+diff --git a/vendor/github.com/creack/pty/util.go b/vendor/github.com/creack/pty/util.go
+index 8fdde0b..f9ed922 100644
+--- a/vendor/github.com/creack/pty/util.go
++++ b/vendor/github.com/creack/pty/util.go
+@@ -1,4 +1,4 @@
+-// +build !windows,!solaris
++// +build !windows,!solaris,!aix
+ 
+ package pty
+ 
+diff --git a/vendor/github.com/creack/pty/util_aix.go b/vendor/github.com/creack/pty/util_aix.go
+new file mode 100644
+index 0000000..83dcfe7
+--- /dev/null
++++ b/vendor/github.com/creack/pty/util_aix.go
+@@ -0,0 +1,44 @@
++package pty
++
++import (
++	"golang.org/x/sys/unix"
++	"os"
++)
++
++// Winsize describes the terminal size.
++type Winsize struct {
++	Rows uint16 // ws_row: Number of rows (in cells)
++	Cols uint16 // ws_col: Number of columns (in cells)
++	X    uint16 // ws_xpixel: Width in pixels
++	Y    uint16 // ws_ypixel: Height in pixels
++}
++
++// GetsizeFull returns the full terminal size description.
++func GetsizeFull(t *os.File) (size *Winsize, err error) {
++	var wsz *unix.Winsize
++	wsz, err = unix.IoctlGetWinsize(int(t.Fd()), unix.TIOCGWINSZ)
++
++	if err != nil {
++		return nil, err
++	} else {
++		return &Winsize{wsz.Row, wsz.Col, wsz.Xpixel, wsz.Ypixel}, nil
++	}
++}
++
++// Get Windows Size
++func Getsize(t *os.File) (rows, cols int, err error) {
++	var wsz *unix.Winsize
++	wsz, err = unix.IoctlGetWinsize(int(t.Fd()), unix.TIOCGWINSZ)
++
++	if err != nil {
++		return 80, 25, err
++	} else {
++		return int(wsz.Row), int(wsz.Col), nil
++	}
++}
++
++// Setsize resizes t to s.
++func Setsize(t *os.File, ws *Winsize) error {
++	wsz := unix.Winsize{ws.Rows, ws.Cols, ws.X, ws.Y}
++	return unix.IoctlSetWinsize(int(t.Fd()), unix.TIOCSWINSZ, &wsz)
++}
+-- 
+2.25.0
+

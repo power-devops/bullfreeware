@@ -1,0 +1,18 @@
+--- ./src/google/protobuf/stubs/type_traits_unittest.cc.ORIGIN	2018-06-13 10:17:11 +0200
++++ ./src/google/protobuf/stubs/type_traits_unittest.cc	2018-06-13 10:17:44 +0200
+@@ -41,7 +41,14 @@
+ #include <gtest/gtest.h>
+ 
+ typedef int int32;
+-typedef long int64;
++#ifdef  __64BIT__
++typedef long                    int64;
++#else   /* _ILP32 */
++#if defined(_LONG_LONG)
++typedef signed long long        int64;
++#endif
++#endif
++
+ 
+ using std::string;
+ using std::vector;

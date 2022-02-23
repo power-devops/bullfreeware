@@ -1,0 +1,22 @@
+--- ./src/configure.in.ORIGIN	2017-08-24 12:08:53 +0200
++++ ./src/configure.in	2017-08-24 12:09:28 +0200
+@@ -323,7 +323,7 @@
+   if test x$have_lib_ssl = xtrue ; then
+     AC_DEFINE(TLS_IMPL_OPENSSL,1,[Define if TLS implementation is OpenSSL])
+     AC_MSG_RESULT([yes])
+-    TLS_IMPL_LIBS="-lssl -lcrypto"
++    TLS_IMPL_LIBS="-lssl -lcrypto -lpthreads"
+     TLS_IMPL=openssl
+     AC_MSG_NOTICE([TLS module will use OpenSSL])
+   else
+--- ./src/configure.ORIGIN	2017-08-24 12:09:01 +0200
++++ ./src/configure	2017-08-24 12:09:35 +0200
+@@ -8746,7 +8746,7 @@
+ 
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+ $as_echo "yes" >&6; }
+-    TLS_IMPL_LIBS="-lssl -lcrypto"
++    TLS_IMPL_LIBS="-lssl -lcrypto -lpthreads"
+     TLS_IMPL=openssl
+     { $as_echo "$as_me:${as_lineno-$LINENO}: TLS module will use OpenSSL" >&5
+ $as_echo "$as_me: TLS module will use OpenSSL" >&6;}

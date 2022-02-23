@@ -1,0 +1,48 @@
+diff -Nur harfbuzz-1.2.6-orig/configure harfbuzz-1.2.6-aix/configure
+--- harfbuzz-1.2.6-orig/configure	2016-04-08 22:43:13 +0200
++++ harfbuzz-1.2.6-aix/configure	2016-04-22 14:31:06 +0200
+@@ -10057,7 +10057,7 @@
+ 
+   aix_libpath=$lt_cv_aix_libpath_
+ fi
+-
++	aix_libpath=`echo $aix_libpath | sed -e "s-/usr/vacp*/lib:--"`
+         hardcode_libdir_flag_spec='${wl}-blibpath:$libdir:'"$aix_libpath"
+         archive_expsym_cmds='$CC -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then func_echo_all "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
+       else
+@@ -10110,7 +10110,7 @@
+ 
+   aix_libpath=$lt_cv_aix_libpath_
+ fi
+-
++	 aix_libpath=`echo $aix_libpath | sed -e "s-/usr/vacp*/lib:--"`
+ 	 hardcode_libdir_flag_spec='${wl}-blibpath:$libdir:'"$aix_libpath"
+ 	  # Warning - without using the other run time loading flags,
+ 	  # -berok will link without error, but may produce a broken library.
+@@ -14130,7 +14130,7 @@
+ 
+   aix_libpath=$lt_cv_aix_libpath__CXX
+ fi
+-
++	  aix_libpath=`echo $aix_libpath | sed -e "s-/usr/vacp*/lib:--"`
+           hardcode_libdir_flag_spec_CXX='${wl}-blibpath:$libdir:'"$aix_libpath"
+ 
+           archive_expsym_cmds_CXX='$CC -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then func_echo_all "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
+@@ -14184,7 +14184,7 @@
+ 
+   aix_libpath=$lt_cv_aix_libpath__CXX
+ fi
+-
++	    aix_libpath=`echo $aix_libpath | sed -e "s-/usr/vacp*/lib:--"`
+ 	    hardcode_libdir_flag_spec_CXX='${wl}-blibpath:$libdir:'"$aix_libpath"
+ 	    # Warning - without using the other run time loading flags,
+ 	    # -berok will link without error, but may produce a broken library.
+@@ -18634,7 +18634,7 @@
+ 			# necessarily want, like debugging and optimization flags
+ 			# See man (1) icu-config for more info.
+ 			ICU_CFLAGS=`$ICU_CONFIG --cppflags`
+-			ICU_LIBS=`$ICU_CONFIG --ldflags-searchpath --ldflags-libsonly`
++			ICU_LIBS=`$ICU_CONFIG --ldflags-searchpath --ldflags-libsonly | sed -e "N;s/\n/ /;"`
+ 
+ 
+ 			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5

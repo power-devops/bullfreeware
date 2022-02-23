@@ -1,0 +1,17 @@
+FILE=$1
+lib=$2
+failed=$3
+
+if [ -e $FILE ]
+then
+    P=`grep "\*passed"  $FILE | grep -v target | wc -l`
+    F=`grep "\.failed " $FILE | grep -v target | wc -l`
+    S=`grep "\.skipped" $FILE | grep -v target | wc -l`
+    echo $lib $P $F $S | awk '{printf("  %-20s %5d %5d %5d %5d\n", $1, $2+$3+$4, $2, $3, $4);}'
+    if [ "$failed" != "" ]
+    then
+#	grep "\.failed " $FILE | grep  -v target
+	grep "\.failed " $FILE | awk '{n=index($0,".failed"); $0=substr($0,n,length($0)-n); print $0}' | grep -v target
+   fi
+fi
+

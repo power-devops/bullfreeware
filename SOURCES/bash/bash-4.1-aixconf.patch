@@ -1,0 +1,40 @@
+Index: bash-4.1/support/config.rpath
+===================================================================
+--- bash-4.1.orig/support/config.rpath	2008-08-13 14:34:20.000000000 +0200
++++ bash-4.1/support/config.rpath	2012-02-01 13:12:00.000000000 +0100
+@@ -124,7 +124,7 @@
+ ld_shlibs=yes
+ if test "$with_gnu_ld" = yes; then
+   case "$host_os" in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6* | aix7*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+         ld_shlibs=no
+@@ -197,7 +197,7 @@
+         hardcode_direct=unsupported
+       fi
+       ;;
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6* | aix7*)
+       if test "$host_cpu" = ia64; then
+         # On IA64, the linker does run time linking by default, so we don't
+         # have to do anything special.
+@@ -207,7 +207,7 @@
+         # Test if we are trying to use run time linking or normal
+         # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+         # need to do runtime linking.
+-        case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++        case $host_os in aix4.[23]|aix4.[23].*|aix5*|aix6*|aix7*)
+           for ld_flag in $LDFLAGS; do
+             if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+               aix_use_runtimelinking=yes
+@@ -431,7 +431,7 @@
+ case "$host_os" in
+   aix3*)
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6* | aix7*)
+     ;;
+   amigaos*)
+     ;;

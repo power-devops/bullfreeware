@@ -1,0 +1,366 @@
+From 3e537f76594ba691497f8db62b5ae7272f0a6877 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 6 May 2021 16:08:15 +0200
+Subject: [PATCH] aix: handle 64bit inodes for include directories
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+On AIX, stat will store inodes in 32bit even when using LARGE_FILES.
+If the inode is larger, it will return -1 in st_ino.
+Thus, in incpath.c when comparing include directories, if several
+of them have 64bit inodes, they will be considered as duplicated.
+
+gcc/ChangeLog:
+2021-05-06  Clément Chigot  <clement.chigot@atos.net>
+
+	* configure.ac: Check sizeof ino_t and dev_t.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* config/rs6000/aix.h (HOST_STAT_FOR_64BIT_INODES): New define.
+	* incpath.c (HOST_STAT_FOR_64BIT_INODES): New define.
+	(remove_duplicates): Use it.
+
+libcpp/ChangeLog:
+2021-05-06  Clément Chigot  <clement.chigot@atos.net>
+
+	* configure.ac: Check sizeof ino_t and dev_t.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* include/cpplib.h (INO_T_CPP): Change for AIX.
+	(DEV_T_CPP): New macro.
+	(struct cpp_dir): Use it.
+---
+ gcc/config.in           | 12 +++++++
+ gcc/config/rs6000/aix.h |  6 ++++
+ gcc/configure           | 70 +++++++++++++++++++++++++++++++++++++++--
+ gcc/configure.ac        |  2 ++
+ gcc/incpath.c           |  8 +++--
+ libcpp/config.in        |  6 ++++
+ libcpp/configure        | 67 +++++++++++++++++++++++++++++++++++++++
+ libcpp/configure.ac     |  3 ++
+ libcpp/include/cpplib.h | 10 +++++-
+ 9 files changed, 179 insertions(+), 5 deletions(-)
+
+diff --git a/gcc/config.in b/gcc/config.in
+index e54f59ce0c3..6d1897b7cc2 100644
+--- a/gcc/config.in
++++ b/gcc/config.in
+@@ -2268,6 +2268,18 @@
+ #endif
+ 
+ 
++/* The size of `dev_t', as computed by sizeof. */
++#ifndef USED_FOR_TARGET
++#undef SIZEOF_DEV_T
++#endif
++
++
++/* The size of `ino_t', as computed by sizeof. */
++#ifndef USED_FOR_TARGET
++#undef SIZEOF_INO_T
++#endif
++
++
+ /* The size of `int', as computed by sizeof. */
+ #ifndef USED_FOR_TARGET
+ #undef SIZEOF_INT
+diff --git a/gcc/config/rs6000/aix.h b/gcc/config/rs6000/aix.h
+index 662785cc7db..0fc4d7151f0 100644
+--- a/gcc/config/rs6000/aix.h
++++ b/gcc/config/rs6000/aix.h
+@@ -286,3 +286,9 @@
+ /* Use standard DWARF numbering for DWARF debugging information.  */
+ #define RS6000_USE_DWARF_NUMBERING
+ 
++
++/* AIX needs to call stat64x in order to handle 64bit inodes,
++   even when large files is enabled.  */
++#ifdef _LARGE_FILES
++#define HOST_STAT_FOR_64BIT_INODES stat64x
++#endif
+diff --git a/gcc/configure b/gcc/configure
+index d9c9cca9ebb..8b7a7fc9774 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -6156,6 +6156,72 @@ rm -rf conftest*
+ 
+ fi
+ 
++# The cast to long int works around a bug in the HP C Compiler
++# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
++# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
++# This bug is HP SR number 8606223364.
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of ino_t" >&5
++$as_echo_n "checking size of ino_t... " >&6; }
++if ${ac_cv_sizeof_ino_t+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if ac_fn_cxx_compute_int "$LINENO" "(long int) (sizeof (ino_t))" "ac_cv_sizeof_ino_t"        "$ac_includes_default"; then :
++
++else
++  if test "$ac_cv_type_ino_t" = yes; then
++     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error 77 "cannot compute sizeof (ino_t)
++See \`config.log' for more details" "$LINENO" 5; }
++   else
++     ac_cv_sizeof_ino_t=0
++   fi
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_ino_t" >&5
++$as_echo "$ac_cv_sizeof_ino_t" >&6; }
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define SIZEOF_INO_T $ac_cv_sizeof_ino_t
++_ACEOF
++
++
++# The cast to long int works around a bug in the HP C Compiler
++# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
++# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
++# This bug is HP SR number 8606223364.
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of dev_t" >&5
++$as_echo_n "checking size of dev_t... " >&6; }
++if ${ac_cv_sizeof_dev_t+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if ac_fn_cxx_compute_int "$LINENO" "(long int) (sizeof (dev_t))" "ac_cv_sizeof_dev_t"        "$ac_includes_default"; then :
++
++else
++  if test "$ac_cv_type_dev_t" = yes; then
++     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error 77 "cannot compute sizeof (dev_t)
++See \`config.log' for more details" "$LINENO" 5; }
++   else
++     ac_cv_sizeof_dev_t=0
++   fi
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_dev_t" >&5
++$as_echo "$ac_cv_sizeof_dev_t" >&6; }
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define SIZEOF_DEV_T $ac_cv_sizeof_dev_t
++_ACEOF
++
++
+ 
+ # sizeof(char) is 1 by definition.
+ # The cast to long int works around a bug in the HP C Compiler
+@@ -19435,7 +19501,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 18652 "configure"
++#line 18718 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -19541,7 +19607,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 18758 "configure"
++#line 18824 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index e9ba2af548a..f37cef909d6 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -432,6 +432,8 @@ AC_PROG_CPP
+ AC_C_INLINE
+ 
+ AC_SYS_LARGEFILE
++AC_CHECK_SIZEOF(ino_t)
++AC_CHECK_SIZEOF(dev_t)
+ 
+ # sizeof(char) is 1 by definition.
+ AC_CHECK_SIZEOF(void *)
+diff --git a/gcc/incpath.c b/gcc/incpath.c
+index 446d280321d..a240c49eba5 100644
+--- a/gcc/incpath.c
++++ b/gcc/incpath.c
+@@ -44,6 +44,10 @@
+ #define DIRS_EQ(A, B) (!filename_cmp ((A)->canonical_name, (B)->canonical_name))
+ #endif
+ 
++#ifndef HOST_STAT_FOR_64BIT_INODES
++#define HOST_STAT_FOR_64BIT_INODES stat
++#endif
++
+ static const char dir_separator_str[] = { DIR_SEPARATOR, 0 };
+ 
+ static void add_env_var_paths (const char *, incpath_kind);
+@@ -246,7 +250,7 @@ remove_duplicates (cpp_reader *pfile, struct cpp_dir *head,
+ 		   int verbose)
+ {
+   struct cpp_dir **pcur, *tmp, *cur;
+-  struct stat st;
++  struct HOST_STAT_FOR_64BIT_INODES st;
+ 
+   for (pcur = &head; *pcur; )
+     {
+@@ -254,7 +258,7 @@ remove_duplicates (cpp_reader *pfile, struct cpp_dir *head,
+ 
+       cur = *pcur;
+ 
+-      if (stat (cur->name, &st))
++      if (HOST_STAT_FOR_64BIT_INODES (cur->name, &st))
+ 	{
+ 	  /* Dirs that don't exist or have denied permissions are 
+ 	     silently ignored, unless verbose.  */
+diff --git a/libcpp/config.in b/libcpp/config.in
+index 89aa6a1f30e..9983aee5912 100644
+--- a/libcpp/config.in
++++ b/libcpp/config.in
+@@ -258,6 +258,12 @@
+ /* Define to the version of this package. */
+ #undef PACKAGE_VERSION
+ 
++/* The size of `dev_t', as computed by sizeof. */
++#undef SIZEOF_DEV_T
++
++/* The size of `ino_t', as computed by sizeof. */
++#undef SIZEOF_INO_T
++
+ /* The size of `int', as computed by sizeof. */
+ #undef SIZEOF_INT
+ 
+diff --git a/libcpp/configure b/libcpp/configure
+index 7e28606f605..c36164538fe 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -6638,6 +6638,73 @@ $as_echo "#define HAVE_UCHAR 1" >>confdefs.h
+ 
+ fi
+ 
++# The cast to long int works around a bug in the HP C Compiler
++# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
++# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
++# This bug is HP SR number 8606223364.
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of ino_t" >&5
++$as_echo_n "checking size of ino_t... " >&6; }
++if ${ac_cv_sizeof_ino_t+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (ino_t))" "ac_cv_sizeof_ino_t"        "$ac_includes_default"; then :
++
++else
++  if test "$ac_cv_type_ino_t" = yes; then
++     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error 77 "cannot compute sizeof (ino_t)
++See \`config.log' for more details" "$LINENO" 5; }
++   else
++     ac_cv_sizeof_ino_t=0
++   fi
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_ino_t" >&5
++$as_echo "$ac_cv_sizeof_ino_t" >&6; }
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define SIZEOF_INO_T $ac_cv_sizeof_ino_t
++_ACEOF
++
++
++# The cast to long int works around a bug in the HP C Compiler
++# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
++# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
++# This bug is HP SR number 8606223364.
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of dev_t" >&5
++$as_echo_n "checking size of dev_t... " >&6; }
++if ${ac_cv_sizeof_dev_t+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (dev_t))" "ac_cv_sizeof_dev_t"        "$ac_includes_default"; then :
++
++else
++  if test "$ac_cv_type_dev_t" = yes; then
++     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error 77 "cannot compute sizeof (dev_t)
++See \`config.log' for more details" "$LINENO" 5; }
++   else
++     ac_cv_sizeof_dev_t=0
++   fi
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_dev_t" >&5
++$as_echo "$ac_cv_sizeof_dev_t" >&6; }
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define SIZEOF_DEV_T $ac_cv_sizeof_dev_t
++_ACEOF
++
++
++
+ # g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
+ # iconv() prototype.
+ ac_ext=cpp
+diff --git a/libcpp/configure.ac b/libcpp/configure.ac
+index 1efa96f7ca3..330858ab528 100644
+--- a/libcpp/configure.ac
++++ b/libcpp/configure.ac
+@@ -98,6 +98,9 @@ if test $ac_cv_type_uchar = yes; then
+   [Define if <sys/types.h> defines \`uchar'.])
+ fi
+ 
++AC_CHECK_SIZEOF(ino_t)
++AC_CHECK_SIZEOF(dev_t)
++
+ # g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
+ # iconv() prototype.
+ AC_LANG_PUSH([C++])
+diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
+index 41d75d9e731..4ad20c6f54c 100644
+--- a/libcpp/include/cpplib.h
++++ b/libcpp/include/cpplib.h
+@@ -732,10 +732,18 @@ struct cpp_callbacks
+ 
+ #ifdef VMS
+ #define INO_T_CPP ino_t ino[3]
++#elif defined (_AIX) && SIZEOF_INO_T == 4
++#define INO_T_CPP ino64_t ino
+ #else
+ #define INO_T_CPP ino_t ino
+ #endif
+ 
++#if defined (_AIX) && SIZEOF_DEV_T == 4
++#define DEV_T_CPP dev64_t dev
++#else
++#define DEV_T_CPP dev_t dev
++#endif
++
+ /* Chain of directories to look for include files in.  */
+ struct cpp_dir
+ {
+@@ -770,7 +778,7 @@ struct cpp_dir
+   /* The C front end uses these to recognize duplicated
+      directories in the search path.  */
+   INO_T_CPP;
+-  dev_t dev;
++  DEV_T_CPP;
+ };
+ 
+ /* The kind of the cpp_macro.  */
+-- 
+2.25.0
+

@@ -1,0 +1,261 @@
+--- ./macros.in_orig	2020-05-22 04:01:57 +0000
++++ ./macros.in	2020-05-22 04:00:52 +0000
+@@ -17,46 +17,48 @@
+ #
+ %_usr			@prefix@
+ %_usrsrc		%{_usr}/src
+-%_var			@localstatedir@
++%_var                  /var%{_prefix}
+ 
+ #==============================================================================
+ # ---- Generally useful path macros.
+ #
+ %__7zip			@__7ZIP@
+ %__awk			@AWK@
+-%__bzip2		@__BZIP2@
+-%__cat			@__CAT@
+-%__chgrp		@__CHGRP@
+-%__chmod		@__CHMOD@
+-%__chown		@__CHOWN@
+-%__cp			@__CP@
+-%__cpio			@__CPIO@
+-%__file			@__FILE@
+-%__gpg			@__GPG@
+-%__grep			@__GREP@
+-%__gzip			@__GZIP@
+-%__id			@__ID@
++%__bzip2		/bin/bzip2
++%__cat			/bin/cat
++%__chgrp		/bin/chgrp
++%__chmod		/bin/chmod
++%__chown		/bin/chown
++%__cp			/bin/cp
++%__cpio			/bin/cpio
++%__file			/usr/opt/rpm/bin/file
++%__gpg			/usr/bin/gpg
++%__grep			/bin/grep
++%__gzip			/bin/gzip
++%__id			/bin/id
+ %__id_u			%{__id} -u
+-%__install		@__INSTALL@
+-%__ln_s			@LN_S@
++%__install		/opt/freeware/bin/install
++%__ln_s			ln -s
+ %__lrzip		@__LRZIP@
+ %__lzip			@__LZIP@
+ # Deprecated, use %__xz instead.
+ %__lzma			%__xz --format=lzma
+ %__xz			@__XZ@
+-%__make			@__MAKE@
+-%__mkdir		@__MKDIR@
+-%__mkdir_p		@__MKDIR_P@
+-%__mv			@__MV@
+-%__patch		@__PATCH@
++%__make			/bin/make
++%__mkdir		/bin/mkdir
++%__mkdir_p		/usr/bin/mkdir -p
++%__mv			/bin/mv
++%__patch		/usr/opt/rpm/bin/patch
++%__perl         	/usr/bin/perl
++%__python               /opt/freeware/bin/python
+ %__restorecon		@__RESTORECON@
+-%__rm			@__RM@
+-%__rsh			@__RSH@
+-%__sed			@__SED@
++%__rm			/bin/rm
++%__rsh			/bin/rsh
++%__sed			/bin/sed
+ %__semodule		@__SEMODULE@
+-%__ssh			@__SSH@
+-%__tar			@__TAR@
+-%__unzip		@__UNZIP@
++%__ssh			/usr/bin/ssh
++%__tar			/bin/tar
++%__unzip		/usr/bin/unzip
+ %__zstd			@__ZSTD@
+ %__gem			@__GEM@
+ %__git			@__GIT@
+@@ -153,7 +155,7 @@
+ %_bzip2bin		%{__bzip2}
+ 
+ #	The location of the rpm database file(s).
+-%_dbpath		%{_var}/lib/rpm
++%_dbpath		%{_usr}/packages
+ 
+ #	The location of the rpm database file(s) after "rpm --rebuilddb".
+ %_dbpath_rebuild	%{_dbpath}
+@@ -217,8 +219,8 @@
+ %endif\
+ %{nil}
+ 
+-%_defaultdocdir		%{_datadir}/doc
+-%_defaultlicensedir	%{_datadir}/licenses
++%_defaultdocdir		%{_usr}/doc
++%_defaultlicensedir	%{_usr}/licenses
+ 
+ # Following macros for filtering auto deps must not be used in spec files.
+ # Their purpouse is to set up global filtering for all packages. If you need
+@@ -267,7 +269,7 @@
+ %_srcrpmdir		%{_topdir}/SRPMS
+ 
+ #	The directory where buildroots will be created.
+-%_buildrootdir		%{_topdir}/BUILDROOT
++%_buildrootdir		%{_tmppath}
+ 
+ #	Build root path, where %install installs the package during build.
+ %buildroot		%{_buildrootdir}/%{NAME}-%{VERSION}-%{RELEASE}.%{_arch}
+@@ -276,7 +278,7 @@
+ %_tmppath		%{_var}/tmp
+ 
+ #	Path to top of build area.
+-%_topdir		%{getenv:HOME}/rpmbuild
++%_topdir		%{_usrsrc}/packages
+ 
+ #	The path to the unzip executable (legacy, use %{__unzip} instead).
+ %_unzipbin		%{__unzip}
+@@ -350,8 +352,8 @@
+ #	Import packaging conventions from jpackage.org (prefixed with _
+ #	to avoid name collisions).
+ #	
+-%_javadir      %{_datadir}/java
+-%_javadocdir   %{_datadir}/javadoc
++%_javadir      %{_usr}/java
++%_javadocdir   %{_usr}/javadoc
+ 
+ 
+ #	Set ModularityLabel: for packages being build
+@@ -422,19 +424,19 @@
+ # Returns list of unpackaged files, i.e. files in $RPM_BUILD_ROOT not packaged.
+ #
+ # Note: Disable (by commenting out) for legacy compatibility.
+-%__check_files         %{_rpmconfigdir}/check-files %{buildroot}
++#%__check_files         %{_rpmconfigdir}/check-files %{buildroot}
+ 
+ #
+ # Should unpackaged files in a build root terminate a build?
+ #
+ # Note: The default value should be 0 for legacy compatibility.
+-%_unpackaged_files_terminate_build	1
++%_unpackaged_files_terminate_build	0
+ 
+ #
+ # Should missing %doc files in the build directory terminate a build?
+ #
+ # Note: The default value should be 0 for legacy compatibility.
+-%_missing_doc_files_terminate_build	1
++%_missing_doc_files_terminate_build	0
+ 
+ #
+ # Should empty %files manifest file terminate a build?
+@@ -563,14 +565,14 @@
+ 
+ #
+ # Use internal dependency generator rather than external helpers?
+-%_use_internal_dependency_generator	1
++%_use_internal_dependency_generator	0
+ 
+ #
+ # Filter GLIBC_PRIVATE Provides: and Requires:
+ %_filter_GLIBC_PRIVATE			0
+ 
+ # Directories whose contents should be considered as documentation.
+-%__docdir_path %{_datadir}/doc:%{_datadir}/man:%{_datadir}/info:%{_datadir}/gtk-doc/html:%{?_docdir}:%{?_mandir}:%{?_infodir}:%{?_javadocdir}:/usr/doc:/usr/man:/usr/info:/usr/X11R6/man
++%__docdir_path %{_usr}/doc:%{_usr}/man:%{_usr}/info:%{_usr}/gtk-doc/html:%{?_docdir}:%{?_mandir}:%{?_infodir}:%{?_javadocdir}:/usr/doc:/usr/man:/usr/info:/usr/X11R6/man
+ 
+ #
+ # Path to scripts to autogenerate package dependencies,
+@@ -697,7 +699,7 @@
+ #	binary packages.
+ #
+ # XXX	Note: escaped %% for use in headerSprintf()
+-%_build_name_fmt	%%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
++%_build_name_fmt	%%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{OS}.%%{ARCH}.rpm
+ 
+ #	Verify digest/signature flags for various rpm modes:
+ #	0x30300 (RPMVSF_MASK_NODIGESTS)    --nohdrchk      if set, don't check digest(s)
+@@ -770,6 +772,22 @@
+ # Default path to the file used for transaction fcntl lock.
+ %_rpmlock_path	%{_dbpath}/.rpm.lock
+ 
++#==============================================================================
++# ---- per-platform macros.
++#       Macros that are specific to an individual platform. The values here
++#       will be used if the per-platform macro file does not exist..
++#
++%_arch                  ppc
++%_build_arch            ppc
++%_vendor                @RPMCANONVENDOR@
++%_os                    @RPMCANONOS@
++%_gnu                   @RPMCANONGNU@
++%_target_platform       %{_target_cpu}-%{_vendor}-%{_target_os}%{?_gnu}
++
++#
++# Define a generic value for optflags. Normally overridden by per-target macros.
++%optflags               -O2
++
+ #
+ # ISA dependency marker, none for noarch and name-bitness for others
+ %_isa			%{?__isa:(%{__isa})}%{!?__isa:%{nil}}
+@@ -981,14 +999,15 @@
+ %_sbindir		%{_exec_prefix}/sbin
+ %_libexecdir		%{_exec_prefix}/libexec
+ %_datadir		%{_prefix}/share
+-%_sysconfdir		/etc
++%_sysconfdir		%{_prefix}/etc
+ %_sharedstatedir	%{_prefix}/com
+ %_localstatedir		%{_prefix}/var
+ %_lib			lib
+ %_libdir		%{_exec_prefix}/%{_lib}
+ %_includedir		%{_prefix}/include
+-%_infodir		%{_datadir}/info
+-%_mandir		%{_datadir}/man
++%_oldincludedir         /usr/include
++%_infodir		%{_prefix}/info
++%_mandir		%{_prefix}/man
+ 
+ #==============================================================================
+ # ---- config.guess platform macros.
+@@ -1110,6 +1129,43 @@
+ %sources %{lua: for i, s in ipairs(sources) do print(s.." ") end}
+ 
+ #------------------------------------------------------------------------------
++# Useful perl macros (from Artur Frysiak <wiget@t17.ds.pwr.wroc.pl>)
++#
++# For example, these can be used as (from ImageMagick.spec from PLD site)
++#       [...]
++#       BuildPrereq: perl
++#       [...]
++#       %package perl
++#       Summary: libraries and modules for access to ImageMagick from perl
++#       Group: Development/Languages/Perl
++#       Requires: %{name} = %{version}
++#       %requires_eq    perl
++#       [...]
++#       %install
++#       rm -fr $RPM_BUILD_ROOT
++#       install -d $RPM_BUILD_ROOT/%{perl_sitearch}
++#       [...]
++#       %files perl
++#       %defattr(644,root,root,755)
++#       %{perl_sitearch}/Image
++#       %dir %{perl_sitearch}/auto/Image
++#
++%requires_eq()  %(LC_ALL="C" echo '%*' | xargs -r rpm -q --qf 'Requires: %%{name} = %%{epoch}:%%{version}\\n' | sed -e 's/ (none):/ /' -e 's/ 0:/ /' | grep -v "is not")
++%perl_sitearch  %(eval "`%{__perl} -V:installsitearch`"; echo $installsitearch)
++%perl_sitelib   %(eval "`%{__perl} -V:installsitelib`"; echo $installsitelib)
++%perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)
++%perl_vendorlib  %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)
++%perl_archlib   %(eval "`%{__perl} -V:installarchlib`"; echo $installarchlib)
++%perl_privlib   %(eval "`%{__perl} -V:installprivlib`"; echo $installprivlib)
++#------------------------------------------------------------------------------
++# Useful python macros for determining python version and paths
++#
++%python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
++%python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib(1))")
++%python_version %(%{__python} -c "import sys; sys.stdout.write(sys.version[:3])")
++
++
++#------------------------------------------------------------------------------
+ # arch macro for all Intel i?86 compatible processors
+ #  (Note: This macro (and it's analogues) will probably be obsoleted when
+ #   rpm can use regular expressions against target platforms in macro

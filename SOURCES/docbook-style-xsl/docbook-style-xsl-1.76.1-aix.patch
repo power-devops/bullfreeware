@@ -1,0 +1,33 @@
+*** ./Makefile.ORIG	Wed Aug 10 09:05:55 2011
+--- ./Makefile	Wed Aug 10 09:12:08 2011
+***************
+*** 6,12 ****
+  install: install-xsl install-img install-extensions install-misc install-epub
+  
+  install-xsl:
+! 	mkdir -p $(DESTDIR)/{common,eclipse,fo,html,htmlhelp/doc,javahelp,lib,template,xhtml,xhtml-1_1,manpages,profiling,highlighting,roundtrip,website}
+  	cp common/*.dtd $(DESTDIR)/common
+  	cp common/*.ent $(DESTDIR)/common
+  	cp common/*.xml $(DESTDIR)/common
+--- 6,26 ----
+  install: install-xsl install-img install-extensions install-misc install-epub
+  
+  install-xsl:
+! 	mkdir -p $(DESTDIR)/common
+! 	mkdir -p $(DESTDIR)/eclipse
+! 	mkdir -p $(DESTDIR)/fo
+! 	mkdir -p $(DESTDIR)/html
+! 	mkdir -p $(DESTDIR)/htmlhelp/doc
+! 	mkdir -p $(DESTDIR)/javahelp
+! 	mkdir -p $(DESTDIR)/lib
+! 	mkdir -p $(DESTDIR)/template
+! 	mkdir -p $(DESTDIR)/xhtml
+! 	mkdir -p $(DESTDIR)/xhtml-1_1
+! 	mkdir -p $(DESTDIR)/manpages
+! 	mkdir -p $(DESTDIR)/profiling
+! 	mkdir -p $(DESTDIR)/highlighting
+! 	mkdir -p $(DESTDIR)/roundtrip
+! 	mkdir -p $(DESTDIR)/website
+  	cp common/*.dtd $(DESTDIR)/common
+  	cp common/*.ent $(DESTDIR)/common
+  	cp common/*.xml $(DESTDIR)/common

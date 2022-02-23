@@ -1,0 +1,26 @@
+Subject: gc ppc64le force AO load
+From: Michel Normand <normand@linux.vnet.ibm.com>
+
+Force AO_load() to map to AO_load_acquire() for powerpc.  The
+AO_load_acquire() function includes isync instructions that
+are critical for proper behavior on power system.
+
+Signed-Off-By: Will Schmidt <will_schmidt at vnet.ibm.com>
+Signed-off-by: Michel Normand <normand@linux.vnet.ibm.com>
+---
+ src/atomic_ops/sysdeps/gcc/powerpc.h |    2 ++
+ 1 file changed, 2 insertions(+)
+
+Index: src/atomic_ops/sysdeps/gcc/powerpc.h
+===================================================================
+--- src/atomic_ops/sysdeps/gcc/powerpc.h
++++ src/atomic_ops/sysdeps/gcc/powerpc.h
+@@ -32,6 +32,8 @@
+ 
+ #include "../all_aligned_atomic_load_store.h"
+ 
++#define AO_load(addr) AO_load_acquire(addr)
++
+ #include "../test_and_set_t_is_ao_t.h"
+         /* There seems to be no byte equivalent of lwarx, so this       */
+         /* may really be what we want, at least in the 32-bit case.     */

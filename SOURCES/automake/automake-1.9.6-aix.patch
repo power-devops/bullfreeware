@@ -1,0 +1,750 @@
+diff -crN ./automake/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/Makefile.am
+*** ./automake/Makefile.am	Sat May 14 22:21:00 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/Makefile.am	Tue Oct 11 08:59:31 2005
+***************
+*** 62,68 ****
+    -e 's,[@]APIVERSION[@],$(APIVERSION),g' \
+    -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+    -e 's,[@]PATH_SEPARATOR[@],$(PATH_SEPARATOR),g' \
+!   -e 's,[@]PERL[@],$(PERL),g' \
+    -e 's,[@]SHELL[@],$(SHELL),g' \
+    -e 's,[@]VERSION[@],$(VERSION),g' \
+    -e 's,[@]configure_input[@],Generated from $@.in; do not edit by hand.,g' \
+--- 62,68 ----
+    -e 's,[@]APIVERSION[@],$(APIVERSION),g' \
+    -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+    -e 's,[@]PATH_SEPARATOR[@],$(PATH_SEPARATOR),g' \
+!   -e 's,[@]PERL_PATH[@],$(PERL_PATH),g' \
+    -e 's,[@]SHELL[@],$(SHELL),g' \
+    -e 's,[@]VERSION[@],$(VERSION),g' \
+    -e 's,[@]configure_input[@],Generated from $@.in; do not edit by hand.,g' \
+diff -crN ./automake/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/Makefile.in
+*** ./automake/Makefile.in	Sun Jul 10 20:14:52 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/Makefile.in	Tue Oct 11 09:17:02 2005
+***************
+*** 110,116 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 110,116 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+***************
+*** 165,171 ****
+    -e 's,[@]APIVERSION[@],$(APIVERSION),g' \
+    -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+    -e 's,[@]PATH_SEPARATOR[@],$(PATH_SEPARATOR),g' \
+!   -e 's,[@]PERL[@],$(PERL),g' \
+    -e 's,[@]SHELL[@],$(SHELL),g' \
+    -e 's,[@]VERSION[@],$(VERSION),g' \
+    -e 's,[@]configure_input[@],Generated from $@.in; do not edit by hand.,g' \
+--- 165,171 ----
+    -e 's,[@]APIVERSION[@],$(APIVERSION),g' \
+    -e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+    -e 's,[@]PATH_SEPARATOR[@],$(PATH_SEPARATOR),g' \
+!   -e 's,[@]PERL_PATH[@],$(PERL_PATH),g' \
+    -e 's,[@]SHELL[@],$(SHELL),g' \
+    -e 's,[@]VERSION[@],$(VERSION),g' \
+    -e 's,[@]configure_input[@],Generated from $@.in; do not edit by hand.,g' \
+diff -crN ./automake/aclocal.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/aclocal.in
+*** ./automake/aclocal.in	Sat Jul  9 11:28:44 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/aclocal.in	Mon Oct 10 16:21:09 2005
+***************
+*** 1,8 ****
+! #!@PERL@
+  # -*- perl -*-
+  # @configure_input@
+  
+! eval 'case $# in 0) exec @PERL@ -S "$0";; *) exec @PERL@ -S "$0" "$@";; esac'
+      if 0;
+  
+  # aclocal - create aclocal.m4 by scanning configure.ac
+--- 1,8 ----
+! #!@PERL_PATH@
+  # -*- perl -*-
+  # @configure_input@
+  
+! eval 'case $# in 0) exec @PERL_PATH@ -S "$0";; *) exec @PERL_PATH@ -S "$0" "$@";; esac'
+      if 0;
+  
+  # aclocal - create aclocal.m4 by scanning configure.ac
+diff -crN ./automake/automake.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/automake.in
+*** ./automake/automake.in	Thu Jun 30 23:17:13 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/automake.in	Tue Oct 11 09:01:02 2005
+***************
+*** 1,8 ****
+! #!@PERL@ -w
+  # -*- perl -*-
+  # @configure_input@
+  
+! eval 'case $# in 0) exec @PERL@ -S "$0";; *) exec @PERL@ -S "$0" "$@";; esac'
+      if 0;
+  
+  # automake - create Makefile.in from Makefile.am
+--- 1,8 ----
+! #!@PERL_PATH@ -w
+  # -*- perl -*-
+  # @configure_input@
+  
+! eval 'case $# in 0) exec @PERL_PATH@ -S "$0";; *) exec @PERL_PATH@ -S "$0" "$@";; esac'
+      if 0;
+  
+  # automake - create Makefile.in from Makefile.am
+diff -crN ./automake/configure /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/configure
+*** ./automake/configure	Sun Jul 10 20:14:51 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/configure	Tue Oct 11 14:00:11 2005
+***************
+*** 601,607 ****
+  am__untar
+  APIVERSION
+  pkgvdatadir
+! PERL
+  TEX
+  LN
+  MODIFICATION_DELAY
+--- 601,607 ----
+  am__untar
+  APIVERSION
+  pkgvdatadir
+! PERL_PATH
+  TEX
+  LN
+  MODIFICATION_DELAY
+***************
+*** 2107,2122 ****
+  ACLOCAL="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/aclocal --acdir=m4"
+  AUTOMAKE="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/automake --libdir=lib"
+  
+! # Extract the first word of "perl", so it can be a program name with args.
+  set dummy perl; ac_word=$2
+  { echo "$as_me:$LINENO: checking for $ac_word" >&5
+  echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+! if test "${ac_cv_path_PERL+set}" = set; then
+    echo $ECHO_N "(cached) $ECHO_C" >&6
+  else
+!   case $PERL in
+    [\\/]* | ?:[\\/]*)
+!   ac_cv_path_PERL="$PERL" # Let the user override the test with a path.
+    ;;
+    *)
+    as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+--- 2107,2163 ----
+  ACLOCAL="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/aclocal --acdir=m4"
+  AUTOMAKE="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/automake --libdir=lib"
+  
+! if test "x$PERL" != x ; then
+!         # Extract the first word of "$PERL", so it can be a program name with args.
+! set dummy $PERL; ac_word=$2
+! echo "$as_me:$LINENO: checking for $ac_word" >&5
+! echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+! if test "${ac_cv_path_PERL_PATH+set}" = set; then
+!   echo $ECHO_N "(cached) $ECHO_C" >&6
+! else
+!   case $PERL_PATH in
+!   [\\/]* | ?:[\\/]*)
+!   ac_cv_path_PERL_PATH="$PERL_PATH" # Let the user override the test with a path.
+!   ;;
+!   *)
+!   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+! for as_dir in $PATH
+! do
+!   IFS=$as_save_IFS
+!   test -z "$as_dir" && as_dir=.
+!   for ac_exec_ext in '' $ac_executable_extensions; do
+!   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+!     ac_cv_path_PERL_PATH="$as_dir/$ac_word$ac_exec_ext"
+!     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+!     break 2
+!   fi
+! done
+! done
+! 
+!   ;;
+! esac
+! fi
+! PERL_PATH=$ac_cv_path_PERL_PATH
+! 
+! if test -n "$PERL_PATH"; then
+!   echo "$as_me:$LINENO: result: $PERL_PATH" >&5
+! echo "${ECHO_T}$PERL_PATH" >&6
+! else
+!   echo "$as_me:$LINENO: result: no" >&5
+! echo "${ECHO_T}no" >&6
+! fi
+! 
+! else
+! 	# Extract the first word of "perl", so it can be a program name with args.
+  set dummy perl; ac_word=$2
+  { echo "$as_me:$LINENO: checking for $ac_word" >&5
+  echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+! if test "${ac_cv_path_PERL_PATH+set}" = set; then
+    echo $ECHO_N "(cached) $ECHO_C" >&6
+  else
+!   case $PERL_PATH in
+    [\\/]* | ?:[\\/]*)
+!   ac_cv_path_PERL_PATH="$PERL_PATH" # Let the user override the test with a path.
+    ;;
+    *)
+    as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+***************
+*** 2126,2132 ****
+    test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+    if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; }; then
+!     ac_cv_path_PERL="$as_dir/$ac_word$ac_exec_ext"
+      echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+      break 2
+    fi
+--- 2167,2173 ----
+    test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+    if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; }; then
+!     ac_cv_path_PERL_PATH="$as_dir/$ac_word$ac_exec_ext"
+      echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+      break 2
+    fi
+***************
+*** 2136,2157 ****
+    ;;
+  esac
+  fi
+! PERL=$ac_cv_path_PERL
+  
+! if test -n "$PERL"; then
+!   { echo "$as_me:$LINENO: result: $PERL" >&5
+! echo "${ECHO_T}$PERL" >&6; }
+  else
+    { echo "$as_me:$LINENO: result: no" >&5
+  echo "${ECHO_T}no" >&6; }
+  fi
+  
+! if test -z "$PERL"; then
+     { { echo "$as_me:$LINENO: error: perl not found" >&5
+  echo "$as_me: error: perl not found" >&2;}
+     { (exit 1); exit 1; }; }
+  fi
+! $PERL -e 'require 5.005;' || {
+     { { echo "$as_me:$LINENO: error: perl 5.005 or better is required" >&5
+  echo "$as_me: error: perl 5.005 or better is required" >&2;}
+     { (exit 1); exit 1; }; }
+--- 2177,2200 ----
+    ;;
+  esac
+  fi
+! PERL_PATH=$ac_cv_path_PERL_PATH
+  
+! if test -n "$PERL_PATH"; then
+!   { echo "$as_me:$LINENO: result: $PERL_PATH" >&5
+! echo "${ECHO_T}$PERL_PATH" >&6; }
+  else
+    { echo "$as_me:$LINENO: result: no" >&5
+  echo "${ECHO_T}no" >&6; }
+  fi
+  
+! fi
+! 
+! if test -z "$PERL_PATH"; then
+     { { echo "$as_me:$LINENO: error: perl not found" >&5
+  echo "$as_me: error: perl not found" >&2;}
+     { (exit 1); exit 1; }; }
+  fi
+! $PERL_PATH -e 'require 5.005;' || {
+     { { echo "$as_me:$LINENO: error: perl 5.005 or better is required" >&5
+  echo "$as_me: error: perl 5.005 or better is required" >&2;}
+     { (exit 1); exit 1; }; }
+***************
+*** 3243,3249 ****
+  am__untar!$am__untar$ac_delim
+  APIVERSION!$APIVERSION$ac_delim
+  pkgvdatadir!$pkgvdatadir$ac_delim
+! PERL!$PERL$ac_delim
+  TEX!$TEX$ac_delim
+  LN!$LN$ac_delim
+  MODIFICATION_DELAY!$MODIFICATION_DELAY$ac_delim
+--- 3286,3292 ----
+  am__untar!$am__untar$ac_delim
+  APIVERSION!$APIVERSION$ac_delim
+  pkgvdatadir!$pkgvdatadir$ac_delim
+! PERL_PATH!$PERL_PATH$ac_delim
+  TEX!$TEX$ac_delim
+  LN!$LN$ac_delim
+  MODIFICATION_DELAY!$MODIFICATION_DELAY$ac_delim
+diff -crN ./automake/configure.ac /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/configure.ac
+*** ./automake/configure.ac	Sun Jul 10 20:13:46 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/configure.ac	Mon Oct 10 16:26:59 2005
+***************
+*** 56,66 ****
+  ACLOCAL="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/aclocal --acdir=m4"
+  AUTOMAKE="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/automake --libdir=lib"
+  
+! AC_PATH_PROG(PERL, perl)
+! if test -z "$PERL"; then
+     AC_MSG_ERROR([perl not found])
+  fi
+! $PERL -e 'require 5.005;' || {
+     AC_MSG_ERROR([perl 5.005 or better is required])
+  }
+  
+--- 56,72 ----
+  ACLOCAL="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/aclocal --acdir=m4"
+  AUTOMAKE="perllibdir=`pwd`\"/lib$PATH_SEPARATOR./lib\" `pwd`/automake --libdir=lib"
+  
+! if test "x$PERL" != x ; then
+! 	AC_PATH_PROG(PERL_PATH, perl)
+! else
+!   AC_PATH_PROG(PERL_PATH, perl)
+! fi
+! AC_SUBST(PERL_PATH)
+! 
+! if test -z "$PERL_PATH"; then
+     AC_MSG_ERROR([perl not found])
+  fi
+! $PERL_PATH -e 'require 5.005;' || {
+     AC_MSG_ERROR([perl 5.005 or better is required])
+  }
+  
+diff -crN ./automake/doc/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/doc/Makefile.in
+*** ./automake/doc/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/doc/Makefile.in	Tue Oct 11 09:01:35 2005
+***************
+*** 101,107 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 101,107 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/install-sh /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/install-sh
+*** ./automake/install-sh	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/install-sh	Tue Oct 11 09:03:07 2005
+***************
+*** 0 ****
+--- 1,251 ----
++ #!/bin/sh
++ #
++ # install - install a program, script, or datafile
++ # This comes from X11R5 (mit/util/scripts/install.sh).
++ #
++ # Copyright 1991 by the Massachusetts Institute of Technology
++ #
++ # Permission to use, copy, modify, distribute, and sell this software and its
++ # documentation for any purpose is hereby granted without fee, provided that
++ # the above copyright notice appear in all copies and that both that
++ # copyright notice and this permission notice appear in supporting
++ # documentation, and that the name of M.I.T. not be used in advertising or
++ # publicity pertaining to distribution of the software without specific,
++ # written prior permission.  M.I.T. makes no representations about the
++ # suitability of this software for any purpose.  It is provided "as is"
++ # without express or implied warranty.
++ #
++ # Calling this script install-sh is preferred over install.sh, to prevent
++ # `make' implicit rules from creating a file called install from it
++ # when there is no Makefile.
++ #
++ # This script is compatible with the BSD install script, but was written
++ # from scratch.  It can only install one file at a time, a restriction
++ # shared with many OS's install programs.
++ 
++ 
++ # set DOITPROG to echo to test this script
++ 
++ # Don't use :- since 4.3BSD and earlier shells don't like it.
++ doit="${DOITPROG-}"
++ 
++ 
++ # put in absolute paths if you don't have them in your path; or use env. vars.
++ 
++ mvprog="${MVPROG-mv}"
++ cpprog="${CPPROG-cp}"
++ chmodprog="${CHMODPROG-chmod}"
++ chownprog="${CHOWNPROG-chown}"
++ chgrpprog="${CHGRPPROG-chgrp}"
++ stripprog="${STRIPPROG-strip}"
++ rmprog="${RMPROG-rm}"
++ mkdirprog="${MKDIRPROG-mkdir}"
++ 
++ transformbasename=""
++ transform_arg=""
++ instcmd="$mvprog"
++ chmodcmd="$chmodprog 0755"
++ chowncmd=""
++ chgrpcmd=""
++ stripcmd=""
++ rmcmd="$rmprog -f"
++ mvcmd="$mvprog"
++ src=""
++ dst=""
++ dir_arg=""
++ 
++ while [ x"$1" != x ]; do
++     case $1 in
++ 	-c) instcmd="$cpprog"
++ 	    shift
++ 	    continue;;
++ 
++ 	-d) dir_arg=true
++ 	    shift
++ 	    continue;;
++ 
++ 	-m) chmodcmd="$chmodprog $2"
++ 	    shift
++ 	    shift
++ 	    continue;;
++ 
++ 	-o) chowncmd="$chownprog $2"
++ 	    shift
++ 	    shift
++ 	    continue;;
++ 
++ 	-g) chgrpcmd="$chgrpprog $2"
++ 	    shift
++ 	    shift
++ 	    continue;;
++ 
++ 	-s) stripcmd="$stripprog"
++ 	    shift
++ 	    continue;;
++ 
++ 	-t=*) transformarg=`echo $1 | sed 's/-t=//'`
++ 	    shift
++ 	    continue;;
++ 
++ 	-b=*) transformbasename=`echo $1 | sed 's/-b=//'`
++ 	    shift
++ 	    continue;;
++ 
++ 	*)  if [ x"$src" = x ]
++ 	    then
++ 		src=$1
++ 	    else
++ 		# this colon is to work around a 386BSD /bin/sh bug
++ 		:
++ 		dst=$1
++ 	    fi
++ 	    shift
++ 	    continue;;
++     esac
++ done
++ 
++ if [ x"$src" = x ]
++ then
++ 	echo "install:	no input file specified"
++ 	exit 1
++ else
++ 	true
++ fi
++ 
++ if [ x"$dir_arg" != x ]; then
++ 	dst=$src
++ 	src=""
++ 	
++ 	if [ -d $dst ]; then
++ 		instcmd=:
++ 		chmodcmd=""
++ 	else
++ 		instcmd=mkdir
++ 	fi
++ else
++ 
++ # Waiting for this to be detected by the "$instcmd $src $dsttmp" command
++ # might cause directories to be created, which would be especially bad 
++ # if $src (and thus $dsttmp) contains '*'.
++ 
++ 	if [ -f $src -o -d $src ]
++ 	then
++ 		true
++ 	else
++ 		echo "install:  $src does not exist"
++ 		exit 1
++ 	fi
++ 	
++ 	if [ x"$dst" = x ]
++ 	then
++ 		echo "install:	no destination specified"
++ 		exit 1
++ 	else
++ 		true
++ 	fi
++ 
++ # If destination is a directory, append the input filename; if your system
++ # does not like double slashes in filenames, you may need to add some logic
++ 
++ 	if [ -d $dst ]
++ 	then
++ 		dst="$dst"/`basename $src`
++ 	else
++ 		true
++ 	fi
++ fi
++ 
++ ## this sed command emulates the dirname command
++ dstdir=`echo $dst | sed -e 's,[^/]*$,,;s,/$,,;s,^$,.,'`
++ 
++ # Make sure that the destination directory exists.
++ #  this part is taken from Noah Friedman's mkinstalldirs script
++ 
++ # Skip lots of stat calls in the usual case.
++ if [ ! -d "$dstdir" ]; then
++ defaultIFS='	
++ '
++ IFS="${IFS-${defaultIFS}}"
++ 
++ oIFS="${IFS}"
++ # Some sh's can't handle IFS=/ for some reason.
++ IFS='%'
++ set - `echo ${dstdir} | sed -e 's@/@%@g' -e 's@^%@/@'`
++ IFS="${oIFS}"
++ 
++ pathcomp=''
++ 
++ while [ $# -ne 0 ] ; do
++ 	pathcomp="${pathcomp}${1}"
++ 	shift
++ 
++ 	if [ ! -d "${pathcomp}" ] ;
++         then
++ 		$mkdirprog "${pathcomp}"
++ 	else
++ 		true
++ 	fi
++ 
++ 	pathcomp="${pathcomp}/"
++ done
++ fi
++ 
++ if [ x"$dir_arg" != x ]
++ then
++ 	$doit $instcmd $dst &&
++ 
++ 	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dst; else true ; fi &&
++ 	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dst; else true ; fi &&
++ 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dst || true; else true ; fi &&
++ 	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dst; else true ; fi
++ else
++ 
++ # If we're going to rename the final executable, determine the name now.
++ 
++ 	if [ x"$transformarg" = x ] 
++ 	then
++ 		dstfile=`basename $dst`
++ 	else
++ 		dstfile=`basename $dst $transformbasename | 
++ 			sed $transformarg`$transformbasename
++ 	fi
++ 
++ # don't allow the sed command to completely eliminate the filename
++ 
++ 	if [ x"$dstfile" = x ] 
++ 	then
++ 		dstfile=`basename $dst`
++ 	else
++ 		true
++ 	fi
++ 
++ # Make a temp file name in the proper directory.
++ 
++ 	dsttmp=$dstdir/#inst.$$#
++ 
++ # Move or copy the file name to the temp name
++ 
++ 	$doit $instcmd $src $dsttmp &&
++ 
++ 	trap "rm -f ${dsttmp}" 0 &&
++ 
++ # and set any options; do chmod last to preserve setuid bits
++ 
++ # If any of these fail, we abort the whole thing.  If we want to
++ # ignore errors from any of these, just make sure not to ignore
++ # errors from the above "$doit $instcmd $src $dsttmp" command.
++ 
++ 	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dsttmp; else true;fi &&
++ 	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dsttmp; else true;fi &&
++ 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dsttmp || true; else true;fi &&
++ 	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else true;fi &&
++ 
++ # Now rename the file to the real destination.
++ 
++ 	$doit $rmcmd -f $dstdir/$dstfile &&
++ 	$doit $mvcmd $dsttmp $dstdir/$dstfile 
++ 
++ fi &&
++ 
++ 
++ exit 0
+diff -crN ./automake/lib/Automake/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Automake/Makefile.in
+*** ./automake/lib/Automake/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Automake/Makefile.in	Tue Oct 11 09:03:38 2005
+***************
+*** 104,110 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 104,110 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/lib/Automake/tests/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Automake/tests/Makefile.in
+*** ./automake/lib/Automake/tests/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Automake/tests/Makefile.in	Tue Oct 11 09:04:20 2005
+***************
+*** 83,89 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 83,89 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+***************
+*** 126,132 ****
+  sharedstatedir = @sharedstatedir@
+  sysconfdir = @sysconfdir@
+  target_alias = @target_alias@
+! TESTS_ENVIRONMENT = $(PERL) -Mstrict -I $(top_srcdir)/lib -w
+  TESTS = \
+  Condition.pl \
+  DisjConditions.pl \
+--- 126,132 ----
+  sharedstatedir = @sharedstatedir@
+  sysconfdir = @sysconfdir@
+  target_alias = @target_alias@
+! TESTS_ENVIRONMENT = $(PERL_PATH) -Mstrict -I $(top_srcdir)/lib -w
+  TESTS = \
+  Condition.pl \
+  DisjConditions.pl \
+diff -crN ./automake/lib/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Makefile.in
+*** ./automake/lib/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/Makefile.in	Tue Oct 11 09:05:01 2005
+***************
+*** 107,113 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 107,113 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/lib/am/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/am/Makefile.in
+*** ./automake/lib/am/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/lib/am/Makefile.in	Tue Oct 11 09:05:46 2005
+***************
+*** 94,100 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 94,100 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/m4/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/m4/Makefile.in
+*** ./automake/m4/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/m4/Makefile.in	Tue Oct 11 09:07:04 2005
+***************
+*** 94,100 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 94,100 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/stamp-vti /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/stamp-vti
+*** ./automake/stamp-vti	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/stamp-vti	Tue Oct 11 09:07:33 2005
+***************
+*** 0 ****
+--- 1,5 ----
++ 
++ @set UPDATED 25 September 2002
++ @set UPDATED-MONTH September 2002
++ @set EDITION 1.7.1
++ @set VERSION 1.7.1
+diff -crN ./automake/tests/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/tests/Makefile.in
+*** ./automake/tests/Makefile.in	Sun Jul 10 20:14:53 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/tests/Makefile.in	Tue Oct 11 09:40:35 2005
+***************
+*** 84,90 ****
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL = @PERL@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+--- 84,90 ----
+  PACKAGE_TARNAME = @PACKAGE_TARNAME@
+  PACKAGE_VERSION = @PACKAGE_VERSION@
+  PATH_SEPARATOR = @PATH_SEPARATOR@
+! PERL_PATH = @PERL_PATH@
+  SET_MAKE = @SET_MAKE@
+  SHELL = @SHELL@
+  STRIP = @STRIP@
+diff -crN ./automake/version.texi /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/version.texi
+*** ./automake/version.texi	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./automake/version.texi	Tue Oct 11 09:08:35 2005
+***************
+*** 0 ****
+--- 1,5 ----
++ 
++ @set UPDATED 25 September 2002
++ @set UPDATED-MONTH September 2002
++ @set EDITION 1.7.1
++ @set VERSION 1.7.1

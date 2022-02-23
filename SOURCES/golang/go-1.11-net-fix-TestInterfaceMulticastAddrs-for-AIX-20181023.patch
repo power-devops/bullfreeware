@@ -1,0 +1,28 @@
+From 32b8a49d37ba94a127d28e8bc14ec95c8b4df4a7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 23 Oct 2018 15:55:57 +0200
+Subject: [PATCH] net: fix TestInterfaceMulticastAddrs for AIX
+
+This commit disables checkMulticastStats for AIX operating system.
+
+Change-Id: If8d0fb609a0dcf75b7bb5c3871cfb6fad76a0a92
+---
+ src/net/interface_test.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/net/interface_test.go b/src/net/interface_test.go
+index 5d183c5638..c6b514abce 100644
+--- a/src/net/interface_test.go
++++ b/src/net/interface_test.go
+@@ -278,7 +278,7 @@ func checkUnicastStats(ifStats *ifStats, uniStats *routeStats) error {
+ 
+ func checkMulticastStats(ifStats *ifStats, uniStats, multiStats *routeStats) error {
+ 	switch runtime.GOOS {
+-	case "dragonfly", "nacl", "netbsd", "openbsd", "plan9", "solaris":
++	case "aix", "dragonfly", "nacl", "netbsd", "openbsd", "plan9", "solaris":
+ 	default:
+ 		// Test the existence of connected multicast route
+ 		// clones for IPv4. Unlike IPv6, IPv4 multicast
+-- 
+2.17.1
+

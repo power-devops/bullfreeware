@@ -1,0 +1,148 @@
+--- src/pl/plpython/plpy_cursorobject.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_cursorobject.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_cursorobject.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include <limits.h>
+--- src/pl/plpython/plpy_elog.c.ORIGIN	2016-10-27 15:35:05 -0500
++++ src/pl/plpython/plpy_elog.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_elog.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "lib/stringinfo.h"
+--- src/pl/plpython/plpy_exec.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_exec.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_exec.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "access/htup_details.h"
+--- src/pl/plpython/plpy_main.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_main.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_main.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "access/htup_details.h"
+--- src/pl/plpython/plpy_planobject.c.ORIGIN	2016-10-27 15:35:12 -0500
++++ src/pl/plpython/plpy_planobject.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_planobject.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "plpython.h"
+--- src/pl/plpython/plpy_plpymodule.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_plpymodule.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_plpymodule.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "mb/pg_wchar.h"
+--- src/pl/plpython/plpy_procedure.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_procedure.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_procedure.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "access/htup_details.h"
+--- src/pl/plpython/plpy_resultobject.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_resultobject.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_resultobject.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "plpython.h"
+--- src/pl/plpython/plpy_spi.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_spi.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_spi.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include <limits.h>
+--- src/pl/plpython/plpy_subxactobject.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_subxactobject.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_subxactobject.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "access/xact.h"
+--- src/pl/plpython/plpy_typeio.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_typeio.c	2016-10-27 15:36:45 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_typeio.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "access/htup_details.h"
+--- src/pl/plpython/plpy_util.c.ORIGIN	2016-10-27 15:34:31 -0500
++++ src/pl/plpython/plpy_util.c	2016-10-27 15:36:46 -0500
+@@ -4,6 +4,8 @@
+  * src/pl/plpython/plpy_util.c
+  */
+ 
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ 
+ #include "mb/pg_wchar.h"
+--- contrib/hstore_plpython/hstore_plpython.c.ORIGIN	2016-10-27 15:51:18 -0500
++++ contrib/hstore_plpython/hstore_plpython.c	2016-10-27 15:50:12 -0500
+@@ -1,3 +1,5 @@
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ #include "fmgr.h"
+ #include "plpython.h"
+--- contrib/ltree_plpython/ltree_plpython.c.ORIGIN	2016-10-27 16:03:56 -0500
++++ contrib/ltree_plpython/ltree_plpython.c	2016-10-27 16:04:12 -0500
+@@ -1,3 +1,5 @@
++#define _LARGE_FILES 1
++
+ #include "postgres.h"
+ #include "fmgr.h"
+ #include "plpython.h"

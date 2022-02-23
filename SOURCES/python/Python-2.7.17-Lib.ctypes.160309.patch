@@ -1,0 +1,209 @@
+--- ./Lib/ctypes/__init__.py.ORIG	2018-04-30 00:47:33 +0200
++++ ./Lib/ctypes/__init__.py	2018-08-02 16:58:37 +0200
+@@ -357,6 +357,14 @@
+         if use_last_error:
+             flags |= _FUNCFLAG_USE_LASTERROR
+ 
++        if _sys.platform.startswith("aix"):
++            RTLD_NOW    = 0x00000002
++            RTLD_MEMBER = 0x00040000
++            mode |= RTLD_NOW
++            if name:
++                if name[-1] == ')':
++                       mode |= RTLD_MEMBER
++
+         class _FuncPtr(_CFuncPtr):
+             _flags_ = flags
+             _restype_ = self._func_restype_
+--- ./Lib/ctypes/util.py.ORIG	2018-04-30 00:47:33 +0200
++++ ./Lib/ctypes/util.py	2018-08-02 16:58:37 +0200
+@@ -83,6 +83,151 @@
+                 continue
+         return None
+ 
++if sys.platform.startswith('aix'):
++    # find .so members in .a files
++    # using dump loader header information + sys.
++    import re
++    def _aixABI():
++        if (sys.maxsize < 2**32):
++            return 32
++        else:
++            return 64
++
++    def _get_dumpH(archive):
++        _cmd = 'dump -X%s -H %s' % (_aixABI(), archive)
++        f = os.popen(_cmd)
++        try:
++            lines = f.read()
++        finally:
++            rv = f.close()
++        return lines
++
++    def _get_member64(archive, name, lines):
++        # Boring that member names are in square brackets []
++        # while the actual dlopen call requires parenthesis ()
++        # look for an exact match
++        expr = r'\[lib%s[_]*64\.so\]' % name
++        res = re.findall(expr, lines)
++
++        if not res:
++            expr = r'\[shr4_64.o\]'
++            res = re.findall(expr, lines)
++
++        if not res:
++            expr = r'\[shr_64.o\]'
++            res = re.findall(expr, lines)
++
++        if not res:
++            return None
++        else:
++            return '%s' % res[0][1:-1]
++
++
++    def _get_versioned(archive, name, lines=None):
++        # sort function, borrowed from below
++        def _num_version(libname):
++            # "libxyz.so.MAJOR.MINOR" => [ MAJOR, MINOR ]
++            parts = libname.split(".")
++            nums = []
++            try:
++                while parts:
++                    nums.insert(0, int(parts.pop()))
++            except ValueError:
++                pass
++            return nums or [ sys.maxint ]
++
++        expr = r'\[lib%s\.so\.[0-9]+.*\]' % name
++        res = re.findall(expr, lines)
++        if res:
++            res.sort(key=_num_version)
++            return res[-1]
++        return None
++
++    def _get_members(archive, name, lines=None):
++        # member names are in square brackets [] from dump
++        # while dlopen call requires parenthesis ()
++        lines =  _get_dumpH(archive)
++
++        # look first for an exact match
++        expr = r'\[lib%s\.so\]' % name
++        res = re.findall(expr, lines)
++        # where there is not an exact match, look for a versioned .so
++        if not res:
++            res = _get_versioned(archive, name, lines)
++            if res:
++                return res[1:-1]
++
++        # will have to look for legacy AIX names and the odd append of 64 with _
++        # but only if this is a 64-bit python
++        if not res and _aixABI() == 64:
++            return(_get_member64(archive, name, lines))
++
++        # now look for legacy names - shr4.o and shr.o
++        if not res:
++            expr = r'\[shr4.o\]'
++            res = re.findall(expr, lines)
++
++        if not res:
++            expr = r'\[shr.o\]'
++            res = re.findall(expr, lines)
++
++        if not res:
++            return None
++        else:
++            return '%s' % res[0][1:-1]
++
++    def _findLibPath_aix():
++        _cmd = "dump -X%s -H %s" % (_aixABI(), sys.executable)
++        f = os.popen(_cmd)
++        libpaths=os.getenv('LIBPATH')
++        # my preference is that sys.prefix would be included automatically by cdll.LoadLibrary
++        # unfortunately, that is not the case - so these are comments of what I would have preferred!
++        # if (libpaths == None):
++        #     libpaths = "%s/lib" % sys.prefix
++        # else:
++        #     libpaths = "%s:%s/lib" % (libpaths, sys.prefix)
++        try:
++            for line in f:
++                if line.startswith('INDEX  PATH'):
++                    break;
++            for line in f:
++                x = line.split()[1]
++                if (x.startswith('/') or x.startswith('./') or x.startswith('../')):
++                    if libpaths is not None:
++                        libpaths = "%s:%s" % (libpaths, x)
++                    else:
++                        libpaths = x
++        finally:
++            rv = f.close()
++        return libpaths
++    
++    def _findLib_aix(name, shlib=None):
++        # should this return the whole path, or just the 'stub'
++        # for now, return the stub with .a
++        # and whole path with .so - unsure on python behavior elsewhere
++        paths = _findLibPath_aix()
++        for dir in paths.split(":"):
++            # AIX rtl searches .a, by default, if it exists
++            _arfile = os.path.join(dir, "lib%s.a" % name)
++            if os.path.exists(_arfile):
++                print 'checking:' + _arfile
++                member = _get_members(_arfile, name)
++                if member != None:
++                    print 'member is:' + member
++                    shlib = "lib%s.a(%s)" % (name, member)
++                    return shlib
++            # look for a .so FILE last, no version checking done yet
++            shlib = os.path.join(dir, "lib%s.so" % name)
++            if os.path.exists(shlib):
++                return shlib
++
++        # if we are here, we have not found anything plausible, no versions checking yet
++        # version checking (e.g., iconv ==> libiconv.a(libiconv.so.2)
++        return None
++
++    def find_library(name):
++        return _findLib_aix(name)
++
+ elif os.name == "posix":
+     # Andreas Degert's find functions, using gcc, /sbin/ldconfig, objdump
+     import re, tempfile, errno
+@@ -267,6 +412,37 @@
+             print cdll.LoadLibrary("libcrypto.dylib")
+             print cdll.LoadLibrary("libSystem.dylib")
+             print cdll.LoadLibrary("System.framework/System")
++        elif sys.platform.startswith("aix"):
++            print 'aix:find_library("intl")'
++            print find_library("intl")
++            print
++            print 'aix:cdll.LoadLibrary(find_library("iconv"))'
++            print find_library("iconv")
++            x = find_library("iconv")
++            print cdll.LoadLibrary(x)
++            print
++            print 'aix:cdll.LoadLibrary(find_library("crypto"))'
++            print find_library("crypto")
++            x = find_library("crypto")
++            print cdll.LoadLibrary(x)
++            print
++            print 'aix:cdll.LoadLibrary("libcrypto.a(libcrypto.so)")'
++            print cdll.LoadLibrary("libcrypto.a(libcrypto.so)")
++            print
++            print 'aix:cdll.LoadLibrary("libc.a(shr.o)")'
++            print cdll.LoadLibrary("libc.a(shr.o)")
++            print
++            print 'aix:cdll.LoadLibrary("libcrypt.a(shr.o)")'
++            print cdll.LoadLibrary("libcrypt.a(shr.o)")
++            print
++            print 'aix:find_library("iconv")'
++            print find_library("iconv")
++            print 'aix:find_library("c")'
++            print find_library("c")
++            print 'aix:find_library("m")'
++            print find_library("m")
++            print 'aix:find_library("crypt")'
++            print find_library("crypt")
+         else:
+             print cdll.LoadLibrary("libm.so")
+             print cdll.LoadLibrary("libcrypt.so")

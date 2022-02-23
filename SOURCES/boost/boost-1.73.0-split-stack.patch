@@ -1,0 +1,325 @@
+--- ./libs/context/test/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/context/test/Jamfile.v2	2020-05-04 14:24:47 -0500
+@@ -18,8 +18,8 @@
+     : requirements
+       <library>../../test/build//boost_unit_test_framework
+       <library>/boost/context//boost_context
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/build/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/context/build/Jamfile.v2	2020-05-04 14:24:37 -0500
+@@ -26,8 +26,8 @@
+ project boost/context
+     : requirements
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>gcc,<segmented-stacks>on:<linkflags>"-static-libgcc"
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+--- ./libs/coroutine/test/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/coroutine/test/Jamfile.v2	2020-05-04 14:33:38 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+       <library>/boost/test///boost_unit_test_framework
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/build/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/coroutine/build/Jamfile.v2	2020-05-04 14:32:39 -0500
+@@ -12,8 +12,8 @@
+     : requirements
+       <library>/boost/context//boost_context
+       <library>/boost/thread//boost_thread
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>shared:<define>BOOST_COROUTINES_DYN_LINK=1
+--- ./libs/coroutine2/test/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/coroutine2/test/Jamfile.v2	2020-05-04 14:32:55 -0500
+@@ -18,8 +18,8 @@
+     : requirements
+       <library>../../test/build//boost_unit_test_framework
+       <library>/boost/context//boost_context
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/fiber/build/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/fiber/build/Jamfile.v2	2020-05-04 14:33:03 -0500
+@@ -20,8 +20,8 @@
+       <library>/boost/filesystem//boost_filesystem
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>shared:<define>BOOST_FIBERS_DYN_LINK=1
+--- ./libs/fiber/test/Jamfile.v2.ORIGIN	2020-05-04 14:15:19 -0500
++++ ./libs/fiber/test/Jamfile.v2	2020-05-04 14:33:08 -0500
+@@ -23,8 +23,8 @@
+       <library>/boost/thread//boost_thread
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/example/callcc/Jamfile.v2.O	2020-06-18 09:26:54 -0500
++++ ./libs/context/example/callcc/Jamfile.v2	2020-06-18 09:32:19 -0500
+@@ -18,8 +18,8 @@
+ project boost/context/example/callcc
+     : requirements
+       <library>/boost/context//boost_context
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/example/fiber/Jamfile.v2.O	2020-06-18 09:27:07 -0500
++++ ./libs/context/example/fiber/Jamfile.v2	2020-06-18 09:32:31 -0500
+@@ -18,8 +18,8 @@
+ project boost/context/example/fiber
+     : requirements
+       <library>/boost/context//boost_context
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/performance/callcc/Jamfile.v2.O	2020-06-18 09:27:21 -0500
++++ ./libs/context/performance/callcc/Jamfile.v2	2020-06-18 09:32:50 -0500
+@@ -18,8 +18,8 @@
+       <library>/boost/chrono//boost_chrono
+       <library>/boost/context//boost_context
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/performance/fcontext/Jamfile.v2.O	2020-06-18 09:27:31 -0500
++++ ./libs/context/performance/fcontext/Jamfile.v2	2020-06-18 09:36:04 -0500
+@@ -18,8 +18,8 @@
+       <library>/boost/chrono//boost_chrono
+       <library>/boost/context//boost_context
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/context/performance/fiber/Jamfile.v2.O	2020-06-18 09:27:45 -0500
++++ ./libs/context/performance/fiber/Jamfile.v2	2020-06-18 09:36:17 -0500
+@@ -18,8 +18,8 @@
+       <library>/boost/chrono//boost_chrono
+       <library>/boost/context//boost_context
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/example/asymmetric/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/example/asymmetric/Jamfile.v2	2020-06-18 09:42:51 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/context//boost_context
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>shared
+--- ./libs/coroutine/example/symmetric/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/example/symmetric/Jamfile.v2	2020-06-18 09:43:02 -0500
+@@ -20,8 +20,8 @@
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+       <library>/boost/random//boost_random
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/performance/asymmetric/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/performance/asymmetric/Jamfile.v2	2020-06-18 09:43:11 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/context//boost_context
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/performance/asymmetric/segmented/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/performance/asymmetric/segmented/Jamfile.v2	2020-06-18 09:43:19 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/context//boost_context
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/performance/symmetric/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/performance/symmetric/Jamfile.v2	2020-06-18 09:43:29 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/context//boost_context
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine/performance/symmetric/segmented/Jamfile.v2.O	2020-06-18 09:42:11 -0500
++++ ./libs/coroutine/performance/symmetric/segmented/Jamfile.v2	2020-06-18 09:43:39 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/context//boost_context
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine2/example/Jamfile.v2.O	2020-06-18 09:47:29 -0500
++++ ./libs/coroutine2/example/Jamfile.v2	2020-06-18 09:47:59 -0500
+@@ -16,8 +16,8 @@
+ project boost/coroutine2/example
+     : requirements
+       <library>/boost/context//boost_context
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine2/performance/Jamfile.v2.O	2020-06-18 09:47:29 -0500
++++ ./libs/coroutine2/performance/Jamfile.v2	2020-06-18 09:48:08 -0500
+@@ -18,8 +18,8 @@
+       <library>/boost/chrono//boost_chrono
+       <library>/boost/context//boost_context
+       <library>/boost/program_options//boost_program_options
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/coroutine2/performance/segmented/Jamfile.v2.O	2020-06-18 09:47:29 -0500
++++ ./libs/coroutine2/performance/segmented/Jamfile.v2	2020-06-18 09:48:17 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/coroutine//boost_coroutine
+       <library>/boost/program_options//boost_program_options
+       <segmented-stacks>on
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/fiber/examples/Jamfile.v2.O	2020-06-18 09:50:23 -0500
++++ ./libs/fiber/examples/Jamfile.v2	2020-06-18 09:51:12 -0500
+@@ -23,8 +23,8 @@
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>solaris:<linkflags>"-lsocket"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>shared
+--- ./libs/fiber/performance/fiber/Jamfile.v2.O	2020-06-18 09:50:23 -0500
++++ ./libs/fiber/performance/fiber/Jamfile.v2	2020-06-18 09:51:24 -0500
+@@ -19,8 +19,8 @@
+       <library>/boost/fiber//boost_fiber_numa
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/fiber/performance/fiber/numa/Jamfile.v2.O	2020-06-18 09:50:23 -0500
++++ ./libs/fiber/performance/fiber/numa/Jamfile.v2	2020-06-18 09:51:30 -0500
+@@ -18,8 +18,8 @@
+       <library>/boost/fiber//boost_fiber
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static
+--- ./libs/fiber/examples/numa/Jamfile.v2.O	2020-06-18 09:50:23 -0500
++++ ./libs/fiber/examples/numa/Jamfile.v2	2020-06-18 09:51:45 -0500
+@@ -20,8 +20,8 @@
+       <library>../../build//boost_fiber_numa
+       <target-os>solaris:<linkflags>"-llgrp"
+       <target-os>windows:<define>_WIN32_WINNT=0x0601
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
++      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
+       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+       <link>static

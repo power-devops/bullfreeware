@@ -1,0 +1,50 @@
+*** ./mozilla-64/security/coreconf/AIX.mk.ORIG	Mon Feb  7 23:36:54 2011
+--- ./mozilla-64/security/coreconf/AIX.mk	Mon Feb  7 23:37:30 2011
+***************
+*** 70,79 ****
+  RANLIB		= ranlib
+  
+  OS_CFLAGS	= -DAIX -DSYSV
+! OS_LIBS 	+= -blibpath:/usr/lib:/lib -lc -lm
+  
+  DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+! MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
+  
+  AIX_WRAP	= $(DIST)/lib/aixwrap.o
+  AIX_TMP		= $(OBJDIR)/_aix_tmp.o
+--- 70,79 ----
+  RANLIB		= ranlib
+  
+  OS_CFLAGS	= -DAIX -DSYSV
+! OS_LIBS 	+= -blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm
+  
+  DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+! MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm
+  
+  AIX_WRAP	= $(DIST)/lib/aixwrap.o
+  AIX_TMP		= $(OBJDIR)/_aix_tmp.o
+*** ./mozilla-32/security/coreconf/AIX.mk.ORIG	Mon Feb  7 23:37:39 2011
+--- ./mozilla-32/security/coreconf/AIX.mk	Mon Feb  7 23:37:59 2011
+***************
+*** 70,79 ****
+  RANLIB		= ranlib
+  
+  OS_CFLAGS	= -DAIX -DSYSV
+! OS_LIBS 	+= -blibpath:/usr/lib:/lib -lc -lm
+  
+  DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+! MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
+  
+  AIX_WRAP	= $(DIST)/lib/aixwrap.o
+  AIX_TMP		= $(OBJDIR)/_aix_tmp.o
+--- 70,79 ----
+  RANLIB		= ranlib
+  
+  OS_CFLAGS	= -DAIX -DSYSV
+! OS_LIBS 	+= -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm
+  
+  DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+! MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm
+  
+  AIX_WRAP	= $(DIST)/lib/aixwrap.o
+  AIX_TMP		= $(OBJDIR)/_aix_tmp.o

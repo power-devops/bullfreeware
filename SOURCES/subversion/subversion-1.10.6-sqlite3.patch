@@ -1,0 +1,12 @@
+ # Compilation of SWIG-generated C source code
+--- ./Makefile.in.orig	2019-06-08 10:35:42 +0000
++++ ./Makefile.in	2019-06-08 10:37:20 +0000
+@@ -285,7 +285,7 @@
+ libsvn_ra_serf_LDFLAGS = @libsvn_ra_serf_LDFLAGS@
+ libsvn_ra_svn_LDFLAGS = @libsvn_ra_svn_LDFLAGS@
+ libsvn_repos_LDFLAGS = @libsvn_repos_LDFLAGS@
+-libsvn_subr_LDFLAGS = @libsvn_subr_LDFLAGS@
++libsvn_subr_LDFLAGS = -L/opt/freeware/lib -lsqlite3
+ libsvn_wc_LDFLAGS = @libsvn_wc_LDFLAGS@
+ shared_only_LDFLAGS = @shared_only_LDFLAGS@
+ 

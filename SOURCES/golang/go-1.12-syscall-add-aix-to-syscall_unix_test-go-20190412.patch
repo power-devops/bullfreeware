@@ -1,0 +1,363 @@
+From 63cad96a9b38bfcde48a167e070cc8843c5aed13 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 10 Apr 2019 17:16:48 +0200
+Subject: [PATCH] syscall: add aix to syscall_unix_test.go
+
+This file was forgotten during the port of aix/ppc64. In order to make
+its tests passed, a few things were added:
+- Add termios.h to zerrors
+- Add AF_LOCAL = AF_UNIX as this constant doesn't exits natively on AIX
+- Fix the alignment in cmsghdr structure.
+
+TestPassFD doesn't work on AIX TL<2 because getsockname isn't working as
+expected with unix socket.
+
+Change-Id: I928705bfc78ada29e66df61fe97d8f379f8c739b
+Reviewed-on: https://go-review.googlesource.com/c/go/+/171339
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/syscall/mkerrors.sh b/src/syscall/mkerrors.sh
+index d5880dc..fc86d8b 100755
+--- a/src/syscall/mkerrors.sh
++++ b/src/syscall/mkerrors.sh
+@@ -28,6 +28,7 @@
+ #include <sys/protosw.h>
+ #include <sys/ptrace.h>
+ #include <sys/stropts.h>
++#include <termios.h>
+ '
+ 
+ includes_Darwin='
+diff --git a/src/syscall/sockcmsg_unix.go b/src/syscall/sockcmsg_unix.go
+index fa19868..fd5bfaf 100644
+--- a/src/syscall/sockcmsg_unix.go
++++ b/src/syscall/sockcmsg_unix.go
+@@ -18,6 +18,9 @@
+ 	salign := sizeofPtr
+ 
+ 	switch runtime.GOOS {
++	case "aix":
++		// There is no alignment on AIX.
++		salign = 1
+ 	case "darwin", "dragonfly", "solaris":
+ 		// NOTE: It seems like 64-bit Darwin, DragonFly BSD and
+ 		// Solaris kernels still require 32-bit aligned access to
+diff --git a/src/syscall/syscall_aix.go b/src/syscall/syscall_aix.go
+index 0110ec1..ade2a9d 100644
+--- a/src/syscall/syscall_aix.go
++++ b/src/syscall/syscall_aix.go
+@@ -28,6 +28,11 @@
+ 	SYS_FCNTL
+ )
+ 
++const (
++	// AF_LOCAL doesn't exist on AIX
++	AF_LOCAL = AF_UNIX
++)
++
+ func (ts *StTimespec_t) Unix() (sec int64, nsec int64) {
+ 	return int64(ts.Sec), int64(ts.Nsec)
+ }
+@@ -601,6 +606,7 @@
+ //sys	Geteuid() (euid int)
+ //sys	Getegid() (egid int)
+ //sys	Getppid() (ppid int)
++//sys	Getpriority(which int, who int) (n int, err error)
+ //sysnb	Getrlimit(which int, lim *Rlimit) (err error)
+ //sysnb	Getuid() (uid int)
+ //sys	Kill(pid int, signum Signal) (err error)
+@@ -623,6 +629,7 @@
+ //sysnb	Seteuid(euid int) (err error)
+ //sysnb	Setgid(gid int) (err error)
+ //sysnb	Setpgid(pid int, pgid int) (err error)
++//sys	Setpriority(which int, who int, prio int) (err error)
+ //sysnb	Setregid(rgid int, egid int) (err error)
+ //sysnb	Setreuid(ruid int, euid int) (err error)
+ //sysnb	Setrlimit(which int, lim *Rlimit) (err error)
+diff --git a/src/syscall/syscall_unix_test.go b/src/syscall/syscall_unix_test.go
+index 1a2c41d..3462fb2 100644
+--- a/src/syscall/syscall_unix_test.go
++++ b/src/syscall/syscall_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall_test
+ 
+@@ -17,6 +17,7 @@
+ 	"os/exec"
+ 	"path/filepath"
+ 	"runtime"
++	"strconv"
+ 	"syscall"
+ 	"testing"
+ 	"time"
+@@ -131,6 +132,26 @@
+ func TestPassFD(t *testing.T) {
+ 	testenv.MustHaveExec(t)
+ 
++	if runtime.GOOS == "aix" {
++		// Unix network isn't properly working on AIX 7.2 with Technical Level < 2
++		out, err := exec.Command("oslevel", "-s").Output()
++		if err != nil {
++			t.Skipf("skipping on AIX because oslevel -s failed: %v", err)
++		}
++		if len(out) < len("7200-XX-ZZ-YYMM") { // AIX 7.2, Tech Level XX, Service Pack ZZ, date YYMM
++			t.Skip("skipping on AIX because oslevel -s hasn't the right length")
++		}
++		aixVer := string(out[:4])
++		tl, err := strconv.Atoi(string(out[5:7]))
++		if err != nil {
++			t.Skipf("skipping on AIX because oslevel -s output cannot be parsed: %v", err)
++		}
++		if aixVer < "7200" || (aixVer == "7200" && tl < 2) {
++			t.Skip("skipped on AIX versions previous to 7.2 TL 2")
++		}
++
++	}
++
+ 	if os.Getenv("GO_WANT_HELPER_PROCESS") == "1" {
+ 		passFDChild()
+ 		return
+diff --git a/src/syscall/zerrors_aix_ppc64.go b/src/syscall/zerrors_aix_ppc64.go
+index 6013009..9a545ea 100644
+--- a/src/syscall/zerrors_aix_ppc64.go
++++ b/src/syscall/zerrors_aix_ppc64.go
+@@ -54,12 +54,28 @@
+ 	B600                          = 0x8
+ 	B75                           = 0x2
+ 	B9600                         = 0xd
++	BRKINT                        = 0x2
+ 	CFLUSH                        = 0xf
++	CLOCAL                        = 0x800
++	CREAD                         = 0x80
++	CS5                           = 0x0
++	CS6                           = 0x10
++	CS7                           = 0x20
++	CS8                           = 0x30
+ 	CSIOCGIFCONF                  = -0x3fef96dc
++	CSIZE                         = 0x30
++	CSMAP_DIR                     = "/usr/lib/nls/csmap/"
+ 	CSTART                        = '\021'
+ 	CSTOP                         = '\023'
++	CSTOPB                        = 0x40
+ 	CSUSP                         = 0x1a
+ 	ECHO                          = 0x8
++	ECHOCTL                       = 0x20000
++	ECHOE                         = 0x10
++	ECHOK                         = 0x20
++	ECHOKE                        = 0x80000
++	ECHONL                        = 0x40
++	ECHOPRT                       = 0x40000
+ 	ECH_ICMPID                    = 0x2
+ 	ETHERNET_CSMACD               = 0x6
+ 	EVENP                         = 0x80
+@@ -108,11 +124,15 @@
+ 	F_ULOCK                       = 0x0
+ 	F_UNLCK                       = 0x3
+ 	F_WRLCK                       = 0x2
++	HUPCL                         = 0x400
++	ICANON                        = 0x2
+ 	ICMP6_FILTER                  = 0x26
+ 	ICMP6_SEC_SEND_DEL            = 0x46
+ 	ICMP6_SEC_SEND_GET            = 0x47
+ 	ICMP6_SEC_SEND_SET            = 0x44
+ 	ICMP6_SEC_SEND_SET_CGA_ADDR   = 0x45
++	ICRNL                         = 0x100
++	IEXTEN                        = 0x200000
+ 	IFA_FIRSTALIAS                = 0x2000
+ 	IFA_ROUTE                     = 0x1
+ 	IFF_64BIT                     = 0x4000000
+@@ -216,6 +236,12 @@
+ 	IFT_X25DDN                    = 0x4
+ 	IFT_X25PLE                    = 0x28
+ 	IFT_XETHER                    = 0x1a
++	IGNBRK                        = 0x1
++	IGNCR                         = 0x80
++	IGNPAR                        = 0x4
++	IMAXBEL                       = 0x10000
++	INLCR                         = 0x40
++	INPCK                         = 0x10
+ 	IN_CLASSA_HOST                = 0xffffff
+ 	IN_CLASSA_MAX                 = 0x80
+ 	IN_CLASSA_NET                 = 0xff000000
+@@ -369,6 +395,11 @@
+ 	IP_TTL                        = 0x4
+ 	IP_UNBLOCK_SOURCE             = 0x3b
+ 	IP_UNICAST_HOPS               = 0x4
++	ISIG                          = 0x1
++	ISTRIP                        = 0x20
++	IXANY                         = 0x1000
++	IXOFF                         = 0x400
++	IXON                          = 0x200
+ 	I_FLUSH                       = 0x20005305
+ 	LNOFLSH                       = 0x8000
+ 	LOCK_EX                       = 0x2
+@@ -413,7 +444,16 @@
+ 	MS_INVALIDATE                 = 0x40
+ 	MS_PER_SEC                    = 0x3e8
+ 	MS_SYNC                       = 0x20
++	NOFLSH                        = 0x80
+ 	NOFLUSH                       = 0x80000000
++	OCRNL                         = 0x8
++	OFDEL                         = 0x80
++	OFILL                         = 0x40
++	ONLCR                         = 0x4
++	ONLRET                        = 0x20
++	ONOCR                         = 0x10
++	ONOEOT                        = 0x80000
++	OPOST                         = 0x1
+ 	O_ACCMODE                     = 0x23
+ 	O_APPEND                      = 0x8
+ 	O_CIO                         = 0x80
+@@ -448,6 +488,10 @@
+ 	O_TRUNC                       = 0x200
+ 	O_TTY_INIT                    = 0x0
+ 	O_WRONLY                      = 0x1
++	PARENB                        = 0x100
++	PAREXT                        = 0x100000
++	PARMRK                        = 0x8
++	PARODD                        = 0x200
+ 	PENDIN                        = 0x20000000
+ 	PRIO_PGRP                     = 0x1
+ 	PRIO_PROCESS                  = 0x0
+@@ -794,6 +838,9 @@
+ 	S_RESFMT8                     = 0x2c000000
+ 	S_WRBAND                      = 0x80
+ 	S_WRNORM                      = 0x40
++	TCIFLUSH                      = 0x0
++	TCIOFLUSH                     = 0x2
++	TCOFLUSH                      = 0x1
+ 	TCP_24DAYS_WORTH_OF_SLOWTICKS = 0x3f4800
+ 	TCP_ACLADD                    = 0x23
+ 	TCP_ACLBIND                   = 0x26
+@@ -834,6 +881,7 @@
+ 	TCP_STDURG                    = 0x10
+ 	TCP_TIMESTAMP_OPTLEN          = 0xc
+ 	TCP_UNSETPRIV                 = 0x28
++	TCSAFLUSH                     = 0x2
+ 	TIOCCBRK                      = 0x2000747a
+ 	TIOCCDTR                      = 0x20007478
+ 	TIOCCONS                      = 0xffffffff80047462
+@@ -897,7 +945,28 @@
+ 	TIOCSWINSZ                    = 0xffffffff80087467
+ 	TIOCUCNTL                     = 0xffffffff80047466
+ 	TOSTOP                        = 0x10000
++	VDISCRD                       = 0xc
++	VDSUSP                        = 0xa
++	VEOF                          = 0x4
++	VEOL                          = 0x5
++	VEOL2                         = 0x6
++	VERASE                        = 0x2
++	VINTR                         = 0x0
++	VKILL                         = 0x3
++	VLNEXT                        = 0xe
++	VMIN                          = 0x4
++	VQUIT                         = 0x1
++	VREPRINT                      = 0xb
++	VSTART                        = 0x7
++	VSTOP                         = 0x8
++	VSTRT                         = 0x7
++	VSUSP                         = 0x9
++	VT0                           = 0x0
++	VT1                           = 0x8000
+ 	VTDELAY                       = 0x2000
++	VTDLY                         = 0x8000
++	VTIME                         = 0x5
++	VWERSE                        = 0xd
+ 	WPARSTART                     = 0x1
+ 	WPARSTOP                      = 0x2
+ 	WPARTTYNAME                   = "Global"
+diff --git a/src/syscall/zsyscall_aix_ppc64.go b/src/syscall/zsyscall_aix_ppc64.go
+index 63ed69a..384fead 100644
+--- a/src/syscall/zsyscall_aix_ppc64.go
++++ b/src/syscall/zsyscall_aix_ppc64.go
+@@ -60,6 +60,7 @@
+ //go:cgo_import_dynamic libc_Geteuid geteuid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Getegid getegid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Getppid getppid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getpriority getpriority "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Getrlimit getrlimit "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Getuid getuid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Kill kill "libc.a/shr_64.o"
+@@ -82,6 +83,7 @@
+ //go:cgo_import_dynamic libc_Seteuid seteuid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Setgid setgid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Setpgid setpgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setpriority setpriority "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Setregid setregid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Setreuid setreuid "libc.a/shr_64.o"
+ //go:cgo_import_dynamic libc_Setrlimit setrlimit "libc.a/shr_64.o"
+@@ -150,6 +152,7 @@
+ //go:linkname libc_Geteuid libc_Geteuid
+ //go:linkname libc_Getegid libc_Getegid
+ //go:linkname libc_Getppid libc_Getppid
++//go:linkname libc_Getpriority libc_Getpriority
+ //go:linkname libc_Getrlimit libc_Getrlimit
+ //go:linkname libc_Getuid libc_Getuid
+ //go:linkname libc_Kill libc_Kill
+@@ -172,6 +175,7 @@
+ //go:linkname libc_Seteuid libc_Seteuid
+ //go:linkname libc_Setgid libc_Setgid
+ //go:linkname libc_Setpgid libc_Setpgid
++//go:linkname libc_Setpriority libc_Setpriority
+ //go:linkname libc_Setregid libc_Setregid
+ //go:linkname libc_Setreuid libc_Setreuid
+ //go:linkname libc_Setrlimit libc_Setrlimit
+@@ -243,6 +247,7 @@
+ 	libc_Geteuid,
+ 	libc_Getegid,
+ 	libc_Getppid,
++	libc_Getpriority,
+ 	libc_Getrlimit,
+ 	libc_Getuid,
+ 	libc_Kill,
+@@ -265,6 +270,7 @@
+ 	libc_Seteuid,
+ 	libc_Setgid,
+ 	libc_Setpgid,
++	libc_Setpriority,
+ 	libc_Setregid,
+ 	libc_Setreuid,
+ 	libc_Setrlimit,
+@@ -898,6 +904,17 @@
+ 
+ // THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+ 
++func Getpriority(which int, who int) (n int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Getpriority)), 2, uintptr(which), uintptr(who), 0, 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
++
+ func Getrlimit(which int, lim *Rlimit) (err error) {
+ 	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Getrlimit)), 2, uintptr(which), uintptr(unsafe.Pointer(lim)), 0, 0, 0, 0)
+ 	if e1 != 0 {
+@@ -1198,6 +1215,16 @@
+ 
+ // THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+ 
++func Setpriority(which int, who int, prio int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Setpriority)), 3, uintptr(which), uintptr(who), uintptr(prio), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
++
+ func Setregid(rgid int, egid int) (err error) {
+ 	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setregid)), 2, uintptr(rgid), uintptr(egid), 0, 0, 0, 0)
+ 	if e1 != 0 {

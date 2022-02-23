@@ -1,0 +1,11 @@
+--- ./boost/multiprecision/mpfr.hpp.ORIGIN	2020-04-27 18:35:46 -0500
++++ ./boost/multiprecision/mpfr.hpp	2020-04-27 18:36:13 -0500
+@@ -164,7 +164,7 @@
+       boost::ulong_long_type mask  = ((((1uLL << (std::numeric_limits<unsigned long>::digits - 1)) - 1) << 1) | 1uLL);
+       unsigned               shift = 0;
+       mpfr_t                 t;
+-      mpfr_init2(t, (std::max)(static_cast<unsigned long>(std::numeric_limits<boost::ulong_long_type>::digits), mpfr_get_prec(m_data)));
++      mpfr_init2(t, (std::max)(static_cast<mpfr_prec_t>(std::numeric_limits<boost::ulong_long_type>::digits), mpfr_get_prec(m_data)));
+       mpfr_set_ui(m_data, 0, GMP_RNDN);
+       while (i)
+       {

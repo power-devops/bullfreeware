@@ -1,0 +1,81 @@
+From d10806928fc3d9f5b90011272ef8cd9a7ff53871 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 14 Jan 2020 14:24:16 +0100
+Subject: [PATCH] libbeat/common/file: fix fsync failure on AIX
+
+On AIX, fsync syscall doesn't work with read-only files.
+As os.Open is actually opening in read-only mode, it must be changed
+for os.OpenFile with O_RDWR flag.
+---
+ libbeat/common/file/helper_aix.go   | 45 +++++++++++++++++++++++++++++
+ libbeat/common/file/helper_other.go |  2 +-
+ 2 files changed, 46 insertions(+), 1 deletion(-)
+ create mode 100644 libbeat/common/file/helper_aix.go
+
+diff --git a/libbeat/common/file/helper_aix.go b/libbeat/common/file/helper_aix.go
+new file mode 100644
+index 000000000..985b452c1
+--- /dev/null
++++ b/libbeat/common/file/helper_aix.go
+@@ -0,0 +1,45 @@
++// Licensed to Elasticsearch B.V. under one or more contributor
++// license agreements. See the NOTICE file distributed with
++// this work for additional information regarding copyright
++// ownership. Elasticsearch B.V. licenses this file to you under
++// the Apache License, Version 2.0 (the "License"); you may
++// not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing,
++// software distributed under the License is distributed on an
++// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++// KIND, either express or implied.  See the License for the
++// specific language governing permissions and limitations
++// under the License.
++
++package file
++
++import (
++	"os"
++	"path/filepath"
++)
++
++// SafeFileRotate safely rotates an existing file under path and replaces it with the tempfile
++func SafeFileRotate(path, tempfile string) error {
++	parent := filepath.Dir(path)
++
++	if e := os.Rename(tempfile, path); e != nil {
++		return e
++	}
++
++	// best-effort fsync on parent directory. The fsync is required by some
++	// filesystems, so to update the parents directory metadata to actually
++	// contain the new file being rotated in.
++	// On AIX, fsync will fail if the file is opened in read-only mode,
++	// which is the case with os.Open.
++	f, err := os.OpenFile(parent, os.O_RDWR, 0)
++	if err != nil {
++		return nil // ignore error
++	}
++	defer f.Close()
++
++	return f.Sync()
++}
+diff --git a/libbeat/common/file/helper_other.go b/libbeat/common/file/helper_other.go
+index d166cb595..6347b7b28 100644
+--- a/libbeat/common/file/helper_other.go
++++ b/libbeat/common/file/helper_other.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build !windows
++// +build !aix,!windows
+ 
+ package file
+ 
+-- 
+2.22.0
+

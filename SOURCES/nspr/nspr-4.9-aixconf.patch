@@ -1,0 +1,13 @@
+Index: nspr-4.9/mozilla/nsprpub/build/autoconf/config.guess
+===================================================================
+--- nspr-4.9.orig/mozilla/nsprpub/build/autoconf/config.guess	2009-05-02 01:08:01.000000000 +0200
++++ nspr-4.9/mozilla/nsprpub/build/autoconf/config.guess	2012-03-26 14:13:57.000000000 +0200
+@@ -527,7 +527,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4-9])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000

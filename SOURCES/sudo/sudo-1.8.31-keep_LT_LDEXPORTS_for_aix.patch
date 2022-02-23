@@ -1,0 +1,57 @@
+From 9451f51b1f1279a4087ebf0b7fc6e07c3f496e9c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 9 Feb 2021 14:25:52 +0100
+Subject: [PATCH] keep LT_LDEXPORTS on aix
+
+Any library on AIX is created using a file giving all the
+exported symbols. This is needed even with when
+-fvisibility=hidden is provided.
+As libtool knows that, if -exports-symbols isn't provided
+it will generate its own .exp file, which contains far more symbols.
+Thus, it's better to always use the .exp file provided by sudo itself.
+---
+ configure    | 8 +++++++-
+ configure.ac | 8 +++++++-
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index 89f92ac..ecfd674 100755
+--- a/configure
++++ b/configure
+@@ -27204,7 +27204,13 @@ if test x"$ax_cv_check_cflags___fvisibility_hidden" = xyes; then :
+ 	$as_echo "#define HAVE_DSO_VISIBILITY 1" >>confdefs.h
+ 
+ 	CFLAGS="${CFLAGS} -fvisibility=hidden"
+-	LT_LDEXPORTS=
++	# On AIX, even with -fvisibility=hidden, symbols needs to be exported.
++	# If -export-symbols is not provided, libtool will generate its own
++	# .exp with all the symbols of a given library.
++	case "$host_os" in
++	     aix*) ;;
++	     *)	LT_LDEXPORTS= ;;
++	esac
+ 	LT_LDDEP=
+ 
+ else
+diff --git a/configure.ac b/configure.ac
+index 6725967..21e2069 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -4368,7 +4368,13 @@ if test -n "$GCC"; then
+     AX_CHECK_COMPILE_FLAG([-fvisibility=hidden], [
+ 	AC_DEFINE(HAVE_DSO_VISIBILITY)
+ 	CFLAGS="${CFLAGS} -fvisibility=hidden"
+-	LT_LDEXPORTS=
++	# On AIX, even with -fvisibility=hidden, symbols needs to be exported.
++	# If -export-symbols is not provided, libtool will generate its own
++	# .exp with all the symbols of a given library.
++	case "$host_os" in
++	     aix*) ;;
++	     *)	LT_LDEXPORTS= ;;
++	esac
+ 	LT_LDDEP=
+     ])
+ else
+-- 
+2.25.0
+

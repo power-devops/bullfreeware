@@ -1,0 +1,137 @@
+--- ./Modules/Platform/AIX.cmake.orig	2019-03-26 14:47:50.928000000 +0100
++++ ./Modules/Platform/AIX.cmake	2019-04-12 14:36:03.560000000 +0200
+@@ -1,7 +1,18 @@
+-set(CMAKE_SHARED_LIBRARY_PREFIX "lib")          # lib
+-set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")          # .so
++set(AIX 1)
++
++set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
++set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
++set(CMAKE_SHARED_LIBRARY_SUFFIX ".a")
++set(CMAKE_SHARED_MODULE_PREFIX "lib")
++set(CMAKE_SHARED_MODULE_SUFFIX ".so")
+ set(CMAKE_DL_LIBS "-lld")
+ 
++set(CMAKE_MODULE_EXISTS 1)
++####### TODO #######
++#set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
++
++
+ # RPATH support on AIX is called libpath.  By default the runtime
+ # libpath is paths specified by -L followed by /usr/lib and /lib.  In
+ # order to prevent the -L paths from being used we must force use of
+@@ -12,8 +23,9 @@
+   set(CMAKE_PLATFORM_REQUIRED_RUNTIME_PATH /usr/lib /lib)
+ endif()
+ 
++####### TODO #######
+ # Files named "libfoo.a" may actually be shared libraries.
+-set_property(GLOBAL PROPERTY TARGET_ARCHIVES_MAY_BE_SHARED_LIBS 1)
++#set_property(GLOBAL PROPERTY TARGET_ARCHIVES_MAY_BE_SHARED_LIBS 1)
+ 
+ # since .a can be a static or shared library on AIX, we can not do this.
+ # at some point if we wanted it, we would have to figure out if a .a is
+@@ -28,4 +40,27 @@
+ #  set(CMAKE_${type}_LINK_DYNAMIC_C_FLAGS "-bdynamic")
+ #endforeach()
+ 
++# AIX can need to export symbols (typically for module).
++# export_file is target name.
++# export_obj are .o whose symbols are exported.
++# export_path is where export file will be saved.
++# ext is code export file, see man ld.
++macro(ExportAIX export_file export_obj export_path ext)
++  add_custom_command(TARGET ${export_file}
++    PRE_LINK
++    COMMAND echo "#! ${ext}" > ${export_path}
++    COMMAND nm -BCg $<TARGET_OBJECTS:${export_obj}> | grep " [TDB] " | sed -e "s/.* //" | grep -v "\\\$" | sed -e "s/\^[.]//" | sort | uniq >> ${export_path}
++    VERBATIM
++  )
++  target_link_options(${export_file}
++    PRIVATE "-Wl,-bE:${export_path}")
++  add_dependencies(${export_file} ${export_obj})
++  set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${export_path})
++endmacro(ExportAIX)
++
++macro(ImportAIX import_file export_path)
++  target_link_options(${import_file}
++    PRIVATE "-Wl,-bI:${export_path}")
++endmacro(ImportAIX)
++
+ include(Platform/UnixPaths)
+--- ./Modules/Platform/AIX-GNU.cmake.orig	2019-02-01 14:35:27.000000000 +0100
++++ ./Modules/Platform/AIX-GNU.cmake	2019-04-12 14:36:14.928000000 +0200
+@@ -8,23 +8,30 @@
+ endif()
+ set(__AIX_COMPILER_GNU 1)
+ 
+-#
+-# By default, runtime linking is enabled. All shared objects specified on the command line
+-# will be listed, even if there are no symbols referenced, in the output file.
+-string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_MODULE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-
+-
+ macro(__aix_compiler_gnu lang)
+-  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
++  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-bnoipath -Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+-  string(APPEND CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS " -Wl,-G,-bnoipath")
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall")
++
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++
+   set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
+ 
+-  set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
++
+   if(CMAKE_${lang}_COMPILER_VERSION VERSION_LESS 7 OR CMAKE_SYSTEM_VERSION VERSION_LESS 7.1)
+     unset(CMAKE_${lang}_COMPILE_OPTIONS_VISIBILITY)
+   endif()
++
++  # By default, module are .so and shared libraries .a in AIX.
++  # As this comportment can be overwritten or misrespected we provides both .a and stripped .so.
++  set(CMAKE_${lang}_CREATE_SHARED_LIBRARY
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_LIBRARY_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <OBJECT_DIR>/lib<TARGET_NAME>.so <OBJECTS> <LINK_LIBRARIES>"
++    "<CMAKE_AR> -c -q <TARGET> <OBJECT_DIR>/lib<TARGET_NAME>.so"
++    "rm <OBJECT_DIR>/lib<TARGET_NAME>.so" 
++  )
++
++  set(CMAKE_${lang}_CREATE_SHARED_MODULE
++    "<CMAKE_${lang}_COMPILER> <CMAKE_SHARED_MODULE_${lang}_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>"
++    "strip -e -X32_64 <TARGET>"
++  )
+ endmacro()
+--- ./Modules/Platform/AIX-XL.cmake.orig	2019-04-09 14:48:31.120000000 +0200
++++ ./Modules/Platform/AIX-XL.cmake	2019-04-12 10:38:23.776000000 +0200
+@@ -8,21 +8,13 @@
+ endif()
+ set(__AIX_COMPILER_XL 1)
+ 
+-#
+-# By default, runtime linking is enabled. All shared objects specified on the command line
+-# will be listed, even if there are no symbols referenced, in the output file.
+-string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_MODULE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -Wl,-brtl")
+-
+-
+ macro(__aix_compiler_xl lang)
+-  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-blibpath:")
++  set(CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS "-qmkshrobj")
++  set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG "-Wl,-bnoipath -Wl,-blibpath:")
+   set(CMAKE_SHARED_LIBRARY_RUNTIME_${lang}_FLAG_SEP ":")
+-  set(CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS "-G -Wl,-bnoipath")  # -shared
+-  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "-Wl,-bexpall")
+-  set(CMAKE_SHARED_LIBRARY_${lang}_FLAGS " ")
+-  set(CMAKE_SHARED_MODULE_${lang}_FLAGS  " ")
+ 
+-  set(CMAKE_${lang}_LINK_FLAGS "-Wl,-bnoipath")
++  set(CMAKE_SHARED_MODULE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_${lang}_FLAGS})
++  set(CMAKE_SHARED_MODULE_CREATE_${lang}_FLAGS ${CMAKE_SHARED_LIBRARY_CREATE_${lang}_FLAGS})
++
++  set(CMAKE_${lang}_USE_IMPLICIT_LINK_DIRECTORIES_IN_RUNTIME_PATH 1)
+ endmacro()

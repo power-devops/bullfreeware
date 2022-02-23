@@ -1,0 +1,36 @@
+--- ./libs/lockfree/test/Jamfile.v2.ORIGIN	2020-06-15 11:46:10 -0500
++++ ./libs/lockfree/test/Jamfile.v2	2020-06-15 11:49:23 -0500
+@@ -24,18 +24,21 @@
+ 
+    for local fileb in [ glob *.cpp ]
+    {
+-      all_rules += [ run $(fileb)
+-      : # additional args
+-      : # test-files
+-      : # requirements
+-        <toolset>acc:<linkflags>-lrt
+-        <toolset>acc-pa_risc:<linkflags>-lrt
+-        <target-os>windows,<toolset>gcc:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+-        <host-os>hpux,<toolset>gcc:<linkflags>"-Wl,+as,mpas"
+-        <library>../../thread/build//boost_thread/
+-        <threading>multi
+-        <link>static
+-      ] ;
++      if $(fileb) != "stack_test.cpp" && $(fileb) != "stack_fixedsize_stress_test.cpp"
++      {
++	 all_rules += [ run $(fileb)
++	 : # additional args
++	 : # test-files
++	 : # requirements
++	   <toolset>acc:<linkflags>-lrt
++	   <toolset>acc-pa_risc:<linkflags>-lrt
++	   <target-os>windows,<toolset>gcc:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
++	   <host-os>hpux,<toolset>gcc:<linkflags>"-Wl,+as,mpas"
++	   <library>../../thread/build//boost_thread/
++	   <threading>multi
++	   <link>static
++	 ] ;
++      }
+    }
+ 
+     return $(all_rules) ;

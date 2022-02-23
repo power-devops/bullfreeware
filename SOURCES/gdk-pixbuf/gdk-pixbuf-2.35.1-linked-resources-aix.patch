@@ -1,0 +1,38 @@
+diff -Nur gdk-pixbuf-2.35.1-orig/tests/Makefile.in gdk-pixbuf-2.35.1-aix/tests/Makefile.in
+--- gdk-pixbuf-2.35.1-orig/tests/Makefile.in	2016-04-26 21:40:51 +0200
++++ gdk-pixbuf-2.35.1-aix/tests/Makefile.in	2016-06-03 13:07:51 +0200
+@@ -614,6 +614,7 @@
+ CCASFLAGS = @CCASFLAGS@
+ CCDEPMODE = @CCDEPMODE@
+ CFLAGS = @CFLAGS@
++CFLAGS_REG_RES = -Wl,-binitfini:resources_register_resource:resources_unregister_resource
+ CPP = @CPP@
+ CPPFLAGS = @CPPFLAGS@
+ CYGPATH_W = @CYGPATH_W@
+@@ -649,7 +650,7 @@
+ GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
+ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
+ GLIB_CFLAGS = @GLIB_CFLAGS@
+-GLIB_COMPILE_RESOURCES = @GLIB_COMPILE_RESOURCES@
++GLIB_COMPILE_RESOURCES = @GLIB_COMPILE_RESOURCES@ --manual-register
+ GLIB_GENMARSHAL = @GLIB_GENMARSHAL@
+ GLIB_LIBS = @GLIB_LIBS@
+ GLIB_MKENUMS = @GLIB_MKENUMS@
+@@ -1172,7 +1173,7 @@
+ 
+ cve-2015-4491$(EXEEXT): $(cve_2015_4491_OBJECTS) $(cve_2015_4491_DEPENDENCIES) $(EXTRA_cve_2015_4491_DEPENDENCIES) 
+ 	@rm -f cve-2015-4491$(EXEEXT)
+-	$(AM_V_CCLD)$(LINK) $(cve_2015_4491_OBJECTS) $(cve_2015_4491_LDADD) $(LIBS)
++	$(AM_V_CCLD)$(LINK) $(CFLAGS_REG_RES) $(cve_2015_4491_OBJECTS) $(cve_2015_4491_LDADD) $(LIBS)
+ 
+ pixbuf-composite$(EXEEXT): $(pixbuf_composite_OBJECTS) $(pixbuf_composite_DEPENDENCIES) $(EXTRA_pixbuf_composite_DEPENDENCIES) 
+ 	@rm -f pixbuf-composite$(EXEEXT)
+@@ -1224,7 +1225,7 @@
+ 
+ pixbuf-resource$(EXEEXT): $(pixbuf_resource_OBJECTS) $(pixbuf_resource_DEPENDENCIES) $(EXTRA_pixbuf_resource_DEPENDENCIES) 
+ 	@rm -f pixbuf-resource$(EXEEXT)
+-	$(AM_V_CCLD)$(LINK) $(pixbuf_resource_OBJECTS) $(pixbuf_resource_LDADD) $(LIBS)
++	$(AM_V_CCLD)$(LINK) $(CFLAGS_REG_RES) $(pixbuf_resource_OBJECTS) $(pixbuf_resource_LDADD) $(LIBS)
+ 
+ pixbuf-save$(EXEEXT): $(pixbuf_save_OBJECTS) $(pixbuf_save_DEPENDENCIES) $(EXTRA_pixbuf_save_DEPENDENCIES) 
+ 	@rm -f pixbuf-save$(EXEEXT)

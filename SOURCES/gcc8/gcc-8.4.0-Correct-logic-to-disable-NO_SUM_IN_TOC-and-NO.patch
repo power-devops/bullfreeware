@@ -1,0 +1,73 @@
+From 3dcf51ad7b0a9cacba1a056755c16cc1cf7984ee Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Thu, 5 Mar 2020 20:41:08 -0500
+Subject: [PATCH] rs6000: Correct logic to disable NO_SUM_IN_TOC and
+ NO_FP_IN_TOC [PR94065]
+
+aix61.h, aix71.h and aix72.h intends to prevent SUM_IN_TOC and FP_IN_TOC
+when cmodel=large.  This patch defines the variables associated with the
+target options to 1 to _enable_ NO_SUM_IN_TOC and enable NO_FP_IN_TOC.
+
+Bootstrapped on powerpc-ibm-aix7.2.0.0
+
+	2020-03-06  David Edelsohn  <dje.gcc@gmail.com>
+	PR target/94065
+	* config/rs6000/aix61.h (TARGET_NO_SUM_IN_TOC): Set to 1 for
+	cmodel=large.
+	(TARGET_NO_FP_IN_TOC): Same.
+	* config/rs6000/aix71.h: Same.
+	* config/rs6000/aix72.h: Same.
+---
+ gcc/config/rs6000/aix61.h | 4 ++--
+ gcc/config/rs6000/aix71.h | 4 ++--
+ gcc/config/rs6000/aix72.h | 4 ++--
+ 4 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/gcc/config/rs6000/aix61.h b/gcc/config/rs6000/aix61.h
+index 0b14f7e298e..13c3e099bbd 100644
+--- a/gcc/config/rs6000/aix61.h
++++ b/gcc/config/rs6000/aix61.h
+@@ -49,8 +49,8 @@ do {									\
+     }									\
+   if (rs6000_current_cmodel != CMODEL_SMALL)				\
+     {									\
+-      TARGET_NO_FP_IN_TOC = 0;						\
+-      TARGET_NO_SUM_IN_TOC = 0;						\
++      TARGET_NO_FP_IN_TOC = 1;						\
++      TARGET_NO_SUM_IN_TOC = 1;						\
+     }									\
+   if (rs6000_current_cmodel == CMODEL_MEDIUM)				\
+     {									\
+diff --git a/gcc/config/rs6000/aix71.h b/gcc/config/rs6000/aix71.h
+index b93d257d2a2..3be0cbe9844 100644
+--- a/gcc/config/rs6000/aix71.h
++++ b/gcc/config/rs6000/aix71.h
+@@ -49,8 +49,8 @@
+     }									\
+   if (rs6000_current_cmodel != CMODEL_SMALL)				\
+     {									\
+-      TARGET_NO_FP_IN_TOC = 0;						\
+-      TARGET_NO_SUM_IN_TOC = 0;						\
++      TARGET_NO_FP_IN_TOC = 1;						\
++      TARGET_NO_SUM_IN_TOC = 1;						\
+     }									\
+   if (rs6000_current_cmodel == CMODEL_MEDIUM)				\
+     {									\
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index f5e4d3ecaa4..292e67ffda5 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -49,8 +49,8 @@ do {									\
+     }									\
+   if (rs6000_current_cmodel != CMODEL_SMALL)				\
+     {									\
+-      TARGET_NO_FP_IN_TOC = 0;						\
+-      TARGET_NO_SUM_IN_TOC = 0;						\
++      TARGET_NO_FP_IN_TOC = 1;						\
++      TARGET_NO_SUM_IN_TOC = 1;						\
+     }									\
+   if (rs6000_current_cmodel == CMODEL_MEDIUM)				\
+     {									\
+-- 
+2.25.0
+

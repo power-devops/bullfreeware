@@ -1,0 +1,20 @@
+--- ./support/shobj-conf_orig	2019-08-12 03:36:03 +0000
++++ ./support/shobj-conf	2019-08-12 03:36:35 +0000
+@@ -280,7 +280,7 @@
+ aix4.[2-9]*-*gcc*|aix[5-9].*-*gcc*)		# lightly tested by jik@cisco.com
+ 	SHOBJ_CFLAGS=-fpic
+ 	SHOBJ_LD='ld'
+-	SHOBJ_LDFLAGS='-bdynamic -bnoentry -bexpall'
++	SHOBJ_LDFLAGS='-bdynamic -bnoentry'
+ 	SHOBJ_XLDFLAGS='-G'
+ 
+ 	SHLIB_XLDFLAGS='-bM:SRE'
+@@ -291,7 +291,7 @@
+ aix4.[2-9]*|aix[5-9].*)
+ 	SHOBJ_CFLAGS=-K
+ 	SHOBJ_LD='ld'
+-	SHOBJ_LDFLAGS='-bdynamic -bnoentry -bexpall'
++	SHOBJ_LDFLAGS='-bdynamic -bnoentry'
+ 	SHOBJ_XLDFLAGS='-G'
+ 
+ 	SHLIB_XLDFLAGS='-bM:SRE'

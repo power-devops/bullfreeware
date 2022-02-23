@@ -1,0 +1,66 @@
+Index: nss-3.14.3/mozilla/security/nss/lib/certhigh/ocspsig.c
+===================================================================
+--- nss-3.14.3.orig/mozilla/security/nss/lib/certhigh/ocspsig.c	2012-12-12 17:03:44.000000000 +0100
++++ nss-3.14.3/mozilla/security/nss/lib/certhigh/ocspsig.c	2013-02-25 10:18:59.000000000 +0100
+@@ -27,7 +27,7 @@
+ ocspCertStatus*
+ ocsp_CreateCertStatus(PLArenaPool *arena,
+                       ocspCertStatusType status,
+-                      PRTime revocationTime)
++                      int64 revocationTime)
+ {
+     ocspCertStatus *cs;
+ 
+@@ -259,7 +259,7 @@
+ static CERTOCSPSingleResponse*
+ ocsp_CreateSingleResponse(PLArenaPool *arena,
+                           CERTOCSPCertID *id, ocspCertStatus *status,
+-                          PRTime thisUpdate, const PRTime *nextUpdate)
++                          int64 thisUpdate, const int64 *nextUpdate)
+ {
+     CERTOCSPSingleResponse *sr;
+ 
+@@ -303,8 +303,8 @@
+ CERTOCSPSingleResponse*
+ CERT_CreateOCSPSingleResponseGood(PLArenaPool *arena,
+                                   CERTOCSPCertID *id,
+-                                  PRTime thisUpdate,
+-                                  const PRTime *nextUpdate)
++                                  int64 thisUpdate,
++                                  const int64 *nextUpdate)
+ {
+     ocspCertStatus * cs;
+     if (!arena) {
+@@ -320,8 +320,8 @@
+ CERTOCSPSingleResponse*
+ CERT_CreateOCSPSingleResponseUnknown(PLArenaPool *arena,
+                                      CERTOCSPCertID *id,
+-                                     PRTime thisUpdate,
+-                                     const PRTime *nextUpdate)
++                                     int64 thisUpdate,
++                                     const int64 *nextUpdate)
+ {
+     ocspCertStatus * cs;
+     if (!arena) {
+@@ -338,9 +338,9 @@
+ CERT_CreateOCSPSingleResponseRevoked(
+     PLArenaPool *arena,
+     CERTOCSPCertID *id,
+-    PRTime thisUpdate,
+-    const PRTime *nextUpdate,
+-    PRTime revocationTime,
++    int64 thisUpdate,
++    const int64 *nextUpdate,
++    int64 revocationTime,
+     const CERTCRLEntryReasonCode* revocationReason)
+ {
+     ocspCertStatus * cs;
+@@ -360,7 +360,7 @@
+     PLArenaPool *arena,
+     CERTCertificate *responderCert,
+     CERTOCSPResponderIDType responderIDType,
+-    PRTime producedAt,
++    int64 producedAt,
+     CERTOCSPSingleResponse **responses,
+     void *wincx)
+ {

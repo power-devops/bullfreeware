@@ -1,0 +1,426 @@
+Index: gcc-4.4.0/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/Makefile.in	2009-04-14 10:57:33.000000000 +0200
++++ gcc-4.4.0/Makefile.in	2009-07-06 15:11:10.000000000 +0200
+@@ -307,7 +307,7 @@
+ 
+ # Flags to pass to stage2 and later makes.  They are defined
+ # here so that they can be overridden by Makefile fragments.
+-BOOT_CFLAGS= -g -O2
++BOOT_CFLAGS= -O2
+ BOOT_LDFLAGS=
+ BOOT_ADAFLAGS=-gnatpg -gnata
+ 
+@@ -586,7 +586,8 @@
+ 	"`echo 'LANGUAGES=$(LANGUAGES)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
+ 	"LEAN=$(LEAN)" \
+ 	"CONFIG_SHELL=$(SHELL)" \
+-	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" 
++	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" \
++	"$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
+ 
+ # We leave this in just in case, but it is not needed anymore.
+ RECURSE_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS)
+Index: gcc-4.4.0/Makefile.tpl
+===================================================================
+--- gcc-4.4.0.orig/Makefile.tpl	2009-04-14 10:57:33.000000000 +0200
++++ gcc-4.4.0/Makefile.tpl	2009-07-06 15:11:10.000000000 +0200
+@@ -310,7 +310,7 @@
+ 
+ # Flags to pass to stage2 and later makes.  They are defined
+ # here so that they can be overridden by Makefile fragments.
+-BOOT_CFLAGS= -g -O2
++BOOT_CFLAGS= -O2
+ BOOT_LDFLAGS=
+ BOOT_ADAFLAGS=-gnatpg -gnata
+ 
+@@ -474,7 +474,8 @@
+ 	"`echo '[+flag+]=$([+flag+])' | sed -e s'/[^=][^=]*=$$/XFOO=/'`"[+ ELSE optional +] \
+ 	"[+flag+]=$([+flag+])"[+ ENDIF optional+][+ ENDFOR flags_to_pass +] \
+ 	"CONFIG_SHELL=$(SHELL)" \
+-	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" 
++	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" \
++	"$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
+ 
+ # We leave this in just in case, but it is not needed anymore.
+ RECURSE_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS)
+Index: gcc-4.4.0/configure
+===================================================================
+--- gcc-4.4.0.orig/configure	2009-04-21 11:08:08.000000000 +0200
++++ gcc-4.4.0/configure	2009-07-06 15:11:09.000000000 +0200
+@@ -2562,7 +2562,7 @@
+     ;;
+   powerpc-*-aix*)
+     # copied from rs6000-*-* entry
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   powerpc*-*-winnt* | powerpc*-*-pe* | ppc*-*-pe)
+     target_configdirs="$target_configdirs target-winsup"
+@@ -2589,7 +2589,7 @@
+     noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
+     ;;
+   rs6000-*-aix*)
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   rs6000-*-*)
+     noconfigdirs="$noconfigdirs gprof ${libgcj}"
+@@ -3560,7 +3560,7 @@
+ GCC=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CFLAGS=${CFLAGS+set}
+ ac_save_CFLAGS=$CFLAGS
+-CFLAGS="-g"
++CFLAGS=
+ echo "$as_me:$LINENO: checking whether $CC accepts -g" >&5
+ echo $ECHO_N "checking whether $CC accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cc_g+set}" = set; then
+@@ -3618,9 +3618,9 @@
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-O2"
+   else
+-    CFLAGS="-g"
++    CFLAGS=
+   fi
+ else
+   if test "$GCC" = yes; then
+@@ -4067,7 +4067,7 @@
+ GXX=`test $ac_compiler_gnu = yes && echo yes`
+ ac_test_CXXFLAGS=${CXXFLAGS+set}
+ ac_save_CXXFLAGS=$CXXFLAGS
+-CXXFLAGS="-g"
++CXXFLAGS=""
+ echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+ echo $ECHO_N "checking whether $CXX accepts -g... $ECHO_C" >&6
+ if test "${ac_cv_prog_cxx_g+set}" = set; then
+@@ -4125,9 +4125,9 @@
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-O2"
+   else
+-    CXXFLAGS="-g"
++    CXXFLAGS=
+   fi
+ else
+   if test "$GXX" = yes; then
+@@ -5543,7 +5543,7 @@
+   esac
+   case " $CFLAGS " in
+     *" -g "* | *" -g3 "*) ;;
+-    *) CFLAGS_FOR_TARGET="-g $CFLAGS" ;;
++    *) CFLAGS_FOR_TARGET="$CFLAGS" ;;
+   esac
+ fi
+ 
+@@ -5556,7 +5556,7 @@
+   esac
+   case " $CXXFLAGS " in
+     *" -g "* | *" -g3 "*) ;;
+-    *) CXXFLAGS_FOR_TARGET="-g $CXXFLAGS" ;;
++    *) CXXFLAGS_FOR_TARGET="$CXXFLAGS" ;;
+   esac
+ fi
+ 
+@@ -5872,6 +5872,7 @@
+ case "${host}" in
+   *-*-hpux*) RPATH_ENVVAR=SHLIB_PATH ;;
+   *-*-darwin* | *-*-rhapsody* ) RPATH_ENVVAR=DYLD_LIBRARY_PATH ;;
++  *-ibm-aix* ) RPATH_ENVVAR=LIBPATH ;;
+   *-*-mingw* | *-*-cygwin ) RPATH_ENVVAR=PATH ;;
+   *) RPATH_ENVVAR=LD_LIBRARY_PATH ;;
+ esac
+@@ -12427,8 +12428,8 @@
+ case $build in
+   vax-*-*)
+     case ${GCC} in
+-      yes) stage1_cflags="-g -Wa,-J" ;;
+-      *) stage1_cflags="-g -J" ;;
++      yes) stage1_cflags="-Wa,-J" ;;
++      *) stage1_cflags="-J" ;;
+     esac ;;
+ esac
+ 
+Index: gcc-4.4.0/configure.ac
+===================================================================
+--- gcc-4.4.0.orig/configure.ac	2009-04-14 10:57:33.000000000 +0200
++++ gcc-4.4.0/configure.ac	2009-07-06 15:11:11.000000000 +0200
+@@ -797,7 +797,7 @@
+     ;;
+   powerpc-*-aix*)
+     # copied from rs6000-*-* entry
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   powerpc*-*-winnt* | powerpc*-*-pe* | ppc*-*-pe)
+     target_configdirs="$target_configdirs target-winsup"
+@@ -824,7 +824,7 @@
+     noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
+     ;;
+   rs6000-*-aix*)
+-    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp ${libgcj}"
++    noconfigdirs="$noconfigdirs gprof target-libgloss target-libssp"
+     ;;
+   rs6000-*-*)
+     noconfigdirs="$noconfigdirs gprof ${libgcj}"
+@@ -1853,7 +1853,7 @@
+   esac
+   case " $CFLAGS " in
+     *" -g "* | *" -g3 "*) ;;
+-    *) CFLAGS_FOR_TARGET="-g $CFLAGS" ;;
++    *) CFLAGS_FOR_TARGET="$CFLAGS" ;;
+   esac
+ fi
+ AC_SUBST(CFLAGS_FOR_TARGET)
+@@ -1866,7 +1866,7 @@
+   esac
+   case " $CXXFLAGS " in
+     *" -g "* | *" -g3 "*) ;;
+-    *) CXXFLAGS_FOR_TARGET="-g $CXXFLAGS" ;;
++    *) CXXFLAGS_FOR_TARGET="$CXXFLAGS" ;;
+   esac
+ fi
+ AC_SUBST(CXXFLAGS_FOR_TARGET)
+@@ -2183,6 +2183,7 @@
+   *-*-hpux*) RPATH_ENVVAR=SHLIB_PATH ;;
+   *-*-darwin* | *-*-rhapsody* ) RPATH_ENVVAR=DYLD_LIBRARY_PATH ;;
+   *-*-mingw* | *-*-cygwin ) RPATH_ENVVAR=PATH ;;
++  *-ibm-aix* ) RPATH_ENVVAR=LIBPATH ;;
+   *) RPATH_ENVVAR=LD_LIBRARY_PATH ;;
+ esac
+ 
+@@ -2881,12 +2882,12 @@
+ # ---------------------
+ 
+ # Stage specific cflags for build.
+-stage1_cflags="-g"
++stage1_cflags=""
+ case $build in
+   vax-*-*)
+     case ${GCC} in
+-      yes) stage1_cflags="-g -Wa,-J" ;;
+-      *) stage1_cflags="-g -J" ;;
++      yes) stage1_cflags="-Wa,-J" ;;
++      *) stage1_cflags=" -J" ;;
+     esac ;;
+ esac
+ 
+Index: gcc-4.4.0/gcc/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/gcc/Makefile.in	2009-03-25 13:00:32.000000000 +0100
++++ gcc-4.4.0/gcc/Makefile.in	2009-07-06 15:11:10.000000000 +0200
+@@ -582,7 +582,7 @@
+ 
+ # Options to use when compiling libgcc2.a.
+ #
+-LIBGCC2_DEBUG_CFLAGS = -g
++LIBGCC2_DEBUG_CFLAGS =
+ LIBGCC2_CFLAGS = -O2 $(LIBGCC2_INCLUDES) $(GCC_CFLAGS) $(TARGET_LIBGCC2_CFLAGS) \
+ 		 $(LIBGCC2_DEBUG_CFLAGS) $(GTHREAD_FLAGS) \
+ 		 -DIN_LIBGCC2 -D__GCC_FLOAT_NOT_NEEDED \
+Index: gcc-4.4.0/libjava/classpath/ltcf-c.sh
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/ltcf-c.sh	2006-01-17 19:09:40.000000000 +0100
++++ gcc-4.4.0/libjava/classpath/ltcf-c.sh	2009-07-06 15:11:10.000000000 +0200
+@@ -57,7 +57,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6*)
+     # On AIX/PPC, the GNU linker is very broken
+     if test "$host_cpu" != ia64; then
+       ld_shlibs=no
+@@ -263,7 +263,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+     link_all_deplibs=yes
+Index: gcc-4.4.0/libjava/classpath/ltcf-cxx.sh
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/ltcf-cxx.sh	2005-09-23 23:31:04.000000000 +0200
++++ gcc-4.4.0/libjava/classpath/ltcf-cxx.sh	2009-07-06 15:11:10.000000000 +0200
+@@ -123,7 +123,7 @@
+     # FIXME: insert proper C++ library support
+     ld_shlibs=no
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     archive_cmds=''
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+@@ -778,7 +778,7 @@
+   esac
+ else
+   case $host_os in
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6*)
+       # All AIX code is PIC.
+       if test "$host_cpu" = ia64; then
+         # AIX 5 now supports IA64 processor
+Index: gcc-4.4.0/libjava/classpath/ltcf-gcj.sh
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/ltcf-gcj.sh	2005-09-23 23:31:04.000000000 +0200
++++ gcc-4.4.0/libjava/classpath/ltcf-gcj.sh	2009-07-06 15:11:11.000000000 +0200
+@@ -60,7 +60,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6*)
+     # On AIX/PPC, the GNU linker is very broken
+     if test "$host_cpu" != ia64; then
+       ld_shlibs=no
+@@ -262,7 +262,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+     link_all_deplibs=yes
+Index: gcc-4.4.0/libjava/classpath/ltconfig
+===================================================================
+--- gcc-4.4.0.orig/libjava/classpath/ltconfig	2007-06-04 01:18:43.000000000 +0200
++++ gcc-4.4.0/libjava/classpath/ltconfig	2009-07-06 15:11:11.000000000 +0200
+@@ -989,7 +989,7 @@
+   soname_spec='${libname}${release}.so$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   version_type=linux
+   if test "$host_cpu" = ia64; then
+     # AIX 5 supports IA64
+@@ -1616,7 +1616,7 @@
+   fi
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   test "$enable_shared" = yes && enable_static=no
+   ;;
+ esac
+Index: gcc-4.4.0/libstdc++-v3/include/Makefile.am
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/include/Makefile.am	2009-04-10 01:23:07.000000000 +0200
++++ gcc-4.4.0/libstdc++-v3/include/Makefile.am	2009-07-06 15:11:10.000000000 +0200
+@@ -1097,21 +1097,21 @@
+ # Build two precompiled C++ includes, stdc++.h.gch/*.gch
+ ${pch1a_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	-mkdir -p ${pch1_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 ${pch1_source} -o $@
+ 
+ ${pch1b_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	-mkdir -p ${pch1_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch1_source} -o $@
+ 
+ # Build a precompiled TR1 include, stdtr1c++.h.gch/O2.gch
+ ${pch2_output}: ${pch2_source} ${pch1_output}
+ 	-mkdir -p ${pch2_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch2_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch2_source} -o $@
+ 
+ # Build a precompiled extension include, extc++.h.gch/O2.gch
+ ${pch3_output}: ${pch3_source} ${pch2_output}
+ 	-mkdir -p ${pch3_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch3_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch3_source} -o $@
+ 
+ # For robustness sake (in light of junk files or in-source
+ # configuration), copy from the build or source tree to the install
+Index: gcc-4.4.0/libstdc++-v3/include/Makefile.in
+===================================================================
+--- gcc-4.4.0.orig/libstdc++-v3/include/Makefile.in	2009-01-15 21:02:11.000000000 +0100
++++ gcc-4.4.0/libstdc++-v3/include/Makefile.in	2009-07-06 15:11:10.000000000 +0200
+@@ -199,8 +199,6 @@
+ VERSION = @VERSION@
+ WARN_FLAGS = @WARN_FLAGS@
+ WERROR = @WERROR@
+-ac_ct_AR = @ac_ct_AR@
+-ac_ct_AS = @ac_ct_AS@
+ ac_ct_CC = @ac_ct_CC@
+ ac_ct_CXX = @ac_ct_CXX@
+ ac_ct_DSYMUTIL = @ac_ct_DSYMUTIL@
+@@ -210,8 +208,6 @@
+ ac_ct_OBJDUMP = @ac_ct_OBJDUMP@
+ ac_ct_OTOOL = @ac_ct_OTOOL@
+ ac_ct_OTOOL64 = @ac_ct_OTOOL64@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ am__leading_dot = @am__leading_dot@
+ am__tar = @am__tar@
+ am__untar = @am__untar@
+@@ -224,6 +220,9 @@
+ build_vendor = @build_vendor@
+ check_msgfmt = @check_msgfmt@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ enable_shared = @enable_shared@
+ enable_static = @enable_static@
+ exec_prefix = @exec_prefix@
+@@ -243,21 +242,25 @@
+ host_cpu = @host_cpu@
+ host_os = @host_os@
+ host_vendor = @host_vendor@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
+ libtool_VERSION = @libtool_VERSION@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ lt_ECHO = @lt_ECHO@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ multi_basedir = @multi_basedir@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ port_specific_symbol_files = @port_specific_symbol_files@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+@@ -1501,21 +1504,21 @@
+ # Build two precompiled C++ includes, stdc++.h.gch/*.gch
+ ${pch1a_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	-mkdir -p ${pch1_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 ${pch1_source} -o $@
+ 
+ ${pch1b_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
+ 	-mkdir -p ${pch1_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch1_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch1_source} -o $@
+ 
+ # Build a precompiled TR1 include, stdtr1c++.h.gch/O2.gch
+ ${pch2_output}: ${pch2_source} ${pch1_output}
+ 	-mkdir -p ${pch2_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch2_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch2_source} -o $@
+ 
+ # Build a precompiled extension include, extc++.h.gch/O2.gch
+ ${pch3_output}: ${pch3_source} ${pch2_output}
+ 	-mkdir -p ${pch3_output_builddir}
+-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g ${pch3_source} -o $@
++	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 ${pch3_source} -o $@
+ 
+ # For robustness sake (in light of junk files or in-source
+ # configuration), copy from the build or source tree to the install

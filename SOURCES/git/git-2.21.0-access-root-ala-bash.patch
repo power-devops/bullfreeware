@@ -1,0 +1,245 @@
+--- ./run-command.c.ORIGIN	2019-03-15 17:24:34 +0100
++++ ./run-command.c	2019-03-14 15:13:07 +0100
+@@ -1270,16 +1270,241 @@
+ #endif
+ }
+ 
++
++/* Information about the current user. */
++struct user_info {
++  uid_t uid, euid;
++  gid_t gid, egid;
++  char *user_name;
++  char *shell;          /* shell from the password file */
++  char *home_dir;
++};
++
++
++/* Information about the current user. */
++struct user_info current_user =
++{
++  (uid_t)-1, (uid_t)-1, (gid_t)-1, (gid_t)-1,
++  (char *)NULL, (char *)NULL, (char *)NULL
++};
++
++static void uidget ()
++{
++  uid_t u;
++
++  u = getuid ();
++  current_user.uid = u;
++  current_user.gid = getgid ();
++  current_user.euid = geteuid ();
++  current_user.egid = getegid ();
++
++  printf("uid:%d gid:%d euid:%d egid:%d\n", current_user.uid, current_user.gid, current_user.euid, current_user.egid);
++
++}
++
++
++/* Return non-zero if GID is one that we have in our groups list. */
++int
++#if defined (__STDC__) || defined ( _MINIX)
++group_member (gid_t gid)
++#else
++group_member (gid)
++     gid_t gid;
++#endif /* !__STDC__ && !_MINIX */
++{
++#if defined (HAVE_GETGROUPS)
++  register int i;
++#endif
++
++  /* Short-circuit if possible, maybe saving a call to getgroups(). */
++  if (gid == current_user.gid || gid == current_user.egid)
++    return (1);
++
++#if defined (HAVE_GETGROUPS)
++  if (ngroups == 0)
++    initialize_group_array ();
++
++  /* In case of error, the user loses. */
++  if (ngroups <= 0)
++    return (0);
++
++  /* Search through the list looking for GID. */
++  for (i = 0; i < ngroups; i++)
++    if (gid == (gid_t)group_array[i])
++      return (1);
++#endif
++
++  return (0);
++}
++
++#include <sys/mode.h>
++#define S_IXUGO             (S_IXUSR | S_IXGRP | S_IXOTH)
++
++
++#define whitespace(c) (((c) == ' ') || ((c) == '\t'))
++
++/* String comparisons that possibly save a function call each. */
++#define STREQ(a, b) ((a)[0] == (b)[0] && strcmp(a, b) == 0)
++#define STREQN(a, b, n) ((n == 0) ? (1) \
++                                  : ((a)[0] == (b)[0] && strncmp(a, b, n) == 0))
++
++/* Return non-zero if the characters pointed to by STRING constitute a
++   valid number.  Stuff the converted number into RESULT if RESULT is
++   not null. */
++int
++legal_number (string, result)
++     const char *string;
++     intmax_t *result;
++{
++  intmax_t value;
++  char *ep;
++
++  if (result)
++    *result = 0;
++
++  if (string == 0)
++    return 0;
++
++  errno = 0;
++  value = strtoimax (string, &ep, 10);
++  if (errno || ep == string)
++    return 0;	/* errno is set on overflow or underflow */
++
++  /* Skip any trailing whitespace, since strtoimax does not. */
++  while (whitespace (*ep))
++    ep++;
++
++  /* If *string is not '\0' but *ep is '\0' on return, the entire string
++     is valid. */
++  if (*string && *ep == '\0')
++    {
++      if (result)
++	*result = value;
++      /* The SunOS4 implementation of strtol() will happily ignore
++	 overflow conditions, so this cannot do overflow correctly
++	 on those systems. */
++      return 1;
++    }
++    
++  return (0);
++}
++
++/* A wrapper for stat () which disallows pathnames that are empty strings
++   and handles /dev/fd emulation on systems that don't have it. */
++int
++sh_stat (path, finfo)
++     const char *path;
++     struct stat *finfo;
++{
++  static char *pbuf = 0;
++
++  if (*path == '\0')
++    {
++      errno = ENOENT;
++      return (-1);
++    }
++  if (path[0] == '/' && path[1] == 'd' && strncmp (path, "/dev/fd/", 8) == 0)
++    {
++#if !defined (HAVE_DEV_FD)
++      intmax_t fd;
++      int r;
++
++      if (legal_number (path + 8, &fd) && fd == (int)fd)
++        {
++          r = fstat ((int)fd, finfo);
++          if (r == 0 || errno != EBADF)
++            return (r);
++        }
++      errno = ENOENT;
++      return (-1);
++#else
++  /* If HAVE_DEV_FD is defined, DEV_FD_PREFIX is defined also, and has a
++     trailing slash.  Make sure /dev/fd/xx really uses DEV_FD_PREFIX/xx.
++     On most systems, with the notable exception of linux, this is
++     effectively a no-op. */
++      pbuf = xrealloc (pbuf, sizeof (DEV_FD_PREFIX) + strlen (path + 8));
++      strcpy (pbuf, DEV_FD_PREFIX);
++      strcat (pbuf, path + 8);
++      return (stat (pbuf, finfo));
++#endif /* !HAVE_DEV_FD */
++    }
++#if !defined (HAVE_DEV_STDIN)
++  else if (STREQN (path, "/dev/std", 8))
++    {
++      if (STREQ (path+8, "in"))
++	return (fstat (0, finfo));
++      else if (STREQ (path+8, "out"))
++	return (fstat (1, finfo));
++      else if (STREQ (path+8, "err"))
++	return (fstat (2, finfo));
++      else
++	return (stat (path, finfo));
++    }
++#endif /* !HAVE_DEV_STDIN */
++  return (stat (path, finfo));
++}
++
++/* Do the same thing access(2) does, but use the effective uid and gid,
++   and don't make the mistake of telling root that any file is
++   executable.  This version uses stat(2). */
++static int
++sh_stataccess (path, mode)
++     const char *path;
++     int mode;
++{
++  struct stat st;
++
++  uidget();
++
++  if (sh_stat (path, &st) < 0)
++    return (-1);
++
++  if (current_user.euid == 0)
++    {
++      /* Root can read or write any file. */
++      if ((mode & X_OK) == 0)
++	return (0);
++
++      /* Root can execute any file that has any one of the execute
++	 bits set. */
++      if (st.st_mode & S_IXUGO)
++	return (0);
++    }
++
++  if (st.st_uid == current_user.euid)	/* owner */
++    mode <<= 6;
++  else if (group_member (st.st_gid))
++    mode <<= 3;
++
++  if (st.st_mode & mode)
++    return (0);
++
++  errno = EACCES;
++  return (-1);
++}
++
+ const char *find_hook(const char *name)
+ {
+ 	static struct strbuf path = STRBUF_INIT;
++	int ret;
+ 
+ 	strbuf_reset(&path);
+ 	strbuf_git_path(&path, "hooks/%s", name);
+-	if (access(path.buf, X_OK) < 0) {
++	ret = access(path.buf, X_OK);
++		printf("0 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ret: %d)\n", ret);
++#if defined (__FreeBSD__) || defined (SOLARIS) || defined(_AIX_BOFFFFFFFFF)
++	uidget();
++	if (ret == 0 && current_user.euid == 0)
++	{
++		printf("1 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> (ret == 0 && current_user.euid == 0)\n");
++		ret = sh_stataccess(path, X_OK);
++	}
++#endif
++	if (ret < 0) {
+ 		int err = errno;
+ 
+ #ifdef STRIP_EXTENSION
++		printf("2 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> (ret == 0 && current_user.euid == 0)\n");
+ 		strbuf_addstr(&path, STRIP_EXTENSION);
+ 		if (access(path.buf, X_OK) >= 0)
+ 			return path.buf;

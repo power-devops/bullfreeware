@@ -1,0 +1,45 @@
+--- old/gcc/go/go-system.h	2016-01-04 15:30:50 +0100
++++ new/gcc/go/go-system.h	2016-09-26 13:27:14 +0200
+@@ -22,6 +22,33 @@
+ 
+ #include "config.h"
+ 
++#define INCLUDE_MAP
++#define INCLUDE_SET
++#include "system.h"
++
++#ifndef PRIx64
++#if defined(__64BIT__)
++#define PRIx64          "lx"
++#else
++#if defined(_LONG_LONG)
++#define PRIx64          "llx"
++#endif
++#endif
++#endif
++
++#ifndef PRIu64
++#if defined(__64BIT__)
++#define PRIu64          "lu"
++#else
++#if defined(_LONG_LONG)
++#define PRIu64          "llu"
++#endif
++#endif
++#endif
++
++
++
++
+ // These must be included before the #poison declarations in system.h.
+ 
+ #include <algorithm>
+@@ -125,7 +152,7 @@
+ // system.h.
+ #include <iostream>
+ 
+-#include "system.h"
++//#include "system.h"
+ #include "ansidecl.h"
+ #include "coretypes.h"
+ 

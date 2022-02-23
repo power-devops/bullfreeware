@@ -1,0 +1,14 @@
+--- ./sql/mysqld.cc.orig	2019-10-08 16:31:04.000000000 +0200
++++ ./sql/mysqld.cc	2019-10-08 16:31:04.000000000 +0200
+@@ -3286,7 +3286,11 @@
+       }
+       break;
+     case SIGHUP:
++#ifdef _AIX
++      if (!abort_loop && origin != 128)
++#else
+       if (!abort_loop && origin != SI_KERNEL)
++#endif
+       {
+         int not_used;
+ 	mysql_print_status();		// Print some debug info

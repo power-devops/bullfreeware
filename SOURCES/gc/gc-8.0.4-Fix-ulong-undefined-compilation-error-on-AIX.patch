@@ -1,0 +1,28 @@
+From 5037da9f7c9b49ca6dfa64b51bbc67b94f470688 Mon Sep 17 00:00:00 2001
+From: Peter Wang <novalazy@gmail.com>
+Date: Thu, 6 Jun 2019 12:48:17 +1000
+Subject: [PATCH] Fix 'ulong undefined' compilation error on AIX
+
+* include/gc.h [_AIX] (GC_DATASTART, GC_DATAEND): Remove cast to ulong.
+---
+ include/gc.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/gc.h b/include/gc.h
+index 4afcf75f..9a3a278f 100644
+--- a/include/gc.h
++++ b/include/gc.h
+@@ -1946,8 +1946,8 @@ GC_API int GC_CALL GC_get_force_unmap_on_gcollect(void);
+         /* Required at least if GC is in a DLL.  And doesn't hurt. */
+ #elif defined(_AIX)
+   extern int _data[], _end[];
+-# define GC_DATASTART ((void *)((ulong)_data))
+-# define GC_DATAEND ((void *)((ulong)_end))
++# define GC_DATASTART ((void *)_data)
++# define GC_DATAEND ((void *)_end)
+ # define GC_INIT_CONF_ROOTS GC_add_roots(GC_DATASTART, GC_DATAEND)
+ #elif (defined(HOST_ANDROID) || defined(__ANDROID__)) \
+       && defined(IGNORE_DYNAMIC_LOADING)
+-- 
+2.25.1
+

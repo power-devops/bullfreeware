@@ -1,0 +1,163 @@
+From 5ee06f547122b7417b70ada55bb0d633e2094d88 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 02 Nov 2018 10:02:38 +0100
+Subject: [PATCH] internal/poll, os/exec, runtime: replace PollDescriptor by IsPollDescriptor
+
+This commit changes poll.PollDescriptor by poll.IsPollDescriptor. This
+is needed for OS like AIX which have more than one FD using inside their
+netpoll implementation.
+
+Change-Id: I49e12a8d74045c501e19fdd8527cf166a3c64850
+Reviewed-on: https://go-review.googlesource.com/c/146938
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/internal/poll/fd_plan9.go b/src/internal/poll/fd_plan9.go
+index 107f454..fce2285 100644
+--- a/src/internal/poll/fd_plan9.go
++++ b/src/internal/poll/fd_plan9.go
+@@ -193,10 +193,10 @@
+ 	return err != nil && stringsHasSuffix(err.Error(), "interrupted")
+ }
+ 
+-// PollDescriptor returns the descriptor being used by the poller,
+-// or ^uintptr(0) if there isn't one. This is only used for testing.
+-func PollDescriptor() uintptr {
+-	return ^uintptr(0)
++// IsPollDescriptor returns true if fd is the descriptor being used by the poller.
++// This is only used for testing.
++func IsPollDescriptor(fd uintptr) bool {
++	return false
+ }
+ 
+ // RawControl invokes the user-defined function f for a non-IO
+diff --git a/src/internal/poll/fd_poll_nacljs.go b/src/internal/poll/fd_poll_nacljs.go
+index 832dddb..e0d3f976 100644
+--- a/src/internal/poll/fd_poll_nacljs.go
++++ b/src/internal/poll/fd_poll_nacljs.go
+@@ -92,8 +92,8 @@
+ 	return nil
+ }
+ 
+-// PollDescriptor returns the descriptor being used by the poller,
+-// or ^uintptr(0) if there isn't one. This is only used for testing.
+-func PollDescriptor() uintptr {
+-	return ^uintptr(0)
++// IsPollDescriptor returns true if fd is the descriptor being used by the poller.
++// This is only used for testing.
++func IsPollDescriptor(fd uintptr) bool {
++	return false
+ }
+diff --git a/src/internal/poll/fd_poll_runtime.go b/src/internal/poll/fd_poll_runtime.go
+index f4540a6..2ee8e7c 100644
+--- a/src/internal/poll/fd_poll_runtime.go
++++ b/src/internal/poll/fd_poll_runtime.go
+@@ -19,7 +19,6 @@
+ func runtimeNano() int64
+ 
+ func runtime_pollServerInit()
+-func runtime_pollServerDescriptor() uintptr
+ func runtime_pollOpen(fd uintptr) (uintptr, int)
+ func runtime_pollClose(ctx uintptr)
+ func runtime_pollWait(ctx uintptr, mode int) int
+@@ -27,6 +26,7 @@
+ func runtime_pollReset(ctx uintptr, mode int) int
+ func runtime_pollSetDeadline(ctx uintptr, d int64, mode int)
+ func runtime_pollUnblock(ctx uintptr)
++func runtime_isPollServerDescriptor(fd uintptr) bool
+ 
+ type pollDesc struct {
+ 	runtimeCtx uintptr
+@@ -154,8 +154,8 @@
+ 	return nil
+ }
+ 
+-// PollDescriptor returns the descriptor being used by the poller,
+-// or ^uintptr(0) if there isn't one. This is only used for testing.
+-func PollDescriptor() uintptr {
+-	return runtime_pollServerDescriptor()
++// IsPollDescriptor returns true if fd is the descriptor being used by the poller.
++// This is only used for testing.
++func IsPollDescriptor(fd uintptr) bool {
++	return runtime_isPollServerDescriptor(fd)
+ }
+diff --git a/src/os/exec/exec_test.go b/src/os/exec/exec_test.go
+index 558345f..3e6b7bb 100644
+--- a/src/os/exec/exec_test.go
++++ b/src/os/exec/exec_test.go
+@@ -459,7 +459,7 @@
+ 	// The poll (epoll/kqueue) descriptor can be numerically
+ 	// either between stderr and the testlog-fd, or after
+ 	// testlog-fd.
+-	if poll.PollDescriptor() == n {
++	if poll.IsPollDescriptor(n) {
+ 		n++
+ 	}
+ 	for _, arg := range os.Args {
+@@ -472,7 +472,7 @@
+ 
+ func closeUnexpectedFds(t *testing.T, m string) {
+ 	for fd := basefds(); fd <= 101; fd++ {
+-		if fd == poll.PollDescriptor() {
++		if poll.IsPollDescriptor(fd) {
+ 			continue
+ 		}
+ 		err := os.NewFile(fd, "").Close()
+@@ -734,6 +734,8 @@
+ 		ofcmd = "fstat"
+ 	case "plan9":
+ 		ofcmd = "/bin/cat"
++	case "aix":
++		ofcmd = "procfiles"
+ 	}
+ 
+ 	args := os.Args
+@@ -837,7 +839,7 @@
+ 			// Now verify that there are no other open fds.
+ 			var files []*os.File
+ 			for wantfd := basefds() + 1; wantfd <= 100; wantfd++ {
+-				if wantfd == poll.PollDescriptor() {
++				if poll.IsPollDescriptor(wantfd) {
+ 					continue
+ 				}
+ 				f, err := os.Open(os.Args[0])
+@@ -851,6 +853,8 @@
+ 					switch runtime.GOOS {
+ 					case "plan9":
+ 						args = []string{fmt.Sprintf("/proc/%d/fd", os.Getpid())}
++					case "aix":
++						args = []string{fmt.Sprint(os.Getpid())}
+ 					default:
+ 						args = []string{"-p", fmt.Sprint(os.Getpid())}
+ 					}
+diff --git a/src/runtime/netpoll.go b/src/runtime/netpoll.go
+index 4f4abfc..75db8c6 100644
+--- a/src/runtime/netpoll.go
++++ b/src/runtime/netpoll.go
+@@ -93,12 +93,19 @@
+ 	return atomic.Load(&netpollInited) != 0
+ }
+ 
+-//go:linkname poll_runtime_pollServerDescriptor internal/poll.runtime_pollServerDescriptor
++//go:linkname poll_runtime_isPollServerDescriptor internal/poll.runtime_isPollServerDescriptor
+ 
+-// poll_runtime_pollServerDescriptor returns the descriptor being used,
+-// or ^uintptr(0) if the system does not use a poll descriptor.
+-func poll_runtime_pollServerDescriptor() uintptr {
+-	return netpolldescriptor()
++// poll_runtime_isPollServerDescriptor returns true if fd is a
++// descriptor being used by netpoll.
++func poll_runtime_isPollServerDescriptor(fd uintptr) bool {
++	fds := netpolldescriptor()
++	if GOOS != "aix" {
++		return fd == fds
++	} else {
++		// AIX have a pipe in its netpoll implementation.
++		// Therefore, two fd are returned by netpolldescriptor using a mask.
++		return fd == fds&0xFFFF || fd == (fds>>16)&0xFFFF
++	}
+ }
+ 
+ //go:linkname poll_runtime_pollOpen internal/poll.runtime_pollOpen

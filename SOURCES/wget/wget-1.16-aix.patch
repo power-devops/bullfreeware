@@ -1,0 +1,35 @@
+*** ./src/Makefile.in.ORIG	Wed Sep 23 16:44:38 2009
+--- ./src/Makefile.in	Wed Sep 23 16:44:54 2009
+***************
+*** 173,179 ****
+  	$(am__objects_3)
+  nodist_wget_OBJECTS = version.$(OBJEXT)
+  wget_OBJECTS = $(am_wget_OBJECTS) $(nodist_wget_OBJECTS)
+! wget_LDADD = $(LDADD)
+  wget_DEPENDENCIES = $(LIBOBJS) ../lib/libgnu.a
+  DEFAULT_INCLUDES = -I.@am__isrc@
+  depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
+--- 173,179 ----
+  	$(am__objects_3)
+  nodist_wget_OBJECTS = version.$(OBJEXT)
+  wget_OBJECTS = $(am_wget_OBJECTS) $(nodist_wget_OBJECTS)
+! wget_LDADD = $(LDADD) -liconv
+  wget_DEPENDENCIES = $(LIBOBJS) ../lib/libgnu.a
+  DEFAULT_INCLUDES = -I.@am__isrc@
+  depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
+*** ./src/gnutls.c.ORIG	Sun Sep 18 15:04:04 2011
+--- ./src/gnutls.c	Sun Sep 18 15:04:21 2011
+***************
+*** 48,54 ****
+--- 48,58 ----
+  #include "ptimer.h"
+  #include "ssl.h"
+  
++ #ifdef _AIX
++ #include <fcntl.h>
++ #else
+  #include <sys/fcntl.h>
++ #endif
+  
+  #ifdef WIN32
+  # include "w32sock.h"

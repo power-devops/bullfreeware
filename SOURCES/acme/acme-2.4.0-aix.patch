@@ -1,0 +1,378 @@
+diff -crN ./acme/configure.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/configure.in
+*** ./acme/configure.in	Wed Sep 10 10:53:57 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/configure.in	Fri Oct 17 10:16:28 2003
+***************
+*** 1,18 ****
+  AC_PREREQ(2.52)
+  AC_INIT(acme, 2.4.0, http://bugzilla.gnome.org/enter_bug.cgi?product=acme)
+  AC_CONFIG_SRCDIR(src/acme.c)
+  AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+  AM_CONFIG_HEADER(config.h)
+  
+- AC_DEFINE(PACKAGE, AC_PACKAGE_NAME, [package name])
+- AC_DEFINE(VERSION, AC_PACKAGE_VERSION, [package version])
+  AC_DEFINE(GETTEXT_PACKAGE, "AC_PACKAGE_NAME", [foo])
+  GETTEXT_PACKAGE=AC_PACKAGE_NAME
+  AC_SUBST(GETTEXT_PACKAGE)
+  
+  AC_PROG_INTLTOOL([0.20])
+  
+! GNOME_COMPILE_WARNINGS
+  
+  PKG_CHECK_MODULES(EXTRA_GNOME, libgnomeui-2.0 libglade-2.0 libwnck-1.0 >= 2.1.5)
+  AC_SUBST(EXTRA_GNOME_CFLAGS)
+--- 1,20 ----
++ 
+  AC_PREREQ(2.52)
+  AC_INIT(acme, 2.4.0, http://bugzilla.gnome.org/enter_bug.cgi?product=acme)
+  AC_CONFIG_SRCDIR(src/acme.c)
+  AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+  AM_CONFIG_HEADER(config.h)
+  
+  AC_DEFINE(GETTEXT_PACKAGE, "AC_PACKAGE_NAME", [foo])
+  GETTEXT_PACKAGE=AC_PACKAGE_NAME
+  AC_SUBST(GETTEXT_PACKAGE)
+  
+  AC_PROG_INTLTOOL([0.20])
+  
+! GNOME_COMPILE_WARNINGSAC_PATH_XTRA
+! if test "$X_DISPLAY_MISSING" != ""; then
+!   AC_MSG_ERROR([X11 not available])
+! fi
+  
+  PKG_CHECK_MODULES(EXTRA_GNOME, libgnomeui-2.0 libglade-2.0 libwnck-1.0 >= 2.1.5)
+  AC_SUBST(EXTRA_GNOME_CFLAGS)
+diff -crN ./acme/src/Makefile.am /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/Makefile.am
+*** ./acme/src/Makefile.am	Fri Aug  8 14:56:15 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/Makefile.am	Fri Oct 17 10:16:37 2003
+***************
+*** 1,4 ****
+--- 1,5 ----
+  
++ 
+  if HAVE_ALSA
+  ALSA_CFLAGS = -DHAVE_ALSA
+  ALSA_files = acme-volume-alsa.c acme-volume-alsa.h
+***************
+*** 35,41 ****
+  acme_LDFLAGS =						\
+  	$(EXTRA_GNOME_LIBS)				\
+  	$(ALSA_LIBS)					\
+! 	$(INTLLIBS)
+  
+  acme_properties_SOURCES =				\
+  	acme-properties.c				\
+--- 36,44 ----
+  acme_LDFLAGS =						\
+  	$(EXTRA_GNOME_LIBS)				\
+  	$(ALSA_LIBS)					\
+! 	$(INTLLIBS)					\
+! 	$(X_LIBS)					\
+! 	-lX11
+  
+  acme_properties_SOURCES =				\
+  	acme-properties.c				\
+***************
+*** 63,69 ****
+  
+  acme_properties_LDFLAGS = 			\
+  	$(EXTRA_GNOME_LIBS)			\
+! 	$(INTLLIBS)
+  
+  EXTRA_DIST =			\
+  	$(Data_DATA)		\
+--- 66,74 ----
+  
+  acme_properties_LDFLAGS = 			\
+  	$(EXTRA_GNOME_LIBS)			\
+! 	$(INTLLIBS)				\
+! 	$(X_LIBS)				\
+! 	-lX11
+  
+  EXTRA_DIST =			\
+  	$(Data_DATA)		\
+diff -crN ./acme/src/acme.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/acme.c
+*** ./acme/src/acme.c	Sat Aug 30 18:42:20 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/acme.c	Fri Oct 17 10:16:47 2003
+***************
+*** 1,3 ****
+--- 1,4 ----
++ 
+  /* ACME
+   * Copyright (C) 2001 Bastien Nocera <hadess@hadess.net>
+   *
+***************
+*** 66,72 ****
+  	ICON_MUTED,
+  	ICON_LOUD,
+  	ICON_BRIGHT,
+! 	ICON_EJECT,
+  };
+  
+  static void init_tray (Acme *acme);
+--- 67,73 ----
+  	ICON_MUTED,
+  	ICON_LOUD,
+  	ICON_BRIGHT,
+! 	ICON_EJECT
+  };
+  
+  static void init_tray (Acme *acme);
+diff -crN ./acme/src/acme.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/acme.h
+*** ./acme/src/acme.h	Tue Mar 11 20:52:30 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/acme.h	Fri Oct 17 10:16:55 2003
+***************
+*** 1,3 ****
+--- 1,4 ----
++ 
+  /* ACME
+   * Copyright (C) 2001 Bastien Nocera <hadess@hadess.net>
+   *
+***************
+*** 61,67 ****
+  	BRIGHT_DOWN_KEY,
+  	BRIGHT_UP_KEY,
+  #endif
+! 	HANDLED_KEYS,
+  };
+  
+  
+--- 62,68 ----
+  	BRIGHT_DOWN_KEY,
+  	BRIGHT_UP_KEY,
+  #endif
+! 	HANDLED_KEYS
+  };
+  
+  
+diff -crN ./acme/src/eggcellrendererkeys.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/eggcellrendererkeys.c
+*** ./acme/src/eggcellrendererkeys.c	Thu Jul  3 14:29:13 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/eggcellrendererkeys.c	Fri Oct 17 10:17:05 2003
+***************
+*** 1,3 ****
+--- 1,4 ----
++ 
+  #include <config.h>
+  #include <libintl.h>
+  #include <gtk/gtk.h>
+***************
+*** 584,590 ****
+  void
+  egg_cell_renderer_keys_set_accelerator (EggCellRendererKeys *keys,
+                                          guint                keyval,
+!                                         GdkModifierType      mask)
+  {
+    char *text;
+    gboolean changed;
+--- 585,591 ----
+  void
+  egg_cell_renderer_keys_set_accelerator (EggCellRendererKeys *keys,
+                                          guint                keyval,
+!                                         EggVirtualModifierType      mask)
+  {
+    char *text;
+    gboolean changed;
+***************
+*** 626,632 ****
+  void
+  egg_cell_renderer_keys_get_accelerator (EggCellRendererKeys *keys,
+                                          guint               *keyval,
+!                                         GdkModifierType     *mask)
+  {
+    g_return_if_fail (EGG_IS_CELL_RENDERER_KEYS (keys));
+  
+--- 627,633 ----
+  void
+  egg_cell_renderer_keys_get_accelerator (EggCellRendererKeys *keys,
+                                          guint               *keyval,
+!                                         EggVirtualModifierType     *mask)
+  {
+    g_return_if_fail (EGG_IS_CELL_RENDERER_KEYS (keys));
+  
+diff -crN ./acme/src/eggcellrendererkeys.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/eggcellrendererkeys.h
+*** ./acme/src/eggcellrendererkeys.h	Wed Jan  8 17:34:51 2003
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/eggcellrendererkeys.h	Mon Apr 28 15:06:18 2003
+***************
+*** 39,45 ****
+  typedef enum
+  {
+    EGG_CELL_RENDERER_KEYS_MODE_GTK,
+!   EGG_CELL_RENDERER_KEYS_MODE_X,
+  } EggCellRendererKeysMode;
+  
+  struct _EggCellRendererKeys
+--- 39,45 ----
+  typedef enum
+  {
+    EGG_CELL_RENDERER_KEYS_MODE_GTK,
+!   EGG_CELL_RENDERER_KEYS_MODE_X
+  } EggCellRendererKeysMode;
+  
+  struct _EggCellRendererKeys
+diff -crN ./acme/src/g-volume.gob /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/g-volume.gob
+*** ./acme/src/g-volume.gob	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./acme/src/g-volume.gob	Mon Apr 28 15:07:00 2003
+***************
+*** 0 ****
+--- 1,161 ----
++ %{
++ #ifdef HAVE_OSS
++ #include "volume-oss.h"
++ #endif
++ 
++ #ifdef HAVE_ALSA
++ #include "volume-alsa.h"
++ #endif
++ %}
++ 
++ class G:Volume from G:Object {
++ 	/* the current volume */
++ 	public int volume = 0;
++ 	argument INT volume (export)
++ 	get {
++ #ifdef HAVE_ALSA
++ 		if (VOLUME_IS_ALSA (self->_priv->volume_object))
++ 		{
++ 			ARG = volume_alsa_get_volume
++ 				(VOLUME_ALSA (self->_priv->volume_object));
++ 			goto get_volume_end;
++ 		}
++ #endif
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 			ARG = volume_oss_get_volume
++ 				(VOLUME_OSS (self->_priv->volume_object));
++ 		}
++ 		else
++ #endif
++ 			ARG = 0;
++ 	}
++ 
++ 	set {
++ #ifdef HAVE_ALSA
++ 		if (VOLUME_IS_ALSA (self->_priv->volume_object))
++ 		{
++ 			volume_alsa_set_volume
++ 				(VOLUME_ALSA (self->_priv->volume_object), ARG);
++ 			goto set_volume_end;
++ 		}
++ #endif
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 			volume_oss_set_volume
++ 				(VOLUME_OSS (self->_priv->volume_object), ARG);
++ 		}
++ #endif
++ 	};
++ 
++ 	/* the current muting status */
++ 	public gboolean mute = FALSE;
++ 	argument INT (type gboolean) mute (export)
++ 	get {
++ #ifdef HAVE_ALSA
++ 		if (VOLUME_IS_ALSA (self->_priv->volume_object))
++ 		{
++ 			ARG = volume_alsa_get_mute
++ 				(VOLUME_ALSA (self->_priv->volume_object));
++ 			goto get_mute_end;
++ 		}
++ #endif
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 			ARG = volume_oss_get_mute
++ 				(VOLUME_OSS (self->_priv->volume_object));
++ 		}
++ 		else
++ #endif
++ 			ARG = FALSE;
++ 	}
++ 
++ 	set {
++ #ifdef HAVE_ALSA
++ 		if (VOLUME_IS_ALSA (self->_priv->volume_object))
++ 		{
++ 			volume_alsa_set_mute
++ 				(VOLUME_ALSA (self->_priv->volume_object), ARG);
++ 			goto set_mute_end;
++ 		}
++ #endif
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 				
++ 			volume_oss_set_mute
++ 				(VOLUME_OSS (self->_priv->volume_object), ARG);
++ 		}
++ #endif
++ 	};
++ 
++ 	public gboolean use_pcm = FALSE;
++ 	argument INT (type gboolean) use_pcm (export)
++ 	get {
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 			ARG = volume_oss_get_use_pcm
++ 				(VOLUME_OSS (self->_priv->volume_object));
++ 		}
++ #endif
++ 	}
++ 
++ 	set {
++ #ifdef HAVE_OSS
++ 		if (VOLUME_IS_OSS (self->_priv->volume_object))
++ 		{
++ 			volume_oss_set_use_pcm
++ 				(VOLUME_OSS (self->_priv->volume_object), ARG);
++ 		}
++ #endif
++ 	};
++ 
++ 	
++ 
++ 	public
++ 	GVolume *
++ 	new (void)
++ 	{
++ 		GVolume *self;
++ 		GObject *object = NULL;
++ 
++ #ifdef HAVE_OSS
++ 		if (object == NULL)
++ 			object = (GObject *)volume_oss_new ();
++ #endif
++ #ifdef HAVE_ALSA
++ 		if (object == NULL && g_file_test
++ 				("/proc/asound/version", G_FILE_TEST_EXISTS))
++ 			object = (GObject *)volume_alsa_new ();
++ #endif
++ 
++ 		if (object == NULL)
++ 			return NULL;
++ 
++ 		self = (GVolume *)GET_NEW;
++ 		self->_priv->volume_object = G_OBJECT (object);
++ 
++ 		return self;
++ 	}
++ 
++ 	public
++ 	void
++ 	mute_toggle(GVolume *self)
++ 	{
++ 		gboolean muted;
++ 
++ 		muted = g_volume_get_mute(self);
++ 		g_volume_set_mute(self, !muted);
++ 	}
++ 
++ 	signal last NONE (NONE)
++ 	void fd_problem(self);
++ 
++ 	/* Private stuff */
++ 	private GObject *volume_object = NULL;
++ }
++ 

@@ -1,0 +1,20 @@
+--- ./tests/Makefile.ORIGIN	2019-11-26 11:07:08 +0100
++++ ./tests/Makefile	2019-11-26 11:12:17 +0100
+@@ -124,7 +124,7 @@
+ #-----------------------------------------------------------------------------
+ # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+ #-----------------------------------------------------------------------------
+-ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
++ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS AIX))
+ 
+ MD5:=md5sum
+ ifneq (,$(filter $(shell uname), Darwin ))
+@@ -137,7 +137,7 @@
+ endif
+ 
+ 
+-test: test-lz4 test-lz4c test-fasttest test-frametest test-fullbench test-fuzzer
++test: test-lz4 test-lz4c test-fasttest test-frametest test-fullbench test-fuzzer # test-platform
+ 
+ test32: CFLAGS+=-m32
+ test32: test

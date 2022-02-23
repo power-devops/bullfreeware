@@ -1,0 +1,358 @@
+diff --git a/cmake/build_configurations/mysql_release.cmake b/cmake/build_configurations/mysql_release.cmake
+index 9caaed7f990..ee8d00bc664 100644
+--- a/cmake/build_configurations/mysql_release.cmake
++++ b/cmake/build_configurations/mysql_release.cmake
+@@ -89,6 +89,10 @@ IF(WIN32)
+   SET(INSTALL_MYSQLTESTDIR "" CACHE STRING "")
+   SET(INSTALL_SQLBENCHDIR  "" CACHE STRING "")
+   SET(INSTALL_SUPPORTFILESDIR ""  CACHE STRING "")
++ELSEIF(CMAKE_SYSTEM_NAME MATCHES "AIX")
++  # AIX freesource is RPM, but different than Linux RPM
++  SET(WITH_SSL system CACHE STRING "")
++  SET(WITH_ZLIB system CACHE STRING "")
+ ELSEIF(RPM)
+   SET(WITH_SSL system CACHE STRING "")
+   SET(WITH_ZLIB system CACHE STRING "")
+diff --git a/cmake/os/AIX.cmake b/cmake/os/AIX.cmake
+index 12ddf30d440..521f829e859 100644
+--- a/cmake/os/AIX.cmake
++++ b/cmake/os/AIX.cmake
+@@ -17,6 +17,7 @@
+ #Enable 64 bit file offsets
+ SET(_LARGE_FILES 1)
+ 
++IF(__AIX_COMPILER_XL)
+ # Fix xlC oddity - it complains about same inline function defined multiple times
+ # in different compilation units  
+ INCLUDE(CheckCXXCompilerFlag)
+@@ -24,10 +25,4 @@ INCLUDE(CheckCXXCompilerFlag)
+  IF(HAVE_QSTATICINLINE)
+   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qstaticinline")
+  ENDIF()
+- 
+-# The following is required to export all symbols 
+-# (also with leading underscore)
+-STRING(REPLACE  "-bexpall" "-bexpfull" CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS
+-  "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS}")
+-STRING(REPLACE  "-bexpall" "-bexpfull" CMAKE_SHARED_LIBRARY_LINK_C_FLAGS
+-  "${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS}")
++ENDIF()
+diff --git a/cmake/plugin.cmake b/cmake/plugin.cmake
+index f2cba074397..0bd6c28bb82 100644
+--- a/cmake/plugin.cmake
++++ b/cmake/plugin.cmake
+@@ -209,6 +209,10 @@ MACRO(MYSQL_ADD_PLUGIN)
+ 
+     TARGET_LINK_LIBRARIES (${target} mysqlservices ${ARG_LINK_LIBRARIES})
+ 
++    IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/libservices/mysqlservices_aix.def")
++    ENDIF()
++
+     # Server plugins use symbols defined in mysqld executable.
+     # Some operating systems like Windows and OSX and are pretty strict about 
+     # unresolved symbols. Others are less strict and allow unresolved symbols
+@@ -217,7 +221,7 @@ MACRO(MYSQL_ADD_PLUGIN)
+     # Thus we skip TARGET_LINK_LIBRARIES on Linux, as it would only generate
+     # an additional dependency.
+     IF(ARG_RECOMPILE_FOR_EMBEDDED OR ARG_STORAGE_ENGINE)
+-      IF(MSVC)
++      IF(MSVC OR CMAKE_SYSTEM_NAME MATCHES AIX)
+         TARGET_LINK_LIBRARIES(${target} server)
+       ELSEIF(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+         TARGET_LINK_LIBRARIES (${target} mariadbd)
+diff --git a/extra/perror.c b/extra/perror.c
+index 2daddb6636f..f31314a08a3 100644
+--- a/extra/perror.c
++++ b/extra/perror.c
+@@ -320,6 +320,10 @@ int main(int argc,char *argv[])
+       code=atoi(*argv);
+       msg = strerror(code);
+ 
++      // On AIX, unknow error return " Error <CODE> occurred."
++      char unknow_aix[30];
++      snprintf(unknow_aix, sizeof(unknow_aix), " Error %3d occurred.", code);
++
+       /*
+         We don't print the OS error message if it is the same as the
+         unknown_error message we retrieved above, or it starts with
+@@ -328,7 +332,8 @@ int main(int argc,char *argv[])
+       if (msg &&
+           my_strnncoll(&my_charset_latin1, (const uchar*) msg, 13,
+                        (const uchar*) "Unknown Error", 13) &&
+-          (!unknown_error || strcmp(msg, unknown_error)))
++          (!unknown_error || strcmp(msg, unknown_error)) &&
++          (!strcmp(msg, unknow_aix)))
+       {
+ 	found= 1;
+ 	if (verbose)
+diff --git a/include/my_global.h b/include/my_global.h
+index 86ef5f882f6..081e4d6e932 100644
+--- a/include/my_global.h
++++ b/include/my_global.h
+@@ -135,13 +135,6 @@
+ 
+ #endif /* _WIN32*/
+ 
+-
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ /*
+   The macros below are used to allow build of Universal/fat binaries of
+   MySQL and MySQL applications under darwin. 
+@@ -270,22 +263,6 @@ C_MODE_END
+ #endif
+ #endif /* !defined(__WIN__) */
+ 
+-/* Go around some bugs in different OS and compilers */
+-#ifdef _AIX			/* By soren@t.dk */
+-#define _H_STRINGS
+-#define _SYS_STREAM_H
+-/* #define _AIX32_CURSES */	/* XXX: this breaks AIX 4.3.3 (others?). */
+-#define ulonglong2double(A) my_ulonglong2double(A)
+-#define my_off_t2double(A)  my_ulonglong2double(A)
+-C_MODE_START
+-inline double my_ulonglong2double(unsigned long long A) { return (double)A; }
+-C_MODE_END
+-#endif /* _AIX */
+-
+-#ifdef UNDEF_HAVE_INITGROUPS			/* For AIX 4.3 */
+-#undef HAVE_INITGROUPS
+-#endif
+-
+ /* gcc/egcs issues */
+ 
+ #if defined(__GNUC) && defined(__EXCEPTIONS)
+@@ -295,16 +272,6 @@ C_MODE_END
+ #if defined(_lint) && !defined(lint)
+ #define lint
+ #endif
+-#if SIZEOF_LONG_LONG > 4 && !defined(_LONG_LONG)
+-#define _LONG_LONG 1		/* For AIX string library */
+-#endif
+-
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ 
+ #ifndef stdin
+ #include <stdio.h>
+@@ -332,13 +299,6 @@ C_MODE_END
+ #include <sys/types.h>
+ #endif
+ 
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+-
+ #ifdef HAVE_FCNTL_H
+ #include <fcntl.h>
+ #endif
+@@ -1197,12 +1157,6 @@ typedef struct { const char *dli_fname, dli_fbase; } Dl_info;
+ #define HAVE_EXTERNAL_CLIENT
+ #endif /* EMBEDDED_LIBRARY */
+ 
+-/* Workaround for _LARGE_FILES and _LARGE_FILE_API incompatibility on AIX */
+-#if defined(_AIX) && defined(_LARGE_FILE_API)
+-#undef _LARGE_FILE_API
+-#undef __GNUG__
+-#endif
+-
+ /*
+   Provide defaults for the CPU cache line size, if it has not been detected by
+   CMake using getconf
+--- /dev/null
++++ b/libservices/mysqlservices_aix.def
+@@ -0,0 +1,23 @@
++#! .
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service
+diff --git a/mysql-test/main/repair_symlink-5543.test b/mysql-test/main/repair_symlink-5543.test
+index ac7bb497f24..7c4ad7db0dc 100644
+--- a/mysql-test/main/repair_symlink-5543.test
++++ b/mysql-test/main/repair_symlink-5543.test
+@@ -11,7 +11,7 @@ insert t1 values (1);
+ --system ln -s $MYSQL_TMP_DIR/foobar5543 $MYSQL_TMP_DIR/t1.TMD
+ --echo # Some systems fail with errcode 40, or 90 (MIPS) when doing openat,
+ --echo # while others don't have openat and fail with errcode 20.
+---replace_regex / '.*\/t1/ 'MYSQL_TMP_DIR\/t1/ /[49]0/20/ /".*"/"<errmsg>"/
++--replace_regex / '.*\/t1/ 'MYSQL_TMP_DIR\/t1/ /[49]0/20/ /85/20/ /".*"/"<errmsg>"/
+ repair table t1;
+ drop table t1;
+ 
+@@ -19,7 +19,7 @@ drop table t1;
+ eval create table t2 (a int) engine=aria data directory='$MYSQL_TMP_DIR';
+ insert t2 values (1);
+ --system ln -s $MYSQL_TMP_DIR/foobar5543 $MYSQL_TMP_DIR/t2.TMD
+---replace_regex / '.*\/t2/ 'MYSQL_TMP_DIR\/t2/ /[49]0/20/ /".*"/"<errmsg>"/
++--replace_regex / '.*\/t2/ 'MYSQL_TMP_DIR\/t2/ /[49]0/20/ /85/20/ /".*"/"<errmsg>"/
+ repair table t2;
+ drop table t2;
+ 
+diff --git a/mysql-test/main/symlink-myisam-11902.test b/mysql-test/main/symlink-myisam-11902.test
+index 8fd4961d1fb..8fae41222cf 100644
+--- a/mysql-test/main/symlink-myisam-11902.test
++++ b/mysql-test/main/symlink-myisam-11902.test
+@@ -25,7 +25,7 @@ exec rm -r $MYSQLTEST_VARDIR/tmp/foo;
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL go';
+ connection default;
+-replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /40/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error 29;
+ reap;
+ flush tables;
+@@ -49,7 +49,7 @@ exec rm -r $MYSQLTEST_VARDIR/tmp/foo;
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL run';
+ connection default;
+-replace_regex / '.*\/test\// '.\/test\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/test\// '.\/test\// /31/20/ /40/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error ER_FILE_NOT_FOUND;
+ reap;
+ flush tables;
+diff --git a/sql/CMakeLists.txt b/sql/CMakeLists.txt
+index 0dc3caab507..9d03f2c952a 100644
+--- a/sql/CMakeLists.txt
++++ b/sql/CMakeLists.txt
+@@ -214,17 +214,22 @@ ELSE()
+   SET(MYSQLD_SOURCE main.cc ${DTRACE_PROBES_ALL})
+ ENDIF()
+ 
+-IF(MSVC)
++IF(MSVC OR CMAKE_SYSTEM_NAME MATCHES AIX)
+   SET(libs_to_export_symbols sql mysys dbug strings)
+   # Create shared library of already compiled object
+   # Export all symbols from selected libraries, to be used
+   # by plugins
++  IF(MSVC)
++    SET(VERSIONINFO_RC ${PROJECT_BINARY_DIR}/versioninfo_dll.rc)
++  ELSE()
++    SET(VERSIONINFO_RC)
++  ENDIF()
+   ADD_LIBRARY(server SHARED
+     $<TARGET_OBJECTS:sql>
+     $<TARGET_OBJECTS:mysys>
+     $<TARGET_OBJECTS:dbug>
+     $<TARGET_OBJECTS:strings>
+-    ${PROJECT_BINARY_DIR}/versioninfo_dll.rc
++    ${VERSIONINFO_RC}
+   )
+ 
+   # We need to add all dependencies of sql/mysys/dbug/strings
+@@ -245,7 +250,11 @@ IF(MSVC)
+    ${all_deps}
+    sql_builtins
+   )
+-  SET_TARGET_PROPERTIES(server PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
++  IF(MSVC)
++    SET_TARGET_PROPERTIES(server PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
++  ELSE()
++    SET_TARGET_PROPERTIES(server PROPERTIES AIX_EXPORT_ALL_SYMBOLS TRUE)
++  ENDIF()
+   MYSQL_INSTALL_TARGETS(server DESTINATION  ${INSTALL_BINDIR} COMPONENT Server)
+ ENDIF()
+ 
+@@ -272,7 +281,7 @@ IF(NOT WITHOUT_DYNAMIC_PLUGINS)
+   ENDIF()
+ ENDIF(NOT WITHOUT_DYNAMIC_PLUGINS)
+ 
+-IF(MSVC)
++IF(MSVC OR CMAKE_SYSTEM_NAME MATCHES AIX)
+   TARGET_LINK_LIBRARIES(mariadbd server)
+ ELSE()
+   TARGET_LINK_LIBRARIES(mariadbd LINK_PRIVATE sql sql_builtins)
+diff --git a/sql/sql_yacc.yy b/sql/sql_yacc.yy
+index b42d68c26e1..1168708eea2 100644
+--- a/sql/sql_yacc.yy
++++ b/sql/sql_yacc.yy
+@@ -170,7 +170,11 @@ void _CONCAT_UNDERSCORED(turn_parser_debug_on,yyparse)()
+      The result will be in the process stderr (var/log/master.err)
+    */
+ 
++#ifndef _AIX
+   extern int yydebug;
++#else
++  static int yydebug;
++#endif
+   yydebug= 1;
+ }
+ #endif
+diff --git a/storage/maria/CMakeLists.txt b/storage/maria/CMakeLists.txt
+index 34af45d07fa..8f18d31c290 100644
+--- a/storage/maria/CMakeLists.txt
++++ b/storage/maria/CMakeLists.txt
+@@ -52,6 +52,11 @@ IF(APPLE)
+   ADD_DEFINITIONS(-fno-common)
+ ENDIF()
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  # Workaround linker bug on AIX
++  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-berok")
++ENDIF()
++
+ MYSQL_ADD_PLUGIN(aria ${ARIA_SOURCES} STORAGE_ENGINE MANDATORY
+                  LINK_LIBRARIES myisam mysys mysys_ssl
+                  RECOMPILE_FOR_EMBEDDED)
+diff --git a/storage/myisam/CMakeLists.txt b/storage/myisam/CMakeLists.txt
+index 52485043e8f..2f5d6211e36 100644
+--- a/storage/myisam/CMakeLists.txt
++++ b/storage/myisam/CMakeLists.txt
+@@ -27,6 +27,11 @@ SET(MYISAM_SOURCES  ft_boolean_search.c ft_nlq_search.c ft_parser.c ft_static.c
+ 				rt_split.c sort.c sp_key.c mi_extrafunc.h myisamdef.h
+ 				rt_index.h mi_rkey.c)
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  # Workaround linker bug on AIX
++  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-berok")
++ENDIF()
++
+ MYSQL_ADD_PLUGIN(myisam ${MYISAM_SOURCES} 
+   STORAGE_ENGINE 
+   MANDATORY 
+diff --git a/storage/perfschema/CMakeLists.txt b/storage/perfschema/CMakeLists.txt
+index c871677d0a9..f43a5376b6f 100644
+--- a/storage/perfschema/CMakeLists.txt
++++ b/storage/perfschema/CMakeLists.txt
+@@ -33,6 +33,11 @@ IF (SSL_DEFINES)
+   ADD_DEFINITIONS(${SSL_DEFINES})
+ ENDIF()
+ 
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  # Workaround linker bug on AIX
++  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-berok")
++ENDIF()
++
+ #
+ # Maintainer: keep this list sorted, to avoid merge collisions.
+ # Tip: ls -1 *.h, ls -1 *.cc

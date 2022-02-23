@@ -1,0 +1,12 @@
+--- ./tools/build/src/tools/gcc.jam.ORIGIN	2019-12-04 16:32:06 -0600
++++ ./tools/build/src/tools/gcc.jam	2019-12-04 16:24:59 -0600
+@@ -862,7 +862,8 @@
+ toolset.flags gcc.link LIBRARIES <library-file> ;
+ 
+ # Specify compile flags for linker as well as they may be needed for LTO
+-toolset.flags gcc.link OPTIONS <local-visibility>hidden : -fvisibility=hidden -fvisibility-inlines-hidden ;
++#toolset.flags gcc.link OPTIONS <local-visibility>hidden : -fvisibility=hidden -fvisibility-inlines-hidden ;
++toolset.flags gcc.link OPTIONS <local-visibility>hidden : -fvisibility-inlines-hidden ;
+ toolset.flags gcc.link OPTIONS <local-visibility>protected : -fvisibility=protected ;
+ toolset.flags gcc.link OPTIONS <local-visibility>protected/<target-os>darwin : ;
+ toolset.flags gcc.link OPTIONS <local-visibility>global : -fvisibility=default ;

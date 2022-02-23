@@ -1,0 +1,19 @@
+Index: php-5.3.11/ext/mysqlnd/mysqlnd_result.c
+===================================================================
+--- php-5.3.11.orig/ext/mysqlnd/mysqlnd_result.c	2012-04-25 00:13:15.000000000 +0200
++++ php-5.3.11/ext/mysqlnd/mysqlnd_result.c	2012-05-03 14:43:06.000000000 +0200
+@@ -31,6 +31,14 @@
+ 
+ #define MYSQLND_SILENT
+ 
++/* #if defined(_AIX51) && !defined(_AIX52) */
++#if defined(_AIX61)
++#if (__64BIT__)
++#define SIZE_MAX        UINT64_MAX
++#else
++#define SIZE_MAX        UINT32_MAX
++#endif
++#endif
+ 
+ /* {{{ mysqlnd_res::initialize_result_set_rest */
+ static enum_func_status

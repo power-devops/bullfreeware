@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Elm
+Type=Application
+Comment=Electronic Mail reader
+Comment[sv]=E-postläsare
+Comment[no]=epostleser
+Icon=mail2.xpm
+MiniIcon=mini-mail.xpm
+Exec=elm
+Terminal=true

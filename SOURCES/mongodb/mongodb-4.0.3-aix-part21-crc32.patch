@@ -1,0 +1,20 @@
+--- ./src/third_party/wiredtiger/src/checksum/power8/crc32_wrapper.c.ORIGIN	2018-09-25 16:56:42 -0500
++++ ./src/third_party/wiredtiger/src/checksum/power8/crc32_wrapper.c	2019-05-29 14:20:50 -0500
+@@ -7,7 +7,7 @@
+  * standalone WiredTiger configuration, there's no way to turn off the checksum
+  * hardware.
+  */
+-#if defined(__powerpc64__) && !defined(HAVE_NO_CRC32_HARDWARE)
++#if defined(__powerpc64__NotSupported) && !defined(HAVE_NO_CRC32_HARDWARE)
+ #define CRC_TABLE
+ #include "crc32_constants.h"
+ 
+@@ -101,7 +101,7 @@
+  */
+ uint32_t (*wiredtiger_crc32c_func(void))(const void *, size_t)
+ {
+-#if defined(__powerpc64__) && !defined(HAVE_NO_CRC32_HARDWARE)
++#if defined(__powerpc64__NotSupported) && !defined(HAVE_NO_CRC32_HARDWARE)
+ 	return (__wt_checksum_hw);
+ #else
+ 	return (__wt_checksum_sw);

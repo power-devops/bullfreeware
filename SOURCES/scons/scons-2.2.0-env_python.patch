@@ -1,0 +1,30 @@
+Index: scons-2.2.0/script/scons
+===================================================================
+--- scons-2.2.0.orig/script/scons	2012-08-05 17:38:31.000000000 +0200
++++ scons-2.2.0/script/scons	2012-08-30 11:28:37.000000000 +0200
+@@ -1,4 +1,4 @@
+-#! /usr/bin/env python
++#!/usr/bin/python
+ #
+ # SCons - a Software Constructor
+ #
+Index: scons-2.2.0/script/scons-time
+===================================================================
+--- scons-2.2.0.orig/script/scons-time	2012-08-05 17:38:31.000000000 +0200
++++ scons-2.2.0/script/scons-time	2012-08-30 11:29:03.000000000 +0200
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ #
+ # scons-time - run SCons timings and collect statistics
+ #
+Index: scons-2.2.0/script/sconsign
+===================================================================
+--- scons-2.2.0.orig/script/sconsign	2012-08-05 17:38:31.000000000 +0200
++++ scons-2.2.0/script/sconsign	2012-08-30 11:29:13.000000000 +0200
+@@ -1,4 +1,4 @@
+-#! /usr/bin/env python
++#!/usr/bin/python
+ #
+ # SCons - a Software Constructor
+ #

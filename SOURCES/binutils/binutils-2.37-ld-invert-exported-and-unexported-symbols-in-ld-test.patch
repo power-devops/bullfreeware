@@ -1,0 +1,303 @@
+From b82f6b6d73df9c0aea381bbd6770f24f5ed648a2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 11 Mar 2021 11:08:17 +0100
+Subject: [PATCH] ld: invert exported and unexported symbols in ld tests
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Exported symbols are now provided after hidden symbols:
+ INVESTIGATE BEFORE SUBMIT !
+
+ChangeLog:
+2020-11-03  Clément Chigot <clement.chigot@atos.net>
+
+	* ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd: Move hidden
+	symbol after exported oned.
+	* ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd: Likewise.
+	* ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd: Likewise.
+	* ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd: Likewise.
+	* ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd: Likewise.
+---
+ ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd      | 2 +-
+ ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd      | 2 +-
+ ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd       | 2 +-
+ ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd       | 2 +-
+ ld/testsuite/ld-powerpc/aix-lineno-1a-32.nd         | 6 +++---
+ ld/testsuite/ld-powerpc/aix-lineno-1a-64.nd         | 6 +++---
+ ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd | 2 +-
+ ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd | 2 +-
+ ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd    | 2 +-
+ ld/testsuite/ld-powerpc/aix-weak-1-dso-32.nd        | 8 ++++----
+ ld/testsuite/ld-powerpc/aix-weak-1-dso-64.nd        | 8 ++++----
+ ld/testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd      | 8 ++++----
+ ld/testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd      | 8 ++++----
+ ld/testsuite/ld-powerpc/aix-weak-1-rel.nd           | 8 ++++----
+ 14 files changed, 33 insertions(+), 33 deletions(-)
+
+diff --git a/ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd b/ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd
+index d51e67550de..24219e61de3 100644
+--- a/ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-abs-branch-1-32.nd
+@@ -1,3 +1,3 @@
+ 01450000 C bar
+-10000100 t foo
+ 10000100 T foo
++10000100 t foo
+diff --git a/ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd b/ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd
+index ce8aa09e11f..bc7e7022755 100644
+--- a/ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-abs-branch-1-64.nd
+@@ -1,3 +1,3 @@
+ 0*01450000 C bar
+-0*100001c0 t foo
+ 0*100001c0 T foo
++0*100001c0 t foo
+diff --git a/ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd b/ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd
+index eae1fbf79fd..8ce69b5d2b9 100644
+--- a/ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-abs-reloc-1-32.nd
+@@ -1,3 +1,3 @@
+ deadbeef C bar
+-20000100 d foo
+ 20000100 D foo
++20000100 d foo
+diff --git a/ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd b/ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd
+index 719e7e955e2..a82e2f2bfb5 100644
+--- a/ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-abs-reloc-1-64.nd
+@@ -1,3 +1,3 @@
+ 0*deadbeef C bar
+-0*200001c0 d foo
+ 0*200001c0 D foo
++0*200001c0 d foo
+diff --git a/ld/testsuite/ld-powerpc/aix-lineno-1a-32.nd b/ld/testsuite/ld-powerpc/aix-lineno-1a-32.nd
+index 1a7501b5d4f..22e97523baf 100644
+--- a/ld/testsuite/ld-powerpc/aix-lineno-1a-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-lineno-1a-32.nd
+@@ -1,8 +1,8 @@
+-10000100 t \.bf
+ 10000114 t \.bf
+-10000114 t \.ef
++10000100 t \.bf
+ 1000011c t \.ef
++10000114 t \.ef
+ 10000100 t \.foo
+ 10000100 t \.foo
+-10000114 t \.main
+ 10000114 T \.main
++10000114 t \.main
+diff --git a/ld/testsuite/ld-powerpc/aix-lineno-1a-64.nd b/ld/testsuite/ld-powerpc/aix-lineno-1a-64.nd
+index e66d16b5c44..5defc468566 100644
+--- a/ld/testsuite/ld-powerpc/aix-lineno-1a-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-lineno-1a-64.nd
+@@ -1,8 +1,8 @@
+-0*100001c0 t \.bf
+ 0*100001d4 t \.bf
+-0*100001d4 t \.ef
++0*100001c0 t \.bf
+ 0*100001dc t \.ef
++0*100001d4 t \.ef
+ 0*100001c0 t \.foo
+ 0*100001c0 t \.foo
+-0*100001d4 t \.main
+ 0*100001d4 T \.main
++0*100001d4 t \.main
+diff --git a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd
+index 624fa672ca7..2439872702f 100644
+--- a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-32.nd
+@@ -1,7 +1,7 @@
+          U foo
+ 20000100 d x
+-20000100 D x
+ 20000110 d x
++20000100 D x
+ 20000104 d x1
+ 20000104 D x1
+ 20000114 d x2
+diff --git a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd
+index 34bf1c10ba5..3e3b1a89a46 100644
+--- a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-dso-64.nd
+@@ -1,7 +1,7 @@
+  *         U foo
+ 0*200001c0 d x
+-0*200001c0 D x
+ 0*200001d0 d x
++0*200001c0 D x
+ 0*200001c4 d x1
+ 0*200001c4 D x1
+ 0*200001d4 d x2
+diff --git a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd
+index e2bdbc4b8ab..623f41e05e7 100644
+--- a/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd
++++ b/ld/testsuite/ld-powerpc/aix-no-dup-syms-1-rel.nd
+@@ -1,7 +1,7 @@
+  +   U foo
+ 0+00 d x
+-0+00 D x
+ 0+10 d x
++0+00 D x
+ 0+04 d x1
+ 0+04 D x1
+ 0+14 d x2
+diff --git a/ld/testsuite/ld-powerpc/aix-weak-1-dso-32.nd b/ld/testsuite/ld-powerpc/aix-weak-1-dso-32.nd
+index 33681b30601..78e75bf2adf 100644
+--- a/ld/testsuite/ld-powerpc/aix-weak-1-dso-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-weak-1-dso-32.nd
+@@ -3,23 +3,23 @@
+ 20000110 d a
+ 20000110 D a
+ # (strong common) wins over (weak data)
+-20000120 B b
+ 20000114 d b
++20000120 B b
+ # (strong data) wins over (strong common)
+-20000100 d c
+ 20000100 D c
++20000100 d c
+ # (weak data) loses to (strong common)
+ 20000104 d d
+ 20000128 B d
+ # (weak common) loses to (strong data)
+-20000118 d e
+ 20000118 D e
++20000118 d e
+ # (weak common) wins over (weak data)
+ 20000124 W f
+ 2000011c d f
+ # (strong data) wins over (weak common)
+-20000108 d g
+ 20000108 D g
++20000108 d g
+ # (weak data) wins over (weak common)
+ 2000010c d h
+ 2000010c W h
+diff --git a/ld/testsuite/ld-powerpc/aix-weak-1-dso-64.nd b/ld/testsuite/ld-powerpc/aix-weak-1-dso-64.nd
+index f263e1fcb4e..ba48c41fd63 100644
+--- a/ld/testsuite/ld-powerpc/aix-weak-1-dso-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-weak-1-dso-64.nd
+@@ -3,23 +3,23 @@
+ 0*200001d0 d a
+ 0*200001d0 D a
+ # (strong common) wins over (weak data)
+-0*200001e0 B b
+ 0*200001d4 d b
++0*200001e0 B b
+ # (strong data) wins over (strong common)
+-0*200001c0 d c
+ 0*200001c0 D c
++0*200001c0 d c
+ # (weak data) loses to (strong common)
+ 0*200001c4 d d
+ 0*200001e8 B d
+ # (weak common) loses to (strong data)
+-0*200001d8 d e
+ 0*200001d8 D e
++0*200001d8 d e
+ # (weak common) wins over (weak data)
+ 0*200001e4 W f
+ 0*200001dc d f
+ # (strong data) wins over (weak common)
+-0*200001c8 d g
+ 0*200001c8 D g
++0*200001c8 d g
+ # (weak data) wins over (weak common)
+ 0*200001cc d h
+ 0*200001cc W h
+diff --git a/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd b/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd
+index 7bcace620ce..e64f2cac4c0 100644
+--- a/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd
++++ b/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-32.nd
+@@ -1,7 +1,7 @@
+ # Comments are (aix-weak-1a.s type) wins over/loses to (aix-weak-1b.s type)
+ # (strong common) loses to (strong data)
+-2000010c d a
+ 2000010c D a
++2000010c d a
+ # (strong common) wins over (weak data)
+ 20000118 B b
+ # (strong data) wins over (strong common)
+@@ -10,13 +10,13 @@
+ # (weak data) loses to (strong common)
+ 20000120 B d
+ # (weak common) loses to (strong data)
+-20000110 d e
+ 20000110 D e
++20000110 d e
+ # (weak common) wins over (weak data)
+ 2000011c W f
+ # (strong data) wins over (weak common)
+-20000104 d g
+ 20000104 D g
++20000104 d g
+ # (weak data) wins over (weak common)
+-20000108 d h
+ 20000108 W h
++20000108 d h
+diff --git a/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd b/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd
+index 3f5ad26bf7b..4be82521a75 100644
+--- a/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd
++++ b/ld/testsuite/ld-powerpc/aix-weak-1-gcdso-64.nd
+@@ -1,7 +1,7 @@
+ # Comments are (aix-weak-1a.s type) wins over/loses to (aix-weak-1b.s type)
+ # (strong common) loses to (strong data)
+-0*200001cc d a
+ 0*200001cc D a
++0*200001cc d a
+ # (strong common) wins over (weak data)
+ 0*200001d8 B b
+ # (strong data) wins over (strong common)
+@@ -10,13 +10,13 @@
+ # (weak data) loses to (strong common)
+ 0*200001e0 B d
+ # (weak common) loses to (strong data)
+-0*200001d0 d e
+ 0*200001d0 D e
++0*200001d0 d e
+ # (weak common) wins over (weak data)
+ 0*200001dc W f
+ # (strong data) wins over (weak common)
+-0*200001c4 d g
+ 0*200001c4 D g
++0*200001c4 d g
+ # (weak data) wins over (weak common)
+-0*200001c8 d h
+ 0*200001c8 W h
++0*200001c8 d h
+diff --git a/ld/testsuite/ld-powerpc/aix-weak-1-rel.nd b/ld/testsuite/ld-powerpc/aix-weak-1-rel.nd
+index 73cfe90de6d..7d47fdd48be 100644
+--- a/ld/testsuite/ld-powerpc/aix-weak-1-rel.nd
++++ b/ld/testsuite/ld-powerpc/aix-weak-1-rel.nd
+@@ -3,23 +3,23 @@
+ 0+10 d a
+ 0+10 D a
+ # (strong common) wins over (weak data)
+-0+20 B b
+ 0+14 d b
++0+20 B b
+ # (strong data) wins over (strong common)
+-0+00 d c
+ 0+00 D c
++0+00 d c
+ # (weak data) loses to (strong common)
+ 0+04 d d
+ 0+28 B d
+ # (weak common) loses to (strong data)
+-0+18 d e
+ 0+18 D e
++0+18 d e
+ # (weak common) wins over (weak data)
+ 0+24 W f
+ 0+1c d f
+ # (strong data) wins over (weak common)
+-0+08 d g
+ 0+08 D g
++0+08 d g
+ # (weak data) wins over (weak common)
+ 0+0c d h
+ 0+0c W h
+-- 
+2.33.0
+

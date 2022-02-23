@@ -1,0 +1,53 @@
+From 17d3ed2b914c12cd381e962e686d0a16f3927d70 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 5 Mar 2019 16:05:07 +0100
+Subject: [PATCH] net: fix fd leak with interfaces on aix/ppc64
+
+To retrieve MTU on aix/ppc64, a socket must be created. Previously, this
+socket was recreated for each interface and not close at all, causing a
+fd leak on software using interface API.
+
+Change-Id: Ib573e234bfce58964935831b68d007bfbd923476
+---
+ src/net/interface_aix.go | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/src/net/interface_aix.go b/src/net/interface_aix.go
+index 9a8b5bbdb1..49f78c2abb 100644
+--- a/src/net/interface_aix.go
++++ b/src/net/interface_aix.go
+@@ -5,6 +5,7 @@
+ package net
+ 
+ import (
++	"internal/poll"
+ 	"internal/syscall/unix"
+ 	"syscall"
+ 	"unsafe"
+@@ -54,6 +55,12 @@ func interfaceTable(ifindex int) ([]Interface, error) {
+ 		return nil, err
+ 	}
+ 
++	sock, err := sysSocket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
++	if err != nil {
++		return nil, err
++	}
++	defer poll.CloseFunc(sock)
++
+ 	var ift []Interface
+ 	for len(tab) > 0 {
+ 		ifm := (*syscall.IfMsgHdr)(unsafe.Pointer(&tab[0]))
+@@ -71,10 +78,6 @@ func interfaceTable(ifindex int) ([]Interface, error) {
+ 				// Retrieve MTU
+ 				ifr := &ifreq{}
+ 				copy(ifr.Name[:], ifi.Name)
+-				sock, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+-				if err != nil {
+-					return nil, err
+-				}
+ 				err = unix.Ioctl(sock, syscall.SIOCGIFMTU, uintptr(unsafe.Pointer(ifr)))
+ 				if err != nil {
+ 					return nil, err
+-- 
+2.17.1
+

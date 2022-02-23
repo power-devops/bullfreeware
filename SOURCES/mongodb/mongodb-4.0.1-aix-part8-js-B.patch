@@ -1,0 +1,21 @@
+--- ./src/third_party/mozjs-45/extract/js/src/builtin/WeakSetObject.cpp.ORIGIN	2019-05-27 19:08:02 -0500
++++ ./src/third_party/mozjs-45/extract/js/src/builtin/WeakSetObject.cpp	2019-05-27 19:07:34 -0500
+@@ -5,6 +5,7 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #include "builtin/WeakSetObject.h"
++#include "builtin/WeakMapObject.h"
+ 
+ #include "jsapi.h"
+ #include "jscntxt.h"
+--- ./src/third_party/mozjs-45/extract/js/src/asmjs/AsmJSSignalHandlers.cpp.ORIGIN	2019-05-29 09:50:54 -0500
++++ ./src/third_party/mozjs-45/extract/js/src/asmjs/AsmJSSignalHandlers.cpp	2019-05-29 09:52:33 -0500
+@@ -117,7 +117,7 @@
+ # define R13_sig(p) ((p)->sc_r13)
+ # define R14_sig(p) ((p)->sc_r14)
+ # define R15_sig(p) ((p)->sc_r15)
+-#elif defined(__linux__) || defined(SOLARIS)
++#elif defined(__linux__) || defined(SOLARIS) || defined(_AIX)
+ # if defined(__linux__)
+ #  define XMM_sig(p,i) ((p)->uc_mcontext.fpregs->_xmm[i])
+ #  define EIP_sig(p) ((p)->uc_mcontext.gregs[REG_EIP])

@@ -1,0 +1,485 @@
+# Copyright (c) 2012-2015, Red Hat, Inc
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name of Red Hat nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Authors: Stanislav Ochotnicky <sochotnicky@redhat.com>
+#          Mikolaj Izdebski <mizdebsk@redhat.com>
+
+
+# %mvn_package - assign Maven artifact(s) to a subpackage
+#
+# Usage: %mvn_package [gId]:[aId[:ver]] <subpackage name>
+#
+# This macro causes given artifact(s) to be installed in given subpackage.
+#
+# GId, aId and ver can contain wildcards and alternatives, which allows
+# multiple artifacts to be matched. If any of gId, aId or ver is omited
+# then any value will match the respective part. In particular a bare :
+# symbol will match any artifact.
+#
+# Subpackage name can contain backreferences in form @n.
+#
+%mvn_package %{pyinterpreter} %{javadir}-utils/mvn_package.py
+
+
+# %mvn_alias - create alias(es) for given Maven artifact(s)
+#
+# Usage: %mvn_alias [gId]:[aId[:ver]] [aliasGId]:[aliasAId[:aliasVer]] [...]
+#
+# This macro adds one or more aliases for specified artifacts. Aliases are
+# additional groupId, artifactId and version triples under which artifacts
+# can be found. After resulting package is installed any attempts to
+# resolve any of aliases will result in resolving the original artifact.
+#
+# GId, aId and ver can contain wildcards and alternatives, which allows
+# multiple artifacts to be matched. If any of gId, aId or ver is omited
+# then any value will match the respective part. In particular a bare :
+# symbol will match any artifact.
+#
+# AliasGId, aliasAId and aliasVer can contain backreferences in form @n,
+# which can refer only to respective parts.
+#
+%mvn_alias %{pyinterpreter} %{javadir}-utils/mvn_alias.py
+
+
+# %mvn_file - specify file name(s) for Maven artifact(s)
+#
+# Usage: %mvn_file [gId]:[aId[:ver]] <file1> [file2 ...]
+#
+# GId, aId and ver can contain wildcards and alternatives, which allows
+# multiple artifacts to be matched. If any of gId, aId or ver is omited
+# then any value will match the respective part. In particular a bare :
+# symbol will match any artifact.
+#
+# File names can contain backreferences in form @n. If multiple names
+# are given then the first one will be primary name of the artifact and
+# additional names will be symbolic links pointing to the primary file.
+#
+%mvn_file %{pyinterpreter} %{javadir}-utils/mvn_file.py
+
+# %mvn_compat_version - specify file name(s) for Maven artifact(s)
+#
+# Usage: %mvn_compat_version [gId]:[aId[:ver]] <version1> [version2 ...]
+#
+# GId, aId and ver can contain wildcards and alternatives, which allows
+# multiple artifacts to be matched. If any of gId, aId or ver is omited
+# then any value will match the respective part. In particular a bare :
+# symbol will match any artifact.
+#
+# Versions can contain backreferences in form @n. If multiple versions are
+# given then the first one will be primary version of the artifact and
+# additional versions will be symbolic links pointing to the primary
+# version.
+#
+%mvn_compat_version %{pyinterpreter} %{javadir}-utils/mvn_compat_version.py
+
+
+# %mvn_config - set XMvn configuration option
+#
+# Usage: %mvn_config <option> <value>
+#
+# This macro sets value of specified XMvn configuration option.
+#
+# Option is a sequence of slash-delimited XML node names that identify
+# XMvn configuration option, as in XMvn configuration reference; for
+# example: buildSettings/compilerSource.
+#
+# For information about available configuration options, see XMvn
+# configuration reference, available on XMvn website.
+#
+%mvn_config %{pyinterpreter} %{javadir}-utils/mvn_config.py
+
+
+# %mvn_artifact - add Maven artifact to be installed
+#
+# Usage: %mvn_artifact <pom> [<artifact-file>]
+#
+%mvn_artifact %{pyinterpreter} %{javadir}-utils/mvn_artifact.py
+
+
+# %mvn_build - build Maven project
+#
+# Usage: %mvn_build [options]
+#
+# This macro causes Maven project to be built (usually compiled and
+# packaged). It is intended to be placed in %build section of spec file.
+#
+# For summary of accepted options execute `mvn-build --help` command.
+#
+%mvn_build %{pyinterpreter} %{javadir}-utils/mvn_build.py %{?xmvn_bootstrap: -b} %{?_without_javadoc: -j $(> .mfiles-javadoc)}%{?_without_tests: -f}
+
+
+# %gradle_build - build Gradle project
+#
+# Usage: %mvn_build [options]
+#
+# This macro causes Gradle project to be built (usually compiled and
+# packaged). It is intended to be placed in %build section of spec file.
+#
+# For summary of accepted options execute `mvn-build --help` command.
+#
+%gradle_build %{pyinterpreter} %{javadir}-utils/mvn_build.py --gradle %{?xmvn_bootstrap: -b} %{?_without_javadoc: -j $(> .mfiles-javadoc)}%{?_without_tests: -f}
+
+
+# %mvn_install - install Maven project
+#
+# Usage: %mvn_install
+#
+# This macro causes previously built Maven project to be installed into
+# buildroot. It is intended to be placed in %install section of spec file.
+#
+%mvn_install(J:X) \
+xmvn-install %{?-X} -R .xmvn-reactor -n %{?scl:%{pkg_name}}%{!?scl:%{name}} -d "%{buildroot}" \
+%{-J*:jdir="%{-J*}"}%{!-J*:jdir=target/site/apidocs; [ -d .xmvn/apidocs ] && jdir=.xmvn/apidocs} \
+if [ -d "${jdir}" ]; then \
+   install -dm755 %{buildroot}%{_javadocdir}/%{?scl:%{pkg_name}}%{!?scl:%{name}} \
+   cp -pr "${jdir}"/* %{buildroot}%{_javadocdir}/%{?scl:%{pkg_name}}%{!?scl:%{name}} \
+   echo '%{_javadocdir}/%{?scl:%{pkg_name}}%{!?scl:%{name}}' >>.mfiles-javadoc \
+fi \
+%{nil}
+
+
+#==============================================================================
+#
+# add_maven_depmap is simplified version of jpackage-style add_to_maven_depmap
+# -f addition to fragment name
+# -a is "g1:a1,g2:a2" formatted string with additional depmaps (groupId:artifactId,...)
+# -v is "v1,v2" formatted string with additional compatibility versions
+#    supposed to be provided (jar,pom will be renamed to -%{version} variants
+#    and additional symlinks optionally created)
+# %1 is the pom filename relative to mavenpomdir
+# %2 is the path to jar file (when omitted we deal with parent pom file without jar)
+#
+# add_maven_depmap automatically parses pom file and it will fail with incorrect pom
+# or jar filename
+#
+# in the end add_maven_depmap optionally moves jar and pom file to
+# -%{version} variant and can create additional versioned symlinks
+
+%add_maven_depmap(f:a:v:) \
+set -e \
+# default values \
+%if %# == 0 \
+   _pompart="JPP-%{?scl:%{pkg_name}}%{!?scl:%{name}}.pom" \
+   _jarpart="%{?scl:%{pkg_name}}%{!?scl:%{name}}.jar" \
+%else \
+   _pompart="%1" \
+   _jarpart="%2" \
+%endif \
+_filelist=".mfiles%{-f*:-%{-f*}}" \
+install -dm 755 %{buildroot}%{_datadir}/maven-metadata \
+_jbase= \
+_jpath= \
+for _dir in %{_jnidir} %{_javadir}; do \
+    if [ -f %{buildroot}$_dir/$_jarpart ]; then \
+	_jbase="%{buildroot}$_dir" \
+	_jpath="$_jbase/$_jarpart" \
+    fi \
+done \
+%if %# != 1 \
+    [ -z "$_jpath" ] && (echo "%0 error: $_jarpart - file not found" 1>&2; exit 1) \
+%endif \
+%{pyinterpreter} %{javadir}-utils/maven_depmap.py %{-a} %{-v*:-r %{-v*}} \\\
+                 -n "%{?scl}" \\\
+                 --pom-base %{buildroot}%{_mavenpomdir} \\\
+                 --jar-base "$_jbase" \\\
+                 %{buildroot}%{_datadir}/maven-metadata/%{?scl:%{pkg_name}}%{!?scl:%{name}}%{-f*:-%{-f*}}.xml \\\
+                 %{buildroot}%{_mavenpomdir}/$_pompart \\\
+%if %# == 2 \
+          "${_jpath}" \\\
+%endif \
+%if %# == 0 \
+          "${_jpath}" \\\
+%endif \
+        >> ${_filelist} \
+sed -i 's:%{buildroot}::' ${_filelist} \
+sort -u -o ${_filelist} ${_filelist} \
+\
+%{nil}
+
+
+#==============================================================================
+#
+# %pom_* -- macros for batch editing of POM files
+#
+# These macros can be used to edit Maven POM files directly from RPM spec
+# file. Using these macros it is possible to alter Maven dependency management,
+# change plugin invocation, or even inject or remove arbitrary XML code to/from
+# nodes described by an XPath expression.
+#
+# See comments preceding individual macros for more detailed documentation.
+#
+
+# Private macro, shouldn't be used directly
+%__pom_call           %{pyinterpreter} %{javadir}-utils/pom_editor.py pom_
+
+
+# %pom_remove_dep - remove dependency on Maven artifact from POM file
+#
+# Usage: %pom_remove_dep [groupId]:[artifactId] [POM location]
+#
+# This macro patches specified POM file not to contain dependencies on given
+# Maven artifact.
+#
+# groupId and artifactId are identifiers of Maven group and artifact of the
+# module on which dependency is to be removed. If they are ommited then all
+# identifiers are matched.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_remove_dep(rf)     %{expand: %{__pom_call}remove_dep %**
+}
+
+
+# %pom_remove_plugin - remove Maven plugin invocation from POM file
+#
+# Usage: %pom_remove_plugin [groupId]:[artifactId] [POM location]
+#
+# This macro patches specified POM file not to contain invocations of given
+# Maven plugin.
+#
+# groupId and artifactId are identifiers of Maven group and artifact of the
+# plugin which invocation is to be removed. If they are ommited then all
+# identifiers are matched.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_remove_plugin(rf)  %{expand: %{__pom_call}remove_plugin  %**
+}
+
+
+# %pom_disable_module - disable given project module in POM file
+#
+# Usage: %pom_disable_module <module name> [POM location]
+#
+# This macro patches specified POM file not to contain reference to given
+# project module.
+#
+# Module name is the exact name of the module to be disabled. It must not be
+# ommited.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_disable_module() %{expand: %{__pom_call}disable_module %*
+}
+
+
+# %pom_xpath_remove - remove an XML node from POM file
+#
+# Usage: %pom_xpath_remove <XPath> [POM location]
+#
+# This macro patches specified POM file removing all XML nodes described by the
+# XPath expression.
+#
+# XPath is an expression describing a set of XML nodes to be removed from the
+# POM file. It must be a properly formated XPath 1.0 expression, as described
+# in <http://www.w3.org/TR/xpath/>.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+# NOTE: POM files use a specific namespace - http://maven.apache.org/POM/4.0.0.
+# The easiest way to respect this namespace in XPath expressions is prefixing
+# all node names with "pom:". For example, "pom:environment/pom:os" will work
+# because it selects nodes from pom namespace, but "environment/os" won't find
+# anything because it looks for nodes that don't belong to any XML namespace.
+#
+%pom_xpath_remove(rf)   %{expand: %{__pom_call}xpath_remove   %**
+}
+
+%pom_xpath_disable()   %{expand: %{__pom_call}xpath_disable   %**
+}
+
+# %pom_xpath_inject - inject XML code into POM file
+#
+# Usage: %pom_xpath_inject <XPath> [XML code] [POM location]
+#
+# This macro patches specified POM file appending some code as children of all
+# XML nodes described by the XPath expression.
+#
+# XPath is an expression describing a set of XML nodes in the POM file to which
+# child code is to be appended. It must be a properly formated XPath 1.0
+# expression, as described in <http://www.w3.org/TR/xpath/>.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_xpath_inject()   %{expand: %{__pom_call}xpath_inject   %*
+}
+
+
+# %pom_xpath_replace - replace XML node from POM file with given XML code
+#
+# Usage: %pom_xpath_replace <XPath> <XML code> [POM location]
+#
+# This macro patches specified POM file removing all XML nodes described by the
+# XPath expression and injecting given XML code in their place.
+#
+# XPath is an expression describing a set of XML nodes to be removed from the
+# POM file. It must be a properly formated XPath 1.0 expression, as described
+# in <http://www.w3.org/TR/xpath/>.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_xpath_replace(rf)  %{expand: %{__pom_call}xpath_replace  %**
+}
+
+
+# %pom_xpath_set - set text contents of XML node from POM file
+#
+# Usage: %pom_xpath_set <XPath> <new contents> [POM location]
+#
+# This macro patches specified POM file replacing text contents of all XML nodes
+# described by the XPath expression with given new text content.
+#
+# XPath is an expression describing a set of XML nodes to be removed from the
+# POM file. It must be a properly formated XPath 1.0 expression, as described
+# in <http://www.w3.org/TR/xpath/>.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_xpath_set(rf)      %{expand: %{__pom_call}xpath_set      %**
+}
+
+
+# %pom_add_parent - add parent POM reference to POM file
+#
+# Usage: %pom_add_parent groupId:artifactId[:version] [POM location]
+#
+# This macro patches specified POM file adding a reference to parent POM with
+# specified groupId, artifactId and version.
+#
+# groupId and artifactId are identifiers of Maven group and artifact of the POM
+# to be referenced as parent POM. They must be specified. If version is not
+# specified then default value of "any" is used.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_add_parent()     %{expand: %{__pom_call}add_parent     %*
+}
+
+
+# %pom_remove_parent - remove parent POM reference from POM file
+#
+# Usage: %pom_remove_parent [POM location]
+#
+# This macro patches specified POM file removing reference to parent POM.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+%pom_remove_parent()  %{expand: %{__pom_call}remove_parent  %*
+}
+
+
+# %pom_set_parent - set parent POM reference in POM file
+#
+# Usage: %pom_set_parent groupId:artifactId[:version] [POM location]
+#
+# This macro patches specified POM file setting reference to parent POM to
+# specified groupId, artifactId and version.
+#
+# This macros first removes parent POM reference and then adds a new one. It's
+# (more or less) equivalent to call to %pom_remove_parent followed by
+# invocation of %pom_add_parent. See documentation for these macros for more
+# information about parameters.
+#
+%pom_set_parent()     %{expand: %{__pom_call}set_parent     %*
+}
+
+
+# %pom_add_dep[_mgmt] - add dependency to POM file
+#
+# Usage: %pom_add_dep groupId:artifactId[:version[:scope]] [POM location] \
+#            [extra XML]
+#        %pom_add_dep_mgmt groupId:artifactId[:version[:scope]] [POM location] \
+#            [extra XML]
+#
+# These macros patch specified POM file adding a dependency on given version of
+# artifactId from groupId, with given scope (if any). %pom_add_dep adds the
+# dependency to <dependencies> XML node, while %pom_add_dep_mgmt adds it to
+# <dependencyManagement>.
+#
+# groupId and artifactId are identifiers of Maven artifact on which dependency
+# is to be added. They must be specified. If version is not specified then
+# default value of "any" is used. If scope is not specified then no scope is
+# defined (Maven defaults to "compile" in this case).
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+# Extra XML is additional XML code to be added into the <dependency> node. This
+# parameter can be ommited, in which case no extra XML is appended.
+#
+%pom_add_dep()        %{expand: %{__pom_call}add_dep        %*
+}
+%pom_add_dep_mgmt()   %{expand: %{__pom_call}add_dep_mgmt   %*
+}
+
+
+# %pom_add_plugin - add plugin invocation to POM file
+#
+# Usage: %pom_add_plugin groupId:artifactId[:version] [POM location] \
+#            [extra XML]
+#
+# This macro patches specified POM file adding plugin invocation of given
+# groupId and artifactId.
+#
+# groupId and artifactId are identifiers of Maven plugin artifact of which
+# invocation is to be added. groupId may be ommited, in which case value of
+# "org.apache.maven.plugins" is used as default. artifactId must be
+# specified. If version is not specified then default value of "any" is used.
+#
+# POM location can be either a full path to the POM file, or a path to the
+# directory containing pom.xml. If POM location is not given then pom.xml from
+# current working directory is used.
+#
+# Extra XML is additional XML code to be added into the <plugin> node. This
+# parameter can be ommited, in which case no extra XML is appended.
+#
+%pom_add_plugin()     %{expand: %{__pom_call}add_plugin     %*
+}
+
+%pom_change_dep(rf)     %{expand: %{__pom_call}change_dep    %**
+}

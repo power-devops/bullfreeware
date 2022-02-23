@@ -1,0 +1,13 @@
+Index: cups-2.0.2/cups/http.h
+===================================================================
+--- cups-2.0.2.orig/cups/http.h	2014-08-19 14:15:11.000000000 +0200
++++ cups-2.0.2/cups/http.h	2015-03-31 10:20:29.000000000 +0200
+@@ -617,7 +617,7 @@
+ 			                size_t resourcelen) _CUPS_API_1_7;
+ extern void		httpSetDefaultField(http_t *http, http_field_t field,
+ 			                    const char *value) _CUPS_API_1_7;
+-extern http_state_t	httpWriteResponse(http_t *http,
++int		 	httpWriteResponse(http_t *http,
+ 			                  http_status_t status) _CUPS_API_1_7;
+ 
+ /* New in CUPS 2.0/OS X 10.10 */

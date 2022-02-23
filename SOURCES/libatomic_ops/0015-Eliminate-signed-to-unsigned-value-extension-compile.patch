@@ -1,0 +1,55 @@
+From 481b4eb85ac49af5b0034930aa375cff05e1b8f9 Mon Sep 17 00:00:00 2001
+From: Ivan Maidanski <ivmai@mail.ru>
+Date: Mon, 8 Feb 2016 10:13:47 +0300
+Subject: [PATCH 15/20] Eliminate 'signed-to-unsigned value extension' compiler
+ warning in AO_malloc
+
+* src/atomic_ops_malloc.c (msbs): Change type from int to unsigned
+char.
+* src/atomic_ops_malloc.c (msb): Change return type from int to
+unsigned.
+* src/atomic_ops_malloc.c (msb, AO_malloc): Change type of v, result,
+log_sz local variables from int to unsigned.
+---
+ src/atomic_ops_malloc.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/src/atomic_ops_malloc.c b/src/atomic_ops_malloc.c
+index 60757cf..124c87c 100644
+--- a/src/atomic_ops_malloc.c
++++ b/src/atomic_ops_malloc.c
+@@ -224,16 +224,18 @@ static void add_chunk_as(void * chunk, unsigned log_sz)
+   }
+ }
+ 
+-static const int msbs[16] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4};
++static const unsigned char msbs[16] = {
++  0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
++};
+ 
+ /* Return the position of the most significant set bit in the   */
+ /* argument.                                                    */
+ /* We follow the conventions of ffs(), i.e. the least           */
+ /* significant bit is number one.                               */
+-static int msb(size_t s)
++static unsigned msb(size_t s)
+ {
+-  int result = 0;
+-  int v;
++  unsigned result = 0;
++  unsigned v;
+   if ((s & 0xff) != s) {
+     /* The following is a tricky code ought to be equivalent to         */
+     /* "(v = s >> 32) != 0" but suppresses warnings on 32-bit arch's.   */
+@@ -266,7 +268,7 @@ void *
+ AO_malloc(size_t sz)
+ {
+   AO_t *result;
+-  int log_sz;
++  unsigned log_sz;
+ 
+   if (sz > CHUNK_SIZE)
+     return AO_malloc_large(sz);
+-- 
+1.9.3
+

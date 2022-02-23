@@ -1,0 +1,306 @@
+	
+International License Agreement for Non-Warranted Programs
+
+
+Part 1 - General Terms
+
+
+PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING THE PROGRAM. IBM WILL LICENSE
+THE PROGRAM TO YOU ONLY IF YOU FIRST ACCEPT THE TERMS OF THIS AGREEMENT. BY
+USING THE PROGRAM YOU AGREE TO THESE TERMS. IF YOU DO NOT AGREE TO THE TERMS OF
+THIS AGREEMENT, PROMPTLY RETURN THE UNUSED PROGRAM TO THE PARTY (EITHER IBM OR
+ITS RESELLER) FROM WHOM YOU ACQUIRED IT TO RECEIVE A REFUND OF THE AMOUNT YOU
+PAID (IF ANY).
+
+The Program is copyrighted and licensed, not sold.
+
+The term "Program" means the original program and all whole or partial copies
+of it. A Program consists of machine-readable instructions, its components,
+data, audio-visual content (such as images, text, recordings, or pictures), and
+related licensed materials.
+
+This Agreement includes Part 1 - General Terms and Part 2 - Country-unique
+Terms and is the complete agreement regarding the use of this Program, and
+replaces any prior oral or written communications between you and IBM. The
+terms of Part 2 may replace or modify those of Part 1.
+
+
+1. License
+
+Use of the Program
+
+IBM grants you a nonexclusive license to use the Program.
+
+You may 1) use the Program to the extent of authorizations you have acquired
+and 2) make and install copies to support the level of use authorized,
+providing you reproduce the copyright notice and any other legends of ownership
+on each copy, or partial copy, of the Program.
+
+If you acquire this Program as a program upgrade, your authorization to use the
+Program from which you upgraded is terminated.
+
+You will ensure that anyone who uses the Program does so only in compliance
+with the terms of this Agreement.
+
+You may not 1) use, copy, modify, or distribute the Program except as provided
+in this Agreement; 2) reverse assemble, reverse compile, or otherwise translate
+the Program except as specifically permitted by law without the possibility of
+contractual waiver; or 3) sublicense, rent, or lease the Program.
+
+Transfer of Rights and Obligations
+
+You may transfer all your license rights and obligations under a Proof of
+Entitlement for the Program to another party by transferring the Proof of
+Entitlement and a copy of this Agreement and all documentation. The transfer of
+your license rights and obligations terminates your authorization to use the
+Program under the Proof of Entitlement.
+
+
+2. Proof of Entitlement
+
+The Proof of Entitlement for this Program is evidence of your authorization to
+use this Program and of your eligibility for future upgrade program prices (if
+announced) and potential special or promotional opportunities.
+
+
+3. Charges and Taxes
+
+IBM defines use for the Program for charging purposes and specifies it in the
+Proof of Entitlement. Charges are based on extent of use authorized. If you
+wish to increase the extent of use, notify IBM or its reseller and pay any
+applicable charges. IBM does not give refunds or credits for charges already
+due or paid.
+
+If any authority imposes a duty, tax, levy or fee, excluding those based on
+IBM's net income, upon the Program supplied by IBM under this Agreement, then
+you agree to pay that amount as IBM specifies or supply exemption documentation.
+
+
+4. No Warranty
+
+SUBJECT TO ANY STATUTORY WARRANTIES WHICH CAN NOT BE EXCLUDED, IBM MAKES NO
+WARRANTIES OR CONDITIONS EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT
+LIMITATION, THE WARRANTY OF NON-INFRINGEMENT AND THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, REGARDING THE PROGRAM OR
+TECHNICAL SUPPORT, IF ANY. IBM MAKES NO WARRANTY REGARDING THE CAPABILITY OF
+THE PROGRAM TO CORRECTLY PROCESS, PROVIDE AND/OR RECEIVE DATE DATA WITHIN AND
+BETWEEN THE 20TH AND 21ST CENTURIES.
+
+The exclusion also applies to any of IBM's subcontractors, suppliers, or
+program developers (collectively called "Suppliers").
+
+Manufacturers, suppliers, or publishers of non-IBM Programs may provide their
+own warranties.
+
+
+5. Limitation of Liability
+
+NEITHER IBM NOR ITS SUPPLIERS WILL BE LIABLE FOR ANY DIRECT OR INDIRECT
+DAMAGES, INCLUDING WITHOUT LIMITATION, LOST PROFITS, LOST SAVINGS, OR ANY
+INCIDENTAL, SPECIAL, OR OTHER ECONOMIC CONSEQUENTIAL DAMAGES, EVEN IF IBM IS
+INFORMED OF THEIR POSSIBILITY. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR
+LIMITATION OF INCIDENTAL OR CONSEQUENTIAL DAMAGES, SO THE ABOVE EXCLUSION OR
+LIMITATION MAY NOT APPLY TO YOU.
+
+
+6. General
+
+Nothing in this Agreement affects any statutory rights of consumers that cannot
+be waived or limited by contract.
+
+IBM may terminate your license if you fail to comply with the terms of this
+Agreement. If IBM does so, you must immediately destroy the Program and all
+copies you made of it.
+
+You agree to comply with applicable export laws and regulations.
+
+Neither you nor IBM will bring a legal action under this Agreement more than
+two years after the cause of action arose unless otherwise provided by local
+law without the possibility of contractual waiver or limitation.
+
+Neither you nor IBM is responsible for failure to fulfill any obligations due
+to causes beyond its control.
+
+IBM does not provide program services or technical support, unless IBM
+specifies otherwise.
+
+The laws of the country in which you acquire the Program govern this Agreement,
+except 1) in Australia, the laws of the State or Territory in which the
+transaction is performed govern this Agreement; 2) in Albania, Armenia,
+Belarus, Bosnia/Herzegovina, Bulgaria, Croatia, Czech Republic, Georgia,
+Hungary, Kazakhstan, Kirghizia, Former Yugoslav Republic of Macedonia (FYROM),
+Moldova, Poland, Romania, Russia, Slovak Republic, Slovenia, Ukraine, and
+Federal Republic of Yugoslavia, the laws of Austria govern this Agreement;
+3) in the United Kingdom, all disputes relating to this Agreement will be
+governed by English Law and will be submitted to the exclusive jurisdiction of
+the English courts; 4) in Canada, the laws in the Province of Ontario govern
+this Agreement; and 5) in the United States and Puerto Rico, and People's
+Republic of China, the laws of the State of New York govern this Agreement.
+
+
+
+Part 2 - Country-unique Terms
+
+
+AUSTRALIA:
+
+No Warranty (Section 4):
+
+The following paragraph is added to this Section:
+
+Although IBM specifies that there are no warranties, you may have certain
+rights under the Trade Practices Act 1974 or other legislation and are only
+limited to the extent permitted by the applicable legislation.
+
+Limitation of Liability (Section 5):
+
+The following paragraph is added to this Section:
+
+Where IBM is in breach of a condition or warranty implied by the Trade
+Practices Act 1974, IBM's liability is limited to the repair or replacement of
+the goods, or the supply of equivalent goods. Where that condition or warranty
+relates to right to sell, quiet possession or clear title, or the goods are of
+a kind ordinarily acquired for personal, domestic or household use or
+consumption, then none of the limitations in this paragraph apply.
+
+
+GERMANY:
+
+No Warranty (Section 4):
+
+The following paragraphs are added to this Section:
+
+The minimum warranty period for Programs is six months.
+
+In case a Program is delivered without Specifications, we will only warrant
+that the Program information correctly describes the Program and that the
+Program can be used according to the Program information. You have to check the
+usability according to the Program information within the "money-back guaranty"
+period.
+
+Limitation of Liability (Section 5):
+
+The following paragraph is added to this Section:
+
+The limitations and exclusions specified in the Agreement will not apply to
+damages caused by IBM with fraud or gross negligence, and for express warranty.
+
+
+INDIA:
+
+General (Section 6):
+
+The following replaces the fourth paragraph of this Section:
+
+If no suit or other legal action is brought, within two years after the cause
+of action arose, in respect of any claim that either party may have against the
+other, the rights of the concerned party in respect of such claim will be
+forfeited and the other party will stand released from its obligations in
+respect of such claim.
+
+
+IRELAND:
+
+No Warranty (Section 4):
+
+The following paragraph is added to this Section:
+
+Except as expressly provided in these terms and conditions, all statutory
+conditions, including all warranties implied, but without prejudice to the
+generality of the foregoing, all warranties implied by the Sale of Goods Act
+1893 or the Sale of Goods and Supply of Services Act 1980 are hereby excluded.
+
+
+ITALY:
+
+Limitation of Liability (Section 5):
+
+This Section is replaced by the following:
+
+Unless otherwise provided by mandatory law, IBM is not liable for any damages
+which might arise.
+
+
+NEW ZEALAND:
+
+No Warranty (Section 4):
+
+The following paragraph is added to this Section:
+
+Although IBM specifies that there are no warranties, you may have certain
+rights under the Consumer Guarantees Act 1993 or other legislation which cannot
+be excluded or limited. The Consumer Guarantees Act 1993 will not apply in
+respect of any goods or services which IBM provides, if you require the goods
+and services for the purposes of a business as defined in that Act.
+
+Limitation of Liability (Section 5):
+
+The following paragraph is added to this Section:
+
+Where Programs are not acquired for the purposes of a business as defined in
+the Consumer Guarantees Act 1993, the limitations in this Section are subject
+to the limitations in that Act.
+
+
+PEOPLE'S REPUBLIC OF CHINA:
+
+Charges (Section 3):
+
+The following paragraph is added to the Section:
+
+All banking charges incurred in the People's Republic of China will be borne by
+you and those incurred outside the People's Republic of China will be borne by
+IBM.
+
+
+UNITED KINGDOM:
+
+Limitation of Liability (Section 5):
+
+The following paragraph is added to this Section at the end of the first
+paragraph:
+
+The limitation of liability will not apply to any breach of IBM's obligations
+implied by Section 12 of the Sale of Goods Act 1979 or Section 2 of the Supply
+of Goods and Services Act 1982.
+
+
+
+
+
+
+If available, the original license text for this package will follow below.
+===============================================================================
+===============================================================================
+/*-
+ * Copyright (c) 1980, 1991 The Regents of the University of California.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by the University of
+ *      California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */

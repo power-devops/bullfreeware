@@ -1,0 +1,118 @@
+--- ./mysql-test/lib/My/ConfigFactory.pm.ORIGIN	2019-06-28 11:18:19 -0500
++++ ./mysql-test/lib/My/ConfigFactory.pm	2019-06-28 11:18:46 -0500
+@@ -169,7 +169,7 @@
+ 
+   # Make sure the socket path does not become longer then the path
+   # which mtr uses to test if a new tmpdir should be created.
+-  if (length($socket) > length("$dir/mysql_testsocket.sock")) {
++  if (length($socket) > length("$dir/mysql.sock")) {
+     # Too long socket path, generate shorter based on port
+     my $port = $group->value('port');
+     my $group_prefix = substr($group_name, 0, index($group_name, '.'));
+--- ./mysql-test/mysql-test-run.pl.ORIGIN2	2019-06-28 11:17:43 -0500
++++ ./mysql-test/mysql-test-run.pl	2019-06-28 11:18:06 -0500
+@@ -1817,7 +1817,7 @@
+   if (!$opt_tmpdir) {
+     $opt_tmpdir = "$opt_vardir/tmp" unless $opt_tmpdir;
+ 
+-    my $res = check_socket_path_length("$opt_tmpdir/mysql_testsocket.sock",
++    my $res = check_socket_path_length("$opt_tmpdir/mysql.sock",
+                                        $opt_parallel);
+ 
+     if ($res) {
+@@ -3038,7 +3038,7 @@
+   # On some operating systems, there is a limit to the length of a
+   # UNIX domain socket's path far below PATH_MAX. Don't allow that
+   # to happen.
+-  my $res = check_socket_path_length("$opt_tmpdir/mysql_testsocket.sock",
++  my $res = check_socket_path_length("$opt_tmpdir/mysql.sock",
+                                      $opt_parallel);
+   if ($res) {
+     mtr_error("Socket path '$opt_tmpdir' too long, it would be ",
+--- ./mysql-test/lib/My/Platform.pm.ORIGIN	2019-06-28 11:39:43 -0500
++++ ./mysql-test/lib/My/Platform.pm	2019-06-28 11:39:01 -0500
+@@ -28,6 +28,9 @@
+ use File::Path;
+ use File::Temp qw /tempdir/;
+ 
++#	import Devel::Trace 'trace';
++#	use Devel::Trace;
++
+ use base qw(Exporter);
+ our @EXPORT = qw(IS_CYGWIN IS_MAC IS_WINDOWS IS_WIN32PERL
+   check_socket_path_length mixed_path native_path
+@@ -113,10 +116,21 @@
+ sub check_socket_path_length {
+   my ($path, $parallel) = @_;
+ 
++#	print "parallel: '$parallel' \n";
++
++#	$Devel::Trace::TRACE = 1;   # Enable
++#	trace 'on';
++
+   return 0 if IS_WINDOWS;
+ 
++  # This may not be true, but we can't test for it on AIX due to Perl bug
++  # See Bug #45771
++  return 0 if ($^O eq 'aix');
++
+   require IO::Socket::UNIX;
+ 
++#	print "UNIX\n";
++
+   my $truncated = undef;
+ 
+   # Append extra chars if --parallel because $opt_tmpdir will be longer
+@@ -125,29 +139,40 @@
+   } elsif ($parallel > 1) {
+     $path = $path . "xx";
+   }
++#	print "path: '$path' \n";
+ 
+   # Create a tempfile name with same length as "path"
+   my $tmpdir   = tempdir(CLEANUP => 0);
+   my $len      = length($path) - length($tmpdir) - 1;
+   my $testfile = $tmpdir . "/" . "x" x ($len > 0 ? $len : 1);
+ 
++#	print "tmpdir  : '$tmpdir' \n";
++#	print "len     : '$len' \n";
++#	print "testfile: '$testfile' \n";
++
+   my $sock;
+   eval {
+     $sock = new IO::Socket::UNIX(Local  => $testfile,
+                                  Listen => 1,);
+ 
++#	print "sock    : '$sock' \n";
++
+     # Be negative
+     $truncated = 1;
+ 
+     die "Could not create UNIX domain socket: $!"
+       unless defined $sock;
+ 
+-    die "UNIX domain socket path was truncated"
+-      unless ($testfile eq $sock->hostpath());
++#	print "sock->hostpath()  : '$sock->hostpath()' \n";
++
++#    die "UNIX domain socket path was truncated"
++#      unless ($testfile eq $sock->hostpath());
+ 
+     $truncated = 0;    # Yes, it worked!
+   };
+ 
++#	print "truncated: '$truncated' \n";
++
+   die "Unexpected failure when checking socket path length: $@"
+     if $@ and
+     not defined $truncated;
+@@ -158,6 +183,9 @@
+   # Remove the tempdir and any socket file created
+   rmtree($tmpdir);
+ 
++#	$Devel::Trace::TRACE = 0;   # Disable
++#	trace 'off'; 
++
+   return $truncated;
+ }
+ 

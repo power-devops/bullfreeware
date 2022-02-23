@@ -1,0 +1,28 @@
+--- ./source4/torture/ndr/krb5pac.c.orig	2016-09-16 10:23:36 +0200
++++ ./source4/torture/ndr/krb5pac.c	2016-09-16 10:19:15 +0200
+@@ -485,17 +485,23 @@
+ 	plain_data.length = r->buffers[1].info->credential_info.encrypted_data.length;
+ 	torture_assert(tctx, plain_data.data, "malloc failed");
+ 
+-	torture_assert_krb5_error_equal(tctx, krb5_c_decrypt(ctx,
+ #ifdef SAMBA4_USES_HEIMDAL
++	torture_assert_krb5_error_equal(tctx, krb5_c_decrypt(ctx,
+ 					reply_key,
++					KRB5_KU_OTHER_ENCRYPTED,
++					NULL,
++					&input,
++					&plain_data), 0,
++				"krb5_decrypt");
+ #else
++	torture_assert_krb5_error_equal(tctx, krb5_c_decrypt(ctx,
+ 					&reply_key,
+-#endif
+ 					KRB5_KU_OTHER_ENCRYPTED,
+ 					NULL,
+ 					&input,
+ 					&plain_data), 0,
+ 				"krb5_decrypt");
++#endif
+ 
+ 	torture_assert_int_equal(tctx, plain_data.length, 112, "plain_data.length");
+ 	plain_data_blob = data_blob_talloc(tctx, plain_data.data, plain_data.length);

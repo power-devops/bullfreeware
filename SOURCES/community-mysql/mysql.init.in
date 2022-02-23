@@ -1,0 +1,186 @@
+#!/bin/sh
+#
+# @DAEMON_NAME@	This shell script takes care of starting and stopping
+#		the MySQL subsystem (mysqld).
+#
+# chkconfig: - 64 36
+# description:	MySQL database server.
+# processname: mysqld
+# config: @sysconfdir@/my.cnf
+# pidfile: /var/run/@DAEMON_NAME@/@DAEMON_NO_PREFIX@.pid
+### BEGIN INIT INFO
+# Provides: mysqld
+# Required-Start: $local_fs $remote_fs $network $named $syslog $time
+# Required-Stop: $local_fs $remote_fs $network $named $syslog $time
+# Short-Description: start and stop MySQL server
+# Description: MySQL database server
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+
+exec="@bindir@/mysqld_safe"
+prog="@DAEMON_NAME@"
+
+# Set timeouts here so they can be overridden from @sysconfdir@/sysconfig/@DAEMON_NO_PREFIX@
+STARTTIMEOUT=300
+STOPTIMEOUT=60
+
+# User and group the daemon will run under
+MYUSER=mysql
+MYGROUP=mysql
+
+# Edit the following file in order to re-write some of the environment
+# variables defined above, like $STARTTIMEOUT, $STOPTIMEOUT, $exec
+[ -e @sysconfdir@/sysconfig/@DAEMON_NO_PREFIX@ ] && . @sysconfdir@/sysconfig/@DAEMON_NO_PREFIX@
+
+lockfile=/var/lock/subsys/$prog
+
+# get options from my.cnf
+source "@libexecdir@/mysql-scripts-common"
+
+start(){
+    [ -x $exec ] || exit 5
+
+    # check permissions
+    if ! touch $(dirname $socketfile) &>/dev/null ; then
+        action $"Starting $prog: " /bin/false
+        return 4
+    fi
+
+    # check to see if it's already running
+    MYSQLDRUNNING=0
+    if [ -f "$pidfile" ]; then
+	MYSQLPID=`cat "$pidfile" 2>/dev/null`
+	if [ -n "$MYSQLPID" ] && [ -d "/proc/$MYSQLPID" ] ; then
+	    MYSQLDRUNNING=1
+	fi
+    fi
+    RESPONSE=`@bindir@/mysqladmin --no-defaults --socket="$socketfile" --user=UNKNOWN_MYSQL_USER ping 2>&1`
+    if [ $MYSQLDRUNNING = 1 ] && [ $? = 0 ]; then
+	# already running, do nothing
+	action $"Starting $prog: " /bin/true
+	ret=0
+    elif [ $MYSQLDRUNNING = 1 ] && echo "$RESPONSE" | grep -q "Access denied for user"
+    then
+	# already running, do nothing
+	action $"Starting $prog: " /bin/true
+	ret=0
+    else
+        @libexecdir@/mysql-check-socket || return 1
+        su - $MYUSER -s /bin/bash -c "@libexecdir@/mysql-prepare-db-dir $MYUSER $MYGROUP" || return 4
+
+	# Pass all the options determined above, to ensure consistent behavior.
+	# In many cases mysqld_safe would arrive at the same conclusions anyway
+	# but we need to be sure.  (An exception is that we don't force the
+	# log-error setting, since this script doesn't really depend on that,
+	# and some users might prefer to configure logging to syslog.)
+	# Note: set --basedir to prevent probes that might trigger SELinux
+	# alarms, per bug #547485
+	su - $MYUSER -s /bin/bash -c "$exec   --datadir='$datadir' --socket='$socketfile' \
+		--pid-file='$pidfile' \
+		--basedir=@prefix@ --user=$MYUSER" >/dev/null 2>&1 &
+	safe_pid=$!
+
+	# Wait until the daemon is up
+	su - $MYUSER -s /bin/bash -c "@libexecdir@/mysql-wait-ready '$safe_pid'"
+	ret=$?
+
+	if [ $ret -eq 0 ]; then
+	    action $"Starting $prog: " /bin/true
+	    chmod o+r $pidfile >/dev/null 2>&1
+	    touch $lockfile
+	else
+	    action $"Starting $prog: " /bin/false
+	fi
+    fi
+    return $ret
+}
+
+stop(){
+	if [ ! -f "$pidfile" ]; then
+	    # not running; per LSB standards this is "ok"
+	    action $"Stopping $prog: " /bin/true
+	    return 0
+	fi
+	MYSQLPID=`cat "$pidfile" 2>/dev/null`
+	if [ -n "$MYSQLPID" ]; then
+	    if ! [ -d "/proc/$MYSQLPID" ] ; then
+		# process doesn't run anymore
+		action $"Stopping $prog: " /bin/true
+		return 0
+	    fi
+	    /bin/kill "$MYSQLPID" >/dev/null 2>&1
+	    ret=$?
+	    if [ $ret -eq 0 ]; then
+		TIMEOUT="$STOPTIMEOUT"
+		while [ $TIMEOUT -gt 0 ]; do
+		    /bin/kill -0 "$MYSQLPID" >/dev/null 2>&1 || break
+		    sleep 1
+		    let TIMEOUT=${TIMEOUT}-1
+		done
+		if [ $TIMEOUT -eq 0 ]; then
+		    echo "Timeout error occurred trying to stop MySQL Daemon."
+		    ret=1
+		    action $"Stopping $prog: " /bin/false
+		else
+		    rm -f $lockfile
+		    rm -f "$socketfile"
+		    action $"Stopping $prog: " /bin/true
+		fi
+	    else
+		# kill command failed, probably insufficient permissions
+		action $"Stopping $prog: " /bin/false
+		ret=4
+	    fi
+	else
+	    # failed to read pidfile, probably insufficient permissions
+	    action $"Stopping $prog: " /bin/false
+	    ret=4
+	fi
+	return $ret
+}
+ 
+restart(){
+    stop
+    start
+}
+
+condrestart(){
+    [ -e $lockfile ] && restart || :
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p "$pidfile" $prog
+    ;;
+  restart)
+    restart
+    ;;
+  condrestart|try-restart)
+    condrestart
+    ;;
+  reload)
+    exit 3
+    ;;
+  force-reload)
+    restart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+    exit 2
+esac
+
+exit $?

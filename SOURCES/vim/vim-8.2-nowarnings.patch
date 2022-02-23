@@ -1,0 +1,10 @@
+--- ./src/ex_docmd.c.orig	2020-07-06 09:24:38 +0200
++++ ./src/ex_docmd.c	2020-07-06 09:25:24 +0200
+@@ -3784,6 +3784,7 @@
+     void
+ ex_ni(exarg_T *eap)
+ {
++    return;
+     if (!eap->skip)
+ 	eap->errmsg = N_("E319: Sorry, the command is not available in this version");
+ }

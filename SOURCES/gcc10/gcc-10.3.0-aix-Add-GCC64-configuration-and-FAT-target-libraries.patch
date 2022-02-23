@@ -1,0 +1,1229 @@
+From 47ddb895df311e546a6f54345e18b8749ac50324 Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Fri, 15 May 2020 17:46:08 -0400
+Subject: [PATCH] aix: Add GCC64 configuration and FAT target libraries.
+
+This patch adds the ability to configure GCC on AIX to build as a
+64 bit application and to build target libraries "FAT" libraries in both
+32 bit and 64 bit mode.
+
+The patch adds makefile fragment hooks to target libraries that allows
+them to include target-specific rules.  The target specific rules for
+AIX place both 32 bit and 64 bit objects and shared objects
+in archives at the top-level, not multilib subdirectories.  The
+multilibs are built in subdirectories, but must be combined during the
+last parts of the target library build process.  Because of the way
+that GCC bootstrap works, the libraries must be combined during the
+multiple stages of GCC bootstrap, not solely when installed in the
+final destination, so the libraries are correct at the end of
+each target library build stage, not solely an install recipe.
+
+gcc/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config.gcc: Use t-aix64, biarch64 and default64 for cpu_is_64bit.
+	* config/rs6000/aix72.h (ASM_SPEC): Remove aix64 option.
+	(ASM_SPEC32): New.
+	(ASM_SPEC64): New.
+	(ASM_CPU_SPEC): Remove vsx and altivec options.
+	(CPP_SPEC_COMMON): Rename from CPP_SPEC.
+	(CPP_SPEC32): New.
+	(CPP_SPEC64): New.
+	(CPLUSPLUS_CPP_SPEC): Rename to CPLUSPLUS_CPP_SPEC_COMMON..
+	(TARGET_DEFAULT): Only define if not BIARCH.
+	(LIB_SPEC_COMMON): Rename from LIB_SPEC.
+	(LIB_SPEC32): New.
+	(LIB_SPEC64): New.
+	(LINK_SPEC_COMMON): Rename from LINK_SPEC.
+	(LINK_SPEC32): New.
+	(LINK_SPEC64): New.
+	(STARTFILE_SPEC): Add 64 bit version of crtcxa and crtdbase.
+	(ASM_SPEC): Define 32 and 64 bit alternatives using DEFAULT_ARCH64_P.
+	(CPP_SPEC): Same.
+	(CPLUSPLUS_CPP_SPEC): Same.
+	(LIB_SPEC): Same.
+	(LINK_SPEC): Same.
+	(SUBTARGET_EXTRA_SPECS): Add new 32/64 specs.
+	* config/rs6000/defaultaix64.h: New file.
+	* config/rs6000/t-aix64: New file.
+
+libgcc/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config.host (extra_parts): Add crtcxa_64 and crtdbase_64.
+	* config/rs6000/t-aix-cxa: Explicitly compile 32 bit with -maix32
+	and 64 bit with -maix64.
+	* config/rs6000/t-slibgcc-aix: Remove extra @multilib_dir@ level.
+	Build and install AIX-style FAT libraries.
+
+libgomp/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am (tmake_file): Build and install AIX-style FAT libraries.
+	* Makefile.in: Regenerate
+	* configure.ac (tmake_file): Substitute.
+	* configure: Regenerate.
+	* configure.tgt (powerpc-ibm-aix*): Define tmake_file.
+	* config/t-aix: New file.
+
+libstdc++-v3/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am (tmake_file): Build and install AIX-style FAT libraries.
+	* Makefile.in: Regenerate.
+	* configure.ac (tmake_file): Substitute.
+	* configure: Regenerate.
+	* configure.host (aix*): Define tmake_file.
+	* config/os/aix/t-aix: New file.
+
+libatomic/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am (tmake_file): Build and install AIX-style FAT libraries.
+	* Makefile.in: Regenerate.
+	* configure.ac (tmake_file): Substitute.
+	* configure: Regenerate.
+	* configure.tgt (powerpc-ibm-aix*): Define tmake_file.
+	* config/t-aix: New file.
+
+libgfortran/ChangeLog
+
+2020-06-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am (tmake_file): Build and install AIX-style FAT libraries.
+	* Makefile.in: Regenerate.
+	* configure.ac (tmake_file): Substitute.
+	* configure: Regenerate.
+	* configure.host: Add system configury stanza. Define tmake_file.
+	* config/t-aix: New file.
+---
+ gcc/config.gcc                     |  6 +-
+ gcc/config/rs6000/aix72.h          | 89 +++++++++++++++++++++++-------
+ gcc/config/rs6000/defaultaix64.h   | 28 ++++++++++
+ gcc/config/rs6000/t-aix64          | 27 +++++++++
+ libatomic/Makefile.am              |  5 ++
+ libatomic/Makefile.in              |  6 ++
+ libatomic/config/t-aix             | 10 ++++
+ libatomic/configure                | 18 +++++-
+ libatomic/configure.ac             | 13 +++++
+ libatomic/configure.tgt            |  6 ++
+ libgcc/config.host                 |  2 +-
+ libgcc/config/rs6000/t-aix-cxa     | 15 ++++-
+ libgcc/config/rs6000/t-slibgcc-aix | 69 ++++++++++++++++-------
+ libgfortran/Makefile.am            |  5 ++
+ libgfortran/Makefile.in            |  6 ++
+ libgfortran/config/t-aix           | 10 ++++
+ libgfortran/configure              | 17 +++++-
+ libgfortran/configure.ac           | 12 ++++
+ libgfortran/configure.host         | 18 ++++++
+ libgomp/Makefile.am                |  5 ++
+ libgomp/Makefile.in                | 12 +++-
+ libgomp/config/t-aix               |  9 +++
+ libgomp/configure                  | 18 +++++-
+ libgomp/configure.ac               | 12 ++++
+ libgomp/configure.tgt              |  5 ++
+ libstdc++-v3/Makefile.am           |  5 ++
+ libstdc++-v3/Makefile.in           |  6 ++
+ libstdc++-v3/config/os/aix/t-aix   |  9 +++
+ libstdc++-v3/configure             | 30 +++++++---
+ libstdc++-v3/configure.ac          | 11 ++++
+ libstdc++-v3/configure.host        | 16 ++----
+ 31 files changed, 425 insertions(+), 75 deletions(-)
+ create mode 100644 gcc/config/rs6000/defaultaix64.h
+ create mode 100644 gcc/config/rs6000/t-aix64
+ create mode 100644 libatomic/config/t-aix
+ create mode 100644 libgfortran/config/t-aix
+ create mode 100644 libgomp/config/t-aix
+ create mode 100644 libstdc++-v3/config/os/aix/t-aix
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 06ad813ad39..365263a0f46 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -3040,8 +3040,12 @@ rs6000-ibm-aix7.1.* | powerpc-ibm-aix7.1.*)
+ 	default_use_cxa_atexit=yes
+ 	;;
+ rs6000-ibm-aix[789].* | powerpc-ibm-aix[789].*)
+-	tm_file="${tm_file} rs6000/aix.h rs6000/aix72.h rs6000/xcoff.h rs6000/aix-stdint.h"
+ 	tmake_file="rs6000/t-aix52 t-slibgcc"
++	if test x$cpu_is_64bit = xyes; then
++	    tm_file="${tm_file} rs6000/biarch64.h rs6000/defaultaix64.h"
++	    tmake_file="rs6000/t-aix64 t-slibgcc"
++	fi
++	tm_file="${tm_file} rs6000/aix.h rs6000/aix72.h rs6000/xcoff.h rs6000/aix-stdint.h"
+ 	extra_options="${extra_options} rs6000/aix64.opt"
+ 	use_collect2=yes
+ 	thread_file='aix'
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index 6cb1673cc90..b0262afb260 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -64,8 +64,9 @@ do {									\
+     }									\
+ } while (0)
+ 
+-#undef ASM_SPEC
+-#define ASM_SPEC "-u %{maix64:-a64} %(asm_cpu)"
++#define ASM_SPEC32 "-a32"
++#define ASM_SPEC64 "-a64"
++#define ASM_SPEC_COMMON "-u %(asm_cpu)"
+ 
+ /* Common ASM definitions used by ASM_SPEC amongst the various targets for
+    handling -mcpu=xxx switches.  There is a parallel list in driver-rs6000.c to
+@@ -91,10 +92,7 @@ do {									\
+   mcpu=620: -m620; \
+   mcpu=630: -m620; \
+   mcpu=970|mcpu=G5: -m970; \
+-  !mcpu*: %{mvsx: -mpwr6; \
+-	    maltivec: -m970; \
+-	    maix64|mpowerpc64: -mppc64; \
+-	    : %(asm_default)}} \
++  !mcpu*: %(asm_default)} \
+ -many"
+ 
+ #undef	ASM_DEFAULT_SPEC
+@@ -115,19 +113,17 @@ do {									\
+     }                                \
+   while (0)
+ 
+-#undef CPP_SPEC
+-#define CPP_SPEC "%{posix: -D_POSIX_SOURCE}	\
++#define CPP_SPEC32 ""
++#define CPP_SPEC64 "-D__64BIT__"
++#define CPP_SPEC_COMMON "%{posix: -D_POSIX_SOURCE} \
+   %{ansi: -D_ANSI_C_SOURCE}			\
+-  %{maix64: -D__64BIT__}			\
+   %{mpe: -I%R/usr/lpp/ppe.poe/include}		\
+   %{pthread: -D_THREAD_SAFE}"
+ 
+ /* The GNU C++ standard library requires that these macros be 
+    defined.  Synchronize with libstdc++ os_defines.h.  */
+-#undef CPLUSPLUS_CPP_SPEC                       
+-#define CPLUSPLUS_CPP_SPEC			\
++#define CPLUSPLUS_CPP_SPEC_COMMON		\
+   "-D_ALL_SOURCE -D__COMPATMATH__		\
+-   %{maix64: -D__64BIT__}			\
+    %{mpe: -I%R/usr/lpp/ppe.poe/include}		\
+    %{pthread: -D_THREAD_SAFE}"
+ 
+@@ -135,8 +131,10 @@ do {									\
+ #include "rs6000-cpus.def"
+ #undef RS6000_CPU
+ 
++#ifndef RS6000_BI_ARCH
+ #undef  TARGET_DEFAULT
+ #define TARGET_DEFAULT ISA_2_6_MASKS_EMBEDDED
++#endif
+ 
+ #undef  PROCESSOR_DEFAULT
+ #define PROCESSOR_DEFAULT PROCESSOR_POWER7
+@@ -155,29 +153,78 @@ do {									\
+    the target makefile fragment or if none of the options listed in
+    `MULTILIB_OPTIONS' are set by default.  *Note Target Fragment::.  */
+ 
+-#undef	MULTILIB_DEFAULTS
++#undef MULTILIB_DEFAULTS
+ 
+-#undef LIB_SPEC
+-#define LIB_SPEC "%{pg:-L%R/lib/profiled -L%R/usr/lib/profiled}\
++#define DEFAULT_ARCH64_P (TARGET_DEFAULT & MASK_64BIT)
++
++#define LIB_SPEC32 "%{!shared:%{g*:-lg}}"
++#define LIB_SPEC64 ""
++#define LIB_SPEC_COMMON "%{pg:-L%R/lib/profiled -L%R/usr/lib/profiled}\
+    %{p:-L%R/lib/profiled -L%R/usr/lib/profiled}\
+-   %{!maix64:%{!shared:%{g*:-lg}}}\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
+    %{mlong-double-128:-lc128}\
+    %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+-#undef LINK_SPEC
+-#define LINK_SPEC "-bpT:0x10000000 -bpD:0x20000000 %{!r:-btextro}\
++#define LINK_SPEC32 "%{!shared:%{g*: %(link_libg) }} -b32"
++#define LINK_SPEC64 "-b64"
++#define LINK_SPEC_COMMON "-bpT:0x10000000 -bpD:0x20000000 %{!r:-btextro}\
+    %{static:-bnso %(link_syscalls) } %{shared:-bM:SRE %{!e:-bnoentry}}\
+-   %{!maix64:%{!shared:%{g*: %(link_libg) }}} %{maix64:-b64}\
+-   %{mpe:-binitfini:poe_remote_main}"
++   %{mpe:-binitfini:poe_remote_main} "
+ 
+ #undef STARTFILE_SPEC
++#if DEFAULT_ARCH64_P
++#define STARTFILE_SPEC "%{!shared:\
++   %{!maix32:%{pg:gcrt0_64%O%s;:%{p:mcrt0_64%O%s;:crt0_64%O%s}};:\
++     %{pthread:%{pg:gcrt0_r%O%s;:%{p:mcrt0_r%O%s;:crt0_r%O%s}};:\
++       %{pg:gcrt0%O%s;:%{p:mcrt0%O%s;:crt0%O%s}}}}}\
++   %{!maix32:%{shared:crtcxa_64_s%O%s;:crtcxa_64%O%s} crtdbase_64%O%s;:\
++     %{shared:crtcxa_s%O%s;:crtcxa%O%s} crtdbase%O%s}"
++#else
+ #define STARTFILE_SPEC "%{!shared:\
+    %{maix64:%{pg:gcrt0_64%O%s;:%{p:mcrt0_64%O%s;:crt0_64%O%s}};:\
+      %{pthread:%{pg:gcrt0_r%O%s;:%{p:mcrt0_r%O%s;:crt0_r%O%s}};:\
+        %{pg:gcrt0%O%s;:%{p:mcrt0%O%s;:crt0%O%s}}}}}\
+-   %{shared:crtcxa_s%O%s;:crtcxa%O%s} crtdbase%O%s"
++   %{maix64:%{shared:crtcxa_64_s%O%s;:crtcxa_64%O%s} crtdbase_64%O%s;:\
++     %{shared:crtcxa_s%O%s;:crtcxa%O%s} crtdbase%O%s}"
++#endif
++
++
++#undef ASM_SPEC
++#undef CPP_SPEC
++#undef CPLUSPLUS_CPP_SPEC
++#undef LIB_SPEC
++#undef LINK_SPEC
++
++#if DEFAULT_ARCH64_P
++#define ASM_SPEC "%{maix32:%(asm_spec32);:%(asm_spec64)} %(asm_spec_common)"
++#define CPP_SPEC "%{maix32:%(cpp_spec32);:%(cpp_spec64)} %(cpp_spec_common)"
++#define CPLUSPLUS_CPP_SPEC "%{maix32:%(cpp_spec32);:%(cpp_spec64)} %(cplusplus_cpp_spec_common)"
++#define LIB_SPEC "%{maix32:%(lib_spec32);:%(lib_spec64)} %(lib_spec_common)"
++#define LINK_SPEC "%{maix32:%(link_spec32);:%(link_spec64)} %(link_spec_common)"
++#else
++#define ASM_SPEC "%{maix64:%(asm_spec64);:%(asm_spec32)} %(asm_spec_common)"
++#define CPP_SPEC "%{maix64:%(cpp_spec64);:%(cpp_spec32)} %(cpp_spec_common)"
++#define CPLUSPLUS_CPP_SPEC "%{maix64:%(cpp_spec64);:%(cpp_spec32)} %(cplusplus_cpp_spec_common)"
++#define LIB_SPEC "%{maix64:%(lib_spec64);:%(lib_spec32)} %(lib_spec_common)"
++#define LINK_SPEC "%{maix64:%(link_spec64);:%(link_spec32)} %(link_spec_common)"
++#endif
++
++#undef SUBTARGET_EXTRA_SPECS
++#define SUBTARGET_EXTRA_SPECS					\
++  { "asm_spec_common",		ASM_SPEC_COMMON },		\
++  { "asm_spec32",		ASM_SPEC32 },			\
++  { "asm_spec64",		ASM_SPEC64 },			\
++  { "cpp_spec_common",		CPP_SPEC_COMMON },		\
++  { "cplusplus_cpp_spec_common", CPLUSPLUS_CPP_SPEC_COMMON },	\
++  { "cpp_spec32",		CPP_SPEC32 },			\
++  { "cpp_spec64",		CPP_SPEC64 },			\
++  { "lib_spec_common",		LIB_SPEC_COMMON },		\
++  { "lib_spec32",		LIB_SPEC32 },			\
++  { "lib_spec64",		LIB_SPEC64 },			\
++  { "link_spec_common",		LINK_SPEC_COMMON },		\
++  { "link_spec32",		LINK_SPEC32 },			\
++  { "link_spec64",		LINK_SPEC64 },
+ 
+ /* AIX V5 typedefs ptrdiff_t as "long" while earlier releases used "int".  */
+ 
+diff --git a/gcc/config/rs6000/defaultaix64.h b/gcc/config/rs6000/defaultaix64.h
+new file mode 100644
+index 00000000000..ecac576a121
+--- /dev/null
++++ b/gcc/config/rs6000/defaultaix64.h
+@@ -0,0 +1,28 @@
++/* Definitions of target machine for GNU compiler,
++   for 64 bit powerpc linux defaulting to -m64.
++   Copyright (C) 2003-2020 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++#define RS6000_CPU(NAME, CPU, FLAGS)
++#include "rs6000-cpus.def"
++#undef RS6000_CPU
++
++#undef TARGET_DEFAULT
++#define TARGET_DEFAULT (ISA_2_6_MASKS_EMBEDDED | MASK_POWERPC64 | MASK_64BIT)
++#undef ASM_DEFAULT_SPEC
++#define ASM_DEFAULT_SPEC "-mpwr7"
+diff --git a/gcc/config/rs6000/t-aix64 b/gcc/config/rs6000/t-aix64
+new file mode 100644
+index 00000000000..8134e19203a
+--- /dev/null
++++ b/gcc/config/rs6000/t-aix64
+@@ -0,0 +1,27 @@
++# Copyright (C) 2002-2020 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++# Build the libraries for pthread and all of the
++# different processor models
++
++MULTILIB_OPTIONS	= pthread maix64/maix32
++
++MULTILIB_DIRNAMES	= pthread ppc64 ppc32
++
++MULTILIB_MATCHES	= .=maix32
++
+diff --git a/libatomic/Makefile.am b/libatomic/Makefile.am
+index 133fbbca77e..f169d505227 100644
+--- a/libatomic/Makefile.am
++++ b/libatomic/Makefile.am
+@@ -153,4 +153,9 @@ libatomic_convenience_la_LIBADD = $(libatomic_la_LIBADD)
+ all-multi: $(libatomic_la_LIBADD)
+ 	$(MULTIDO) $(AM_MAKEFLAGS) DO=all multi-do # $(MAKE)
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ include $(top_srcdir)/../multilib.am
+diff --git a/libatomic/Makefile.in b/libatomic/Makefile.in
+index a51807e95c9..e8d47f28364 100644
+--- a/libatomic/Makefile.in
++++ b/libatomic/Makefile.in
+@@ -376,6 +376,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+@@ -862,6 +863,11 @@ vpath % $(strip $(search_path))
+ all-multi: $(libatomic_la_LIBADD)
+ 	$(MULTIDO) $(AM_MAKEFLAGS) DO=all multi-do # $(MAKE)
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+ # comments below.
+diff --git a/libatomic/config/t-aix b/libatomic/config/t-aix
+new file mode 100644
+index 00000000000..53c2d83242f
+--- /dev/null
++++ b/libatomic/config/t-aix
+@@ -0,0 +1,10 @@
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++    echo '64'; else echo '32'; fi)
++#MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++MAJOR=1
++all-local:
++	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++endif
++
+diff --git a/libatomic/configure b/libatomic/configure
+index b441636c85b..2acaffe441a 100755
+--- a/libatomic/configure
++++ b/libatomic/configure
+@@ -643,6 +643,7 @@ ARCH_AARCH64_LINUX_FALSE
+ ARCH_AARCH64_LINUX_TRUE
+ HAVE_IFUNC_FALSE
+ HAVE_IFUNC_TRUE
++tmake_file
+ SIZES
+ XLDFLAGS
+ XCFLAGS
+@@ -11387,7 +11388,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11392 "configure"
++#line 11393 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11493,7 +11494,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11498 "configure"
++#line 11499 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -15668,6 +15669,19 @@ XCFLAGS="$XCFLAGS $XPCFLAGS"
+ 
+ 
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++
++
++
+  if test x$libat_cv_have_ifunc = xyes; then
+   HAVE_IFUNC_TRUE=
+   HAVE_IFUNC_FALSE='#'
+diff --git a/libatomic/configure.ac b/libatomic/configure.ac
+index 7ac8911c342..d74bd7c4c18 100644
+--- a/libatomic/configure.ac
++++ b/libatomic/configure.ac
+@@ -268,6 +268,19 @@ AC_SUBST(XLDFLAGS)
+ AC_SUBST(LIBS)
+ AC_SUBST(SIZES)
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++AC_SUBST(tmake_file)
++
++
+ AM_CONDITIONAL(HAVE_IFUNC, test x$libat_cv_have_ifunc = xyes)
+ AM_CONDITIONAL(ARCH_AARCH64_LINUX,
+ 	       [expr "$config_path" : ".* linux/aarch64 .*" > /dev/null])
+diff --git a/libatomic/configure.tgt b/libatomic/configure.tgt
+index 5dd0926d207..efb3b1efb68 100644
+--- a/libatomic/configure.tgt
++++ b/libatomic/configure.tgt
+@@ -117,6 +117,7 @@ if test -d ${srcdir}/config/$ARCH ; then
+   config_path="$ARCH"
+ fi
+ 
++tmake_file=
+ # Other system configury
+ case "${target}" in
+   aarch64*-*-linux*)
+@@ -134,6 +135,11 @@ case "${target}" in
+ 	config_path="${config_path} s390 posix"
+ 	;;
+ 
++  powerpc*-*-aix*)
++	config_path="${config_path} posix"
++	tmake_file="t-aix"
++	;;
++
+   *-*-linux* | *-*-gnu* | *-*-k*bsd*-gnu \
+   | *-*-netbsd* | *-*-freebsd* | *-*-openbsd* | *-*-dragonfly* \
+   | *-*-solaris2* | *-*-sysv4* | *-*-irix6* | *-*-osf* | *-*-hpux11* \
+diff --git a/libgcc/config.host b/libgcc/config.host
+index 044b34d53cc..7a3e29d0c71 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -1273,7 +1273,7 @@ rs6000-ibm-aix5.1.* | powerpc-ibm-aix5.1.*)
+ rs6000-ibm-aix[56789].* | powerpc-ibm-aix[56789].*)
+ 	md_unwind_header=rs6000/aix-unwind.h
+ 	tmake_file="t-fdpbit rs6000/t-ppc64-fp rs6000/t-slibgcc-aix rs6000/t-ibm-ldouble rs6000/t-aix-cxa"
+-	extra_parts="crtcxa.o crtcxa_s.o crtdbase.o"
++	extra_parts="crtcxa.o crtcxa_s.o crtdbase.o crtcxa_64.o crtcxa_64_s.o crtdbase_64.o"
+ 	;;
+ rl78-*-elf)
+ 	tmake_file="$tm_file t-fdpbit rl78/t-rl78"
+diff --git a/libgcc/config/rs6000/t-aix-cxa b/libgcc/config/rs6000/t-aix-cxa
+index d7e66386619..0e1bccb1525 100644
+--- a/libgcc/config/rs6000/t-aix-cxa
++++ b/libgcc/config/rs6000/t-aix-cxa
+@@ -8,10 +8,19 @@ LIB2ADD_ST += $(srcdir)/config/rs6000/aixinitfini.c
+ SHLIB_MAPFILES += $(srcdir)/config/rs6000/libgcc-aix-cxa.ver
+ 
+ crtdbase.o: $(srcdir)/config/rs6000/crtdbase.S
+-	$(crt_compile) -c $<
++	$(crt_compile) -maix32 -c $<
+ 
+ crtcxa.o: $(srcdir)/config/rs6000/crtcxa.c
+-	$(crt_compile) -c $<
++	$(crt_compile) -maix32 -c $<
+ 
+ crtcxa_s.o: $(srcdir)/config/rs6000/crtcxa.c
+-	$(crt_compile) -DSHARED -c $<
++	$(crt_compile) -maix32 -DSHARED -c $<
++
++crtdbase_64.o: $(srcdir)/config/rs6000/crtdbase.S
++	$(crt_compile) -maix64 -c $<
++
++crtcxa_64.o: $(srcdir)/config/rs6000/crtcxa.c
++	$(crt_compile) -maix64 -c $<
++
++crtcxa_64_s.o: $(srcdir)/config/rs6000/crtcxa.c
++	$(crt_compile) -maix64 -DSHARED -c $<
+diff --git a/libgcc/config/rs6000/t-slibgcc-aix b/libgcc/config/rs6000/t-slibgcc-aix
+index 11db9efa0e9..e5f8a029ff8 100644
+--- a/libgcc/config/rs6000/t-slibgcc-aix
++++ b/libgcc/config/rs6000/t-slibgcc-aix
+@@ -37,48 +37,44 @@ SHLIB_SONAME = @shlib_base_name@.so.$(SHLIB_SOVERSION)
+ SHLIB_LINK = \
+ 	if test svr4 != $(with_aix_soname) ; then \
+ 	  $(CC) $(LIBGCC2_CFLAGS) -shared -Wl,-bnortl -nodefaultlibs \
+-	  -Wl,-bE:@shlib_map_file@ -o @multilib_dir@/shr.o \
++	  -Wl,-bE:@shlib_map_file@ -o shr.o \
+ 	  @multilib_flags@ @shlib_objs@ -lc \
+ 	  `case @multilib_dir@ in \
+ 	  *pthread*) echo -L$(TARGET_SYSTEM_ROOT)/usr/lib/threads -lpthreads -lc_r $(TARGET_SYSTEM_ROOT)/usr/lib/libc.a ;; \
+ 	  *) echo -lc ;; esac` ; \
+-	  rm -f @multilib_dir@/tmp-@shlib_base_name@.a ; \
+-	  $(AR_CREATE_FOR_TARGET) @multilib_dir@/tmp-@shlib_base_name@.a \
+-	    @multilib_dir@/shr.o ; \
+-	  mv @multilib_dir@/tmp-@shlib_base_name@.a \
+-	     @multilib_dir@/@shlib_base_name@.a ; \
+-	  rm -f @multilib_dir@/shr.o ; \
++	  rm -f tmp-@shlib_base_name@.a ; \
++	  $(AR_CREATE_FOR_TARGET) tmp-@shlib_base_name@.a shr.o ; \
++	  mv tmp-@shlib_base_name@.a @shlib_base_name@.a ; \
++	  rm -f shr.o ; \
+ 	fi ; \
+ 	if test aix != $(with_aix_soname) ; then \
+ 	  case @multilib_dir@ in *64*) shr='shr_64' ;; *) shr='shr' ;; esac ; \
+ 	  $(CC) $(LIBGCC2_CFLAGS) -shared -Wl,-G -nodefaultlibs \
+-	  -Wl,-bE:@shlib_map_file@ -o @multilib_dir@/$$shr.o \
++	  -Wl,-bE:@shlib_map_file@ -o $$shr.o \
+ 	  @multilib_flags@ @shlib_objs@ -lc \
+ 	  `case @multilib_dir@ in \
+ 	  *pthread*) echo -L$(TARGET_SYSTEM_ROOT)/usr/lib/threads -lpthreads -lc_r $(TARGET_SYSTEM_ROOT)/usr/lib/libc.a ;; \
+ 	  *) echo -lc ;; esac` ; \
+-	  $(STRIP_FOR_TARGET) -X32_64 -e @multilib_dir@/$$shr.o ; \
++	  $(STRIP_FOR_TARGET) -X32_64 -e $$shr.o ; \
+ 	  { echo "\#! $(SHLIB_SONAME)($$shr.o)" ; \
+ 	    case @multilib_dir@ in *64*) echo '\# 64' ;; *) echo '\# 32' ;; esac ; \
+ 	    cat @shlib_map_file@ ; \
+-	  } > @multilib_dir@/$$shr.imp ; \
+-	  rm -f @multilib_dir@/tmp-$(SHLIB_SONAME) ; \
+-	  $(AR_CREATE_FOR_TARGET) @multilib_dir@/tmp-$(SHLIB_SONAME) \
+-	    @multilib_dir@/$$shr.imp @multilib_dir@/$$shr.o ; \
+-	  mv @multilib_dir@/tmp-$(SHLIB_SONAME) \
+-	     @multilib_dir@/$(SHLIB_SONAME) ; \
+-	  rm -f @multilib_dir@/@shlib_base_name@.so ; \
+-	  $(LN_S) $(SHLIB_SONAME) @multilib_dir@/@shlib_base_name@.so ; \
+-	  rm -f @multilib_dir@/$$shr.imp @multilib_dir@/$$shr.o ; \
++	  } > $$shr.imp ; \
++	  rm -f tmp-$(SHLIB_SONAME) ; \
++	  $(AR_CREATE_FOR_TARGET) tmp-$(SHLIB_SONAME) $$shr.imp $$shr.o ; \
++	  mv tmp-$(SHLIB_SONAME) $(SHLIB_SONAME) ; \
++	  rm -f @shlib_base_name@.so ; \
++	  $(LN_S) $(SHLIB_SONAME) @shlib_base_name@.so ; \
++	  rm -f $$shr.imp $$shr.o ; \
+ 	fi
+ SHLIB_INSTALL = \
+ 	$(mkinstalldirs) $(DESTDIR)$(slibdir)@shlib_slibdir_qual@; \
+ 	if test svr4 != $(with_aix_soname) ; then \
+-	  $(INSTALL_DATA) @multilib_dir@/@shlib_base_name@.a \
++	  $(INSTALL_DATA) @shlib_base_name@.a \
+ 		  $(DESTDIR)$(slibdir)@shlib_slibdir_qual@/ ; \
+ 	fi ; \
+ 	if test aix != $(with_aix_soname) ; then \
+-	  $(INSTALL_DATA) @multilib_dir@/$(SHLIB_SONAME) \
++	  $(INSTALL_DATA) $(SHLIB_SONAME) \
+ 		  $(DESTDIR)$(slibdir)@shlib_slibdir_qual@/ ; \
+ 	  rm -f $(DESTDIR)$(slibdir)@shlib_slibdir_qual@/@shlib_base_name@.so ; \
+ 	  $(LN_S) $(SHLIB_SONAME) \
+@@ -91,3 +87,36 @@ SHLIB_NM_FLAGS = -Bpg -X32_64
+ 
+ # Either 32-bit and 64-bit objects in archives.
+ AR_FLAGS_FOR_TARGET = -X32_64
++
++# Build and install AIX-style FAT libraries
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`ar -X64 t libgcc_s.a`" ; then \
++    echo '64'; else echo '32'; fi)
++all: all-multi
++ifeq ($(enable_shared),yes)
++	ar -X$(BITS) x ../ppc$(BITS)/libgcc/libgcc_s.a shr.o
++	ar -X$(BITS) rc ./libgcc_s.a shr.o
++	rm -f shr.o
++	ar -X$(BITS) x ../pthread/ppc$(BITS)/libgcc/libgcc_s.a shr.o
++	ar -X$(BITS) rc ../pthread/libgcc/libgcc_s.a shr.o
++	rm -f shr.o
++endif
++	ar -X$(BITS) rc libgcc.a \
++	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcc-objects))
++	ar -X$(BITS) rc libgcc_eh.a \
++	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcc-eh-objects))
++	ar -X$(BITS) rc ../pthread/libgcc/libgcc.a \
++	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcc-objects))
++	ar -X$(BITS) rc ../pthread/libgcc/libgcc_eh.a \
++	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcc-eh-objects))
++ifeq ($(enable_gcov),yes)
++	ar -X$(BITS) rc libgcov.a \
++	    $(addprefix ../ppc$(BITS)/libgcc/,$(libgcov-objects))
++	ar -X$(BITS) rc ../pthread/libgcc/libgcov.a \
++	    $(addprefix ../pthread/ppc$(BITS)/libgcc/,$(libgcov-objects))
++endif
++	$(MAKE) install-leaf DESTDIR=$(gcc_objdir) \
++	    slibdir= libsubdir= MULTIOSDIR=$(MULTIDIR)
++	cp ../pthread/libgcc/libgcc_s.a ../../gcc/pthread/
++	cp ../pthread/libgcc/libgcc_eh.a ../../gcc/pthread/
++endif
+diff --git a/libgfortran/Makefile.am b/libgfortran/Makefile.am
+index a8a2191acc3..69e94eea550 100644
+--- a/libgfortran/Makefile.am
++++ b/libgfortran/Makefile.am
+@@ -1236,4 +1236,9 @@ endif
+ 
+ EXTRA_DIST = $(m4_files)
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ include $(top_srcdir)/../multilib.am
+diff --git a/libgfortran/Makefile.in b/libgfortran/Makefile.in
+index 312a682b45d..1de35db54be 100644
+--- a/libgfortran/Makefile.in
++++ b/libgfortran/Makefile.in
+@@ -707,6 +707,7 @@ target_noncanonical = @target_noncanonical@
+ target_os = @target_os@
+ target_subdir = @target_subdir@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+@@ -7190,6 +7191,11 @@ fpu-target.inc: fpu-target.h $(srcdir)/libgfortran.h
+ @MAINTAINER_MODE_TRUE@$(gfor_misc_specifics): m4/misc_specifics.m4 m4/head.m4
+ @MAINTAINER_MODE_TRUE@	$(M4) -Dfile=$@ -I$(srcdir)/m4 misc_specifics.m4 > $@
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+ # comments below.
+diff --git a/libgfortran/config/t-aix b/libgfortran/config/t-aix
+new file mode 100644
+index 00000000000..7046aeeacc3
+--- /dev/null
++++ b/libgfortran/config/t-aix
+@@ -0,0 +1,10 @@
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++    echo '64'; else echo '32'; fi)
++#MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++MAJOR=5
++all-local:
++	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++endif
++
+diff --git a/libgfortran/configure b/libgfortran/configure
+index 195f8bbce4c..854656960c4 100755
+--- a/libgfortran/configure
++++ b/libgfortran/configure
+@@ -639,6 +639,7 @@ LIBOBJS
+ get_gcc_base_ver
+ HAVE_AVX128_FALSE
+ HAVE_AVX128_TRUE
++tmake_file
+ IEEE_FLAGS
+ IEEE_SUPPORT
+ IEEE_SUPPORT_FALSE
+@@ -12723,7 +12724,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12724 "configure"
++#line 12725 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -12829,7 +12830,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12830 "configure"
++#line 12831 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -26533,6 +26534,18 @@ fi
+ IEEE_FLAGS="${ieee_flags}"
+ 
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++
++
+ 
+ # Check for POSIX getpwuid_r
+ #
+diff --git a/libgfortran/configure.ac b/libgfortran/configure.ac
+index 711dc60ff78..4109d0fefae 100644
+--- a/libgfortran/configure.ac
++++ b/libgfortran/configure.ac
+@@ -601,6 +601,18 @@ AC_SUBST(IEEE_SUPPORT)
+ IEEE_FLAGS="${ieee_flags}"
+ AC_SUBST(IEEE_FLAGS)
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++AC_SUBST(tmake_file)
++
+ 
+ # Check for POSIX getpwuid_r 
+ #
+diff --git a/libgfortran/configure.host b/libgfortran/configure.host
+index 5824f253e2f..e9d92c9d34d 100644
+--- a/libgfortran/configure.host
++++ b/libgfortran/configure.host
+@@ -15,6 +15,9 @@
+ # It sets the following shell variables:
+ #
+ #   fpu_host            FPU-specific code file, defaults to fpu-generic.
++#   tmake_file		A list of machine-description-specific
++#			makefile fragments.
++
+ 
+ 
+ # DEFAULTS
+@@ -57,3 +60,18 @@ case "${host_cpu}" in
+   sh*)
+     ieee_flags="-mieee" ;;
+ esac
++
++tmake_file=
++# Other system configury
++case "${target}" in
++
++  *-*-aix*)
++	# Create AIX-style "FAT" libraries.
++	tmake_file="t-aix"
++	;;
++
++  *)
++	;;
++
++esac
++
+diff --git a/libgomp/Makefile.am b/libgomp/Makefile.am
+index b84156291e8..16b69956949 100644
+--- a/libgomp/Makefile.am
++++ b/libgomp/Makefile.am
+@@ -141,4 +141,9 @@ stamp-build-info: libgomp.texi
+ CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO)
+ MAINTAINERCLEANFILES = $(srcdir)/libgomp.info
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ include $(top_srcdir)/../multilib.am
+diff --git a/libgomp/Makefile.in b/libgomp/Makefile.in
+index 5ff2ac14db9..5455951cded 100644
+--- a/libgomp/Makefile.in
++++ b/libgomp/Makefile.in
+@@ -530,6 +530,7 @@ target_alias = @target_alias@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
++tmake_file = @tmake_file@
+ toolexecdir = @toolexecdir@
+ toolexeclibdir = @toolexeclibdir@
+ top_build_prefix = @top_build_prefix@
+@@ -1438,6 +1439,11 @@ stamp-build-info: libgomp.texi
+ 	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libgomp.info $(srcdir)/libgomp.texi
+ 	@touch $@
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+ # comments below.
+diff --git a/libgomp/config/t-aix b/libgomp/config/t-aix
+new file mode 100644
+index 00000000000..5d0b7e0f9ae
+--- /dev/null
++++ b/libgomp/config/t-aix
+@@ -0,0 +1,9 @@
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`ar -X64 t .libs/$(PACKAGE).a`" ; then \
++    echo '64'; else echo '32'; fi)
++MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++all-local:
++	ar -X$(BITS) rc .libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR)
++endif
++
+diff --git a/libgomp/configure b/libgomp/configure
+index 9ffa66c18d9..fd65828136d 100755
+--- a/libgomp/configure
++++ b/libgomp/configure
+@@ -650,6 +650,7 @@ OMP_LOCK_SIZE
+ USE_FORTRAN_FALSE
+ USE_FORTRAN_TRUE
+ link_gomp
++tmake_file
+ XLDFLAGS
+ XCFLAGS
+ config_path
+@@ -11432,7 +11433,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11437 "configure"
++#line 11438 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11538,7 +11539,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11543 "configure"
++#line 11544 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -16747,6 +16748,7 @@ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CET support" >&5
+ $as_echo_n "checking for CET support... " >&6; }
+ 
++# NB: Avoid nested save_CFLAGS and save_LDFLAGS.
+ case "$host" in
+   i[34567]86-*-linux* | x86_64-*-linux*)
+     case "$enable_cet" in
+@@ -16822,6 +16824,18 @@ FCFLAGS="$FCFLAGS $CET_FLAGS"
+ 
+ 
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++
++
+ # Cleanup and exit.
+ CFLAGS="$save_CFLAGS"
+ cat >confcache <<\_ACEOF
+diff --git a/libgomp/configure.ac b/libgomp/configure.ac
+index ef5d293c31e..201d26fff7a 100644
+--- a/libgomp/configure.ac
++++ b/libgomp/configure.ac
+@@ -348,6 +348,18 @@ AC_SUBST(config_path)
+ AC_SUBST(XCFLAGS)
+ AC_SUBST(XLDFLAGS)
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++AC_SUBST(tmake_file)
++
+ # Cleanup and exit.
+ CFLAGS="$save_CFLAGS"
+ AC_CACHE_SAVE
+diff --git a/libgomp/configure.tgt b/libgomp/configure.tgt
+index 4790a31e394..1863287fa0d 100644
+--- a/libgomp/configure.tgt
++++ b/libgomp/configure.tgt
+@@ -9,6 +9,8 @@
+ #			config subdirectory of the source tree.
+ #  XCFLAGS		Add extra compile flags to use.
+ #  XLDFLAGS		Add extra link flags to use.
++#  tmake_file		A list of machine-description-specific
++#			makefile fragments.
+ 
+ # Optimize TLS usage by avoiding the overhead of dynamic allocation.
+ if test $gcc_cv_have_tls = yes ; then
+@@ -30,6 +32,7 @@ if test $gcc_cv_have_tls = yes ; then
+   esac
+ fi
+ 
++tmake_file=
+ # Since we require POSIX threads, assume a POSIX system by default.
+ config_path="posix"
+ 
+@@ -154,6 +157,8 @@ case "${target}" in
+ 	XLDFLAGS="${XLDFLAGS} -lpthread"
+ 	# AIX needs -frandom-seed for bootstrap compare.
+ 	XCFLAGS="${XCFLAGS} -frandom-seed=\$@"
++	# Create AIX-style "FAT" libraries.
++	tmake_file="t-aix"
+ 	;;
+ 
+   nvptx*-*-*)
+diff --git a/libstdc++-v3/Makefile.am b/libstdc++-v3/Makefile.am
+index da021ec7074..62c2c324082 100644
+--- a/libstdc++-v3/Makefile.am
++++ b/libstdc++-v3/Makefile.am
+@@ -173,4 +173,9 @@ AM_MAKEFLAGS = \
+ # Subdir rules rely on $(FLAGS_TO_PASS)
+ FLAGS_TO_PASS = $(AM_MAKEFLAGS)
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ include $(top_srcdir)/../multilib.am
+diff --git a/libstdc++-v3/Makefile.in b/libstdc++-v3/Makefile.in
+index 8f11aaf2810..e8987d45916 100644
+--- a/libstdc++-v3/Makefile.in
++++ b/libstdc++-v3/Makefile.in
+@@ -377,6 +377,7 @@ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
+ thread_header = @thread_header@
++tmake_file = @tmake_file@
+ top_build_prefix = @top_build_prefix@
+ top_builddir = @top_builddir@
+ top_srcdir = @top_srcdir@
+@@ -817,6 +818,11 @@ install-dvi:
+ # automake-generated TAGS rule. Make a simple one here.
+ TAGS: tags-recursive $(LISP)
+ 
++# target overrides
++ifneq ($(tmake_file),)
++include $(tmake_file)
++endif
++
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+ # comments below.
+diff --git a/libstdc++-v3/config/os/aix/t-aix b/libstdc++-v3/config/os/aix/t-aix
+new file mode 100644
+index 00000000000..a588746dd99
+--- /dev/null
++++ b/libstdc++-v3/config/os/aix/t-aix
+@@ -0,0 +1,9 @@
++ifeq ($(MULTIBUILDTOP),)
++BITS=$(shell if test -z "`ar -X64 t src/.libs/$(PACKAGE).a`" ; then \
++    echo '64'; else echo '32'; fi)
++MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++all-local:
++	ar -X$(BITS) rc src/.libs/$(PACKAGE).a ../ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
++	ar -X$(BITS) rc ../pthread/$(PACKAGE)-v3/src/.libs/$(PACKAGE).a ../pthread/ppc$(BITS)/$(PACKAGE)-v3/src/.libs/$(PACKAGE).so.$(MAJOR)
++endif
++
+diff --git a/libstdc++-v3/configure b/libstdc++-v3/configure
+index 4ef678e001e..dd54bd406a9 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -643,6 +643,7 @@ glibcxx_toolexecdir
+ gxx_include_dir
+ glibcxx_prefixdir
+ EXTRA_CFLAGS
++tmake_file
+ CPU_OPT_BITS_RANDOM
+ CPU_OPT_EXT_RANDOM
+ ERROR_CONSTANTS_SRCDIR
+@@ -12059,7 +12060,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12064 "configure"
++#line 12066 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -12165,7 +12166,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12170 "configure"
++#line 12171 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -15857,7 +15858,7 @@ $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
+   # Fake what AC_TRY_COMPILE does.
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 15862 "configure"
++#line 15863 "configure"
+ int main()
+ {
+   typedef bool atomic_type;
+@@ -15892,7 +15893,7 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6; }
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 15897 "configure"
++#line 15898 "configure"
+ int main()
+ {
+   typedef short atomic_type;
+@@ -15927,7 +15928,7 @@ $as_echo "$glibcxx_cv_atomic_short" >&6; }
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 15932 "configure"
++#line 15933 "configure"
+ int main()
+ {
+   // NB: _Atomic_word not necessarily int.
+@@ -15963,7 +15964,7 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 15968 "configure"
++#line 15969 "configure"
+ int main()
+ {
+   typedef long long atomic_type;
+@@ -16116,7 +16117,7 @@ $as_echo "mutex" >&6; }
+   # unnecessary for this test.
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16121 "configure"
++#line 16122 "configure"
+ int main()
+ {
+   _Decimal32 d1;
+@@ -16158,7 +16159,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+   # unnecessary for this test.
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16163 "configure"
++#line 16164 "configure"
+ template<typename T1, typename T2>
+   struct same
+   { typedef T2 type; };
+@@ -16192,7 +16193,7 @@ $as_echo "$enable_int128" >&6; }
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16197 "configure"
++#line 16198 "configure"
+ template<typename T1, typename T2>
+   struct same
+   { typedef T2 type; };
+@@ -77719,6 +77720,17 @@ CPU_OPT_BITS_RANDOM=config/${cpu_opt_bits_random}
+ 
+ 
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++
+ 
+ # Add CET specific flags if Intel CET is enabled.
+  # Check whether --enable-cet was given.
+diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
+index 699e55fd829..ffd0079613f 100644
+--- a/libstdc++-v3/configure.ac
++++ b/libstdc++-v3/configure.ac
+@@ -528,6 +528,17 @@ AC_SUBST(ERROR_CONSTANTS_SRCDIR)
+ AC_SUBST(CPU_OPT_EXT_RANDOM)
+ AC_SUBST(CPU_OPT_BITS_RANDOM)
+ 
++# Conditionalize the makefile for this target machine.
++tmake_file_=
++for f in ${tmake_file}
++do
++	if test -f ${srcdir}/config/$f
++	then
++		tmake_file_="${tmake_file_} \$(srcdir)/config/$f"
++	fi
++done
++tmake_file="${tmake_file_}"
++AC_SUBST(tmake_file)
+ 
+ # Add CET specific flags if Intel CET is enabled.
+ GCC_CET_FLAGS(CET_FLAGS)
+diff --git a/libstdc++-v3/configure.host b/libstdc++-v3/configure.host
+index 898db37d9a2..8d1b60804f3 100644
+--- a/libstdc++-v3/configure.host
++++ b/libstdc++-v3/configure.host
+@@ -70,6 +70,9 @@
+ #                          additional symbols to export from the shared
+ #                          library, when symbol versioning is in use
+ #
++#   tmake_file		   A list of machine-description-specific
++#			   makefile fragments.
++#
+ #
+ # If the defaults will not work for your platform, you need only change the
+ # variables that won't work, i.e., you do not need to explicitly set a
+@@ -91,6 +94,7 @@ try_cpu=generic
+ abi_baseline_subdir_switch=--print-multi-directory
+ abi_tweaks_dir="cpu/generic"
+ error_constants_dir="os/generic"
++tmake_file=
+ 
+ # HOST-SPECIFIC OVERRIDES
+ # Set any CPU-dependent bits.
+@@ -206,17 +210,7 @@ case "${host_os}" in
+     # Newer versions of AIX only support PowerPC architecture, so use
+     # atomic instructions directly.
+     os_include_dir="os/aix"
+-    ;;
+-  aix4.[3456789]*)
+-    # We set os_include_dir to os/aix only on AIX 4.3 and newer, but
+-    # os/aix/atomicity.h works on earlier versions of AIX 4.*, so we
+-    # explicitly duplicate the directory for 4.[<3].
+-    os_include_dir="os/aix"
+-    atomicity_dir="os/aix"
+-    ;;
+-  aix4.*)
+-    os_include_dir="os/generic"
+-    atomicity_dir="os/aix"
++    tmake_file="os/aix/t-aix"
+     ;;
+   aix*)
+     os_include_dir="os/generic"
+-- 
+2.25.0
+

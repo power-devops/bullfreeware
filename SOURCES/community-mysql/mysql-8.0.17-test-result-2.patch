@@ -1,0 +1,272 @@
+--- ./utilities/perror.cc.orig  2019-11-26 10:56:20.000000000 +0100
++++ ./utilities/perror.cc       2019-11-26 10:58:35.000000000 +0100
+@@ -279,11 +279,21 @@
+           my_strnncoll(&my_charset_latin1, (const uchar *)msg, 13,
+                        (const uchar *)"Unknown Error", 13) &&
+           (!unknown_error || strcmp(msg, unknown_error))) {
++#ifdef _AIX
++      // On AIX, unknow error return " Error <CODE> occurred."
++      char AIX_buffer [250];
++      sprintf(AIX_buffer, " Error %3d occurred.", code);
++      if (!strcmp(msg, AIX_buffer))
++      {
++#endif
+         found = 1;
+         if (verbose)
+           printf("OS error code %3d:  %s\n", code, msg);
+         else
+           puts(msg);
++#ifdef _AIX
++      }
++#endif
+       }
+       if ((msg = get_ha_error_msg(code))) {
+         found = 1;
+--- ./mysql-test/r/innodb_mysql_sync.result.orig	2019-11-26 11:56:30 +0100
++++ ./mysql-test/r/innodb_mysql_sync.result	2019-11-26 11:59:05 +0100
+@@ -18,10 +18,10 @@
+ # Complete optimization
+ Table	Op	Msg_type	Msg_text
+ test.t1	optimize	note	Table does not support optimize, doing recreate + analyze instead
+-test.t1	optimize	error	Got error -1 - 'Unknown error' from storage engine
++test.t1	optimize	error	Got error -1 - 'Error -1 occurred.' from storage engine
+ test.t1	optimize	status	Operation failed
+ Warnings:
+-Error	1030	Got error -1 - 'Unknown error' from storage engine
++Error	1030	Got error -1 - 'Error -1 occurred.' from storage engine
+ DROP TABLE t1;
+ SET DEBUG_SYNC='RESET';
+ #
+--- ./mysql-test/suite/binlog_gtid/r/binlog_gtids_table_gcov.result.orig	2019-11-26 11:55:43 +0100
++++ ./mysql-test/suite/binlog_gtid/r/binlog_gtids_table_gcov.result	2019-11-26 11:56:02 +0100
+@@ -31,7 +31,7 @@
+ INSERT INTO t1 VALUES(1);
+ SET GLOBAL debug="+d,wait_for_flush_gtid_persister";
+ FLUSH LOGS;
+-ERROR HY000: Got error -1 - 'Unknown error' from storage engine
++ERROR HY000: Got error -1 - 'Error -1 occurred.' from storage engine
+ SET GLOBAL debug="-d,wait_for_flush_gtid_persister";
+ SET GLOBAL debug="-d,simulate_err_on_write_gtid_into_table";
+ #
+--- ./mysql-test/suite/binlog_gtid/r/binlog_simulate_crash_and_error_on_compress_gtid_table.result.orig	2019-11-26 11:54:45 +0100
++++ ./mysql-test/suite/binlog_gtid/r/binlog_simulate_crash_and_error_on_compress_gtid_table.result	2019-11-26 11:55:16 +0100
+@@ -67,7 +67,7 @@
+                          "the gtid_executed table.");
+ SET @@GLOBAL.DEBUG= '+d, simulate_error_on_delete_gtid_from_table';
+ RESET MASTER;
+-ERROR HY000: Got error -1 - 'Unknown error' from storage engine
++ERROR HY000: Got error -1 - 'Error -1 occurred.' from storage engine
+ SET GLOBAL DEBUG= @debug_save;
+ # restart
+ RESET MASTER;
+--- ./mysql-test/suite/sys_vars/r/mysqlx_socket_basic.result.orig	2019-11-26 13:22:44 +0100
++++ ./mysql-test/suite/sys_vars/r/mysqlx_socket_basic.result	2019-11-26 13:24:27 +0100
+@@ -5,13 +5,13 @@
+ ERROR HY000: Variable 'mysqlx_socket' is a GLOBAL variable
+ show global variables like 'mysqlx_socket';
+ Variable_name	Value
+-mysqlx_socket	MYSQL_TMP_DIR/mysqlx.1.sock
++mysqlx_socket	MYSQL_TMP_DIR/mysqlx.13030.sock
+ show session variables like 'mysqlx_socket';
+ Variable_name	Value
+-mysqlx_socket	MYSQL_TMP_DIR/mysqlx.1.sock
++mysqlx_socket	MYSQL_TMP_DIR/mysqlx.13030.sock
+ select * from performance_schema.global_variables where variable_name='mysqlx_socket';
+ VARIABLE_NAME	VARIABLE_VALUE
+-mysqlx_socket	MYSQL_TMP_DIR/mysqlx.1.sock
++mysqlx_socket	MYSQL_TMP_DIR/mysqlx.13030.sock
+ select * from performance_schema.session_variables where variable_name='mysqlx_socket';
+ VARIABLE_NAME	VARIABLE_VALUE
+-mysqlx_socket	MYSQL_TMP_DIR/mysqlx.1.sock
++mysqlx_socket	MYSQL_TMP_DIR/mysqlx.13030.sock
+--- ./mysql-test/suite/sys_vars/r/socket_basic.result.orig	2019-11-26 13:24:59 +0100
++++ ./mysql-test/suite/sys_vars/r/socket_basic.result	2019-11-26 13:25:13 +0100
+@@ -5,16 +5,16 @@
+ ERROR HY000: Variable 'socket' is a GLOBAL variable
+ show global variables like 'socket';
+ Variable_name	Value
+-socket	MYSQL_TMP_DIR/mysqld.1.sock
++socket	MYSQL_TMP_DIR/mysqld.13030.sock
+ show session variables like 'socket';
+ Variable_name	Value
+-socket	MYSQL_TMP_DIR/mysqld.1.sock
++socket	MYSQL_TMP_DIR/mysqld.13030.sock
+ select * from performance_schema.global_variables where variable_name='socket';
+ VARIABLE_NAME	VARIABLE_VALUE
+-socket	MYSQL_TMP_DIR/mysqld.1.sock
++socket	MYSQL_TMP_DIR/mysqld.13030.sock
+ select * from performance_schema.session_variables where variable_name='socket';
+ VARIABLE_NAME	VARIABLE_VALUE
+-socket	MYSQL_TMP_DIR/mysqld.1.sock
++socket	MYSQL_TMP_DIR/mysqld.13030.sock
+ set global socket=1;
+ ERROR HY000: Variable 'socket' is a read only variable
+ set session socket=1;
+--- ./mysql-test/r/func_str.result.orig	2019-11-26 14:25:08 +0100
++++ ./mysql-test/r/func_str.result	2019-11-26 14:25:42 +0100
+@@ -4755,7 +4755,7 @@
+ rand(to_days('2028-12-04 15:50:01.284969'))));
+ Warnings:
+ Warning	1292	Truncated incorrect BINARY value: 'x'5d44f4d736397d92c8267c12''
+-Warning	1264	Out of range value for column '(null)' at row 1
++Warning	1264	Out of range value for column '' at row 1
+ do from_base64(cast(right(11,1)as binary(24)));
+ do convert(inet_aton(cast(left(-1,1)as binary(30))) using utf8);
+ Warnings:
+--- ./mysql-test/suite/perfschema/t/show_plugin.test.orig	2019-12-03 14:16:05.000000000 +0100
++++ ./mysql-test/suite/perfschema/t/show_plugin.test	2019-12-03 14:35:39.000000000 +0100
+@@ -326,7 +326,7 @@
+ SET DEBUG_SYNC='RESET';
+ 
+ --connection default
+---replace_regex /(Can\'t open shared library).*$/\1/
++--replace_regex /(Can\'t open shared library).*\n(System error)+.*$/\1/
+ --error ER_CANT_OPEN_LIBRARY
+ --reap;
+ --echo
+@@ -354,7 +354,7 @@
+ --echo change_user
+ change_user;
+ --connection con1
+---replace_regex /(Can\'t open shared library).*$/\1/
++--replace_regex /(Can\'t open shared library).*\n(System error)+.*$/\1/
+ --error ER_CANT_OPEN_LIBRARY
+ --reap;
+
+--- ./mysql-test/t/log_buffered-big.test.orig       2019-12-03 15:41:01 +0100
++++ ./mysql-test/t/log_buffered-big.test    2019-12-03 15:32:01 +0100
+@@ -50,7 +50,9 @@
+
+ # Verify that the second server has aborted
+ --let SEARCH_FILE=$MYSQLD_LOG
+---let SEARCH_PATTERN=ERROR.*InnoDB.*Resource temporarily unavailable
++# fcntl has not the same errorcode on AIX and Linux.
++#--let SEARCH_PATTERN=ERROR.*InnoDB.*Resource temporarily unavailable
++--let SEARCH_PATTERN=ERROR.*InnoDB.*The error means mysqld does not have the access rights to the directory.
+ --source include/search_pattern.inc
+ --let SEARCH_PATTERN=ERROR.*Server.*Aborting
+ --source include/search_pattern.inc
+--- ./mysql-test/r/log_buffered-big.result.orig     2019-12-03 15:29:37 +0100
++++ ./mysql-test/r/log_buffered-big.result  2019-12-03 15:35:35 +0100
+@@ -1,4 +1,4 @@
+-Pattern "ERROR.*InnoDB.*Resource temporarily unavailable" found
++Pattern "ERROR.*InnoDB.*The error means mysqld does not have the access rights to the directory." found
+ Pattern "ERROR.*Server.*Aborting" found
+ Pattern "System.*Server.*Shutdown complete" found
+ INSTALL COMPONENT "file://component_log_sink_json";
+--- ./mysql-test/suite/innodb/r/innochecksum_linux.result.orig	2019-12-04 11:09:51.000000000 +0100
++++ ./mysql-test/suite/innodb/r/innochecksum_linux.result	2019-12-04 11:10:07.000000000 +0100
+@@ -278,6 +278,5 @@
+ # Test[5] for lock.
+ # Test Scenario: As mysqld is running, & then start the innochecksum which must fail.
+ Pattern "Error: Unable to lock file:: MYSQLD_DATADIR/test/t1.ibd" found
+-Pattern "fcntl: Resource temporarily unavailable" found
+ # Test[5] end
+ DROP TABLE t1;
+--- ./mysql-test/suite/innodb/t/innochecksum_linux.test.orig	2019-12-04 11:09:38.000000000 +0100
++++ ./mysql-test/suite/innodb/t/innochecksum_linux.test	2019-12-04 11:09:13.000000000 +0100
+@@ -393,8 +393,8 @@
+ let SEARCH_PATTERN=Error: Unable to lock file:: $MYSQLD_DATADIR/test/t1.ibd;
+ --source include/search_pattern.inc
+ 
+-let SEARCH_PATTERN=fcntl: Resource temporarily unavailable;
+---source include/search_pattern.inc
++#let SEARCH_PATTERN=fcntl: Resource temporarily unavailable;
++#--source include/search_pattern.inc
+ --remove_file $SEARCH_FILE
+ 
+ --echo # Test[5] end
+--- ./mysql-test/suite/innodb/r/tablespace_portability.result.orig	2019-12-04 12:04:45.000000000 +0100
++++ ./mysql-test/suite/innodb/r/tablespace_portability.result	2019-12-04 12:08:48.000000000 +0100
+@@ -141,6 +141,7 @@
+ SHOW WARNINGS;
+ Level	Code	Message
+ Error	3121	The ADD DATAFILE filepath cannot contain circular directory references.
++Error	3121	CREATE TABLESPACE data file cannot be under the datadir.
+ Error	1528	Failed to create TABLESPACE bad
+ Error	3121	Incorrect File Name '..///data//test///..//bad.ibd'.
+ CREATE TABLESPACE bad ADD DATAFILE '.\\test\\..\\bad.ibd';
+@@ -155,6 +156,7 @@
+ SHOW WARNINGS;
+ Level	Code	Message
+ Error	3121	The ADD DATAFILE filepath cannot contain circular directory references.
++Error	3121	CREATE TABLESPACE data file cannot be under the datadir.
+ Error	1528	Failed to create TABLESPACE bad
+ Error	3121	Incorrect File Name '..\\\data\\test\\\..\\bad.ibd'.
+ #
+--- ./mysql-test/suite/test_service_sql_api/r/test_session_info.result.orig	2019-12-04 13:19:36.000000000 +0100
++++ ./mysql-test/suite/test_service_sql_api/r/test_session_info.result	2019-12-04 13:20:07.000000000 +0100
+@@ -57,7 +57,7 @@
+ error     : 1046
+ error msg : No database selected
+ 
+-current_db before init_db : (null)
++current_db before init_db : 
+ current_db after init_db  : mysql
+ 
+ /*Session_1*/ SHOW TABLES LIKE '%slave%'
+@@ -99,7 +99,7 @@
+ error     : 1046
+ error msg : No database selected
+ 
+-current_db before init_db : (null)
++current_db before init_db : 
+ current_db after init_db  : mysql
+ 
+ Session 2's view
+@@ -327,7 +327,7 @@
+ srv_session_info_get_session_id      : 0
+ srv_session_info_set_client_port     : 1
+ srv_session_info_get_client_port     : 0
+-srv_session_info_get_current_db      : (null)
++srv_session_info_get_current_db      : 
+ srv_session_info_set_connection_type : 1
+ 
+ ============================================================================================
+@@ -408,7 +408,7 @@
+ error     : 1046
+ error msg : No database selected
+ 
+-current_db before init_db : (null)
++current_db before init_db : 
+ current_db after init_db  : mysql
+ 
+ /*Session_1*/ SHOW TABLES LIKE '%slave%'
+@@ -450,7 +450,7 @@
+ error     : 1046
+ error msg : No database selected
+ 
+-current_db before init_db : (null)
++current_db before init_db : 
+ current_db after init_db  : mysql
+ 
+ Session 2's view
+@@ -678,7 +678,7 @@
+ srv_session_info_get_session_id      : 0
+ srv_session_info_set_client_port     : 1
+ srv_session_info_get_client_port     : 0
+-srv_session_info_get_current_db      : (null)
++srv_session_info_get_current_db      : 
+ srv_session_info_set_connection_type : 1
+ 
+ ============================================================================================
+--- ./mysql-test/t/plugin.test.orig	2019-12-05 14:49:35.000000000 +0100
++++ ./mysql-test/t/plugin.test	2019-12-05 14:49:54.000000000 +0100
+@@ -234,7 +234,7 @@
+ SET DEBUG_SYNC='RESET';
+ 
+ connection default;
+---replace_regex /(Can\'t open shared library).*$/\1/
++--replace_regex /(Can\'t open shared library).*\n(System error)+.*$/\1/
+ --error ER_CANT_OPEN_LIBRARY
+ --reap;
+ SET DEBUG_SYNC='RESET';
+@@ -259,7 +259,7 @@
+ change_user;
+ 
+ connection con1;
+---replace_regex /(Can\'t open shared library).*$/\1/
++--replace_regex /(Can\'t open shared library).*\n(System error)+.*$/\1/
+ --error ER_CANT_OPEN_LIBRARY
+ --reap;
+ 

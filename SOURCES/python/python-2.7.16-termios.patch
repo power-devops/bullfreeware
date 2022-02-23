@@ -1,0 +1,23 @@
+Index: Python-2.7.10/Modules/termios.c
+===================================================================
+--- Python-2.7.10.orig/Modules/termios.c	2011-06-11 17:46:27.000000000 +0200
++++ Python-2.7.10/Modules/termios.c	2011-10-05 10:38:29.000000000 +0200
+@@ -11,6 +11,18 @@
+ #endif
+ 
+ #include <termios.h>
++
++#ifndef VWERASE
++#ifdef VWERSE
++       #define VWERASE VWERSE
++#endif
++#endif
++#ifndef VDISCARD
++       #ifdef VDISCRD
++       #define VDISCARD VDISCRD
++       #endif
++#endif
++
+ #ifdef __osf__
+ /* On OSF, sys/ioctl.h requires that struct termio already be defined,
+  * so this needs to be included first on that platform. */

@@ -1,0 +1,71 @@
+--- ./src/mongo/platform/strcasestr.cpp.ORIGIN	2019-05-27 18:39:28 -0500
++++ ./src/mongo/platform/strcasestr.cpp	2019-05-27 18:44:04 -0500
+@@ -27,21 +27,21 @@
+ 
+ #include "mongo/platform/strcasestr.h"
+ 
+-#if defined(__sun)
++#if defined(__sun) || defined(_AIX)
+ #include <dlfcn.h>
+ 
+ #include "mongo/base/init.h"
+ #include "mongo/base/status.h"
+ #endif
+ 
+-#if defined(_WIN32) || defined(__sun)
++#if defined(_WIN32) || defined(__sun) || defined(_AIX)
+ 
+ #include <algorithm>
+ #include <cctype>
+ #include <cstring>
+ #include <string>
+ 
+-#if defined(__sun)
++#if defined(__sun) || defined(_AIX)
+ #define STRCASESTR_EMULATION_NAME strcasestr_emulation
+ #else
+ #define STRCASESTR_EMULATION_NAME strcasestr
+@@ -72,7 +72,7 @@
+     return location ? (haystack + (location - haystackLowerStart)) : NULL;
+ }
+ 
+-#if defined(__sun)
++#if defined(__sun) || defined(_AIX)
+ 
+ typedef const char* (*StrCaseStrFunc)(const char* haystack, const char* needle);
+ static StrCaseStrFunc strcasestr_switcher = mongo::pal::strcasestr_emulation;
+@@ -81,14 +81,14 @@
+     return strcasestr_switcher(haystack, needle);
+ }
+ 
+-#endif  // #if defined(__sun)
++#endif  // #if defined(__sun) || defined(_AIX)
+ 
+ }  // namespace pal
+ }  // namespace mongo
+ 
+-#endif  // #if defined(_WIN32) || defined(__sun)
++#endif  // #if defined(_WIN32) || defined(__sun) || defined(_AIX)
+ 
+-#if defined(__sun)
++#if defined(__sun) || defined(_AIX)
+ 
+ namespace mongo {
+ 
+@@ -106,4 +106,4 @@
+ 
+ }  // namespace mongo
+ 
+-#endif  // __sun
++#endif  // __sun || defined(_AIX)
+--- ./src/mongo/platform/strcasestr.h.ORIGIN	2018-09-25 16:56:42 -0500
++++ ./src/mongo/platform/strcasestr.h	2019-05-28 13:15:04 -0500
+@@ -27,7 +27,7 @@
+ 
+ #pragma once
+ 
+-#if defined(_WIN32) || defined(__sun)
++#if defined(_WIN32) || defined(__sun) || defined(_AIX)
+ 
+ namespace mongo {
+ namespace pal {

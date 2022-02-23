@@ -1,0 +1,14 @@
+*** ./gdk/x11/gdkdnd-x11.c.ORIG	Thu Feb 18 23:27:12 2010
+--- ./gdk/x11/gdkdnd-x11.c	Thu Feb 18 23:44:02 2010
+***************
+*** 26,31 ****
+--- 26,34 ----
+  
+  #include "config.h"
+  #include <X11/Xlib.h>
++ #ifdef _AIX
++ #include <X11/Xutil.h>
++ #endif
+  #include <X11/Xatom.h>
+  #include <X11/extensions/shape.h>
+  

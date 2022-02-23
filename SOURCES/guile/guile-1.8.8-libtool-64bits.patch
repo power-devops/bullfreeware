@@ -1,0 +1,12 @@
+Index: libtool
+===================================================================
+--- libtool.ORIG	2016-05-17 17:19:34.000000000 +0200
++++ libtool	2016-05-17 17:23:42.000000000 +0200
+@@ -9232,6 +9232,7 @@
+ 	eval rpath=\" $hardcode_libdir_flag_spec\"
+       fi
+       compile_rpath="$rpath"
++compile_rpath=`echo $compile_rpath | awk -F: '{n=NF;for(i=1;i<=NF;i++)a[i]=$i} END { a[3]="/opt/freeware/lib64"; a[4]="/opt/freeware/lib"; a[5]="/usr/lib"; a[6]="lib"; printf(" %s",a[1]); for(i=2;i<=6;i++)printf(":%s",a[i]); }'`
+ 
+       rpath=
+       hardcode_libdirs=

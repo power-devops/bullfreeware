@@ -1,0 +1,14 @@
+--- ./configure.orig	2020-12-14 17:39:35 +0100
++++ ./configure	2020-12-14 17:40:32 +0100
+@@ -81422,9 +81422,9 @@
+   esac
+ 
+   if test "x" = "xyes"; then
+-    PHP_ZEND_EX="$PHP_ZEND_EX \$(phplibdir)/mysqlnd.$suffix"
++    PHP_ZEND_EX="\$(phplibdir)/mysqlnd.$suffix $PHP_ZEND_EX"
+   else
+-    PHP_MODULES="$PHP_MODULES \$(phplibdir)/mysqlnd.$suffix"
++    PHP_MODULES="\$(phplibdir)/mysqlnd.$suffix $PHP_MODULES"
+   fi
+ 
+   PHP_VAR_SUBST="$PHP_VAR_SUBST shared_objects_mysqlnd"

@@ -1,0 +1,11 @@
+--- ./lib/gm_protocol_xdr.c.orig	2018-11-27 04:12:21 +0000
++++ ./lib/gm_protocol_xdr.c	2018-11-27 04:12:44 +0000
+@@ -33,7 +33,7 @@
+ bool_t
+ xdr_Ganglia_metadata_message (XDR *xdrs, Ganglia_metadata_message *objp)
+ {
+-	register int32_t *buf;
++	int32_t *buf;
+ 
+ 
+ 	if (xdrs->x_op == XDR_ENCODE) {

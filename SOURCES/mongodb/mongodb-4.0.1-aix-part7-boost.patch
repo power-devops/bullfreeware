@@ -1,0 +1,10 @@
+--- ./src/third_party/boost-1.60.0/boost/config/platform/aix.hpp.ORIGIN	2019-05-17 17:25:54 -0500
++++ ./src/third_party/boost-1.60.0/boost/config/platform/aix.hpp	2019-05-17 17:26:05 -0500
+@@ -24,6 +24,7 @@
+ #define BOOST_HAS_PTHREAD_DELAY_NP
+ #define BOOST_HAS_SCHED_YIELD
+ //#define BOOST_HAS_PTHREAD_YIELD
++#define BOOST_HAS_THREADS
+ 
+ // boilerplate code:
+ #include <boost/config/posix_features.hpp>

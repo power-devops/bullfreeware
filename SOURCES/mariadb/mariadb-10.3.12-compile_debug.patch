@@ -1,0 +1,58 @@
+--- ./sql/sql_parse.cc.orig	2019-05-03 09:42:50.148000000 +0200
++++ ./sql/sql_parse.cc	2019-05-03 09:41:10.728000000 +0200
+@@ -8011,7 +8011,7 @@
+ {
+   int error __attribute__((unused));
+   DBUG_ENTER("mysql_parse");
+-  DBUG_EXECUTE_IF("parser_debug", turn_parser_debug_on(););
++//  DBUG_EXECUTE_IF("parser_debug", turn_parser_debug_on(););
+ 
+   /*
+     Warning.
+--- ./sql/sql_yacc.cc.orig	2019-05-03 10:34:39.000000000 +0200
++++ ./sql/sql_yacc.cc	2019-05-03 09:41:10.952000000 +0200
+@@ -155,11 +155,13 @@
+ #define my_yyabort_error(A)                      \
+   do { my_error A; MYSQL_YYABORT; } while(0)
+ 
++/*
+ #ifndef DBUG_OFF
+ #define YYDEBUG 1
+ #else
++*/
+ #define YYDEBUG 0
+-#endif
++//#endif
+ 
+ 
+ /**
+@@ -197,11 +199,11 @@
+   thd->parse_error(s, 0);
+ }
+ 
+-
++/*
+ #ifndef DBUG_OFF
+ void turn_parser_debug_on()
+ {
+-  /*
++  *
+      MYSQLdebug is in sql/sql_yacc.cc, in bison generated code.
+      Turning this option on is **VERY** verbose, and should be
+      used when investigating a syntax error problem only.
+@@ -213,13 +215,13 @@
+        mysql-test-run.pl --mysqld="--debug-dbug=d,parser_debug" ...
+ 
+      The result will be in the process stderr (var/log/master.err)
+-   */
++   *
+ 
+   extern int yydebug;
+   yydebug= 1;
+ }
+ #endif
+-
++*/
+ 
+ /**
+   Helper action for a case expression statement (the expr in 'CASE expr').

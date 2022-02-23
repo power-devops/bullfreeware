@@ -1,0 +1,24 @@
+--- ./build/cmake/FindResSearch.cmake.ORIGIN	2018-08-08 14:27:27 -0500
++++ ./build/cmake/FindResSearch.cmake	2018-08-08 14:30:55 -0500
+@@ -14,7 +14,9 @@
+       # Could be a macro, not a function, so use check_symbol_exists.
+       check_symbol_exists (res_nsearch resolv.h MONGOC_HAVE_RES_NSEARCH)
+       if (MONGOC_HAVE_RES_NSEARCH)
+-         set (RESOLV_LIBRARIES resolv)
++         if (NOT CMAKE_SYSTEM_NAME MATCHES "AIX")
++         	set (RESOLV_LIBRARIES resolv)
++         endif ()
+          set (MONGOC_HAVE_RES_SEARCH 0)
+ 
+          # We have res_nsearch. Call res_ndestroy (BSD/Mac) or res_nclose (Linux)?
+@@ -36,7 +38,9 @@
+          # Thread-unsafe function.
+          check_symbol_exists (res_search resolv.h MONGOC_HAVE_RES_SEARCH)
+          if (MONGOC_HAVE_RES_SEARCH)
+-            set (RESOLV_LIBRARIES resolv)
++            if (NOT CMAKE_SYSTEM_NAME MATCHES "AIX")
++               set (RESOLV_LIBRARIES resolv)
++            endif ()
+          else ()
+             set (MONGOC_HAVE_RES_SEARCH 0)
+          endif ()

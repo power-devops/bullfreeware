@@ -1,0 +1,5 @@
+OPTIONS="-f /etc/mongod.conf"
+
+# To run numactl before starting mongodb server
+# https://docs.mongodb.com/manual/administration/production-notes/#configuring-numa-on-linux
+#NUMACTL="/usr/bin/numactl --interleave=all"

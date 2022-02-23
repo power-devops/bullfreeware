@@ -1,0 +1,38 @@
+*** ./Makefile.in.ORIG	Mon Jun 14 11:49:46 2010
+--- ./Makefile.in	Mon Jun 14 11:50:35 2010
+***************
+*** 49,55 ****
+  libdir = ${exec_prefix}/lib
+  sharedlibdir = ${libdir}
+  includedir = ${prefix}/include
+! mandir = ${prefix}/share/man
+  man3dir = ${mandir}/man3
+  pkgconfigdir = ${libdir}/pkgconfig
+  
+--- 49,55 ----
+  libdir = ${exec_prefix}/lib
+  sharedlibdir = ${libdir}
+  includedir = ${prefix}/include
+! mandir = ${prefix}/man
+  man3dir = ${mandir}/man3
+  pkgconfigdir = ${libdir}/pkgconfig
+  
+*** ./configure.ORIG	Mon Jun 14 11:50:41 2010
+--- ./configure	Mon Jun 14 11:51:24 2010
+***************
+*** 51,57 ****
+  libdir=${libdir-'${exec_prefix}/lib'}
+  sharedlibdir=${sharedlibdir-'${libdir}'}
+  includedir=${includedir-'${prefix}/include'}
+! mandir=${mandir-'${prefix}/share/man'}
+  shared_ext='.so'
+  shared=1
+  zprefix=0
+--- 51,57 ----
+  libdir=${libdir-'${exec_prefix}/lib'}
+  sharedlibdir=${sharedlibdir-'${libdir}'}
+  includedir=${includedir-'${prefix}/include'}
+! mandir=${mandir-'${prefix}/man'}
+  shared_ext='.so'
+  shared=1
+  zprefix=0

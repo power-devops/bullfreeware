@@ -1,0 +1,133 @@
+--- ./configure.orig	2020-02-27 15:28:40 +0100
++++ ./configure	2020-02-27 15:36:37 +0100
+@@ -26010,68 +26010,68 @@
+ 
+ # [ruby-dev:40910] overflow of time on FreeBSD
+ # http://www.freebsd.org/cgi/query-pr.cgi?pr=145341
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for localtime(3) overflow correctly" >&5
+-$as_echo_n "checking for localtime(3) overflow correctly... " >&6; }
+-if ${rb_cv_localtime_overflow+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-  if test "$cross_compiling" = yes; then :
+-  rb_cv_localtime_overflow=no
+-else
+-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-
+-#include <stdlib.h>
+-#include <time.h>
+-
+-void
+-check(time_t t1)
+-{
+-    struct tm *tm;
+-    time_t t2;
+-    tm = localtime(&t1);
+-    if (!tm)
+-	return; /* overflow detected.  ok. */
+-    t2 = mktime(tm);
+-    if (t1 == t2)
+-        return; /* round-trip.  ok. */
+-    exit(1);
+-}
+-
+-int
+-main()
+-{
+-    time_t t;
+-    if (~(time_t)0 <= 0) {
+-        t = (((time_t)1) << (sizeof(time_t) * 8 - 2));
+-        t |= t - 1;
+-    }
+-    else {
+-        t = ~(time_t)0;
+-    }
+-    check(t);
+-    return 0;
+-}
+-
+-_ACEOF
+-if ac_fn_c_try_run "$LINENO"; then :
+-  rb_cv_localtime_overflow=yes
+-else
+-  rb_cv_localtime_overflow=no
+-fi
+-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+-  conftest.$ac_objext conftest.beam conftest.$ac_ext
+-fi
+-
+-fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $rb_cv_localtime_overflow" >&5
+-    colorize_result "$rb_cv_localtime_overflow" ; }
+-if test "$rb_cv_localtime_overflow" = no; then :
+-
+-  $as_echo "#define LOCALTIME_OVERFLOW_PROBLEM 1" >>confdefs.h
+-
+-
+-fi
++#{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for localtime(3) overflow correctly" >&5
++#$as_echo_n "checking for localtime(3) overflow correctly... " >&6; }
++#if ${rb_cv_localtime_overflow+:} false; then :
++#  $as_echo_n "(cached) " >&6
++#else
++#  if test "$cross_compiling" = yes; then :
++#  rb_cv_localtime_overflow=no
++#else
++#  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++#/* end confdefs.h.  */
++#
++##include <stdlib.h>
++##include <time.h>
++#
++#void
++#check(time_t t1)
++#{
++#    struct tm *tm;
++#    time_t t2;
++#    tm = localtime(&t1);
++#    if (!tm)
++#	return; /* overflow detected.  ok. */
++#    t2 = mktime(tm);
++#    if (t1 == t2)
++#        return; /* round-trip.  ok. */
++#    exit(1);
++#}
++#
++#int
++#main()
++#{
++#    time_t t;
++#    if (~(time_t)0 <= 0) {
++#        t = (((time_t)1) << (sizeof(time_t) * 8 - 2));
++#        t |= t - 1;
++#    }
++#    else {
++#        t = ~(time_t)0;
++#    }
++#    check(t);
++#    return 0;
++#}
++#
++#_ACEOF
++#if ac_fn_c_try_run "$LINENO"; then :
++#  rb_cv_localtime_overflow=yes
++#else
++#  rb_cv_localtime_overflow=no
++#fi
++#rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
++#  conftest.$ac_objext conftest.beam conftest.$ac_ext
++#fi
++#
++#fi
++#{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $rb_cv_localtime_overflow" >&5
++#    colorize_result "$rb_cv_localtime_overflow" ; }
++#if test "$rb_cv_localtime_overflow" = no; then :
++#
++#  $as_echo "#define LOCALTIME_OVERFLOW_PROBLEM 1" >>confdefs.h
++#
++#
++#fi
+ 
+ if test "$ac_cv_func_sigprocmask" = yes && test "$ac_cv_func_sigaction" = yes; then :
+ 

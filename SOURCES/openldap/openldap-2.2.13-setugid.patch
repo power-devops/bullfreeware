@@ -1,0 +1,23 @@
+Don't read the user's configuration file if we're running in a setuid
+or setgid application.
+--- openldap-2.2.13/libraries/libldap/init.c	2004-06-15 11:51:32.000000000 -0400
++++ openldap-2.2.13/libraries/libldap/init.c	2004-06-15 13:42:35.000000000 -0400
+@@ -551,10 +551,11 @@
+ 		if( user != NULL ) {
+ 			gopts->ldo_def_sasl_authcid = user;
+ 		}
+-    }
++	}
+ #endif
+ 
+ 	openldap_ldap_init_w_sysconf(LDAP_CONF_FILE);
++	if( ( getuid() == geteuid() ) && ( getgid() == getegid() ) ) {
+ 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
+ 
+ 	{
+@@ -608,4 +609,5 @@
+ 	}
+ 
+ 	openldap_ldap_init_w_env(gopts, NULL);
++	}
+ }

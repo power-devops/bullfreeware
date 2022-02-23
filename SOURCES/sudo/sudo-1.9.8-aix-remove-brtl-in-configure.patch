@@ -1,0 +1,92 @@
+From 2a54ca140f94f53345458c1cc7204ca6c58a22d7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 5 Nov 2021 16:10:14 +0100
+Subject: [PATCH] aix: remove brtl in configure
+
+configure is adding -brtl for AIX, because it's easier for
+the community to directly generate .so instead of .a and when
+extract .so.
+But as we're doing RPMs we can fix it during %install.
+DO NOT SUBMIT
+---
+ configure    | 40 ----------------------------------------
+ configure.ac | 12 ------------
+ 2 files changed, 52 deletions(-)
+
+diff --git a/configure b/configure
+index 193a992..605771f 100755
+--- a/configure
++++ b/configure
+@@ -8587,46 +8587,6 @@ IFS=$ac_save_IFS
+ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
+ 
+ 
+-
+-
+-case "$host_os" in
+-aix4.[23]|aix4.[23].*|aix[5-9]*)
+-
+-if test ${LDFLAGS+y}
+-then :
+-
+-  case " $LDFLAGS " in #(
+-  *" -Wl,-brtl "*) :
+-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: : LDFLAGS already contains -Wl,-brtl"; } >&5
+-  (: LDFLAGS already contains -Wl,-brtl) 2>&5
+-  ac_status=$?
+-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; } ;; #(
+-  *) :
+-
+-     as_fn_append LDFLAGS " -Wl,-brtl"
+-     { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: : LDFLAGS=\"\$LDFLAGS\""; } >&5
+-  (: LDFLAGS="$LDFLAGS") 2>&5
+-  ac_status=$?
+-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; }
+-     ;;
+-esac
+-
+-else $as_nop
+-
+-  LDFLAGS=-Wl,-brtl
+-  { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: : LDFLAGS=\"\$LDFLAGS\""; } >&5
+-  (: LDFLAGS="$LDFLAGS") 2>&5
+-  ac_status=$?
+-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; }
+-
+-fi
+-
+-    ;;
+-esac
+-
+ case "$host_os" in
+ hiuxmpp*|hpux11.1[1-9]|hpux11.[2-9][0-9]|hpux1[2-9].*)
+     # Prefer dlopen() over shl_load()
+diff --git a/configure.ac b/configure.ac
+index 0ee5015..9313272 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1619,18 +1619,6 @@ dnl
+ AC_CANONICAL_HOST
+ AC_CONFIG_MACRO_DIR([m4])
+ 
+-dnl
+-dnl On AIX we need to force libtool to install .so files for the plugins
+-dnl instead of a .a file that contains the .so.  We do this by enabling
+-dnl runtime linking (where the .so file is installed).  This must happen
+-dnl before the call to LT_INIT
+-dnl
+-case "$host_os" in
+-aix4.[[23]]|aix4.[[23]].*|aix[[5-9]]*)
+-    AX_APPEND_FLAG([-Wl,-brtl], [LDFLAGS])
+-    ;;
+-esac
+-
+ dnl
+ dnl On HP-UX 11.11 and higher (and hiuxmpp) we prefer dlopen()
+ dnl over shl_load().  Libtool defaults to shl_load() so we need
+-- 
+2.33.1
+

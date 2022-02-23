@@ -1,0 +1,139 @@
+--- ./plugin/x/ngs/include/ngs/scheduler.h.ORIGIN	2019-06-19 12:20:53 -0500
++++ ./plugin/x/ngs/include/ngs/scheduler.h	2019-06-19 12:51:23 -0500
+@@ -63,8 +63,8 @@
+   bool post(const Task &task);
+   bool post_and_wait(const Task &task);
+ 
+-  virtual bool thread_init() { return true; }
+-  virtual void thread_end();
++  virtual bool thread_init2() { return true; }
++  virtual void thread_end2();
+ 
+   void set_monitor(Monitor_interface *monitor);
+ 
+--- ./unittest/gunit/xplugin/xpl/mock/session.h.ORIGIN	2019-06-19 12:21:10 -0500
++++ ./unittest/gunit/xplugin/xpl/mock/session.h	2019-06-19 12:50:36 -0500
+@@ -79,8 +79,8 @@
+ 
+   MOCK_METHOD0(launch, void());
+   MOCK_METHOD0(stop, void());
+-  MOCK_METHOD0(thread_init, bool());
+-  MOCK_METHOD0(thread_end, void());
++  MOCK_METHOD0(thread_init2, bool());
++  MOCK_METHOD0(thread_end2, void());
+   MOCK_METHOD1(set_num_workers, unsigned int(unsigned int n));
+ };
+ 
+--- ./plugin/innodb_memcached/daemon_memcached/daemon/thread.c.ORIGIN	2019-06-19 12:21:31 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/daemon/thread.c	2019-06-19 12:51:12 -0500
+@@ -819,7 +819,7 @@
+  * nthreads  Number of worker event handler threads to spawn
+  * main_base Event base for main thread
+  */
+-void thread_init(int nthr, struct event_base *main_base,
++void thread_init2(int nthr, struct event_base *main_base,
+                  void (*dispatcher_callback)(int, short, void *)) {
+     int i;
+     nthreads = nthr + 1;
+--- ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.h.ORIGIN	2019-06-19 12:22:21 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.h	2019-06-19 12:50:07 -0500
+@@ -424,7 +424,7 @@
+  * also #define-d to directly call the underlying code in singlethreaded mode.
+  */
+ 
+-void thread_init(int nthreads, struct event_base *main_base,
++void thread_init2(int nthreads, struct event_base *main_base,
+                  void (*dispatcher_callback)(int, short, void *));
+ void threads_shutdown(void);
+ 
+--- ./plugin/x/src/xpl_server.cc.ORIGIN	2019-06-19 14:35:26 -0500
++++ ./plugin/x/src/xpl_server.cc	2019-06-19 14:35:42 -0500
+@@ -87,7 +87,7 @@
+     PSI_THREAD_CALL(set_thread_account)("", 0, "", 0);
+ #endif  // HAVE_PSI_THREAD_INTERFACE
+ 
+-    ngs::Scheduler_dynamic::thread_init();
++    ngs::Scheduler_dynamic::thread_init2();
+ 
+ #if defined(__APPLE__) || defined(HAVE_PTHREAD_SETNAME_NP)
+     char thread_name[16];
+@@ -105,7 +105,7 @@
+   }
+ 
+   virtual void thread_end() {
+-    ngs::Scheduler_dynamic::thread_end();
++    ngs::Scheduler_dynamic::thread_end2();
+     srv_session_deinit_thread();
+ 
+     ssl_wrapper_thread_cleanup();
+--- ./plugin/x/src/xpl_server.cc.ORIGIN	2019-06-19 15:03:33 -0500
++++ ./plugin/x/src/xpl_server.cc	2019-06-19 15:04:30 -0500
+@@ -75,7 +75,7 @@
+       : ngs::Scheduler_dynamic(name, KEY_thread_x_worker),
+         m_plugin_ptr(plugin) {}
+ 
+-  virtual bool thread_init() {
++  virtual bool thread_init2() {
+     if (srv_session_init_thread(m_plugin_ptr) != 0) {
+       log_error(ER_XPLUGIN_SRV_SESSION_INIT_THREAD_FAILED);
+       return false;
+@@ -104,7 +104,7 @@
+     return true;
+   }
+ 
+-  virtual void thread_end() {
++  virtual void thread_end2() {
+     ngs::Scheduler_dynamic::thread_end2();
+     srv_session_deinit_thread();
+ 
+--- ./sql/debug_sync.cc.ORIGIN	2019-06-19 15:03:43 -0500
++++ ./sql/debug_sync.cc	2019-06-19 15:04:17 -0500
+@@ -724,7 +724,7 @@
+       This synchronization point can be used to synchronize on thread end.
+       This is the latest point in a THD's life, where this can be done.
+     */
+-    DEBUG_SYNC(thd, "thread_end");
++    DEBUG_SYNC(thd, "thread_end2");
+ 
+     if (ds_control->ds_action) {
+       st_debug_sync_action *action = ds_control->ds_action;
+--- ./plugin/x/ngs/src/scheduler.cc.ORIGIN	2019-06-19 15:01:52 -0500
++++ ./plugin/x/ngs/src/scheduler.cc	2019-06-19 15:02:37 -0500
+@@ -170,7 +170,7 @@
+   return reinterpret_cast<Scheduler_dynamic *>(data)->worker();
+ }
+ 
+-void Scheduler_dynamic::thread_end() {
++void Scheduler_dynamic::thread_end2() {
+ #ifdef HAVE_PSI_THREAD_INTERFACE
+   PSI_THREAD_CALL(delete_current_thread)();
+ #endif
+@@ -216,7 +216,7 @@
+ 
+ void *Scheduler_dynamic::worker() {
+   bool worker_active = true;
+-  if (thread_init()) {
++  if (thread_init2()) {
+     ulonglong thread_waiting_time = TIME_VALUE_NOT_VALID;
+     while (is_running()) {
+       bool task_available = false;
+@@ -249,7 +249,7 @@
+         }
+       }
+     }
+-    thread_end();
++    thread_end2();
+   }
+ 
+   {
+--- ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.c.ORIGIN	2019-06-21 15:07:15 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/daemon/memcached.c	2019-06-21 15:07:39 -0500
+@@ -7916,7 +7916,7 @@
+ #endif
+ 
+     /* start up worker threads if MT mode */
+-    thread_init(settings.num_threads, main_base, dispatch_event_handler);
++    thread_init2(settings.num_threads, main_base, dispatch_event_handler);
+ 
+     /* initialise clock event */
+     clock_handler(0, 0, 0);

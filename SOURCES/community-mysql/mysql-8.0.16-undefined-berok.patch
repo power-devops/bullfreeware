@@ -1,0 +1,612 @@
+--- ./storage/example/CMakeLists.txt.ORIGIN	2019-06-12 14:35:30 -0500
++++ ./storage/example/CMakeLists.txt	2019-06-12 14:45:20 -0500
+@@ -28,3 +28,4 @@
+ ELSEIF(NOT WITHOUT_EXAMPLE_STORAGE_ENGINE)
+   MYSQL_ADD_PLUGIN(example ${EXAMPLE_SOURCES} STORAGE_ENGINE MODULE_ONLY)
+ ENDIF()
++target_link_options(example PUBLIC "-Wl,-berok")
+--- ./storage/myisam/CMakeLists.txt.ORIGIN	2019-06-13 15:59:59 -0500
++++ ./storage/myisam/CMakeLists.txt	2019-06-13 16:16:28 -0500
+@@ -65,6 +65,7 @@
+   MANDATORY
+   LINK_LIBRARIES mysys myisam_sys
+ )
++target_link_options(myisam PUBLIC "-Wl,-berok")
+ 
+ ADD_CONVENIENCE_LIBRARY(myisam_nopfs ${MYISAM_SOURCES})
+ ADD_DEPENDENCIES(myisam_nopfs GenError)
+@@ -73,15 +74,19 @@
+ 
+ MYSQL_ADD_EXECUTABLE(myisam_ftdump myisam_ftdump.cc)
+ TARGET_LINK_LIBRARIES(myisam_ftdump ${MYISAM_NOPFS} mysys_ssl)
++target_link_options(myisam_ftdump PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(myisamchk myisamchk.cc)
+ TARGET_LINK_LIBRARIES(myisamchk ${MYISAM_NOPFS} mysys_ssl)
++target_link_options(myisamchk PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(myisamlog myisamlog.cc)
+ TARGET_LINK_LIBRARIES(myisamlog ${MYISAM_NOPFS} ${LIBSOCKET})
++target_link_options(myisamlog PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(myisampack myisampack.cc)
+ TARGET_LINK_LIBRARIES(myisampack ${MYISAM_NOPFS} mysys_ssl)
++target_link_options(myisampack PUBLIC "-Wl,-berok")
+ 
+ IF (MSVC)
+   SET_TARGET_PROPERTIES(myisamchk myisampack PROPERTIES LINK_FLAGS "setargv.obj")
+--- ./storage/heap/CMakeLists.txt.ORIGIN	2019-06-13 15:13:55 -0500
++++ ./storage/heap/CMakeLists.txt	2019-06-13 15:15:05 -0500
+@@ -37,7 +37,9 @@
+ 
+   MYSQL_ADD_EXECUTABLE(hp_test1 hp_test1.cc ADD_TEST hp_test1)
+   TARGET_LINK_LIBRARIES(hp_test1 heap_nopfs mysys)
++  target_link_options(hp_test1 PUBLIC "-Wl,-berok")
+ 
+   MYSQL_ADD_EXECUTABLE(hp_test2 hp_test2.cc ADD_TEST hp_test2)
+   TARGET_LINK_LIBRARIES(hp_test2 heap_nopfs mysys)
++  target_link_options(hp_test2 PUBLIC "-Wl,-berok")
+ ENDIF()
+--- ./storage/secondary_engine_mock/CMakeLists.txt.ORIGIN	2019-06-14 11:55:50 -0500
++++ ./storage/secondary_engine_mock/CMakeLists.txt	2019-06-14 11:56:20 -0500
+@@ -30,3 +30,4 @@
+ ELSEIF(NOT WITHOUT_MOCK_SECONDARY_STORAGE_ENGINE)
+   MYSQL_ADD_PLUGIN(mock ${MOCK_SOURCES} STORAGE_ENGINE MODULE_ONLY)
+ ENDIF()
++target_link_options(mock PUBLIC "-Wl,-berok")
+--- ./plugin/audit_null/CMakeLists.txt.ORIGIN	2019-06-14 11:59:56 -0500
++++ ./plugin/audit_null/CMakeLists.txt	2019-06-14 12:00:27 -0500
+@@ -22,6 +22,8 @@
+ 
+ MYSQL_ADD_PLUGIN(audit_null audit_null.cc
+   MODULE_ONLY MODULE_OUTPUT_NAME "adt_null")
++target_link_options(audit_null PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_security_context test_security_context.cc
+   TEST_ONLY MODULE_ONLY)
++target_link_options(test_security_context PUBLIC "-Wl,-berok")
+--- ./plugin/connection_control/CMakeLists.txt.ORIGIN	2019-06-18 10:14:58 -0500
++++ ./plugin/connection_control/CMakeLists.txt	2019-06-18 10:15:40 -0500
+@@ -26,6 +26,7 @@
+ 		 security_context_wrapper.cc
+ 		 connection_delay.cc
+ 		 MODULE_ONLY)
++target_link_options(connection_control PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+ ADD_DEFINITIONS(-DLOG_COMPONENT_TAG="CONNECTION_CONTROL")
+--- ./plugin/daemon_example/CMakeLists.txt.ORIGIN	2019-06-18 10:19:06 -0500
++++ ./plugin/daemon_example/CMakeLists.txt	2019-06-18 10:19:08 -0500
+@@ -22,5 +22,6 @@
+ 
+ MYSQL_ADD_PLUGIN(daemon_example daemon_example.cc
+   MODULE_ONLY TEST_ONLY MODULE_OUTPUT_NAME "libdaemon_example")
++target_link_options(daemon_example PUBLIC "-Wl,-berok")
+ 
+ INSTALL(FILES daemon_example.ini DESTINATION ${INSTALL_PLUGINDIR} COMPONENT Test)
+--- ./plugin/ddl_rewriter/CMakeLists.txt.ORIGIN	2019-06-18 10:38:26 -0500
++++ ./plugin/ddl_rewriter/CMakeLists.txt	2019-06-18 10:39:17 -0500
+@@ -22,3 +22,4 @@
+ 
+ MYSQL_ADD_PLUGIN(ddl_rewriter ddl_rewriter_plugin.cc ddl_rewriter.cc
+   MODULE_ONLY MODULE_OUTPUT_NAME "ddl_rewriter")
++target_link_options(ddl_rewriter                 PUBLIC "-Wl,-berok")
+--- ./plugin/innodb_memcached/daemon_memcached/CMakeLists.txt.ORIGIN	2019-06-19 18:25:09 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/CMakeLists.txt	2019-06-19 18:25:52 -0500
+@@ -87,3 +87,4 @@
+                  LINK_LIBRARIES ${LIBEVENT_LIBRARIES}
+                  memcached_utilities ${SASL_LIBRARY}
+ 		 MODULE_ONLY MODULE_OUTPUT_NAME "libmemcached")
++target_link_options(libmemcached PUBLIC "-Wl,-berok")
+--- ./plugin/innodb_memcached/innodb_memcache/CMakeLists.txt.ORIGIN	2019-06-19 18:28:18 -0500
++++ ./plugin/innodb_memcached/innodb_memcache/CMakeLists.txt	2019-06-19 18:28:43 -0500
+@@ -65,3 +65,4 @@
+ MYSQL_ADD_PLUGIN(innodb_engine ${INNODB_ENGINE_SOURCES}
+                  LINK_LIBRARIES libmcd_util
+ 		 MODULE_ONLY MODULE_OUTPUT_NAME "innodb_engine")
++target_link_options(innodb_engine PUBLIC "-Wl,-berok")
+--- ./plugin/keyring/CMakeLists.txt.ORIGIN	2019-06-19 18:45:57 -0500
++++ ./plugin/keyring/CMakeLists.txt	2019-06-19 18:46:33 -0500
+@@ -77,6 +77,7 @@
+                      MODULE_ONLY
+                      MODULE_OUTPUT_NAME "keyring_file")
+ ENDIF()
++target_link_options(keyring_file PUBLIC "-Wl,-berok")
+ 
+ IF(HAVE_DLOPEN)
+     SET(DYNLIB_EXTENSION "so")
+--- ./unittest/gunit/keyring/CMakeLists.txt.ORIGIN	2019-06-19 18:35:49 -0500
++++ ./unittest/gunit/keyring/CMakeLists.txt	2019-06-19 18:43:20 -0500
+@@ -100,6 +100,7 @@
+     SET_PROPERTY(TARGET merge_keyring_file_tests-t
+       PROPERTY EXCLUDE_FROM_ALL TRUE)
+   ENDIF()
++target_link_options(merge_keyring_file_tests-t PUBLIC "-Wl,-berok")
+ 
+ ENDIF(MERGE_UNITTESTS)
+ 
+@@ -121,5 +122,9 @@
+   IF(NOT MERGE_UNITTESTS)
+     ADD_TEST(${test} ${CMAKE_BINARY_DIR}/runtime_output_directory/${test}-t)
+   ENDIF()
++
++target_link_options(${test}-t PUBLIC "-Wl,-berok")
+ ENDFOREACH()
++target_link_options(keyring_test PUBLIC "-Wl,-berok")
++target_link_options(keyring PUBLIC "-Wl,-berok")
+ 
+--- ./plugin/keyring_udf/CMakeLists.txt.ORIGIN	2019-06-20 09:37:45 -0500
++++ ./plugin/keyring_udf/CMakeLists.txt	2019-06-20 09:38:14 -0500
+@@ -26,5 +26,6 @@
+                  keyring_udf.cc
+                  MODULE_ONLY
+                  MODULE_OUTPUT_NAME "keyring_udf")
++target_link_options(keyring_udf PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- ./plugin/password_validation/CMakeLists.txt.ORIGIN	2019-06-20 09:44:10 -0500
++++ ./plugin/password_validation/CMakeLists.txt	2019-06-20 09:44:37 -0500
+@@ -22,5 +22,6 @@
+ 
+ MYSQL_ADD_PLUGIN(validate_password validate_password.cc
+     MODULE_ONLY)
++target_link_options(validate_password PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DLOG_COMPONENT_TAG="validate_password")
+--- ./plugin/pfs_table_plugin/CMakeLists.txt.ORIGIN	2019-06-20 09:48:58 -0500
++++ ./plugin/pfs_table_plugin/CMakeLists.txt	2019-06-20 09:49:19 -0500
+@@ -31,3 +31,4 @@
+     pfs_example_machines_by_emp_by_mtype.cc)
+ 
+ MYSQL_ADD_PLUGIN(pfs_example_plugin_employee ${PFS_EXAMPLE_PLUGIN_EMPLOYEE_SOURCE} TEST_ONLY MODULE_ONLY)
++target_link_options(pfs_example_plugin_employee PUBLIC "-Wl,-berok")
+--- ./plugin/replication_observers_example/CMakeLists.txt.ORIGIN	2019-06-20 09:52:26 -0500
++++ ./plugin/replication_observers_example/CMakeLists.txt	2019-06-20 09:52:50 -0500
+@@ -22,5 +22,6 @@
+ 
+ MYSQL_ADD_PLUGIN(replication_observers_example replication_observers_example.cc
+   MODULE_ONLY TEST_ONLY MODULE_OUTPUT_NAME "replication_observers_example_plugin")
++target_link_options(replication_observers_example PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- ./plugin/rewrite_example/CMakeLists.txt.ORIGIN	2019-06-20 09:56:42 -0500
++++ ./plugin/rewrite_example/CMakeLists.txt	2019-06-20 09:57:02 -0500
+@@ -22,3 +22,4 @@
+ 
+ MYSQL_ADD_PLUGIN(rewrite_example rewrite_example.cc
+   MODULE_ONLY MODULE_OUTPUT_NAME "rewrite_example")
++target_link_options(rewrite_example PUBLIC "-Wl,-berok")
+--- ./plugin/rewriter/CMakeLists.txt.ORIGIN	2019-06-20 10:01:14 -0500
++++ ./plugin/rewriter/CMakeLists.txt	2019-06-20 10:01:48 -0500
+@@ -29,6 +29,7 @@
+ 
+ MYSQL_ADD_PLUGIN(rewriter ${REWRITER_SOURCES}
+                  MODULE_ONLY MODULE_OUTPUT_NAME "rewriter")
++target_link_options(rewriter PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+ ADD_DEFINITIONS(-DLOG_COMPONENT_TAG="Rewriter")
+--- ./plugin/semisync/CMakeLists.txt.ORIGIN	2019-06-20 10:14:12 -0500
++++ ./plugin/semisync/CMakeLists.txt	2019-06-20 10:14:30 -0500
+@@ -30,8 +30,10 @@
+ 
+ MYSQL_ADD_PLUGIN(semisync_master ${SEMISYNC_MASTER_SOURCES}  
+   MODULE_ONLY MODULE_OUTPUT_NAME "semisync_master")
++target_link_options(semisync_master PUBLIC "-Wl,-berok")
+ 
+ SET(SEMISYNC_SLAVE_SOURCES  semisync.cc semisync_slave.cc 
+   semisync_slave_plugin.cc semisync.h semisync_slave.h )
+ MYSQL_ADD_PLUGIN(semisync_slave ${SEMISYNC_SLAVE_SOURCES} 
+   MODULE_ONLY MODULE_OUTPUT_NAME "semisync_slave")
++target_link_options(semisync_slave PUBLIC "-Wl,-berok")
+--- ./plugin/test_service_sql_api/CMakeLists.txt.ORIGIN	2019-06-20 10:17:16 -0500
++++ ./plugin/test_service_sql_api/CMakeLists.txt	2019-06-20 10:21:04 -0500
+@@ -24,21 +24,27 @@
+ 
+ MYSQL_ADD_PLUGIN(test_session_in_thd test_session_in_thd.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_session_in_thd")
++target_link_options(test_session_in_thd PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_x_sessions_init test_x_sessions_init.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_x_sessions_init")
++target_link_options(test_x_sessions_init PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_x_sessions_deinit test_x_sessions_deinit.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_x_sessions_deinit")
++target_link_options(test_x_sessions_deinit PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_session_detach test_session_detach.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_session_detach")
++target_link_options(test_session_detach PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_session_info test_session_info.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_session_info")
++target_link_options(test_session_info PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_session_attach test_session_attach.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_session_attach")
++target_link_options(test_session_attach PUBLIC "-Wl,-berok")
+ 
+ IF(NOT DISABLE_SHARED)
+   IF(WIN32)
+@@ -51,45 +57,60 @@
+ # Test SQL API
+ MYSQL_ADD_PLUGIN(test_sql_complex test_sql_complex.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_complex")
++target_link_options(test_sql_complex PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_all_col_types test_sql_all_col_types.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_all_col_types")
++target_link_options(test_sql_all_col_types PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_2_sessions test_sql_2_sessions.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_2_sessions")
++target_link_options(test_sql_2_sessions PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_cmds_1 test_sql_cmds_1.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_cmds_1")
++target_link_options(test_sql_cmds_1 PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_processlist test_sql_processlist.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_processlist")
++target_link_options(test_sql_processlist PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_shutdown test_sql_shutdown.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_shutdown")
++target_link_options(test_sql_shutdown PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_stored_procedures_functions test_sql_stored_procedures_functions.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_stored_procedures_functions")
++target_link_options(test_sql_stored_procedures_functions PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_views_triggers test_sql_views_triggers.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_views_triggers")
++target_link_options(test_sql_views_triggers PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_commit test_sql_commit.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_commit")
++target_link_options(test_sql_commit PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_lock test_sql_lock.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_lock")
++target_link_options(test_sql_lock PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_sqlmode test_sql_sqlmode.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_sqlmode")
++target_link_options(test_sql_sqlmode PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_replication test_sql_replication.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_replication")
++target_link_options(test_sql_replication PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_errors test_sql_errors.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_errors")
++target_link_options(test_sql_errors PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_stmt test_sql_stmt.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_stmt")
++target_link_options(test_sql_stmt PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_sql_reset_connection test_sql_reset_connection.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_sql_reset_connection")
++target_link_options(test_sql_reset_connection PUBLIC "-Wl,-berok")
+--- ./plugin/test_services/CMakeLists.txt.ORIGIN	2019-06-20 10:24:16 -0500
++++ ./plugin/test_services/CMakeLists.txt	2019-06-20 10:25:12 -0500
+@@ -22,16 +22,21 @@
+ 
+ MYSQL_ADD_PLUGIN(test_framework test_framework.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_framework")
++target_link_options(test_framework PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_services test_services.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_services")
++target_link_options(test_services PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_services_thread test_services_threaded.cc
+   TEST_ONLY MODULE_ONLY MODULE_OUTPUT_NAME "libtest_services_threaded")
++target_link_options(test_services_thread PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_services_plugin_registry test_services_plugin_registry.cc
+   TEST_ONLY MODULE_ONLY)
++target_link_options(test_services_plugin_registry PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(test_services_host_application_signal test_services_host_application_signal.cc
+   MODULE_ONLY TEST_ONLY)
++target_link_options(test_services_host_application_signal PUBLIC "-Wl,-berok")
+ 
+--- ./plugin/version_token/CMakeLists.txt.ORIGIN	2019-06-20 10:49:03 -0500
++++ ./plugin/version_token/CMakeLists.txt	2019-06-20 10:49:24 -0500
+@@ -22,5 +22,6 @@
+ 
+ MYSQL_ADD_PLUGIN(version_token version_token.cc
+   MODULE_ONLY)
++target_link_options(version_token PUBLIC "-Wl,-berok")
+ 
+ ADD_DEFINITIONS(-DMYSQL_SERVER)
+--- ./plugin/x/tests/driver/CMakeLists.txt.ORIGIN	2019-06-20 11:40:06 -0500
++++ ./plugin/x/tests/driver/CMakeLists.txt	2019-06-20 11:41:01 -0500
+@@ -48,6 +48,7 @@
+ MYSQL_ADD_EXECUTABLE(${XTEST_EXE_NAME}
+   ${XTEST_SRC} COMPONENT Test
+ )
++target_link_options(${XTEST_EXE_NAME} PUBLIC "-Wl,-berok")
+ 
+ ADD_DEPENDENCIES(${XTEST_EXE_NAME}
+   GenError GenClientError
+--- ./client/CMakeLists.txt.ORIGIN	2019-06-20 11:44:50 -0500
++++ ./client/CMakeLists.txt	2019-06-20 11:49:14 -0500
+@@ -30,6 +30,7 @@
+ ADD_SUBDIRECTORY(dump)
+ 
+ MYSQL_ADD_EXECUTABLE(mysql completion_hash.cc mysql.cc readline.cc ../sql-common/sql_string.cc pattern_matcher.cc ${CMAKE_SOURCE_DIR}/sql/net_ns.cc)
++target_link_options(mysql PUBLIC "-Wl,-berok")
+ TARGET_LINK_LIBRARIES(mysql mysqlclient)
+ IF(UNIX)
+   TARGET_LINK_LIBRARIES(mysql ${EDITLINE_LIBRARY})
+@@ -37,6 +38,7 @@
+ 
+ IF(NOT WITHOUT_SERVER)
+   MYSQL_ADD_EXECUTABLE(mysql_upgrade upgrade/program.cc)
++target_link_options(mysql_upgrade PUBLIC "-Wl,-berok")
+   TARGET_LINK_LIBRARIES(mysql_upgrade mysqlclient client_base)
+ ENDIF()
+ 
+@@ -51,24 +53,30 @@
+ MYSQL_ADD_EXECUTABLE(mysqltest mysqltest.cc ${MYSQLTEST_SRC} COMPONENT Test)
+ TARGET_LINK_LIBRARIES(mysqltest mysqlclient)
+ ADD_DEPENDENCIES(mysqltest GenError GenClientError)
++target_link_options(mysqltest PUBLIC "-Wl,-berok")
+ 
+ ADD_CONVENIENCE_LIBRARY(mysqlcheck_core check/mysqlcheck_core.cc)
+ TARGET_LINK_LIBRARIES(mysqlcheck_core mysqlclient)
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlcheck check/mysqlcheck.cc)
+ TARGET_LINK_LIBRARIES(mysqlcheck mysqlcheck_core)
++target_link_options(mysqlcheck PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysqldump mysqldump.cc)
+ TARGET_LINK_LIBRARIES(mysqldump mysqlclient)
++target_link_options(mysqldump PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlimport mysqlimport.cc)
+ SET_SOURCE_FILES_PROPERTIES(mysqlimport.cc PROPERTIES COMPILE_FLAGS "-DTHREADS")
+ TARGET_LINK_LIBRARIES(mysqlimport mysqlclient)
++target_link_options(mysqlimport PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlshow mysqlshow.cc)
+ TARGET_LINK_LIBRARIES(mysqlshow mysqlclient)
++target_link_options(mysqlshow PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlbinlog mysqlbinlog.cc)
++target_link_options(mysqlbinlog PUBLIC "-Wl,-berok")
+ SET(MYSQLBINLOG_LIB_SOURCES
+   ${CMAKE_SOURCE_DIR}/strings/decimal.cc
+   ${CMAKE_SOURCE_DIR}/sql/json_binary.cc
+@@ -89,6 +97,7 @@
+ )
+ ADD_LIBRARY(mysqlbinlog_lib STATIC ${MYSQLBINLOG_LIB_SOURCES})
+ ADD_DEPENDENCIES(mysqlbinlog_lib GenError)
++target_link_options(mysqlbinlog_lib PUBLIC "-Wl,-berok")
+ 
+ TARGET_COMPILE_DEFINITIONS(mysqlbinlog PRIVATE DISABLE_PSI_MUTEX)
+ TARGET_COMPILE_DEFINITIONS(mysqlbinlog_lib PRIVATE DISABLE_PSI_MUTEX)
+@@ -100,19 +109,24 @@
+ 
+ MYSQL_ADD_EXECUTABLE(mysqladmin mysqladmin.cc)
+ TARGET_LINK_LIBRARIES(mysqladmin mysqlclient)
++target_link_options(mysqladmin PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlslap mysqlslap.cc)
+ SET_SOURCE_FILES_PROPERTIES(mysqlslap.cc PROPERTIES COMPILE_FLAGS "-DTHREADS")
+ TARGET_LINK_LIBRARIES(mysqlslap mysqlclient)
++target_link_options(mysqlslap PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysql_config_editor mysql_config_editor.cc)
+ TARGET_LINK_LIBRARIES(mysql_config_editor mysqlclient)
++target_link_options(mysql_config_editor PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysql_secure_installation mysql_secure_installation.cc)
+ TARGET_LINK_LIBRARIES(mysql_secure_installation mysqlclient)
++target_link_options(mysql_secure_installation PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(mysql_ssl_rsa_setup mysql_ssl_rsa_setup.cc path.cc logger.cc)
+ TARGET_LINK_LIBRARIES(mysql_ssl_rsa_setup mysys mysys_ssl)
++target_link_options(mysql_ssl_rsa_setup PUBLIC "-Wl,-berok")
+ 
+ # "WIN32" also covers 64 bit. "echo" is used in some files below "mysql-test/".
+ IF(WIN32)
+--- ./client/dump/CMakeLists.txt.ORIGIN	2019-06-20 12:12:01 -0500
++++ ./client/dump/CMakeLists.txt	2019-06-20 12:12:17 -0500
+@@ -101,6 +101,7 @@
+    client_base ${LZ4_LIBRARY})
+ 
+ MYSQL_ADD_EXECUTABLE(mysqlpump  program.cc)
++target_link_options(mysqlpump PUBLIC "-Wl,-berok")
+ 
+ TARGET_LINK_LIBRARIES(mysqlpump mysqlpump_lib)
+ 
+--- ./utilities/CMakeLists.txt.ORIGIN	2019-06-20 12:15:03 -0500
++++ ./utilities/CMakeLists.txt	2019-06-20 12:17:11 -0500
+@@ -25,12 +25,14 @@
+ 
+ IF(NOT CMAKE_CROSSCOMPILING)
+   MYSQL_ADD_EXECUTABLE(comp_err comp_err.cc SKIP_INSTALL)
++target_link_options(comp_err PUBLIC "-Wl,-berok")
+   TARGET_LINK_LIBRARIES(comp_err mysys mysys_ssl)
+ ENDIF()
+ 
+ MYSQL_ADD_EXECUTABLE(comp_client_err
+   comp_client_err.cc ${CMAKE_SOURCE_DIR}/libmysql/errmsg.cc
+   SKIP_INSTALL)
++target_link_options(comp_client_err PUBLIC "-Wl,-berok")
+ TARGET_LINK_LIBRARIES(comp_client_err mysys mysys_ssl)
+ 
+ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/include/mysqlclient_ername.h
+@@ -92,19 +94,23 @@
+ 
+ MYSQL_ADD_EXECUTABLE(my_print_defaults my_print_defaults.cc)
+ TARGET_LINK_LIBRARIES(my_print_defaults  mysys mysys_ssl)
++target_link_options(my_print_defaults PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_EXECUTABLE(perror perror.cc)
+ ADD_DEPENDENCIES(perror GenError)
+ TARGET_LINK_LIBRARIES(perror mysys mysys_ssl)
++target_link_options(perror PUBLIC "-Wl,-berok")
+ 
+ IF (BUILD_BUNDLED_LZ4)
+   MYSQL_ADD_EXECUTABLE(lz4_decompress lz4_decompress.cc)
+   TARGET_LINK_LIBRARIES(lz4_decompress ${LZ4_LIBRARY} mysys)
++target_link_options(lz4_decompress PUBLIC "-Wl,-berok")
+ ENDIF()
+ 
+ IF (BUILD_BUNDLED_ZLIB OR NOT OPENSSL_EXECUTABLE_HAS_ZLIB)
+   MYSQL_ADD_EXECUTABLE(zlib_decompress zlib_decompress.cc)
+   TARGET_LINK_LIBRARIES(zlib_decompress ${ZLIB_LIBRARY} mysys)
++target_link_options(zlib_decompress PUBLIC "-Wl,-berok")
+ ENDIF()
+ 
+ IF(WITH_INNOBASE_STORAGE_ENGINE)
+@@ -154,6 +160,7 @@
+   TARGET_LINK_LIBRARIES(innochecksum
+     mysys_ssl innodb_zipdecompress ${LZ4_LIBRARY})
+   ADD_DEPENDENCIES(innochecksum GenError)
++target_link_options(innochecksum PUBLIC "-Wl,-berok")
+ 
+   MYSQL_ADD_EXECUTABLE(ibd2sdi ibd2sdi.cc)
+   TARGET_COMPILE_DEFINITIONS(ibd2sdi PRIVATE UNIV_NO_ERR_MSGS UNIV_LIBRARY)
+@@ -163,6 +170,7 @@
+   TARGET_LINK_LIBRARIES(ibd2sdi
+     mysys_ssl innodb_zipdecompress ${LZ4_LIBRARY})
+   ADD_DEPENDENCIES(ibd2sdi GenError)
++target_link_options(ibd2sdi PUBLIC "-Wl,-berok")
+ 
+ ENDIF()
+ 
+--- ./testclients/CMakeLists.txt.ORIGIN	2019-06-20 12:20:57 -0500
++++ ./testclients/CMakeLists.txt	2019-06-20 12:21:41 -0500
+@@ -22,8 +22,10 @@
+ 
+ MYSQL_ADD_EXECUTABLE(mysql_client_test mysql_client_test.cc COMPONENT Test)
+ TARGET_LINK_LIBRARIES(mysql_client_test mysqlclient)
++target_link_options(mysql_client_test PUBLIC "-Wl,-berok")
+ 
+ IF(WITH_UNIT_TESTS)
+   MYSQL_ADD_EXECUTABLE(bug25714 bug25714.cc SKIP_INSTALL)
+   TARGET_LINK_LIBRARIES(bug25714 mysqlclient)
++target_link_options(bug25714 PUBLIC "-Wl,-berok")
+ ENDIF()
+--- ./mysql-test/lib/My/SafeProcess/CMakeLists.txt.ORIGIN	2019-06-20 14:38:04 -0500
++++ ./mysql-test/lib/My/SafeProcess/CMakeLists.txt	2019-06-20 14:39:28 -0500
+@@ -23,11 +23,14 @@
+ IF (WIN32)
+   MYSQL_ADD_EXECUTABLE(mysqltest_safe_process safe_process_win.cc
+     COMPONENT Test)
++target_link_options(mysqltest_safe_process PUBLIC "-Wl,-berok")
+   MYSQL_ADD_EXECUTABLE(mysqltest_safe_kill safe_kill_win.cc
+     COMPONENT Test)
++target_link_options(mysqltest_safe_kill PUBLIC "-Wl,-berok")
+ ELSE()
+   MYSQL_ADD_EXECUTABLE(mysqltest_safe_process safe_process.cc
+     COMPONENT Test)
++target_link_options(mysqltest_safe_process PUBLIC "-Wl,-berok")
+ ENDIF()
+ 
+ IF(LINUX AND HAVE_ASAN)
+@@ -54,6 +57,7 @@
+     OUTPUT ldd_asan_test_result
+     DEPENDS asan_test
+     COMMAND ldd asan_test > ldd_asan_test_result)
++target_link_options(asan_test PUBLIC "-Wl,-berok")
+ 
+   ADD_CUSTOM_TARGET(extract_asan_library_name
+     DEPENDS ldd_asan_test_result
+--- ./storage/perfschema/unittest/CMakeLists.txt.ORIGIN3	2019-06-21 10:46:54 -0500
++++ ./storage/perfschema/unittest/CMakeLists.txt	2019-06-13 16:44:42 -0500
+@@ -30,6 +30,7 @@
+   MYSQL_ADD_EXECUTABLE(${name}-t ${name}-t.cc ADD_TEST ${name})
+   TARGET_LINK_LIBRARIES(${name}-t
+     mytap perfschema mysys pfs_server_stubs strings ${ICU_LIBRARIES})
++  target_link_options(${name}-t PUBLIC "-Wl,-berok")
+ ENDMACRO()
+ 
+ SET(tests
+@@ -62,6 +63,19 @@
+   ${MYSQLD_EXTRA_SOURCES}
+   ADD_TEST pfs_connect_attr
+ )
++target_link_options(pfs_connect_attr-t PUBLIC "-Wl,-berok")
++
++#	target_link_options(pfs_instr_class-t     PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_instr_class-oom-t PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_instr-t           PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_instr-oom-t       PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_account-oom-t     PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_host-oom-t        PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_user-oom-t        PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_noop-t            PUBLIC "-Wl,-berok")
++#	target_link_options(pfs-t                 PUBLIC "-Wl,-berok")
++#	target_link_options(pfs_misc-t            PUBLIC "-Wl,-berok")
++
+ ADD_DEPENDENCIES(pfs_connect_attr-t GenServerSource)
+ TARGET_LINK_LIBRARIES(pfs_connect_attr-t mytap perfschema)
+ # We need to explicitly link in everything referenced in sql/sql_builtin.cc
+--- ./sql/CMakeLists.txt.ORIGIN	2019-06-21 10:53:33 -0500
++++ ./sql/CMakeLists.txt	2019-06-20 14:26:52 -0500
+@@ -55,11 +55,12 @@
+ # Make sure sql_yacc.h is generated before compiling gen_lex_token
+ MYSQL_ADD_EXECUTABLE(gen_lex_token gen_lex_token.cc SKIP_INSTALL)
+ ADD_DEPENDENCIES(gen_lex_token GenServerSource)
++#	target_link_options(gen_lex_token PUBLIC "-Wl,-berok")
+ 
+ ADD_CUSTOM_COMMAND(
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lex_token.h
+   COMMAND gen_lex_token > lex_token.h
+-  DEPENDS gen_lex_token
++  DEPENDS runtime_output_directory/gen_lex_token
+ )
+ 
+ # gen_keyword_list
+@@ -72,6 +73,7 @@
+   ADD_COMPILE_DEFINITIONS(gen_keyword_list.cc COMPILE_DEFINITIONS
+     U_STATIC_IMPLEMENTATION)
+ ENDIF()
++#	target_link_options(gen_keyword_list PUBLIC "-Wl,-berok")
+ 
+ ADD_CUSTOM_COMMAND(
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/keyword_list.h
+@@ -784,6 +786,7 @@
+ 
+ MYSQL_ADD_EXECUTABLE(mysqld
+   ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
++#	target_link_options(mysqld PUBLIC "-Wl,-berok")
+ 
+ SET_TARGET_PROPERTIES(mysqld PROPERTIES INSTALL_RPATH "${RPATH_LIBDIR}")
+ 
+@@ -902,6 +905,7 @@
+ 
+ # Gen_lex_hash
+ MYSQL_ADD_EXECUTABLE(gen_lex_hash gen_lex_hash.cc SKIP_INSTALL)
++#	target_link_options(gen_lex_hash PUBLIC "-Wl,-berok")
+ 
+ ADD_CUSTOM_COMMAND(
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lex_hash.h
+@@ -913,6 +917,7 @@
+ SET_TARGET_PROPERTIES(mysql_tzinfo_to_sql PROPERTIES COMPILE_FLAGS "-DTZINFO2SQL")
+ TARGET_LINK_LIBRARIES(mysql_tzinfo_to_sql mysys mysys_ssl)
+ ADD_DEPENDENCIES(mysql_tzinfo_to_sql GenError)
++#	target_link_options(mysql_tzinfo_to_sql PUBLIC "-Wl,-berok")
+ 
+ ADD_CUSTOM_TARGET( 
+         GenServerSource
+@@ -938,9 +943,11 @@
+       "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/udf_example.def")
+   ENDIF()
+ ENDIF()
++target_link_options(udf_example PUBLIC "-Wl,-berok")
+ 
+ MYSQL_ADD_PLUGIN(locking_service locking_service_udf.cc
+                  MODULE_ONLY MODULE_OUTPUT_NAME "locking_service")
++target_link_options(locking_service PUBLIC "-Wl,-berok")
+ IF(NOT DISABLE_SHARED)
+   IF(WIN32)
+     SET_TARGET_PROPERTIES(locking_service

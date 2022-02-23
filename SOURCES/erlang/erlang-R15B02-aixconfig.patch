@@ -1,0 +1,166 @@
+Index: otp_src_R15B02/erts/autoconf/config.guess
+===================================================================
+--- otp_src_R15B02.orig/erts/autoconf/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/erts/autoconf/config.guess	2012-11-14 09:25:27.000000000 +0100
+@@ -532,7 +532,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: otp_src_R15B02/erts/configure
+===================================================================
+--- otp_src_R15B02.orig/erts/configure	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/erts/configure	2012-11-14 09:28:46.000000000 +0100
+@@ -6399,7 +6399,7 @@
+ echo $ECHO_N "checking for extra flags needed to export symbols... $ECHO_C" >&6
+ DEXPORT=""
+ case $host_os in
+-	aix4*)
++	aix[4567]*)
+ 		DEXPORT=-Wl,-bexpall,-brtl
+ 	;;
+ 	bsdi*)
+@@ -18976,7 +18976,7 @@
+ _ACEOF
+ 
+ 		;;
+-		aix4*)
++		aix[4567]*)
+ 			# AIX version also needs "struct hostent_data" defn
+ 			cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+@@ -35647,7 +35647,7 @@
+ 			DED_LDFLAGS="-64 $DED_LDFLAGS"
+ 		fi
+ 	;;
+-	aix4*)
++	aix[4567]*)
+ 		DED_LDFLAGS="-G -bnoentry -bexpall"
+ 	;;
+ 	freebsd2*)
+Index: otp_src_R15B02/erts/configure.in
+===================================================================
+--- otp_src_R15B02.orig/erts/configure.in	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/erts/configure.in	2012-11-14 09:30:59.000000000 +0100
+@@ -916,7 +916,7 @@
+ AC_MSG_CHECKING(for extra flags needed to export symbols)
+ DEXPORT=""
+ case $host_os in
+-	aix4*)
++	aix[4567]*)
+ 		DEXPORT=-Wl,-bexpall,-brtl
+ 	;;
+ 	bsdi*)
+@@ -1351,7 +1351,7 @@
+ 			AC_DEFINE(HAVE_GETHOSTBYNAME_R, GHBN_R_SOLARIS,
+ 				[Define to flavour of gethostbyname_r])
+ 		;;
+-		aix4*)
++		aix[4567]*)
+ 			# AIX version also needs "struct hostent_data" defn
+ 			AC_TRY_COMPILE([#include <netdb.h>],
+ 				[struct hostent_data hd;],
+@@ -3526,7 +3526,7 @@
+ 			DED_LDFLAGS="-64 $DED_LDFLAGS"
+ 		fi
+ 	;;
+-	aix4*)
++	aix[4567]*)
+ 		DED_LDFLAGS="-G -bnoentry -bexpall"
+ 	;;
+ 	freebsd2*)
+Index: otp_src_R15B02/lib/common_test/priv/auxdir/config.guess
+===================================================================
+--- otp_src_R15B02.orig/lib/common_test/priv/auxdir/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/common_test/priv/auxdir/config.guess	2012-11-14 09:36:00.000000000 +0100
+@@ -532,7 +532,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: otp_src_R15B02/lib/diameter/autoconf/config.guess
+===================================================================
+--- otp_src_R15B02.orig/lib/diameter/autoconf/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/diameter/autoconf/config.guess	2012-11-14 09:38:11.000000000 +0100
+@@ -532,7 +532,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: otp_src_R15B02/lib/erl_interface/src/auxdir/config.guess
+===================================================================
+--- otp_src_R15B02.orig/lib/erl_interface/src/auxdir/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/erl_interface/src/auxdir/config.guess	2012-11-14 09:40:06.000000000 +0100
+@@ -532,7 +532,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: otp_src_R15B02/lib/megaco/configure
+===================================================================
+--- otp_src_R15B02.orig/lib/megaco/configure	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/megaco/configure	2012-11-14 09:41:41.000000000 +0100
+@@ -3470,7 +3470,7 @@
+ 	solaris2*|sysv4*)
+ 		DED_LDFLAGS="-G"
+ 	;;
+-	aix4*)
++	aix[4567]*)
+ 		DED_LDFLAGS="-G -bnoentry -bexpall"
+ 	;;
+ 	freebsd2*)
+Index: otp_src_R15B02/lib/megaco/configure.in
+===================================================================
+--- otp_src_R15B02.orig/lib/megaco/configure.in	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/megaco/configure.in	2012-11-14 09:42:17.000000000 +0100
+@@ -231,7 +231,7 @@
+ 	solaris2*|sysv4*)
+ 		DED_LDFLAGS="-G"
+ 	;;
+-	aix4*)
++	aix[4567]*)
+ 		DED_LDFLAGS="-G -bnoentry -bexpall"
+ 	;;
+ 	freebsd2*)
+Index: otp_src_R15B02/lib/test_server/src/config.guess
+===================================================================
+--- otp_src_R15B02.orig/lib/test_server/src/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/test_server/src/config.guess	2012-11-14 09:45:01.000000000 +0100
+@@ -532,7 +532,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: otp_src_R15B02/lib/wx/autoconf/config.guess
+===================================================================
+--- otp_src_R15B02.orig/lib/wx/autoconf/config.guess	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/wx/autoconf/config.guess	2012-11-14 09:46:37.000000000 +0100
+@@ -531,7 +531,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4567])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000

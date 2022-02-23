@@ -1,0 +1,30 @@
+--- ./shlib/Makefile.in_orig	2019-08-12 03:38:53 +0000
++++ ./shlib/Makefile.in	2019-08-12 03:44:08 +0000
+@@ -158,6 +158,10 @@
+ 	  $(SHARED_HISTOBJ) $(SHARED_TILDEOBJ) $(SHARED_COLORSOBJ) \
+ 	  xmalloc.so xfree.so compat.so
+ 
++READLINE_EXP_FILE = create_exp_file.sh $(SHARED_OBJ) > readline.exp
++
++HISTORY_EXP_FILE = create_exp_file.sh $(SHARED_HISTOBJ) xmalloc.so xfree.so > history.exp
++
+ ##########################################################################
+ 
+ all: $(SHLIB_STATUS)
+@@ -173,12 +177,14 @@
+ 	@echo "for inclusion in future bash and readline releases."
+ 
+ $(SHARED_READLINE):	$(SHARED_OBJ)
++	$(READLINE_EXP_FILE)
+ 	$(RM) $@
+-	$(SHOBJ_LD) ${SHOBJ_LDFLAGS} ${SHLIB_XLDFLAGS} -o $@ $(SHARED_OBJ) $(SHLIB_LIBS)
++	$(SHOBJ_LD) ${SHOBJ_LDFLAGS} -bE:readline.exp ${SHLIB_XLDFLAGS} -o $@ $(SHARED_OBJ) $(SHLIB_LIBS)
+ 
+ $(SHARED_HISTORY):	$(SHARED_HISTOBJ) xmalloc.so xfree.so
++	$(HISTORY_EXP_FILE)
+ 	$(RM) $@
+-	$(SHOBJ_LD) ${SHOBJ_LDFLAGS} ${SHLIB_XLDFLAGS} -o $@ $(SHARED_HISTOBJ) xmalloc.so xfree.so $(SHLIB_LIBS)
++	$(SHOBJ_LD) ${SHOBJ_LDFLAGS} -bE:history.exp ${SHLIB_XLDFLAGS} -o $@ $(SHARED_HISTOBJ) xmalloc.so xfree.so $(SHLIB_LIBS)
+ 
+ # Since tilde.c is shared between readline and bash, make sure we compile 
+ # it with the right flags when it's built as part of readline

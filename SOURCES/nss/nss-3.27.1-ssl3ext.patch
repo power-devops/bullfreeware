@@ -1,0 +1,11 @@
+--- nss-3.27.1/nss/lib/ssl/ssl3ext.c	2016-10-18 16:05:24 +0200
++++ nss-3.27.1.orig/nss/lib/ssl/ssl3ext.c	2016-10-03 16:55:58 +0200
+@@ -3780,7 +3780,7 @@
+ }
+ 
+ /* This is only registered if we are sending it. */
+-SECStatus
++PRInt32
+ tls13_ServerSendEarlyDataXtn(sslSocket *ss,
+                              PRBool append,
+                              PRUint32 maxBytes)

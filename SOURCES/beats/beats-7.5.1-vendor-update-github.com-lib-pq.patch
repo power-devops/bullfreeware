@@ -1,0 +1,24 @@
+From 2f10f6e95f2354c782eb6a9246e5b5272a409b7c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 3 Jan 2020 10:28:58 +0100
+Subject: [PATCH 3/5] vendor: update github.com/lib/pq
+
+---
+ vendor/github.com/lib/pq/user_posix.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vendor/github.com/lib/pq/user_posix.go b/vendor/github.com/lib/pq/user_posix.go
+index bf982524f..e4e1c04a5 100644
+--- a/vendor/github.com/lib/pq/user_posix.go
++++ b/vendor/github.com/lib/pq/user_posix.go
+@@ -1,6 +1,6 @@
+ // Package pq is a pure Go Postgres driver for the database/sql package.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris rumprun
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris rumprun
+ 
+ package pq
+ 
+-- 
+2.22.0
+

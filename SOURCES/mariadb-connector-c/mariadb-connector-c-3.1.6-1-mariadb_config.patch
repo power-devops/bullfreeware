@@ -1,0 +1,12 @@
+--- ./mariadb_config/CMakeLists.txt.orig	2019-06-04 11:43:21.345845160 +0200
++++ ./mariadb_config/CMakeLists.txt	2019-06-05 12:05:17.016666136 +0200
+@@ -51,6 +53,9 @@
+                ${CMAKE_CURRENT_BINARY_DIR}/libmariadb.pc @ONLY)
+ 
+ ADD_EXECUTABLE(mariadb_config ${CMAKE_CURRENT_BINARY_DIR}/mariadb_config.c)
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++        TARGET_LINK_LIBRARIES(mariadb_config compat-getopt)
++ENDIF()
+ 
+ # Installation
+ #

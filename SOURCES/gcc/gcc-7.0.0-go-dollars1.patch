@@ -1,0 +1,490 @@
+--- old/gcc/go/gofrontend/expressions.cc	2016-09-30 16:06:42 +0200
++++ new/gcc/go/gofrontend/expressions.cc	2016-09-30 16:03:24 +0200
+@@ -20,6 +20,18 @@
+ #include "expressions.h"
+ #include "ast-dump.h"
+ 
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_DESCRIPTOR	"_descriptor"
++#define DOLLAR_CLOSURE		"_closure"
++#define DOLLAR_THIS		"_this"
++#define DOLLAR_PARAM_D		"_param%d"
++#else
++#define DOLLAR_DESCRIPTOR	"$descriptor"
++#define DOLLAR_CLOSURE		"$closure"
++#define DOLLAR_THIS		"$this"
++#define DOLLAR_PARAM_D		"$param%d"
++#endif
++
+ // Class Expression.
+ 
+ Expression::Expression(Expression_classification classification,
+@@ -1213,7 +1225,7 @@
+ 	var_name = no->package()->pkgpath_symbol();
+       var_name.push_back('.');
+       var_name.append(Gogo::unpack_hidden_name(no->name()));
+-      var_name.append("$descriptor");
++      var_name.append(DOLLAR_DESCRIPTOR);
+     }
+ 
+   Btype* btype = this->type()->get_backend(gogo);
+@@ -6359,7 +6371,7 @@
+   Variable* cvar = new Variable(closure_type, NULL, false, false, false, loc);
+   cvar->set_is_used();
+   cvar->set_is_closure();
+-  Named_object* cp = Named_object::make_variable("$closure" + thunk_name,
++  Named_object* cp = Named_object::make_variable(DOLLAR_CLOSURE + thunk_name,
+ 						 NULL, cvar);
+   new_no->func_value()->set_closure_var(cp);
+ 
+@@ -11208,7 +11220,7 @@
+   Variable* cvar = new Variable(closure_type, NULL, false, false, false, loc);
+   cvar->set_is_used();
+   cvar->set_is_closure();
+-  Named_object* cp = Named_object::make_variable("$closure" + thunk_name,
++  Named_object* cp = Named_object::make_variable(DOLLAR_CLOSURE + thunk_name,
+ 						 NULL, cvar);
+   new_no->func_value()->set_closure_var(cp);
+ 
+@@ -11468,7 +11480,7 @@
+       go_assert(method_type != NULL && !method_type->is_method());
+     }
+ 
+-  const char* const receiver_name = "$this";
++  const char* const receiver_name = DOLLAR_THIS;
+   Typed_identifier_list* parameters = new Typed_identifier_list();
+   parameters->push_back(Typed_identifier(receiver_name, this->left_->type(),
+ 					 location));
+@@ -11486,7 +11498,7 @@
+ 	  else
+ 	    {
+ 	      char buf[20];
+-	      snprintf(buf, sizeof buf, "$param%d", i);
++	      snprintf(buf, sizeof buf, DOLLAR_PARAM_D, i);
+ 	      parameters->push_back(Typed_identifier(buf, p->type(),
+ 						     p->location()));
+ 	    }
+--- old/gcc/go/gofrontend/gogo.cc	2016-09-30 15:23:30 +0200
++++ new/gcc/go/gofrontend/gogo.cc	2016-09-30 16:04:21 +0200
+@@ -22,6 +22,43 @@
+ #include "backend.h"
+ #include "gogo.h"
+ 
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_CLOSURE		"_closure"
++#define DOLLAR_THIS		"_this"
++#define DOLLAR__INIT_D		"._init%d"
++#define DOLLAR__NESTED_D	"._nested%d"
++#define DOLLAR__SINK_D		"._sink%d"
++#define DOLLAR__REDEFINED_D	"._redefined%d"
++#define DOLLAR_ERRONEOUS_D	"_erroneous%d"
++#define DOLLAR_ERRONEOUS	"_erroneous"
++#define DOLLAR_THUNK_D		"_thunk%d"
++#define DOLLAR_THUNK		"_thunk"
++#define DOLLAR_RECOVER		"_recover"
++#define DOLLAR_RET_D		"_ret%d"
++#define DOLLAR_DRET_D		"_dret%d"
++#define DOLLAR__F		"._f"
++#define DOLLAR_DOLLAR_STRING	"_"
++#define DOLLAR_DOLLAR_CHAR	'_'
++#else
++#define DOLLAR_CLOSURE		"$closure"
++#define DOLLAR_THIS		"$this"
++#define DOLLAR__INIT_D		".$init%d"
++#define DOLLAR__NESTED_D	".$nested%d"
++#define DOLLAR__SINK_D		".$sink%d"
++#define DOLLAR__REDEFINED_D	".$redefined%d"
++#define DOLLAR_ERRONEOUS_D	"$erroneous%d"
++#define DOLLAR_ERRONEOUS	"$erroneous"
++#define DOLLAR_THUNK_D		"$thunk%d"
++#define DOLLAR_THUNK		"$thunk"
++#define DOLLAR_RECOVER		"$recover"
++#define DOLLAR_RET_D		"$ret%d"
++#define DOLLAR_DRET_D		"$dret%d"
++#define DOLLAR__F		".$f"
++#define DOLLAR_DOLLAR_STRING	"$"
++#define DOLLAR_DOLLAR_CHAR	'$'
++#endif
++
++
+ // Class Gogo.
+ 
+ Gogo::Gogo(Backend* backend, Linemap* linemap, int, int pointer_size)
+@@ -1653,7 +1690,7 @@
+       // different name.
+       static int init_count;
+       char buf[30];
+-      snprintf(buf, sizeof buf, ".$init%d", init_count);
++      snprintf(buf, sizeof buf, DOLLAR__INIT_D, init_count);
+       ++init_count;
+       nested_name = buf;
+       pname = &nested_name;
+@@ -1666,7 +1703,7 @@
+       // Invent a name for a nested function.
+       static int nested_count;
+       char buf[30];
+-      snprintf(buf, sizeof buf, ".$nested%d", nested_count);
++      snprintf(buf, sizeof buf, DOLLAR__NESTED_D, nested_count);
+       ++nested_count;
+       nested_name = buf;
+       pname = &nested_name;
+@@ -1677,7 +1714,7 @@
+     {
+       static int sink_count;
+       char buf[30];
+-      snprintf(buf, sizeof buf, ".$sink%d", sink_count);
++      snprintf(buf, sizeof buf, DOLLAR__SINK_D, sink_count);
+       ++sink_count;
+       ret = this->package_->bindings()->add_function(buf, NULL, function);
+       ret->func_value()->set_is_sink();
+@@ -1691,7 +1728,7 @@
+ 	  // errors.
+ 	  static int redefinition_count;
+ 	  char buf[30];
+-	  snprintf(buf, sizeof buf, ".$redefined%d", redefinition_count);
++	  snprintf(buf, sizeof buf, DOLLAR__REDEFINED_D, redefinition_count);
+ 	  ++redefinition_count;
+ 	  ret = this->package_->bindings()->add_function(buf, NULL, function);
+ 	}
+@@ -2157,7 +2194,7 @@
+ {
+   static int erroneous_count;
+   char name[50];
+-  snprintf(name, sizeof name, "$erroneous%d", erroneous_count);
++  snprintf(name, sizeof name, DOLLAR_ERRONEOUS_D, erroneous_count);
+   ++erroneous_count;
+   return name;
+ }
+@@ -2167,7 +2204,7 @@
+ bool
+ Gogo::is_erroneous_name(const std::string& name)
+ {
+-  return name.compare(0, 10, "$erroneous") == 0;
++  return name.compare(0, 10, DOLLAR_ERRONEOUS) == 0;
+ }
+ 
+ // Return a name for a thunk object.
+@@ -2177,7 +2214,7 @@
+ {
+   static int thunk_count;
+   char thunk_name[50];
+-  snprintf(thunk_name, sizeof thunk_name, "$thunk%d", thunk_count);
++  snprintf(thunk_name, sizeof thunk_name, DOLLAR_THUNK_D, thunk_count);
+   ++thunk_count;
+   return thunk_name;
+ }
+@@ -2187,7 +2224,7 @@
+ bool
+ Gogo::is_thunk(const Named_object* no)
+ {
+-  return no->name().compare(0, 6, "$thunk") == 0;
++  return no->name().compare(0, 6, DOLLAR_THUNK) == 0;
+ }
+ 
+ // Define the global names.  We do this only after parsing all the
+@@ -4011,8 +4048,8 @@
+ 
+   std::string name = orig_no->name();
+   if (orig_fntype->is_method())
+-    name += "$" + orig_fntype->receiver()->type()->mangled_name(gogo);
+-  name += "$recover";
++    name += DOLLAR_DOLLAR_STRING + orig_fntype->receiver()->type()->mangled_name(gogo);
++  name += DOLLAR_RECOVER;
+   Named_object *new_no = gogo->start_function(name, new_fntype, false,
+ 					      location);
+   Function *new_func = new_no->func_value();
+@@ -4597,7 +4634,7 @@
+ 	{
+ 	  static int result_counter;
+ 	  char buf[100];
+-	  snprintf(buf, sizeof buf, "$ret%d", result_counter);
++	  snprintf(buf, sizeof buf, DOLLAR_RET_D, result_counter);
+ 	  ++result_counter;
+ 	  name = gogo->pack_hidden_name(buf, false);
+ 	}
+@@ -4610,7 +4647,7 @@
+ 	{
+ 	  static int dummy_result_count;
+ 	  char buf[100];
+-	  snprintf(buf, sizeof buf, "$dret%d", dummy_result_count);
++	  snprintf(buf, sizeof buf, DOLLAR_DRET_D, dummy_result_count);
+ 	  ++dummy_result_count;
+ 	  name = gogo->pack_hidden_name(buf, false);
+ 	  no = block->bindings()->add_result_variable(name, result);
+@@ -4652,7 +4689,7 @@
+ 				   NULL, false, false, false, loc);
+       var->set_is_used();
+       var->set_is_closure();
+-      this->closure_var_ = Named_object::make_variable("$closure", NULL, var);
++      this->closure_var_ = Named_object::make_variable(DOLLAR_CLOSURE, NULL, var);
+       // Note that the new variable is not in any binding contour.
+     }
+   return this->closure_var_;
+@@ -4671,7 +4708,7 @@
+   // The first field of a closure is always a pointer to the function
+   // code.
+   Type* voidptr_type = Type::make_pointer_type(Type::make_void_type());
+-  st->push_field(Struct_field(Typed_identifier(".$f", voidptr_type,
++  st->push_field(Struct_field(Typed_identifier(DOLLAR__F, voidptr_type,
+ 					       this->location_)));
+ 
+   unsigned int index = 1;
+@@ -7068,12 +7105,12 @@
+       const Named_object* in_function = this->type_value()->in_function(&index);
+       if (in_function != NULL)
+ 	{
+-	  decl_name += '$' + Gogo::unpack_hidden_name(in_function->name());
++	  decl_name += DOLLAR_DOLLAR_CHAR + Gogo::unpack_hidden_name(in_function->name());
+ 	  if (index > 0)
+ 	    {
+ 	      char buf[30];
+ 	      snprintf(buf, sizeof buf, "%u", index);
+-	      decl_name += '$';
++	      decl_name += DOLLAR_DOLLAR_CHAR;
+ 	      decl_name += buf;
+ 	    }
+ 	}
+--- old/gcc/go/gofrontend/lex.cc	2016-09-30 15:23:51 +0200
++++ new/gcc/go/gofrontend/lex.cc	2016-09-30 16:05:01 +0200
+@@ -8,6 +8,15 @@
+ 
+ #include "lex.h"
+ 
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_DOLLAR_CHAR	'_'
++#define DOLLAR_INVALID_		"_INVALID_"
++#else
++#define DOLLAR_DOLLAR_CHAR	'$'
++#define DOLLAR_INVALID_		"$INVALID$"
++#endif
++
++
+ // Manage mapping from keywords to the Keyword codes.
+ 
+ class Keywords
+@@ -899,7 +908,7 @@
+ 		  has_non_ascii_char = true;
+ 		}
+ 	      if (!Lex::is_invalid_identifier(buf))
+-		buf.append("$INVALID$");
++		buf.append(DOLLAR_INVALID_);
+ 	    }
+ 	  ++p;
+ 	  if (is_first)
+@@ -941,7 +950,7 @@
+ 	      has_non_ascii_char = true;
+ 	    }
+ 	  if (is_invalid && !Lex::is_invalid_identifier(buf))
+-	    buf.append("$INVALID$");
++	    buf.append(DOLLAR_INVALID_);
+ 	  buf.append(p, pnext - p);
+ 	  p = pnext;
+ 	}
+@@ -2588,7 +2597,7 @@
+ Lex::is_exported_name(const std::string& name)
+ {
+   unsigned char c = name[0];
+-  if (c != '$')
++  if (c != DOLLAR_DOLLAR_CHAR)
+     return c >= 'A' && c <= 'Z';
+   else
+     {
+@@ -2775,7 +2775,7 @@
+       if (len < 2 || p[1] != 'U')
+ 	return false;
+       unsigned int ci = 0;
+-      for (size_t i = 2; i < len && p[i] != '$'; ++i)
++      for (size_t i = 2; i < len && p[i] != DOLLAR_DOLLAR_CHAR; ++i)
+ 	{
+ 	  c = p[i];
+ 	  if (!Lex::is_hex_digit(c))
+@@ -2616,5 +2625,5 @@
+ bool
+ Lex::is_invalid_identifier(const std::string& name)
+ {
+-  return name.find("$INVALID$") != std::string::npos;
++  return name.find(DOLLAR_INVALID_) != std::string::npos;
+ }
+--- old/gcc/go/gofrontend/parse.cc	2016-09-30 15:24:08 +0200
++++ new/gcc/go/gofrontend/parse.cc	2016-09-30 16:05:28 +0200
+@@ -13,6 +13,16 @@
+ #include "expressions.h"
+ #include "parse.h"
+ 
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR__SINKCONST_D	"._sinkconst%d"
++#define DOLLAR_SINK__D		"sink_%d"
++#define DOLLAR__SINKFNDECL_D	"._sinkfndecl%d"
++#else
++#define DOLLAR__SINKCONST_D	".$sinkconst%d"
++#define DOLLAR_SINK__D		"sink$%d"
++#define DOLLAR__SINKFNDECL_D	".$sinkfndecl%d"
++#endif
++
+ // Struct Parse::Enclosing_var_comparison.
+ 
+ // Return true if v1 should be considered to be less than v2.
+@@ -1485,7 +1495,7 @@
+ 	{
+ 	  static int count;
+ 	  char buf[30];
+-	  snprintf(buf, sizeof buf, ".$sinkconst%d", count);
++	  snprintf(buf, sizeof buf, DOLLAR__SINKCONST_D, count);
+ 	  ++count;
+ 	  Typed_identifier ti(std::string(buf), type, pi->location());
+ 	  Named_object* no = this->gogo_->add_constant(ti, *pe, this->iota_value());
+@@ -1989,7 +1999,7 @@
+ 	      var->set_is_used();
+ 	      static int count;
+ 	      char buf[30];
+-	      snprintf(buf, sizeof buf, "sink$%d", count);
++	      snprintf(buf, sizeof buf, DOLLAR_SINK__D, count);
+ 	      ++count;
+ 	      return this->gogo_->add_variable(buf, var);
+ 	    }
+@@ -2324,7 +2334,7 @@
+             {
+               static int count;
+               char buf[30];
+-              snprintf(buf, sizeof buf, ".$sinkfndecl%d", count);
++              snprintf(buf, sizeof buf, DOLLAR__SINKFNDECL_D, count);
+               ++count;
+               name = std::string(buf);
+             }
+--- old/gcc/go/gofrontend/types.cc	2016-09-30 15:24:26 +0200
++++ new/gcc/go/gofrontend/types.cc	2016-09-30 16:05:51 +0200
+@@ -16,6 +16,24 @@
+ #include "backend.h"
+ #include "types.h"
+ 
++#ifdef NO_DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_DOLLAR_CHAR	'_'
++#define DOLLAR_HASH		"_hash"
++#define DOLLAR_EQUAL		"_equal"
++#define DOLLAR_GC		"_gc"
++#define DOLLAR_THIS_U		"_this%u"
++#define DOLLAR_P_U		"_p%u"
++#define DOLLAR_STUB		"_stub"
++#else
++#define DOLLAR_DOLLAR_CHAR	'$'
++#define DOLLAR_HASH		"$hash"
++#define DOLLAR_EQUAL		"$equal"
++#define DOLLAR_GC		"$gc"
++#define DOLLAR_THIS_U		"$this%u"
++#define DOLLAR_P_U		"$p%u"
++#define DOLLAR_STUB		"$stub"
++#endif
++
+ // Forward declarations so that we don't have to make types.h #include
+ // backend.h.
+ 
+@@ -1758,7 +1776,7 @@
+       base_name = this->mangled_name(gogo);
+       size_t i;
+       while ((i = base_name.find('.')) != std::string::npos)
+-	base_name[i] = '$';
++	base_name[i] = DOLLAR_DOLLAR_CHAR;
+       base_name = gogo->pack_hidden_name(base_name, false);
+     }
+   else
+@@ -1769,27 +1787,27 @@
+       const Named_object* in_function = name->in_function(&index);
+       if (in_function != NULL)
+ 	{
+-	  base_name.append(1, '$');
++	  base_name.append(1, DOLLAR_DOLLAR_CHAR);
+ 	  const Typed_identifier* rcvr =
+ 	    in_function->func_value()->type()->receiver();
+ 	  if (rcvr != NULL)
+ 	    {
+ 	      Named_type* rcvr_type = rcvr->type()->deref()->named_type();
+ 	      base_name.append(Gogo::unpack_hidden_name(rcvr_type->name()));
+-	      base_name.append(1, '$');
++	      base_name.append(1, DOLLAR_DOLLAR_CHAR);
+ 	    }
+ 	  base_name.append(Gogo::unpack_hidden_name(in_function->name()));
+ 	  if (index > 0)
+ 	    {
+ 	      char buf[30];
+ 	      snprintf(buf, sizeof buf, "%u", index);
+-	      base_name += '$';
++	      base_name += DOLLAR_DOLLAR_CHAR;
+ 	      base_name += buf;
+ 	    }
+ 	}
+     }
+-  std::string hash_name = base_name + "$hash";
+-  std::string equal_name = base_name + "$equal";
++  std::string hash_name = base_name + DOLLAR_HASH;
++  std::string equal_name = base_name + DOLLAR_EQUAL;
+ 
+   Location bloc = Linemap::predeclared_location();
+ 
+@@ -2141,7 +2159,7 @@
+       phash = &ins.first->second;
+     }
+ 
+-  std::string sym_name = this->type_descriptor_var_name(gogo, nt) + "$gc";
++  std::string sym_name = this->type_descriptor_var_name(gogo, nt) + DOLLAR_GC;
+ 
+   // Build the contents of the gc symbol.
+   Expression* sym_init = this->gc_symbol_constructor(gogo);
+@@ -9176,13 +9194,13 @@
+ 	  ret->push_back('.');
+ 	}
+       ret->append(Gogo::unpack_hidden_name(this->in_function_->name()));
+-      ret->push_back('$');
++      ret->push_back(DOLLAR_DOLLAR_CHAR);
+       if (this->in_function_index_ > 0)
+ 	{
+ 	  char buf[30];
+ 	  snprintf(buf, sizeof buf, "%u", this->in_function_index_);
+ 	  ret->append(buf);
+-	  ret->push_back('$');
++	  ret->push_back(DOLLAR_DOLLAR_CHAR);
+ 	}
+       ret->push_back('\t');
+     }
+@@ -9235,13 +9253,13 @@
+ 	      name.append(1, '.');
+ 	    }
+ 	  name.append(Gogo::unpack_hidden_name(this->in_function_->name()));
+-	  name.append(1, '$');
++	  name.append(1, DOLLAR_DOLLAR_CHAR);
+ 	  if (this->in_function_index_ > 0)
+ 	    {
+ 	      char buf[30];
+ 	      snprintf(buf, sizeof buf, "%u", this->in_function_index_);
+ 	      name.append(buf);
+-	      name.append(1, '$');
++	      name.append(1, DOLLAR_DOLLAR_CHAR);
+ 	    }
+ 	}
+     }
+@@ -9572,7 +9590,7 @@
+ 
+       static unsigned int counter;
+       char buf[100];
+-      snprintf(buf, sizeof buf, "$this%u", counter);
++      snprintf(buf, sizeof buf, DOLLAR_THIS_U, counter);
+       ++counter;
+ 
+       Type* receiver_type = const_cast<Type*>(type);
+@@ -9595,7 +9613,7 @@
+ 	       ++pp)
+ 	    {
+ 	      char pbuf[100];
+-	      snprintf(pbuf, sizeof pbuf, "$p%u", counter);
++	      snprintf(pbuf, sizeof pbuf, DOLLAR_P_U, counter);
+ 	      stub_params->push_back(Typed_identifier(pbuf, pp->type(),
+ 						      pp->location()));
+ 	      ++counter;
+@@ -9632,7 +9650,7 @@
+ 	package = NULL;
+       else
+ 	package = type->named_type()->named_object()->package();
+-      std::string stub_name = name + "$stub";
++      std::string stub_name = name + DOLLAR_STUB;
+       Named_object* stub;
+       if (package != NULL)
+ 	stub = Named_object::make_function_declaration(stub_name, package,

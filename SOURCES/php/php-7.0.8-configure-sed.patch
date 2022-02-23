@@ -1,0 +1,11 @@
+--- ./configure.old	2016-07-20 15:31:27 +0200
++++ ./configure	2016-07-20 15:29:46 +0200
+@@ -3448,7 +3448,7 @@
+     if test -n "$val"; then
+       echo "$var='$val' \\" >> config.nice
+       if test `expr "X$ac_configure_args" : ".*${var}.*"` != 0; then
+-        clean_configure_args=$(echo $clean_configure_args | sed -e "s/'$var=$val'//")
++        clean_configure_args=$(echo $clean_configure_args | sed -e "s|'$var=$val'||")
+       fi
+     fi
+   done

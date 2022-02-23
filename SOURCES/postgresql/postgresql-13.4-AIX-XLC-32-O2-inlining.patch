@@ -1,0 +1,39 @@
+--- ./src/backend/parser/gram.c.ORIGIN	2018-11-23 10:13:43 +0100
++++ ./src/backend/parser/gram.c	2018-11-23 10:34:01 +0100
+@@ -40,6 +40,15 @@
+    define necessary library symbols; they are noted "INFRINGES ON
+    USER NAME SPACE" below.  */
+ 
++#if defined(_AIX) && defined(__xlc__) && defined(__ILP32__) && defined(__OPTIMIZE__)
++/* On AIX, in 32bit, when using at least -O2, some versions of XLC
++   generate wrong code for routine makeOrderedSetArgs(), breaking the tests:
++      create_aggregate aggregates
++   This seems related to inlining.
++   This forces -O0 for routine makeOrderedSetArgs() . */
++#pragma option_override(makeOrderedSetArgs, "OPT(LEVEL,0)")
++#endif
++
+ /* Identify Bison output.  */
+ #define YYBISON 1
+ 
+--- ./src/include/access/gin_private.h.ORIGIN	2018-11-23 10:38:42 +0100
++++ ./src/include/access/gin_private.h	2018-11-23 10:45:35 +0100
+@@ -456,7 +456,18 @@
+  * Merging the results of several gin scans compares item pointers a lot,
+  * so we want this to be inlined.
+  */
++
++#if defined(_AIX) && defined(__xlc__) && defined(__ILP32__)
++/* It has been reported that "IBM XL C/C++ for AIX, V12.1" miscompiles, for 32-bit,
++ * some inline expansions of ginCompareItemPointers() "long long" arithmetic.
++ * This #pragma forces -O0 for routine ginCompareItemPointers(), fixing the issue .
++ */
++
++#pragma option_override(ginCompareItemPointers, "OPT(LEVEL,0)")
++static int
++#else
+ static inline int
++#endif
+ ginCompareItemPointers(ItemPointer a, ItemPointer b)
+ {
+ 	uint64		ia = (uint64) GinItemPointerGetBlockNumber(a) << 32 | GinItemPointerGetOffsetNumber(a);

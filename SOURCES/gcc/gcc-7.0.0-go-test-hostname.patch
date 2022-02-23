@@ -1,0 +1,35 @@
+--- ./libgo/go/os/os_test.go.ORIGIN	2017-03-27 18:17:30 -0500
++++ ./libgo/go/os/os_test.go	2017-03-28 10:40:49 -0500
+@@ -1310,7 +1310,7 @@
+ 	}
+ }
+ 
+-func runBinHostname(t *testing.T) string {
++func runBinHostname(t *testing.T, argv[]string) string {
+ 	// Run /bin/hostname and collect output.
+ 	r, w, err := Pipe()
+ 	if err != nil {
+@@ -1318,7 +1318,7 @@
+ 	}
+ 	defer r.Close()
+ 	const path = "/bin/hostname"
+-	p, err := StartProcess(path, []string{"hostname"}, &ProcAttr{Files: []*File{nil, w, Stderr}})
++	p, err := StartProcess(path, argv, &ProcAttr{Files: []*File{nil, w, Stderr}})
+ 	if err != nil {
+ 		if _, err := Stat(path); IsNotExist(err) {
+ 			t.Skipf("skipping test; test requires %s but it does not exist", path)
+@@ -1384,7 +1384,13 @@
+ 	if err != nil {
+ 		t.Fatalf("%v", err)
+ 	}
+-	want := runBinHostname(t)
++
++	var want string
++	if runtime.GOOS == "aix" {
++		want = runBinHostname(t, []string{"hostname", "-s"})
++	} else {
++		want = runBinHostname(t, []string{"hostname"})
++	}
+ 	if hostname != want {
+ 		i := strings.Index(hostname, ".")
+ 		if i < 0 || hostname[0:i] != want {

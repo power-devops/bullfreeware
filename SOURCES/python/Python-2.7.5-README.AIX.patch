@@ -1,0 +1,40 @@
+Index: Python-2.7.5/Misc/README.AIX
+===================================================================
+--- Python-2.7.5.orig/Misc/README.AIX	2013-06-18 15:00:15.000000000 +0200
++++ Python-2.7.5/Misc/README.AIX	2013-06-18 15:42:16.000000000 +0200
+@@ -82,33 +82,12 @@
+ 
+ Those issues are currently affecting Python on AIX:
+ 
+-* Python has not been fully tested on AIX when compiled as a 64 bit
+-  application.
+-
+-* issue 3526: the memory used by a Python process will never be
+-  released to the system. If you have a Python application on AIX that
+-  uses a lot of memory, you should read this issue and you may
+-  consider using the provided patch that implements a custom malloc
+-  implementation
+-
+-* issue 11184: support for large files is currently broken
+-
+-* issue 11185: os.wait4 does not behave correctly with option WNOHANG
+-
+-* issue 1745108: there may be some problems with curses.panel
+-
+-* issue 11192: test_socket fails
++* issue 11192: test_socket fails on old AIX system
+ 
+ * issue 11190: test_locale fails
+ 
+-* issue 11193: test_subprocess fails
+-
+-* issue 9920: minor arithmetic issues in cmath
+-
+-* issue 11215: test_fileio fails
+-
+-* issue 11188: test_time fails
+ 
++* test grp and pwd failed due to Py_Uid/Gid_Converter
+ 
+ ======================================================================
+ 		Implementation details for developers

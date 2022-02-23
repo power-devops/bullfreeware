@@ -1,0 +1,113 @@
+--- /dev/null	2019-06-05 16:45:04 -0500
++++ ./sql/resourcegroups/platform/thread_attrs_api_aix.cc	2019-06-05 16:05:23 -0500
+@@ -0,0 +1,86 @@
++/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License, version 2.0,
++   as published by the Free Software Foundation.
++
++   This program is also distributed with certain software (including
++   but not limited to OpenSSL) that is licensed under separate terms,
++   as designated in a particular file or component or in included license
++   documentation.  The authors of MySQL hereby grant you an additional
++   permission to link the program and your derivative works with the
++   separately licensed software that they have included with MySQL.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License, version 2.0, for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
++#include "thread_attrs_api.h"
++
++#include <sys/processor.h>
++#include <sys/types.h>
++
++#include "my_dbug.h"
++#include "my_sys.h"
++#include "mysql/components/services/log_builtins.h"
++#include "mysqld_error.h"
++
++namespace resourcegroups {
++namespace platform {
++bool is_platform_supported() { return true; }
++
++bool bind_to_cpu(cpu_id_t cpu_id) {
++  return false;
++}
++
++bool bind_to_cpu(cpu_id_t cpu_id, my_thread_os_id_t thread_id) {
++  return false;
++}
++
++bool bind_to_cpus(const std::vector<cpu_id_t> &cpu_ids) {
++  return false;
++}
++
++bool bind_to_cpus(const std::vector<cpu_id_t> &cpu_ids, my_thread_os_id_t thread_id) {
++  return false;
++}
++
++bool unbind_thread() {
++  return false;
++}
++
++bool unbind_thread(my_thread_os_id_t thread_id) {
++  return false;
++}
++
++int thread_priority() { return getpriority(PRIO_PROCESS, my_thread_os_id()); }
++
++int thread_priority(my_thread_os_id_t thread_id) {
++  DBUG_ENTER("thread_priority");
++  DBUG_RETURN(getpriority(PRIO_PROCESS, thread_id));
++}
++
++bool set_thread_priority(int priority) {
++  return false;
++}
++
++bool set_thread_priority(int, my_thread_os_id_t) {
++  return false;
++}
++
++uint32_t num_vcpus_using_affinity() {
++  return 0;
++}
++
++uint32_t num_vcpus_using_config() {
++  uint32_t num_vcpus = 0;
++  return num_vcpus;
++}
++
++bool can_thread_priority_be_set() { return false; }
++}  // namespace platform
++}  // namespace resourcegroups
+--- ./sql/CMakeLists.txt.ORIGIN	2019-06-05 16:45:31 -0500
++++ ./sql/CMakeLists.txt	2019-06-05 16:01:15 -0500
+@@ -638,6 +638,9 @@
+ ELSEIF(SOLARIS)
+   LIST(APPEND SQL_SHARED_SOURCES
+     resourcegroups/platform/thread_attrs_api_solaris.cc)
++ELSEIF(AIX)
++  LIST(APPEND SQL_SHARED_SOURCES
++    resourcegroups/platform/thread_attrs_api_aix.cc)
+ ELSEIF(WIN32)
+   LIST(APPEND SQL_SHARED_SOURCES
+     resourcegroups/platform/thread_attrs_api_win.cc)
+--- ./include/my_thread_os_id.h.ORIGIN	2019-06-05 16:50:55 -0500
++++ ./include/my_thread_os_id.h	2019-06-05 16:51:09 -0500
+@@ -32,7 +32,9 @@
+ #include "my_macros.h"
+ #include "my_thread.h"
+ #ifndef _WIN32
++#ifndef _AIX
+ #include <sys/syscall.h>
++#endif
+ #include <unistd.h>
+ #endif
+ 

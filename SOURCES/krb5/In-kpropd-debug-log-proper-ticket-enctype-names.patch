@@ -1,0 +1,29 @@
+From 35fd91ee49ecba137a7f5b5da5f9c56ddef461af Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Tue, 15 Jan 2019 13:41:16 -0500
+Subject: [PATCH] In kpropd, debug-log proper ticket enctype names
+
+This change replaces the last call of krb5_enctype_to_string() in our
+sources with krb5_enctype_to_name(), ensuring that we log consistently
+to users using readily discoverable strings.
+
+(cherry picked from commit 30e12a2ecdf7e2a034a91626a03b5c9909e4c68d)
+(cherry picked from commit d2990ce023e000e1628007a5d24aad5a5abdb0a3)
+---
+ src/slave/kpropd.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/slave/kpropd.c b/src/slave/kpropd.c
+index 99676cc97..e1e21f631 100644
+--- a/src/slave/kpropd.c
++++ b/src/slave/kpropd.c
+@@ -1279,7 +1279,8 @@ kerberos_authenticate(krb5_context context, int fd, krb5_principal *clientp,
+             exit(1);
+         }
+ 
+-        retval = krb5_enctype_to_string(*etype, etypebuf, sizeof(etypebuf));
++        retval = krb5_enctype_to_name(*etype, FALSE, etypebuf,
++                                      sizeof(etypebuf));
+         if (retval) {
+             com_err(progname, retval, _("while unparsing ticket etype"));
+             exit(1);

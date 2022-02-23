@@ -1,0 +1,69 @@
+Index: libffi-3.0.9/Makefile.am
+===================================================================
+--- libffi-3.0.9.orig/Makefile.am	2009-12-31 13:41:43.000000000 +0100
++++ libffi-3.0.9/Makefile.am	2011-07-29 11:57:17.000000000 +0200
+@@ -173,7 +173,7 @@
+ libffi_convenience_la_SOURCES = $(libffi_la_SOURCES)
+ nodist_libffi_convenience_la_SOURCES = $(nodist_libffi_la_SOURCES)
+ 
+-AM_CFLAGS = -Wall -g -fexceptions
++AM_CFLAGS = -fexceptions
+ 
+ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(AM_LTLDFLAGS)
+ 
+Index: libffi-3.0.9/Makefile.in
+===================================================================
+--- libffi-3.0.9.orig/Makefile.in	2009-12-31 13:41:43.000000000 +0100
++++ libffi-3.0.9/Makefile.in	2011-07-29 11:57:26.000000000 +0200
+@@ -478,7 +478,7 @@
+ 	$(am__append_24) $(am__append_25)
+ libffi_convenience_la_SOURCES = $(libffi_la_SOURCES)
+ nodist_libffi_convenience_la_SOURCES = $(nodist_libffi_la_SOURCES)
+-AM_CFLAGS = -Wall -g -fexceptions
++AM_CFLAGS = -fexceptions
+ libffi_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(AM_LTLDFLAGS)
+ AM_CPPFLAGS = -I. -I$(top_srcdir)/include -Iinclude -I$(top_srcdir)/src
+ AM_CCASFLAGS = $(AM_CPPFLAGS)
+Index: libffi-3.0.9/src/powerpc/ffi_darwin.c
+===================================================================
+--- libffi-3.0.9.orig/src/powerpc/ffi_darwin.c	2009-12-29 16:22:26.000000000 +0100
++++ libffi-3.0.9/src/powerpc/ffi_darwin.c	2011-07-29 12:02:04.000000000 +0200
+@@ -109,8 +109,8 @@
+   unsigned size_al = 0;
+ 
+   /* Check that everything starts aligned properly.  */
+-  FFI_ASSERT(((unsigned) (char *) stack & 0xF) == 0);
+-  FFI_ASSERT(((unsigned) (char *) stacktop & 0xF) == 0);
++  FFI_ASSERT(((unsigned long) (char *) stack & 0xF) == 0);
++  FFI_ASSERT(((unsigned long) (char *) stacktop & 0xF) == 0);
+   FFI_ASSERT((bytes & 0xF) == 0);
+ 
+   /* Deal with return values that are actually pass-by-reference.
+@@ -256,10 +256,10 @@
+     }
+ 
+   /* Check that we didn't overrun the stack...  */
+-  //FFI_ASSERT(gpr_base <= stacktop - ASM_NEEDS_REGISTERS);
+-  //FFI_ASSERT((unsigned *)fpr_base
+-  //	     <= stacktop - ASM_NEEDS_REGISTERS - NUM_GPR_ARG_REGISTERS);
+-  //FFI_ASSERT(flags & FLAG_4_GPR_ARGUMENTS || intarg_count <= 4);
++  FFI_ASSERT(gpr_base <= stacktop - ASM_NEEDS_REGISTERS);
++  FFI_ASSERT((unsigned long *)fpr_base
++            <= stacktop - ASM_NEEDS_REGISTERS - NUM_GPR_ARG_REGISTERS);
++  FFI_ASSERT(flags & FLAG_4_GPR_ARGUMENTS || intarg_count <= 4);
+ }
+ 
+ /* Adjust the size of S to be correct for Darwin.
+@@ -506,7 +506,11 @@
+     bytes += NUM_GPR_ARG_REGISTERS * sizeof(long);
+ 
+   /* The stack space allocated needs to be a multiple of 16 bytes.  */
+-  bytes = (bytes + 15) & ~0xF;
++#ifdef POWERPC64
++  bytes = (bytes + 31) & ~0x1F;
++#else
++   bytes = (bytes + 15) & ~0xF;
++#endif
+ 
+   cif->flags = flags;
+   cif->bytes = bytes;

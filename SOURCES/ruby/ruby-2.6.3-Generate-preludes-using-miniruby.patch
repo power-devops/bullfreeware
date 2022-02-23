@@ -1,0 +1,14 @@
+--- ./common.mk.orig	2019-09-20 07:35:40 +0000
++++ ./common.mk	2019-09-20 07:38:48 +0000
+@@ -1052,9 +1052,9 @@
+ 		$(srcdir)/template/prelude.c.tmpl
+ 
+ $(PRELUDE_C): $(COMPILE_PRELUDE) \
+-	   $(PRELUDE_SCRIPTS)
++	   $(PRELUDE_SCRIPTS) $(PREP)
+ 	$(ECHO) generating $@
+-	$(Q) $(BASERUBY) $(srcdir)/tool/generic_erb.rb -I$(srcdir) -c -o $@ \
++	$(Q) $(MINIRUBY) $(srcdir)/tool/generic_erb.rb -I$(srcdir) -c -o $@ \
+ 		$(srcdir)/template/prelude.c.tmpl $(PRELUDE_SCRIPTS)
+ 
+ $(GOLF_PRELUDE_C): $(COMPILE_PRELUDE) {$(srcdir)}golf_prelude.rb

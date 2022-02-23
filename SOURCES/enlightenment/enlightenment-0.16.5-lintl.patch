@@ -1,0 +1,12 @@
+--- enlightenment-0.16.5/aclocal.m4	Tue Aug 29 16:52:29 2000
++++ enlightenment-0.16.5.aix/aclocal.m4	Thu Oct 04 16:32:18 2001
+@@ -382,6 +382,9 @@
+ 	   if test "$gt_cv_func_gettext_libc" = "yes" \
+ 	      || test "$gt_cv_func_gettext_libintl" = "yes"; then
+ 	      AC_DEFINE(HAVE_GETTEXT)
++	      if test "$gt_cv_func_gettext_libintl" = "yes"; then
++		INTLLIBS=-lintl
++	      fi
+ 	      AM_PATH_PROG_WITH_TEST(MSGFMT, msgfmt,
+ 		[test -z "`$ac_dir/$ac_word -h 2>&1 | grep 'dv '`"], no)dnl
+ 	      if test "$MSGFMT" != "no"; then

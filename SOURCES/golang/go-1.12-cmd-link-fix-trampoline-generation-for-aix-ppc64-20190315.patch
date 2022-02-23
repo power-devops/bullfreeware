@@ -1,0 +1,245 @@
+From cb8054a6b63975975b89c2901ce31f3be4fe7838 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 20 Feb 2019 16:48:43 +0100
+Subject: [PATCH] cmd/link: fix trampoline generation for aix/ppc64
+
+This commit fixes trampoline generation on aix/ppc64 which must use TOC
+symbols.
+It also adds a size to runtime.text.X symbols to prevent ld from moving
+them, like runtime.text.
+
+Change-Id: Ida033ec20ad8d7b7fb3faeb0ec4fa7bc4ce86b7e
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164009
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/data.go b/src/cmd/link/internal/ld/data.go
+index 9d160ca..d31d135 100644
+--- a/src/cmd/link/internal/ld/data.go
++++ b/src/cmd/link/internal/ld/data.go
+@@ -1990,6 +1990,10 @@
+ 		// lay down trampolines after each function
+ 		for ; ntramps < len(ctxt.tramps); ntramps++ {
+ 			tramp := ctxt.tramps[ntramps]
++			if ctxt.HeadType == objabi.Haix && strings.HasPrefix(tramp.Name, "runtime.text.") {
++				// Already set in assignAddress
++				continue
++			}
+ 			sect, n, va = assignAddress(ctxt, sect, n, tramp, va, true)
+ 		}
+ 	}
+@@ -2030,10 +2034,6 @@
+ 	} else {
+ 		va = uint64(Rnd(int64(va), int64(Funcalign)))
+ 	}
+-	s.Value = 0
+-	for sub := s; sub != nil; sub = sub.Sub {
+-		sub.Value += int64(va)
+-	}
+ 
+ 	funcsize := uint64(MINFUNC) // spacing required for findfunctab
+ 	if s.Size > MINFUNC {
+@@ -2049,7 +2049,7 @@
+ 
+ 	// Only break at outermost syms.
+ 
+-	if ctxt.Arch.InFamily(sys.PPC64) && s.Outer == nil && ctxt.IsELF && ctxt.LinkMode == LinkExternal && va-sect.Vaddr+funcsize+maxSizeTrampolinesPPC64(s, isTramp) > 0x1c00000 {
++	if ctxt.Arch.InFamily(sys.PPC64) && s.Outer == nil && ctxt.LinkMode == LinkExternal && va-sect.Vaddr+funcsize+maxSizeTrampolinesPPC64(s, isTramp) > 0x1c00000 {
+ 		// Set the length for the previous text section
+ 		sect.Length = va - sect.Vaddr
+ 
+@@ -2059,9 +2059,35 @@
+ 		s.Sect = sect
+ 
+ 		// Create a symbol for the start of the secondary text sections
+-		ctxt.Syms.Lookup(fmt.Sprintf("runtime.text.%d", n), 0).Sect = sect
++		ntext := ctxt.Syms.Lookup(fmt.Sprintf("runtime.text.%d", n), 0)
++		ntext.Sect = sect
++		if ctxt.HeadType == objabi.Haix {
++			// runtime.text.X must be a real symbol on AIX.
++			// Assign its address directly in order to be the
++			// first symbol of this new section.
++			ntext.Type = sym.STEXT
++			ntext.Size = int64(MINFUNC)
++			ntext.Attr |= sym.AttrReachable
++			ntext.Attr |= sym.AttrOnList
++			ctxt.tramps = append(ctxt.tramps, ntext)
++
++			ntext.Value = int64(va)
++			va += uint64(ntext.Size)
++
++			if s.Align != 0 {
++				va = uint64(Rnd(int64(va), int64(s.Align)))
++			} else {
++				va = uint64(Rnd(int64(va), int64(Funcalign)))
++			}
++		}
+ 		n++
+ 	}
++
++	s.Value = 0
++	for sub := s; sub != nil; sub = sub.Sub {
++		sub.Value += int64(va)
++	}
++
+ 	va += funcsize
+ 
+ 	return sect, n, va
+@@ -2247,7 +2273,11 @@
+ 			break
+ 		}
+ 		symname := fmt.Sprintf("runtime.text.%d", n)
+-		ctxt.xdefine(symname, sym.STEXT, int64(sect.Vaddr))
++		if ctxt.HeadType != objabi.Haix || ctxt.LinkMode != LinkExternal {
++			// Addresses are already set on AIX with external linker
++			// because these symbols are part of their sections.
++			ctxt.xdefine(symname, sym.STEXT, int64(sect.Vaddr))
++		}
+ 		n++
+ 	}
+ 
+diff --git a/src/cmd/link/internal/ld/lib.go b/src/cmd/link/internal/ld/lib.go
+index 5e1b042..f12c8ae 100644
+--- a/src/cmd/link/internal/ld/lib.go
++++ b/src/cmd/link/internal/ld/lib.go
+@@ -2176,7 +2176,8 @@
+ 			n++
+ 			continue
+ 		}
+-		if sect.Name != ".text" {
++		if sect.Name != ".text" || (ctxt.HeadType == objabi.Haix && ctxt.LinkMode == LinkExternal) {
++			// On AIX, runtime.text.X are symbols already in the symtab.
+ 			break
+ 		}
+ 		s = ctxt.Syms.ROLookup(fmt.Sprintf("runtime.text.%d", n), 0)
+diff --git a/src/cmd/link/internal/ld/xcoff.go b/src/cmd/link/internal/ld/xcoff.go
+index 70be674..f4422ff 100644
+--- a/src/cmd/link/internal/ld/xcoff.go
++++ b/src/cmd/link/internal/ld/xcoff.go
+@@ -777,7 +777,11 @@
+ 	syms := []xcoffSym{}
+ 
+ 	// Check if a new file is detected.
+-	if x.File == "" { // Undefined global symbol
++	if strings.Contains(x.Name, "-tramp") || strings.HasPrefix(x.Name, "runtime.text.") {
++		// Trampoline don't have a FILE so there are considered
++		// in the current file.
++		// Same goes for runtime.text.X symbols.
++	} else if x.File == "" { // Undefined global symbol
+ 		// If this happens, the algorithme must be redone.
+ 		if currSymSrcFile.name != "" {
+ 			Exitf("undefined global symbol found inside another file")
+@@ -860,7 +864,7 @@
+ 		return
+ 
+ 	case TextSym:
+-		if x.FuncInfo != nil {
++		if x.FuncInfo != nil || strings.Contains(x.Name, "-tramp") || strings.HasPrefix(x.Name, "runtime.text.") {
+ 			// Function within a file
+ 			syms = xfile.writeSymbolFunc(ctxt, x)
+ 		} else {
+diff --git a/src/cmd/link/internal/ppc64/asm.go b/src/cmd/link/internal/ppc64/asm.go
+index 70b3d2b..a857694 100644
+--- a/src/cmd/link/internal/ppc64/asm.go
++++ b/src/cmd/link/internal/ppc64/asm.go
+@@ -694,7 +694,7 @@
+ 					ld.Errorf(s, "unexpected trampoline for shared or dynamic linking\n")
+ 				} else {
+ 					ctxt.AddTramp(tramp)
+-					gentramp(ctxt.Arch, ctxt.LinkMode, tramp, r.Sym, r.Add)
++					gentramp(ctxt, tramp, r.Sym, r.Add)
+ 				}
+ 			}
+ 			r.Sym = tramp
+@@ -706,40 +706,67 @@
+ 	}
+ }
+ 
+-func gentramp(arch *sys.Arch, linkmode ld.LinkMode, tramp, target *sym.Symbol, offset int64) {
+-	// Used for default build mode for an executable
+-	// Address of the call target is generated using
+-	// relocation and doesn't depend on r2 (TOC).
++func gentramp(ctxt *ld.Link, tramp, target *sym.Symbol, offset int64) {
+ 	tramp.Size = 16 // 4 instructions
+ 	tramp.P = make([]byte, tramp.Size)
+ 	t := ld.Symaddr(target) + offset
+-	o1 := uint32(0x3fe00000) // lis r31,targetaddr hi
+-	o2 := uint32(0x3bff0000) // addi r31,targetaddr lo
+-	// With external linking, the target address must be
+-	// relocated using LO and HA
+-	if linkmode == ld.LinkExternal {
++	var o1, o2 uint32
++
++	if ctxt.HeadType == objabi.Haix {
++		// On AIX, the address is retrieved with a TOC symbol.
++		// For internal linking, the "Linux" way might still be used.
++		// However, all text symbols are accessed with a TOC symbol as
++		// text relocations aren't supposed to be possible.
++		// So, keep using the external linking way to be more AIX friendly.
++		o1 = uint32(0x3fe20000) // lis r2, toctargetaddr hi
++		o2 = uint32(0xebff0000) // ld r31, toctargetaddr lo
++
++		toctramp := ctxt.Syms.Lookup("TOC."+tramp.Name, 0)
++		toctramp.Type = sym.SXCOFFTOC
++		toctramp.Attr |= sym.AttrReachable
++		toctramp.AddAddr(ctxt.Arch, target)
++
+ 		tr := tramp.AddRel()
+ 		tr.Off = 0
+-		tr.Type = objabi.R_ADDRPOWER
++		tr.Type = objabi.R_ADDRPOWER_TOCREL_DS
+ 		tr.Siz = 8 // generates 2 relocations:  HA + LO
+-		tr.Sym = target
++		tr.Sym = toctramp
+ 		tr.Add = offset
+ 	} else {
+-		// adjustment needed if lo has sign bit set
+-		// when using addi to compute address
+-		val := uint32((t & 0xffff0000) >> 16)
+-		if t&0x8000 != 0 {
+-			val += 1
++		// Used for default build mode for an executable
++		// Address of the call target is generated using
++		// relocation and doesn't depend on r2 (TOC).
++		o1 = uint32(0x3fe00000) // lis r31,targetaddr hi
++		o2 = uint32(0x3bff0000) // addi r31,targetaddr lo
++
++		// With external linking, the target address must be
++		// relocated using LO and HA
++		if ctxt.LinkMode == ld.LinkExternal {
++			tr := tramp.AddRel()
++			tr.Off = 0
++			tr.Type = objabi.R_ADDRPOWER
++			tr.Siz = 8 // generates 2 relocations:  HA + LO
++			tr.Sym = target
++			tr.Add = offset
++
++		} else {
++			// adjustment needed if lo has sign bit set
++			// when using addi to compute address
++			val := uint32((t & 0xffff0000) >> 16)
++			if t&0x8000 != 0 {
++				val += 1
++			}
++			o1 |= val                // hi part of addr
++			o2 |= uint32(t & 0xffff) // lo part of addr
+ 		}
+-		o1 |= val                // hi part of addr
+-		o2 |= uint32(t & 0xffff) // lo part of addr
+ 	}
++
+ 	o3 := uint32(0x7fe903a6) // mtctr r31
+ 	o4 := uint32(0x4e800420) // bctr
+-	arch.ByteOrder.PutUint32(tramp.P, o1)
+-	arch.ByteOrder.PutUint32(tramp.P[4:], o2)
+-	arch.ByteOrder.PutUint32(tramp.P[8:], o3)
+-	arch.ByteOrder.PutUint32(tramp.P[12:], o4)
++	ctxt.Arch.ByteOrder.PutUint32(tramp.P, o1)
++	ctxt.Arch.ByteOrder.PutUint32(tramp.P[4:], o2)
++	ctxt.Arch.ByteOrder.PutUint32(tramp.P[8:], o3)
++	ctxt.Arch.ByteOrder.PutUint32(tramp.P[12:], o4)
+ }
+ 
+ func archreloc(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, val int64) (int64, bool) {

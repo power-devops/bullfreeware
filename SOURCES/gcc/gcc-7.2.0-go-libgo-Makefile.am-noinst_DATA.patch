@@ -1,0 +1,20 @@
+--- ./libgo/Makefile.am.ORIGIN	2017-09-21 15:32:37 -0500
++++ ./libgo/Makefile.am	2017-09-21 15:33:50 -0500
+@@ -393,6 +393,8 @@
+ 	unicode/utf16.gox \
+ 	unicode/utf8.gox
+ 
++noinst_DATA=cmd/internal/browser.gox
++
+ if HAVE_SYS_MMAN_H
+ runtime_mem_file = runtime/mem.c
+ else
+@@ -593,7 +595,7 @@
+ 	rm -f runtime.inc.tmp2 runtime.inc.tmp3
+ 	$(STAMP) $@
+ 
+-noinst_DATA = zstdpkglist.go
++noinst_DATA += zstdpkglist.go
+ 
+ # Generate the list of go std packages that were included in libgo
+ zstdpkglist.go: s-zstdpkglist; @true

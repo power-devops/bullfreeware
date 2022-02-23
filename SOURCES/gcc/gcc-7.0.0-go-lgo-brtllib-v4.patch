@@ -1,0 +1,89 @@
+--- ./gcc/go/gospec.c.ORIGIN	2017-05-03 15:54:25 -0500
++++ ./gcc/go/gospec.c	2017-05-03 17:01:30 -0500
+@@ -302,6 +302,14 @@
+       j++;
+     }
+ 
++#ifdef  TARGET_AIX_OS
++// On AIX, always add -Wl,-brtllib
++      generate_option (OPT_Wl_, "-brtllib", 1,
++		       CL_DRIVER, &new_decoded_options[j]);
++      added_libraries++;
++      j++;
++#endif
++
+   /* If we didn't see a -o option, add one.  This is because we need
+      the driver to pass all .go files to go1.  Without a -o option the
+      driver will invoke go1 separately for each input file.  FIXME:
+--- ./gotools/Makefile.am.ORIGIN	2017-05-11 18:00:19 -0500
++++ ./gotools/Makefile.am	2017-05-11 18:00:24 -0500
+@@ -39,7 +39,7 @@
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ 
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+-GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
++GOLINK = LIBPATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ 
+ cmdsrcdir = $(srcdir)/../libgo/go/cmd
+ 
+--- ./gotools/Makefile.in.ORIGIN	2017-05-12 10:32:59 -0500
++++ ./gotools/Makefile.in	2017-05-12 10:33:12 -0500
+@@ -259,7 +259,7 @@
+ @NATIVE_TRUE@GOCOMPILER = $(GOC_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+-GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
++GOLINK = LIBPATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ cmdsrcdir = $(srcdir)/../libgo/go/cmd
+ go_cmd_go_files = \
+ 	$(cmdsrcdir)/go/alldocs.go \
+--- ./gcc/gcc.c.ORIGIN	2017-05-12 14:49:25 -0500
++++ ./gcc/gcc.c	2017-05-12 15:14:45 -0500
+@@ -303,6 +303,11 @@
+    now.  */
+ static int greatest_status = 1;
+ 
++/* Used for managing the addition of -lgo first when linking Go on AIX */
++#ifdef  TARGET_AIX_OS
++static int linkertimeforgo = 0;
++#endif
++
+ /* This is the obstack which we use to allocate many strings.  */
+ 
+ static struct obstack obstack;
+@@ -4256,6 +4261,18 @@
+   lang_specific_driver (&decoded_options, &decoded_options_count,
+ 			&added_libraries);
+ 
++#ifdef  TARGET_AIX_OS
++  for (unsigned int j = 1; j < decoded_options_count; j++)
++    {
++      if (strcmp(decoded_options[j].arg, "go")==0 && decoded_options[j].opt_index==OPT_l)
++	{
++		/* We need to add -lgo first on AIX */
++      		linkertimeforgo = 1;
++		break;
++	}
++    }
++#endif
++
+   if (gcc_exec_prefix)
+     {
+       int len = strlen (gcc_exec_prefix);
+@@ -8242,6 +8259,16 @@
+ 		linker_name_spec = "ld";
+ 	    }
+ 
++#ifdef  TARGET_AIX_OS
++	  if ( linkertimeforgo && strcmp(progname, "gccgo")>=0 )
++	    {
++	      #define LIBGO " -L/opt/freeware/lib -lgo"
++	      char * tmp = (char *) xmalloc(strlen((char *)linker_name_spec)+sizeof(LIBGO)+1);
++	      strcpy(tmp, (char *) linker_name_spec);
++	      linker_name_spec = strcat(tmp, LIBGO);
++	    }
++#endif
++
+ #if HAVE_LTO_PLUGIN > 0
+ #if HAVE_LTO_PLUGIN == 2
+ 	  if (!switch_matches (fno_use_linker_plugin,

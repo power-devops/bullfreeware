@@ -1,0 +1,10 @@
+--- ./ext/pcntl/tests/pcntl_waitpid_rusage1.phpt.orig	2020-12-15 12:36:47 +0100
++++ ./ext/pcntl/tests/pcntl_waitpid_rusage1.phpt	2020-12-15 12:37:44 +0100
+@@ -1,6 +1,7 @@
+ --TEST--
+ pcntl_waitpid() and rusage
+ --SKIPIF--
++<?php if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') die("skip Hang on AIX"); ?>
+ <?php if (!extension_loaded("pcntl")) print "skip"; ?>
+ <?php if (!extension_loaded("posix")) die("skip posix extension not available"); ?>
+ --FILE--

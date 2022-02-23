@@ -1,0 +1,19 @@
+*** ./configure.ORIG	Thu Jul 22 22:19:05 2010
+--- ./configure	Thu Jul 22 22:20:23 2010
+***************
+*** 53888,53894 ****
+  #ifndef __GNU_GETTEXT_SUPPORTED_REVISION
+  #define __GNU_GETTEXT_SUPPORTED_REVISION(major) ((major) == 0 ? 0 : -1)
+  #endif
+! typedef int array [2 * (__GNU_GETTEXT_SUPPORTED_REVISION(0) >= 1) - 1];
+  '
+          else
+            gt_revision_test_code=
+--- 53888,53894 ----
+  #ifndef __GNU_GETTEXT_SUPPORTED_REVISION
+  #define __GNU_GETTEXT_SUPPORTED_REVISION(major) ((major) == 0 ? 0 : -1)
+  #endif
+! /* typedef int array [2 * (__GNU_GETTEXT_SUPPORTED_REVISION(0) >= 1) - 1]; */
+  '
+          else
+            gt_revision_test_code=

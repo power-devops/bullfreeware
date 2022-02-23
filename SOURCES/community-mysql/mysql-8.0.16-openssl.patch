@@ -1,0 +1,163 @@
+--- ./client/mysql_ssl_rsa_setup.cc.ORIGIN	2019-09-12 16:51:58 -0500
++++ ./client/mysql_ssl_rsa_setup.cc	2019-09-12 16:52:50 -0500
+@@ -228,7 +228,7 @@
+ 
+   Sql_string_t operator()(const Sql_string_t &key_file) {
+     stringstream command;
+-    command << "openssl genrsa "
++    command << "/opt/freeware/bin/openssl genrsa "
+             << " -out " << key_file << " " << m_key_size;
+ 
+     return command.str();
+@@ -243,7 +243,7 @@
+   Sql_string_t operator()(const Sql_string_t &priv_key_file,
+                           const Sql_string_t &pub_key_file) {
+     stringstream command;
+-    command << "openssl rsa -in " << priv_key_file << " -pubout -out "
++    command << "/opt/freeware/bin/openssl rsa -in " << priv_key_file << " -pubout -out "
+             << pub_key_file;
+     return command.str();
+   }
+@@ -259,9 +259,9 @@
+   Sql_string_t operator()(Sql_string_t suffix, const Sql_string_t &key_file,
+                           const Sql_string_t &req_file) {
+     stringstream command;
+-    command << "openssl req -newkey rsa:2048 -days " << m_validity
++    command << "/opt/freeware/bin/openssl req -newkey rsa:2048 -days " << m_validity
+             << " -nodes -keyout " << key_file << " " << m_subj_prefix.str()
+-            << suffix << " -out " << req_file << " && openssl rsa -in "
++            << suffix << " -out " << req_file << " && /opt/freeware/bin/openssl rsa -in "
+             << key_file << " -out " << key_file;
+ 
+     return command.str();
+@@ -320,7 +320,7 @@
+                           const Sql_string_t &sign_cert_file,
+                           const Sql_string_t &ext_file) {
+     stringstream command;
+-    command << "openssl x509 -sha256 -days " << m_validity;
++    command << "/opt/freeware/bin/openssl x509 -sha256 -days " << m_validity;
+     command << " -extfile " << ext_file;
+     command << " -set_serial " << serial << " -req -in " << req_file;
+     if (self_signed)
+@@ -375,7 +375,7 @@
+ 
+ int main(int argc, char *argv[]) {
+   int ret_val = 0;
+-  Sql_string_t openssl_check("openssl version");
++  Sql_string_t openssl_check("/opt/freeware/bin/openssl version");
+   bool save_skip_unknown = my_getopt_skip_unknown;
+   MEM_ROOT alloc{PSI_NOT_INSTRUMENTED, 512};
+ 
+@@ -458,7 +458,7 @@
+   } else {
+     char save_wd[FN_REFLEN];
+     bool files_exist = false;
+-    Sql_string_t verify("openssl verify -CAfile ");
++    Sql_string_t verify("/opt/freeware/bin/openssl verify -CAfile ");
+ 
+     if (my_getwd(save_wd, FN_REFLEN - 1, MYF(MY_WME))) {
+       error << "Error saving current working directory" << endl;
+--- ./mysql-test/include/have_openssl_binary.inc.ORIGIN	2019-09-12 15:22:47 -0500
++++ ./mysql-test/include/have_openssl_binary.inc	2019-09-12 17:03:55 -0500
+@@ -8,7 +8,7 @@
+ --remove_file $OPENSSL_CONFIG_INC
+ 
+ --error 0,1, 127
+---exec openssl version 2> $OPENSSL_EXEC_LOG
++--exec /opt/freeware/bin/openssl version 2> $OPENSSL_EXEC_LOG
+ let STATUS_VAR= $__error;
+ if ($STATUS_VAR)
+ {
+--- ./mysql-test/include/check_openssl_version.inc.ORIGIN	2019-09-12 17:16:49 -0500
++++ ./mysql-test/include/check_openssl_version.inc	2019-09-12 17:17:16 -0500
+@@ -10,7 +10,7 @@
+ --remove_file $OPENSSL_CONFIG_INC
+ 
+ --error 0,1, 127
+---exec openssl version > $OPENSSL_VERSION_INFO
++--exec /opt/freeware/bin/openssl version > $OPENSSL_VERSION_INFO
+ 
+ perl;
+  use strict;
+--- ./mysql-test/include/have_openssl_zlib.inc.ORIGIN	2019-09-12 17:18:09 -0500
++++ ./mysql-test/include/have_openssl_zlib.inc	2019-09-12 17:18:39 -0500
+@@ -4,9 +4,9 @@
+ # Sets $have_openssl_zlib to 0|1
+ #
+ --error 0,1,2,127
+---exec openssl list -cipher-commands > $MYSQL_TMP_DIR/openssl.out 2>&1
++--exec /opt/freeware/bin/openssl list -cipher-commands > $MYSQL_TMP_DIR/openssl.out 2>&1
+ --error 0,1,2,127
+---exec openssl list-cipher-commands >> $MYSQL_TMP_DIR/openssl.out 2>&1
++--exec /opt/freeware/bin/openssl list-cipher-commands >> $MYSQL_TMP_DIR/openssl.out 2>&1
+ 
+ --perl
+   use strict;
+--- ./mysql-test/suite/auth_sec/t/openssl_cert_generation_subject.test.ORIGIN	2019-09-12 18:08:25 -0500
++++ ./mysql-test/suite/auth_sec/t/openssl_cert_generation_subject.test	2019-09-12 18:08:44 -0500
+@@ -46,9 +46,9 @@
+ --echo # Restart completed.
+ 
+ # Fetch subjects from X509 certificates
+---exec openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/ca.pem -noout -subject > $X509_SUBJECT_LOG
+---exec openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/server-cert.pem -noout -subject >> $X509_SUBJECT_LOG
+---exec openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/client-cert.pem -noout -subject >> $X509_SUBJECT_LOG
++--exec /opt/freeware/bin/openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/ca.pem -noout -subject > $X509_SUBJECT_LOG
++--exec /opt/freeware/bin/openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/server-cert.pem -noout -subject >> $X509_SUBJECT_LOG
++--exec /opt/freeware/bin/openssl x509 -in $MYSQLTEST_VARDIR/mysqld.1/data/client-cert.pem -noout -subject >> $X509_SUBJECT_LOG
+ 
+ perl;
+   use strict;
+--- ./mysql-test/suite/auth_sec/t/mysql_ssl_rsa_setup.test.ORIGIN	2019-09-13 09:03:28 -0500
++++ ./mysql-test/suite/auth_sec/t/mysql_ssl_rsa_setup.test	2019-09-13 09:03:56 -0500
+@@ -84,9 +84,9 @@
+ --file_exists $DATADIR_LOCATION/client-cert.pem
+ --file_exists $DATADIR_LOCATION/client-key.pem
+ 
+-let SEARCH_PATTERN= Executing : openssl x509;
++let SEARCH_PATTERN= Executing : /opt/freeware/bin/openssl x509;
+ --source include/search_pattern.inc
+-let SEARCH_PATTERN= Executing : openssl req;
++let SEARCH_PATTERN= Executing : /opt/freeware/bin/openssl req;
+ --source include/search_pattern.inc
+ let SEARCH_PATTERN= RSA key files are present in given dir. Skipping generation.;
+ --source include/search_pattern.inc
+@@ -108,7 +108,7 @@
+ 
+ let SEARCH_PATTERN= Certificate files are present in given dir. Skipping generation.;
+ --source include/search_pattern.inc
+-let SEARCH_PATTERN= Executing : openssl genrsa;
++let SEARCH_PATTERN= Executing : /opt/freeware/bin/openssl genrsa;
+ --source include/search_pattern.inc
+ 
+ --remove_file $wl7706_log
+--- ./mysql-test/suite/auth_sec/r/mysql_ssl_rsa_setup.result.ORIGIN	2019-09-13 09:10:43 -0500
++++ ./mysql-test/suite/auth_sec/r/mysql_ssl_rsa_setup.result	2019-09-13 09:10:59 -0500
+@@ -6,13 +6,13 @@
+ Pattern "RSA key files are present in given dir. Skipping generation." found
+ # Case 3 : Certificate files are not present but RSA key files are present.
+ #          Only SSL certificates and keys should be generated.
+-Pattern "Executing : openssl x509" found
+-Pattern "Executing : openssl req" found
++Pattern "Executing : /opt/freeware/bin/openssl x509" found
++Pattern "Executing : /opt/freeware/bin/openssl req" found
+ Pattern "RSA key files are present in given dir. Skipping generation." found
+ # Case 4 : Certificate files are present but RSA key files are not present.
+ #          Only RSA key files should be generated.
+ Pattern "Certificate files are present in given dir. Skipping generation." found
+-Pattern "Executing : openssl genrsa" found
++Pattern "Executing : /opt/freeware/bin/openssl genrsa" found
+ # Case 5 : Remove only client-cert.pem and client-key.pem.
+ #          Certificate files should not be generated.
+ Pattern "Certificate files are present in given dir. Skipping generation." found
+--- ./mysql-test/t/mysqlpump_basic_zlib.test.ORIGIN	2019-10-07 11:47:14 -0500
++++ ./mysql-test/t/mysqlpump_basic_zlib.test	2019-10-07 11:47:43 -0500
+@@ -56,7 +56,7 @@
+ 
+ if (!$ZLIB_DECOMPRESS)
+ {
+---exec openssl zlib -d < $MYSQLTEST_VARDIR/tmp/bug21644479_zlib.zlib > $MYSQLTEST_VARDIR/tmp/bug21644479_zlib.sql
++--exec /opt/freeware/bin/openssl zlib -d < $MYSQLTEST_VARDIR/tmp/bug21644479_zlib.zlib > $MYSQLTEST_VARDIR/tmp/bug21644479_zlib.sql
+ }
+ 
+ DROP DATABASE bug21644479_zlib;

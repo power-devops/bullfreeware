@@ -1,0 +1,400 @@
+From d66b6a76f033a432f1628df3262c1c5479e8c4a9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 10 Sep 2020 14:28:45 +0200
+Subject: [PATCH] reflect: ensure uniqueness of type descriptors on AIX.
+
+On AIX, duplication of type descriptors can occur if one is
+declared in the libgo and one in the Go program being compiled.
+The AIX linker isn't able to merge them together as Linux one does.
+One solution is to always load libgo first but that needs a huge mechanism in
+gcc core. Thus, this patch ensures that the duplication isn't visible
+for the end user.
+
+In reflect and internal/reflectlite, the comparison of rtypes is made on their
+name and not only on their addresses.
+
+In reflect, toType() function is using a canonicalization map to force rtypes
+having the same rtype.String() to return the same Type. This can't be made in
+internal/reflectlite as it needs sync package. But, for now, it doesn't matter
+as internal/reflectlite is not widely used.
+
+Fixes #39276
+---
+ libgo/go/internal/reflectlite/eqtype.go       | 12 +++
+ .../internal/reflectlite/eqtype_aix_gccgo.go  | 26 +++++++
+ libgo/go/internal/reflectlite/type.go         |  8 +-
+ libgo/go/reflect/eqtype.go                    | 24 ++++++
+ libgo/go/reflect/eqtype_aix_gccgo.go          | 74 +++++++++++++++++++
+ libgo/go/reflect/type.go                      | 40 ++++------
+ libgo/go/reflect/value.go                     |  2 +-
+ 7 files changed, 157 insertions(+), 29 deletions(-)
+ create mode 100644 libgo/go/internal/reflectlite/eqtype.go
+ create mode 100644 libgo/go/internal/reflectlite/eqtype_aix_gccgo.go
+ create mode 100644 libgo/go/reflect/eqtype.go
+ create mode 100644 libgo/go/reflect/eqtype_aix_gccgo.go
+
+diff --git a/libgo/go/internal/reflectlite/eqtype.go b/libgo/go/internal/reflectlite/eqtype.go
+new file mode 100644
+index 00000000000..4eb44796672
+--- /dev/null
++++ b/libgo/go/internal/reflectlite/eqtype.go
+@@ -0,0 +1,12 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++//+build !aix,gccgo
++
++package reflectlite
++
++// rtypeEqual returns true if both types are identical.
++func rtypeEqual(t1, t2 *rtype) bool {
++	return t1 == t2
++}
+diff --git a/libgo/go/internal/reflectlite/eqtype_aix_gccgo.go b/libgo/go/internal/reflectlite/eqtype_aix_gccgo.go
+new file mode 100644
+index 00000000000..38b507fd827
+--- /dev/null
++++ b/libgo/go/internal/reflectlite/eqtype_aix_gccgo.go
+@@ -0,0 +1,26 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++//+build aix,gccgo
++
++// AIX linker isn't able to merge identical type descriptors coming from
++// different objects. Thus, two rtypes might have two different pointers
++// even if they are the same. Thus, instead of pointer equality, string
++// field is checked.
++
++package reflectlite
++
++// rtypeEqual returns true if both types are identical.
++func rtypeEqual(t1, t2 *rtype) bool {
++	switch {
++	case t1 == t2:
++		return true
++	case t1 == nil || t2 == nil:
++		return false
++	case t1.kind != t2.kind || t1.hash != t2.hash:
++		return false
++	default:
++		return t1.String() == t2.String()
++	}
++}
+diff --git a/libgo/go/internal/reflectlite/type.go b/libgo/go/internal/reflectlite/type.go
+index e700a554e41..1609a06a53e 100644
+--- a/libgo/go/internal/reflectlite/type.go
++++ b/libgo/go/internal/reflectlite/type.go
+@@ -539,7 +539,7 @@ func implements(T, V *rtype) bool {
+ 		for j := 0; j < len(v.methods); j++ {
+ 			tm := &t.methods[i]
+ 			vm := &v.methods[j]
+-			if *vm.name == *tm.name && (vm.pkgPath == tm.pkgPath || (vm.pkgPath != nil && tm.pkgPath != nil && *vm.pkgPath == *tm.pkgPath)) && toType(vm.typ).common() == toType(tm.typ).common() {
++			if *vm.name == *tm.name && (vm.pkgPath == tm.pkgPath || (vm.pkgPath != nil && tm.pkgPath != nil && *vm.pkgPath == *tm.pkgPath)) && rtypeEqual(toType(vm.typ).common(), toType(tm.typ).common()) {
+ 				if i++; i >= len(t.methods) {
+ 					return true
+ 				}
+@@ -556,7 +556,7 @@ func implements(T, V *rtype) bool {
+ 	for j := 0; j < len(v.methods); j++ {
+ 		tm := &t.methods[i]
+ 		vm := &v.methods[j]
+-		if *vm.name == *tm.name && (vm.pkgPath == tm.pkgPath || (vm.pkgPath != nil && tm.pkgPath != nil && *vm.pkgPath == *tm.pkgPath)) && toType(vm.mtyp).common() == toType(tm.typ).common() {
++		if *vm.name == *tm.name && (vm.pkgPath == tm.pkgPath || (vm.pkgPath != nil && tm.pkgPath != nil && *vm.pkgPath == *tm.pkgPath)) && rtypeEqual(toType(vm.mtyp).common(), toType(tm.typ).common()) {
+ 			if i++; i >= len(t.methods) {
+ 				return true
+ 			}
+@@ -572,7 +572,7 @@ func implements(T, V *rtype) bool {
+ // and the ideal constant rules (no ideal constants at run time).
+ func directlyAssignable(T, V *rtype) bool {
+ 	// x's type V is identical to T?
+-	if T == V {
++	if rtypeEqual(T, V) {
+ 		return true
+ 	}
+ 
+@@ -599,7 +599,7 @@ func haveIdenticalType(T, V Type, cmpTags bool) bool {
+ }
+ 
+ func haveIdenticalUnderlyingType(T, V *rtype, cmpTags bool) bool {
+-	if T == V {
++	if rtypeEqual(T, V) {
+ 		return true
+ 	}
+ 
+diff --git a/libgo/go/reflect/eqtype.go b/libgo/go/reflect/eqtype.go
+new file mode 100644
+index 00000000000..69ca79f0e33
+--- /dev/null
++++ b/libgo/go/reflect/eqtype.go
+@@ -0,0 +1,24 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++//+build !aix,gccgo
++
++package reflect
++
++// rtypeEqual returns true if both rtypes are identical.
++func rtypeEqual(t1, t2 *rtype) bool {
++	return t1 == t2
++}
++
++// typeEqual returns true if both Types are identical.
++func typeEqual(t1, t2 *Type) bool {
++	return t1 == t2
++}
++
++func toType(p *rtype) Type {
++	if p == nil {
++		return nil
++	}
++	return p
++}
+diff --git a/libgo/go/reflect/eqtype_aix_gccgo.go b/libgo/go/reflect/eqtype_aix_gccgo.go
+new file mode 100644
+index 00000000000..7afbf10ad6d
+--- /dev/null
++++ b/libgo/go/reflect/eqtype_aix_gccgo.go
+@@ -0,0 +1,74 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++//+build aix,gccgo
++
++// AIX linker isn't able to merge identical type descriptors coming from
++// different objects. Thus, two rtypes might have two different pointers
++// even if they are the same. Thus, instead of pointer equality, string
++// field is checked.
++
++package reflect
++
++import (
++	"sync"
++)
++
++// rtypeEqual returns true if both rtypes are identical.
++func rtypeEqual(t1, t2 *rtype) bool {
++	switch {
++	case t1 == t2:
++		return true
++	case t1 == nil || t2 == nil:
++		return false
++	case t1.kind != t2.kind || t1.hash != t2.hash:
++		return false
++	default:
++		return t1.String() == t2.String()
++	}
++}
++
++// typeEqual returns true if both Types are identical.
++func typeEqual(t1, t2 Type) bool {
++	return rtypeEqual(t1.common(), t2.common())
++}
++
++// toType converts from a *rtype to a Type that can be returned
++// to the client of package reflect. The only concern is that
++// a nil *rtype must be replaced by a nil Type.
++// On AIX, as type duplications can occur, it also ensure that
++// multiple *rtype for the same  type are coalesced into a single
++// Type.
++
++var canonicalType = make(map[string]Type)
++
++var canonicalTypeLock sync.RWMutex
++
++func canonicalize(t Type) Type {
++	if t == nil {
++		return nil
++	}
++	s := t.rawString()
++	canonicalTypeLock.RLock()
++	if r, ok := canonicalType[s]; ok {
++		canonicalTypeLock.RUnlock()
++		return r
++	}
++	canonicalTypeLock.RUnlock()
++	canonicalTypeLock.Lock()
++	if r, ok := canonicalType[s]; ok {
++		canonicalTypeLock.Unlock()
++		return r
++	}
++	canonicalType[s] = t
++	canonicalTypeLock.Unlock()
++	return t
++}
++
++func toType(p *rtype) Type {
++	if p == nil {
++		return nil
++	}
++	return canonicalize(p)
++}
+diff --git a/libgo/go/reflect/type.go b/libgo/go/reflect/type.go
+index 2ce1901f556..73c09d4bb34 100644
+--- a/libgo/go/reflect/type.go
++++ b/libgo/go/reflect/type.go
+@@ -1129,7 +1129,7 @@ func (t *rtype) ptrTo() *rtype {
+ 	// Look in known types.
+ 	s := "*" + *t.string
+ 	if tt := lookupType(s); tt != nil {
+-		p := (*ptrType)(unsafe.Pointer(tt))
++		p := (*ptrType)(unsafe.Pointer(toType(tt).(*rtype)))
+ 		if p.elem == t {
+ 			pi, _ := ptrMap.LoadOrStore(t, p)
+ 			return &pi.(*ptrType).rtype
+@@ -1158,7 +1158,9 @@ func (t *rtype) ptrTo() *rtype {
+ 	pp.ptrToThis = nil
+ 	pp.elem = t
+ 
+-	pi, _ := ptrMap.LoadOrStore(t, &pp)
++	q := toType(&pp.rtype).(*rtype)
++	p := (*ptrType)(unsafe.Pointer(q))
++	pi, _ := ptrMap.LoadOrStore(t, p)
+ 	return &pi.(*ptrType).rtype
+ }
+ 
+@@ -1273,7 +1275,7 @@ func specialChannelAssignability(T, V *rtype) bool {
+ // and the ideal constant rules (no ideal constants at run time).
+ func directlyAssignable(T, V *rtype) bool {
+ 	// x's type V is identical to T?
+-	if T == V {
++	if rtypeEqual(T, V) {
+ 		return true
+ 	}
+ 
+@@ -1304,7 +1306,7 @@ func haveIdenticalType(T, V Type, cmpTags bool) bool {
+ }
+ 
+ func haveIdenticalUnderlyingType(T, V *rtype, cmpTags bool) bool {
+-	if T == V {
++	if rtypeEqual(T, V) {
+ 		return true
+ 	}
+ 
+@@ -1449,7 +1451,7 @@ func ChanOf(dir ChanDir, t Type) Type {
+ 		s = "chan " + *typ.string
+ 	}
+ 	if tt := lookupType(s); tt != nil {
+-		ch := (*chanType)(unsafe.Pointer(tt))
++		ch := (*chanType)(unsafe.Pointer(toType(tt).(*rtype)))
+ 		if ch.elem == typ && ch.dir == uintptr(dir) {
+ 			ti, _ := lookupCache.LoadOrStore(ckey, tt)
+ 			return ti.(Type)
+@@ -1481,7 +1483,7 @@ func ChanOf(dir ChanDir, t Type) Type {
+ 	ch.uncommonType = nil
+ 	ch.ptrToThis = nil
+ 
+-	ti, _ := lookupCache.LoadOrStore(ckey, &ch.rtype)
++	ti, _ := lookupCache.LoadOrStore(ckey, toType(&ch.rtype).(*rtype))
+ 	return ti.(Type)
+ }
+ 
+@@ -1508,7 +1510,7 @@ func MapOf(key, elem Type) Type {
+ 	// Look in known types.
+ 	s := "map[" + *ktyp.string + "]" + *etyp.string
+ 	if tt := lookupType(s); tt != nil {
+-		mt := (*mapType)(unsafe.Pointer(tt))
++		mt := (*mapType)(unsafe.Pointer(toType(tt).(*rtype)))
+ 		if mt.key == ktyp && mt.elem == etyp {
+ 			ti, _ := lookupCache.LoadOrStore(ckey, tt)
+ 			return ti.(Type)
+@@ -1559,7 +1561,7 @@ func MapOf(key, elem Type) Type {
+ 		mt.flags |= 16
+ 	}
+ 
+-	ti, _ := lookupCache.LoadOrStore(ckey, &mt.rtype)
++	ti, _ := lookupCache.LoadOrStore(ckey, toType(&mt.rtype).(*rtype))
+ 	return ti.(Type)
+ }
+ 
+@@ -1648,7 +1650,7 @@ func FuncOf(in, out []Type, variadic bool) Type {
+ 	ft.string = &str
+ 	ft.uncommonType = nil
+ 	ft.ptrToThis = nil
+-	return addToCache(&ft.rtype)
++	return addToCache(toType(&ft.rtype).(*rtype))
+ }
+ 
+ // funcStr builds a string representation of a funcType.
+@@ -1909,7 +1911,7 @@ func SliceOf(t Type) Type {
+ 	// Look in known types.
+ 	s := "[]" + *typ.string
+ 	if tt := lookupType(s); tt != nil {
+-		slice := (*sliceType)(unsafe.Pointer(tt))
++		slice := (*sliceType)(unsafe.Pointer(toType(tt).(*rtype)))
+ 		if slice.elem == typ {
+ 			ti, _ := lookupCache.LoadOrStore(ckey, tt)
+ 			return ti.(Type)
+@@ -1930,7 +1932,7 @@ func SliceOf(t Type) Type {
+ 	slice.uncommonType = nil
+ 	slice.ptrToThis = nil
+ 
+-	ti, _ := lookupCache.LoadOrStore(ckey, &slice.rtype)
++	ti, _ := lookupCache.LoadOrStore(ckey, toType(&slice.rtype).(*rtype))
+ 	return ti.(Type)
+ }
+ 
+@@ -2234,7 +2236,7 @@ func StructOf(fields []StructField) Type {
+ 
+ 	typ.uncommonType = nil
+ 	typ.ptrToThis = nil
+-	return addToCache(&typ.rtype)
++	return addToCache(toType(&typ.rtype).(*rtype))
+ }
+ 
+ // runtimeStructField takes a StructField value passed to StructOf and
+@@ -2330,7 +2332,7 @@ func ArrayOf(count int, elem Type) Type {
+ 	// Look in known types.
+ 	s := "[" + strconv.Itoa(count) + "]" + *typ.string
+ 	if tt := lookupType(s); tt != nil {
+-		array := (*arrayType)(unsafe.Pointer(tt))
++		array := (*arrayType)(unsafe.Pointer(toType(tt).(*rtype)))
+ 		if array.elem == typ {
+ 			ti, _ := lookupCache.LoadOrStore(ckey, tt)
+ 			return ti.(Type)
+@@ -2446,7 +2448,7 @@ func ArrayOf(count int, elem Type) Type {
+ 		array.kind &^= kindDirectIface
+ 	}
+ 
+-	ti, _ := lookupCache.LoadOrStore(ckey, &array.rtype)
++	ti, _ := lookupCache.LoadOrStore(ckey, toType(&array.rtype).(*rtype))
+ 	return ti.(Type)
+ }
+ 
+@@ -2458,16 +2460,6 @@ func appendVarint(x []byte, v uintptr) []byte {
+ 	return x
+ }
+ 
+-// toType converts from a *rtype to a Type that can be returned
+-// to the client of package reflect. The only concern is that
+-// a nil *rtype must be replaced by a nil Type.
+-func toType(p *rtype) Type {
+-	if p == nil {
+-		return nil
+-	}
+-	return p
+-}
+-
+ // Look up a compiler-generated type descriptor.
+ // Implemented in runtime.
+ func lookupType(s string) *rtype
+diff --git a/libgo/go/reflect/value.go b/libgo/go/reflect/value.go
+index e60f84fe78d..64f74323160 100644
+--- a/libgo/go/reflect/value.go
++++ b/libgo/go/reflect/value.go
+@@ -1785,7 +1785,7 @@ type SliceHeader struct {
+ }
+ 
+ func typesMustMatch(what string, t1, t2 Type) {
+-	if t1 != t2 {
++	if !typeEqual(t1, t2) {
+ 		panic(what + ": " + t1.String() + " != " + t2.String())
+ 	}
+ }
+-- 
+2.25.0
+

@@ -1,0 +1,16 @@
+diff -up Cheetah-2.4.4/SetupConfig.py.bak Cheetah-2.4.4/SetupConfig.py
+--- Cheetah-2.4.4/SetupConfig.py.bak	2014-07-21 14:24:11.839067227 -0700
++++ Cheetah-2.4.4/SetupConfig.py	2014-07-21 14:28:28.642988415 -0700
+@@ -60,7 +60,11 @@ if not os.getenv('CHEETAH_INSTALL_WITHOU
+     try:
+         from setuptools import setup
+         install_requires = [
+-                "Markdown >= 2.0.1",
++                # Markdown is an optional dep (Cheetah still works without it).
++                # Removing markdown as a hard requirement here as the
++                # setuptools dep makes markdown a hard dependency for any code
++                # that uses pkg_resources
++                #"Markdown >= 2.0.1",
+         ]
+         if sys.platform == 'win32':
+             # use 'entry_points' instead of 'scripts'

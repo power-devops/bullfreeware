@@ -1,0 +1,16 @@
+--- ./bin/c4che/default_cache.py.orig	2020-04-15 15:18:11 +0200
++++ ./bin/c4che/default_cache.py	2020-04-15 15:18:34 +0200
+@@ -1094,10 +1094,10 @@
+ LIBPATH = []
+ LIBPATH_CEPH-COMMON = '/opt/freeware/lib64/ceph'
+ LIBPATH_CUPS = ['/opt/freeware/lib64']
+-LIBPATH_GNUTLS = ['/opt/freeware/lib']
+-LIBPATH_LIBTASN1 = ['/opt/freeware/lib']
++LIBPATH_GNUTLS = ['/opt/freeware/lib64']
++LIBPATH_LIBTASN1 = ['/opt/freeware/lib64']
+ LIBPATH_ST = '-L%s'
+-LIBPATH_Z = ['/opt/freeware/lib']
++LIBPATH_Z = ['/opt/freeware/lib64']
+ LIBREPLACE_NETWORK_CHECKS = 1
+ LIBRESOLV_WRAPPER_SO_PATH = '/opt/freeware/src/packages/BUILD/samba-4.10.14/32bit/bin/default/third_party/resolv_wrapper/libresolv-wrapper.so'
+ LIBSOCKET_WRAPPER_SO_PATH = '/opt/freeware/src/packages/BUILD/samba-4.10.14/32bit/bin/default/third_party/socket_wrapper/libsocket-wrapper.so'

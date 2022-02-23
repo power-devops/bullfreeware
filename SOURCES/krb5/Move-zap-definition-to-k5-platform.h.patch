@@ -1,0 +1,151 @@
+From 56521276ff20bc05a61c6f070cb4dcab730ff6d6 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 26 Mar 2018 10:54:29 -0400
+Subject: [PATCH] Move zap() definition to k5-platform.h
+
+Make it possible to use zap() in parts of the code which should not
+include k5-int.h by moving its definition to k5-platform.h.
+
+(cherry picked from commit df6bef6f9ea6a5f6f3956a2988cd658c78aae817)
+---
+ src/include/k5-int.h      | 45 -------------------------------------
+ src/include/k5-platform.h | 47 ++++++++++++++++++++++++++++++++++++++-
+ src/util/support/zap.c    |  4 ++--
+ 3 files changed, 48 insertions(+), 48 deletions(-)
+
+diff --git a/src/include/k5-int.h b/src/include/k5-int.h
+index 1c1d9783b..69b81a7f7 100644
+--- a/src/include/k5-int.h
++++ b/src/include/k5-int.h
+@@ -639,51 +639,6 @@ krb5int_arcfour_gsscrypt(const krb5_keyblock *keyblock, krb5_keyusage usage,
+ krb5_error_code
+ k5_sha256(const krb5_data *in, size_t n, uint8_t out[K5_SHA256_HASHLEN]);
+ 
+-/*
+- * Attempt to zero memory in a way that compilers won't optimize out.
+- *
+- * This mechanism should work even for heap storage about to be freed,
+- * or automatic storage right before we return from a function.
+- *
+- * Then, even if we leak uninitialized memory someplace, or UNIX
+- * "core" files get created with world-read access, some of the most
+- * sensitive data in the process memory will already be safely wiped.
+- *
+- * We're not going so far -- yet -- as to try to protect key data that
+- * may have been written into swap space....
+- */
+-#ifdef _WIN32
+-# define zap(ptr, len) SecureZeroMemory(ptr, len)
+-#elif defined(__STDC_LIB_EXT1__)
+-/*
+- * Use memset_s() which cannot be optimized out.  Avoid memset_s(NULL, 0, 0, 0)
+- * which would cause a runtime constraint violation.
+- */
+-static inline void zap(void *ptr, size_t len)
+-{
+-    if (len > 0)
+-        memset_s(ptr, len, 0, len);
+-}
+-#elif defined(__GNUC__) || defined(__clang__)
+-/*
+- * Use an asm statement which declares a memory clobber to force the memset to
+- * be carried out.  Avoid memset(NULL, 0, 0) which has undefined behavior.
+- */
+-static inline void zap(void *ptr, size_t len)
+-{
+-    if (len > 0)
+-        memset(ptr, 0, len);
+-    __asm__ __volatile__("" : : "r" (ptr) : "memory");
+-}
+-#else
+-/*
+- * Use a function from libkrb5support to defeat inlining unless link-time
+- * optimization is used.  The function uses a volatile pointer, which prevents
+- * current compilers from optimizing out the memset.
+- */
+-# define zap(ptr, len) krb5int_zap(ptr, len)
+-#endif
+-
+ /* Convenience function: zap and free ptr if it is non-NULL. */
+ static inline void
+ zapfree(void *ptr, size_t len)
+diff --git a/src/include/k5-platform.h b/src/include/k5-platform.h
+index 548c0486d..07ef6a4ca 100644
+--- a/src/include/k5-platform.h
++++ b/src/include/k5-platform.h
+@@ -40,7 +40,7 @@
+  * + [v]asprintf
+  * + strerror_r
+  * + mkstemp
+- * + zap (support function; macro is in k5-int.h)
++ * + zap (support function and macro)
+  * + constant time memory comparison
+  * + path manipulation
+  * + _, N_, dgettext, bindtextdomain (for localization)
+@@ -1022,6 +1022,51 @@ extern int krb5int_gettimeofday(struct timeval *tp, void *ignore);
+ #define gettimeofday krb5int_gettimeofday
+ #endif
+ 
++/*
++ * Attempt to zero memory in a way that compilers won't optimize out.
++ *
++ * This mechanism should work even for heap storage about to be freed,
++ * or automatic storage right before we return from a function.
++ *
++ * Then, even if we leak uninitialized memory someplace, or UNIX
++ * "core" files get created with world-read access, some of the most
++ * sensitive data in the process memory will already be safely wiped.
++ *
++ * We're not going so far -- yet -- as to try to protect key data that
++ * may have been written into swap space....
++ */
++#ifdef _WIN32
++# define zap(ptr, len) SecureZeroMemory(ptr, len)
++#elif defined(__STDC_LIB_EXT1__)
++/*
++ * Use memset_s() which cannot be optimized out.  Avoid memset_s(NULL, 0, 0, 0)
++ * which would cause a runtime constraint violation.
++ */
++static inline void zap(void *ptr, size_t len)
++{
++    if (len > 0)
++        memset_s(ptr, len, 0, len);
++}
++#elif defined(__GNUC__) || defined(__clang__)
++/*
++ * Use an asm statement which declares a memory clobber to force the memset to
++ * be carried out.  Avoid memset(NULL, 0, 0) which has undefined behavior.
++ */
++static inline void zap(void *ptr, size_t len)
++{
++    if (len > 0)
++        memset(ptr, 0, len);
++    __asm__ __volatile__("" : : "r" (ptr) : "memory");
++}
++#else
++/*
++ * Use a function from libkrb5support to defeat inlining unless link-time
++ * optimization is used.  The function uses a volatile pointer, which prevents
++ * current compilers from optimizing out the memset.
++ */
++# define zap(ptr, len) krb5int_zap(ptr, len)
++#endif
++
+ extern void krb5int_zap(void *ptr, size_t len);
+ 
+ /*
+diff --git a/src/util/support/zap.c b/src/util/support/zap.c
+index ed31630db..2f6cdd70e 100644
+--- a/src/util/support/zap.c
++++ b/src/util/support/zap.c
+@@ -25,8 +25,8 @@
+  */
+ 
+ /*
+- * krb5int_zap() is used by zap() (a static inline function defined in
+- * k5-int.h) on non-Windows, non-gcc compilers, in order to prevent the
++ * krb5int_zap() is used by zap() (a macro or static inline function defined in
++ * k5-platform.h) on non-Windows, non-gcc compilers, in order to prevent the
+  * compiler from inlining and optimizing out the memset() call.
+  */
+ 

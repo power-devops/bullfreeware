@@ -1,0 +1,25 @@
+From caf610dc8bc967a0dde194f33b87a1d3ac9c26a6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 2 Aug 2021 16:02:39 +0200
+Subject: [PATCH 1/2] test: avoid /dev/full on AIX
+
+---
+ tests/playTests.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/playTests.sh b/tests/playTests.sh
+index fa748c0..4aa575c 100755
+--- a/tests/playTests.sh
++++ b/tests/playTests.sh
+@@ -787,7 +787,7 @@ rm -f ./*.tmp ./*.zstd
+ println "frame concatenation tests completed"
+ 
+ 
+-if [ "$isWindows" = false ] && [ "$UNAME" != 'SunOS' ] && [ "$UNAME" != "OpenBSD" ] ; then
++if [ "$isWindows" = false ] && [ "$UNAME" != 'SunOS' ] && [ "$UNAME" != "OpenBSD" ] && [ "$UNAME" != "AIX" ]; then
+ println "\n**** flush write error test **** "
+ 
+ println "println foo | zstd > /dev/full"
+-- 
+2.31.1
+

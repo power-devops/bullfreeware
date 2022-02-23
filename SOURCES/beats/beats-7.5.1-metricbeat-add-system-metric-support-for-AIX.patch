@@ -1,0 +1,613 @@
+From 48d16282c67b1ed76c64c3c65728924be8a2bec3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 23 Jan 2020 17:02:29 +0100
+Subject: [PATCH] metricbeat: add system metric support for AIX
+
+---
+ libbeat/cmd/instance/metrics.go               |  2 +-
+ libbeat/cmd/instance/metrics_other.go         |  2 +-
+ libbeat/metric/system/cpu/cpu.go              |  2 +-
+ libbeat/metric/system/cpu/cpu_test.go         |  2 +-
+ libbeat/metric/system/memory/memory.go        |  2 +-
+ libbeat/metric/system/memory/memory_test.go   |  2 +-
+ libbeat/metric/system/process/process.go      |  2 +-
+ libbeat/metric/system/process/process_test.go |  2 +-
+ metricbeat/module/system/core/core.go         |  2 +-
+ metricbeat/module/system/core/core_test.go    |  2 +-
+ metricbeat/module/system/cpu/cpu.go           |  2 +-
+ metricbeat/module/system/cpu/cpu_test.go      |  2 +-
+ .../module/system/filesystem/filesystem.go    |  2 +-
+ .../system/filesystem/filesystem_test.go      |  2 +-
+ metricbeat/module/system/filesystem/helper.go |  2 +-
+ .../module/system/filesystem/helper_test.go   |  2 +-
+ metricbeat/module/system/fsstat/fsstat.go     |  2 +-
+ .../module/system/fsstat/fsstat_test.go       |  2 +-
+ metricbeat/module/system/load/load.go         |  2 +-
+ metricbeat/module/system/load/load_test.go    |  2 +-
+ metricbeat/module/system/memory/memory.go     |  2 +-
+ .../module/system/memory/memory_test.go       |  2 +-
+ metricbeat/module/system/network/network.go   |  2 +-
+ .../module/system/network/network_test.go     |  2 +-
+ metricbeat/module/system/process/process.go   |  2 +-
+ .../module/system/process/process_test.go     |  2 +-
+ .../system/process_summary/process_summary.go |  2 +-
+ .../process_summary/process_summary_test.go   |  2 +-
+ metricbeat/tests/system/test_system.py       | 26 +++++++++----------
+ metricbeat/module/system/uptime/uptime.go     |  2 +-
+ .../module/system/uptime/uptime_test.go       |  2 +-
+ metricbeat/tests/system/test_base.py          |  2 +-
+ metricbeat/tests/system/test_processors.py    |  2 +-
+ metricbeat/tests/system/test_reload.py        |  6 ++---
+ 34 files changed, 48 insertions(+), 48 deletions(-)
+
+diff --git a/libbeat/cmd/instance/metrics.go b/libbeat/cmd/instance/metrics.go
+index 9b0697d1e..63fb79645 100644
+--- a/libbeat/cmd/instance/metrics.go
++++ b/libbeat/cmd/instance/metrics.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin,cgo freebsd,cgo linux windows
++// +build aix darwin,cgo freebsd,cgo linux windows
+ 
+ package instance
+ 
+diff --git a/libbeat/cmd/instance/metrics_other.go b/libbeat/cmd/instance/metrics_other.go
+index 37e092be4..4a4077820 100644
+--- a/libbeat/cmd/instance/metrics_other.go
++++ b/libbeat/cmd/instance/metrics_other.go
+@@ -17,7 +17,7 @@
+ 
+ // +build !darwin !cgo
+ // +build !freebsd !cgo
+-// +build !linux,!windows
++// +build !aix,!linux,!windows
+ 
+ package instance
+ 
+diff --git a/libbeat/metric/system/cpu/cpu.go b/libbeat/metric/system/cpu/cpu.go
+index b5cb6981f..9095cd5a0 100644
+--- a/libbeat/metric/system/cpu/cpu.go
++++ b/libbeat/metric/system/cpu/cpu.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package cpu
+ 
+diff --git a/libbeat/metric/system/cpu/cpu_test.go b/libbeat/metric/system/cpu/cpu_test.go
+index f45e43136..b4e72a695 100644
+--- a/libbeat/metric/system/cpu/cpu_test.go
++++ b/libbeat/metric/system/cpu/cpu_test.go
+@@ -16,7 +16,7 @@
+ // under the License.
+ 
+ // +build !integration
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package cpu
+ 
+diff --git a/libbeat/metric/system/memory/memory.go b/libbeat/metric/system/memory/memory.go
+index d2833d4b0..14425473a 100644
+--- a/libbeat/metric/system/memory/memory.go
++++ b/libbeat/metric/system/memory/memory.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package memory
+ 
+diff --git a/libbeat/metric/system/memory/memory_test.go b/libbeat/metric/system/memory/memory_test.go
+index 58fb74021..8134d9a41 100644
+--- a/libbeat/metric/system/memory/memory_test.go
++++ b/libbeat/metric/system/memory/memory_test.go
+@@ -16,7 +16,7 @@
+ // under the License.
+ 
+ // +build !integration
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package memory
+ 
+diff --git a/libbeat/metric/system/process/process.go b/libbeat/metric/system/process/process.go
+index 544bacc7e..40f165dbf 100644
+--- a/libbeat/metric/system/process/process.go
++++ b/libbeat/metric/system/process/process.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process
+ 
+diff --git a/libbeat/metric/system/process/process_test.go b/libbeat/metric/system/process/process_test.go
+index 23b196104..8c1c54f61 100644
+--- a/libbeat/metric/system/process/process_test.go
++++ b/libbeat/metric/system/process/process_test.go
+@@ -16,7 +16,7 @@
+ // under the License.
+ 
+ // +build !integration
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process
+ 
+diff --git a/metricbeat/module/system/core/core.go b/metricbeat/module/system/core/core.go
+index 4c91b144c..d662fa5e7 100644
+--- a/metricbeat/module/system/core/core.go
++++ b/metricbeat/module/system/core/core.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package core
+ 
+diff --git a/metricbeat/module/system/core/core_test.go b/metricbeat/module/system/core/core_test.go
+index c3c6c09a3..8f2c62561 100644
+--- a/metricbeat/module/system/core/core_test.go
++++ b/metricbeat/module/system/core/core_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package core
+ 
+diff --git a/metricbeat/module/system/cpu/cpu.go b/metricbeat/module/system/cpu/cpu.go
+index d743cb5a2..bd58c71bc 100644
+--- a/metricbeat/module/system/cpu/cpu.go
++++ b/metricbeat/module/system/cpu/cpu.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package cpu
+ 
+diff --git a/metricbeat/module/system/cpu/cpu_test.go b/metricbeat/module/system/cpu/cpu_test.go
+index e218399c0..c4b3eb3f8 100644
+--- a/metricbeat/module/system/cpu/cpu_test.go
++++ b/metricbeat/module/system/cpu/cpu_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package cpu
+ 
+diff --git a/metricbeat/module/system/filesystem/filesystem.go b/metricbeat/module/system/filesystem/filesystem.go
+index 0513e5d68..9a8c83105 100644
+--- a/metricbeat/module/system/filesystem/filesystem.go
++++ b/metricbeat/module/system/filesystem/filesystem.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package filesystem
+ 
+diff --git a/metricbeat/module/system/filesystem/filesystem_test.go b/metricbeat/module/system/filesystem/filesystem_test.go
+index 2baa16c3f..2f28dfd46 100644
+--- a/metricbeat/module/system/filesystem/filesystem_test.go
++++ b/metricbeat/module/system/filesystem/filesystem_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package filesystem
+ 
+diff --git a/metricbeat/module/system/filesystem/helper.go b/metricbeat/module/system/filesystem/helper.go
+index b93861887..1017f1118 100644
+--- a/metricbeat/module/system/filesystem/helper.go
++++ b/metricbeat/module/system/filesystem/helper.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package filesystem
+ 
+diff --git a/metricbeat/module/system/filesystem/helper_test.go b/metricbeat/module/system/filesystem/helper_test.go
+index 7ee8d997c..d83e95663 100644
+--- a/metricbeat/module/system/filesystem/helper_test.go
++++ b/metricbeat/module/system/filesystem/helper_test.go
+@@ -16,7 +16,7 @@
+ // under the License.
+ 
+ // +build !integration
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package filesystem
+ 
+diff --git a/metricbeat/module/system/fsstat/fsstat.go b/metricbeat/module/system/fsstat/fsstat.go
+index 84b08ab51..173435479 100644
+--- a/metricbeat/module/system/fsstat/fsstat.go
++++ b/metricbeat/module/system/fsstat/fsstat.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package fsstat
+ 
+diff --git a/metricbeat/module/system/fsstat/fsstat_test.go b/metricbeat/module/system/fsstat/fsstat_test.go
+index 8a69c6e21..5a60d6fe2 100644
+--- a/metricbeat/module/system/fsstat/fsstat_test.go
++++ b/metricbeat/module/system/fsstat/fsstat_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package fsstat
+ 
+diff --git a/metricbeat/module/system/load/load.go b/metricbeat/module/system/load/load.go
+index ead230272..3be257e5f 100644
+--- a/metricbeat/module/system/load/load.go
++++ b/metricbeat/module/system/load/load.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd
++// +build aix darwin freebsd linux openbsd
+ 
+ package load
+ 
+diff --git a/metricbeat/module/system/load/load_test.go b/metricbeat/module/system/load/load_test.go
+index 82e2d5d09..c6b840d33 100644
+--- a/metricbeat/module/system/load/load_test.go
++++ b/metricbeat/module/system/load/load_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd
++// +build aix darwin freebsd linux openbsd
+ 
+ package load
+ 
+diff --git a/metricbeat/module/system/memory/memory.go b/metricbeat/module/system/memory/memory.go
+index 57c6d5888..909d26921 100644
+--- a/metricbeat/module/system/memory/memory.go
++++ b/metricbeat/module/system/memory/memory.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package memory
+ 
+diff --git a/metricbeat/module/system/memory/memory_test.go b/metricbeat/module/system/memory/memory_test.go
+index 9d91c38fe..0348ffdeb 100644
+--- a/metricbeat/module/system/memory/memory_test.go
++++ b/metricbeat/module/system/memory/memory_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux openbsd windows
++// +build aix darwin freebsd linux openbsd windows
+ 
+ package memory
+ 
+diff --git a/metricbeat/module/system/network/network.go b/metricbeat/module/system/network/network.go
+index abdcda11a..7d15ce077 100644
+--- a/metricbeat/module/system/network/network.go
++++ b/metricbeat/module/system/network/network.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package network
+ 
+diff --git a/metricbeat/module/system/network/network_test.go b/metricbeat/module/system/network/network_test.go
+index 28fb3aca8..12403d27e 100644
+--- a/metricbeat/module/system/network/network_test.go
++++ b/metricbeat/module/system/network/network_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package network
+ 
+diff --git a/metricbeat/module/system/process/process.go b/metricbeat/module/system/process/process.go
+index 98d941cc4..f380f20a9 100644
+--- a/metricbeat/module/system/process/process.go
++++ b/metricbeat/module/system/process/process.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process
+ 
+diff --git a/metricbeat/module/system/process/process_test.go b/metricbeat/module/system/process/process_test.go
+index 0ee4c76e0..b5416b437 100644
+--- a/metricbeat/module/system/process/process_test.go
++++ b/metricbeat/module/system/process/process_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process
+ 
+diff --git a/metricbeat/module/system/process_summary/process_summary.go b/metricbeat/module/system/process_summary/process_summary.go
+index 4759869a2..5482507de 100644
+--- a/metricbeat/module/system/process_summary/process_summary.go
++++ b/metricbeat/module/system/process_summary/process_summary.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process_summary
+ 
+diff --git a/metricbeat/module/system/process_summary/process_summary_test.go b/metricbeat/module/system/process_summary/process_summary_test.go
+index 868ccf954..bc2d367b5 100644
+--- a/metricbeat/module/system/process_summary/process_summary_test.go
++++ b/metricbeat/module/system/process_summary/process_summary_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin freebsd linux windows
++// +build aix darwin freebsd linux windows
+ 
+ package process_summary
+ 
+diff --git a/metricbeat/tests/system/test_system.py b/metricbeat/tests/system/test_system.py
+index e81a67ee8..c39287089 100644
+--- a/metricbeat/tests/system/test_system.py
++++ b/metricbeat/tests/system/test_system.py
+@@ -56,7 +56,7 @@ SYSTEM_PROCESS_FIELDS = ["cpu", "memory", "state"]
+ 
+ class Test(metricbeat.BaseTest):
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_cpu(self):
+         """
+         Test cpu system output.
+@@ -79,7 +79,7 @@ class Test(metricbeat.BaseTest):
+         cpu = evt["system"]["cpu"]
+         self.assertItemsEqual(self.de_dot(SYSTEM_CPU_FIELDS), cpu.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_cpu_ticks_option(self):
+         """
+         Test cpu_ticks configuration option.
+@@ -105,7 +105,7 @@ class Test(metricbeat.BaseTest):
+             cpuStats = evt["system"]["cpu"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_CPU_FIELDS_ALL), cpuStats.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_core(self):
+         """
+         Test core system output.
+@@ -128,7 +128,7 @@ class Test(metricbeat.BaseTest):
+             core = evt["system"]["core"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_CORE_FIELDS), core.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_core_with_cpu_ticks(self):
+         """
+         Test core system output.
+@@ -154,7 +154,7 @@ class Test(metricbeat.BaseTest):
+             core = evt["system"]["core"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_CORE_FIELDS_ALL), core.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_load(self):
+         """
+         Test system load.
+@@ -224,7 +224,7 @@ class Test(metricbeat.BaseTest):
+             diskio = evt["system"]["diskio"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_DISKIO_FIELDS_LINUX), diskio.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_filesystem(self):
+         """
+         Test system/filesystem output.
+@@ -247,7 +247,7 @@ class Test(metricbeat.BaseTest):
+             filesystem = evt["system"]["filesystem"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_FILESYSTEM_FIELDS), filesystem.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_fsstat(self):
+         """
+         Test system/fsstat output.
+@@ -270,7 +270,7 @@ class Test(metricbeat.BaseTest):
+         fsstat = evt["system"]["fsstat"]
+         self.assertItemsEqual(SYSTEM_FSSTAT_FIELDS, fsstat.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_memory(self):
+         """
+         Test system memory output.
+@@ -307,7 +307,7 @@ class Test(metricbeat.BaseTest):
+             used_p = float(swap["used"]["bytes"]) / swap["total"]
+             self.assertAlmostEqual(swap["used"]["pct"], used_p, places=4)
+ 
+-    @unittest.skipUnless(re.match("(?i)darwin|win|linux|freebsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)darwin|win|linux|freebsd|aix", sys.platform), "os")
+     def test_network(self):
+         """
+         Test system/network output.
+@@ -330,7 +330,7 @@ class Test(metricbeat.BaseTest):
+             network = evt["system"]["network"]
+             self.assertItemsEqual(self.de_dot(SYSTEM_NETWORK_FIELDS), network.keys())
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|aix", sys.platform), "os")
+     def test_process_summary(self):
+         """
+         Test system/process_summary output.
+@@ -363,7 +363,7 @@ class Test(metricbeat.BaseTest):
+             assert summary["total"] == summary["sleeping"] + summary["running"] + \
+                 summary["idle"] + summary["stopped"] + summary["zombie"] + summary["unknown"]
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|aix", sys.platform), "os")
+     def test_process(self):
+         """
+         Test system/process output.
+@@ -425,7 +425,7 @@ class Test(metricbeat.BaseTest):
+                 or sys.platform.startswith("darwin"):
+             self.assertTrue(found_env, "env not found in any process events")
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|aix", sys.platform), "os")
+     def test_process_metricbeat(self):
+         """
+         Checks that the per proc stats are found in the output and
+@@ -450,7 +450,7 @@ class Test(metricbeat.BaseTest):
+         assert isinstance(output["system.process.cpu.start_time"], six.string_types)
+         self.check_username(output["user.name"])
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|aix", sys.platform), "os")
+     def test_socket_summary(self):
+         """
+         Test system/socket_summary output.
+diff --git a/metricbeat/module/system/uptime/uptime.go b/metricbeat/module/system/uptime/uptime.go
+index 1e4ebeada..1a5fb5f81 100644
+--- a/metricbeat/module/system/uptime/uptime.go
++++ b/metricbeat/module/system/uptime/uptime.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin linux openbsd windows freebsd,cgo
++// +build aix darwin linux openbsd windows freebsd,cgo
+ 
+ package uptime
+ 
+diff --git a/metricbeat/module/system/uptime/uptime_test.go b/metricbeat/module/system/uptime/uptime_test.go
+index f7262b510..89d2f7c28 100644
+--- a/metricbeat/module/system/uptime/uptime_test.go
++++ b/metricbeat/module/system/uptime/uptime_test.go
+@@ -15,7 +15,7 @@
+ // specific language governing permissions and limitations
+ // under the License.
+ 
+-// +build darwin linux openbsd windows freebsd,cgo
++// +build aix darwin linux openbsd windows freebsd,cgo
+ 
+ package uptime
+ 
+diff --git a/metricbeat/tests/system/test_base.py b/metricbeat/tests/system/test_base.py
+index 59fb16c7c..e3bdda96e 100644
+--- a/metricbeat/tests/system/test_base.py
++++ b/metricbeat/tests/system/test_base.py
+@@ -12,7 +12,7 @@ class Test(BaseTest):
+ 
+     COMPOSE_SERVICES = ['elasticsearch', 'kibana']
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_start_stop(self):
+         """
+         Metricbeat starts and stops without error.
+diff --git a/metricbeat/tests/system/test_processors.py b/metricbeat/tests/system/test_processors.py
+index 92a73ddc2..24340a615 100644
+--- a/metricbeat/tests/system/test_processors.py
++++ b/metricbeat/tests/system/test_processors.py
+@@ -4,7 +4,7 @@ import metricbeat
+ import unittest
+ 
+ 
+-@unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd", sys.platform), "os")
++@unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|aix", sys.platform), "os")
+ class Test(metricbeat.BaseTest):
+ 
+     def test_drop_fields(self):
+diff --git a/metricbeat/tests/system/test_reload.py b/metricbeat/tests/system/test_reload.py
+index 02d29d175..82e8a4303 100644
+--- a/metricbeat/tests/system/test_reload.py
++++ b/metricbeat/tests/system/test_reload.py
+@@ -16,7 +16,7 @@ import time
+ 
+ class Test(metricbeat.BaseTest):
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_reload(self):
+         """
+         Test basic reload
+@@ -42,7 +42,7 @@ class Test(metricbeat.BaseTest):
+         self.wait_until(lambda: self.output_lines() > 0)
+         proc.check_kill_and_wait()
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_start_stop(self):
+         def reload_line(
+             num_runners): return "Starting reload procedure, current runners: %d" % num_runners
+@@ -90,7 +90,7 @@ class Test(metricbeat.BaseTest):
+ 
+         proc.check_kill_and_wait()
+ 
+-    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd", sys.platform), "os")
++    @unittest.skipUnless(re.match("(?i)win|linux|darwin|freebsd|openbsd|aix", sys.platform), "os")
+     def test_wrong_module_no_reload(self):
+         """
+         Test beat errors when reload is disabled and some module config is wrong
+-- 
+2.22.0
+

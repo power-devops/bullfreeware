@@ -1,0 +1,11 @@
+--- ./configure.orig	2020-02-26 14:16:10 +0100
++++ ./configure	2020-02-26 14:16:27 +0100
+@@ -27464,7 +27464,7 @@
+                         TRY_LINK='$(CC) -oconftest $(INCFLAGS) -I$(hdrdir) $(CPPFLAGS)'
+                         TRY_LINK="$TRY_LINK"' $(CFLAGS) $(src) $(LIBPATH) $(LDFLAGS) $(LOCAL_LIBS) $(LIBS)'
+ 			: ${LIBPATHENV=LIBPATH}
+-			: ${PRELOADENV=LDR_PRELOAD}
++			: ${PRELOADENV=LDR_PRELOAD64}
+ 			rb_cv_dlopen=yes ;; #(
+   nto-qnx*) :
+     	DLDFLAGS="$DLDFLAGS -L/lib -L/usr/lib -L/usr/local/lib"

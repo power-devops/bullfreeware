@@ -1,0 +1,13 @@
+Index: libgpg-error-1.10/src/mkstrtable.awk
+===================================================================
+--- libgpg-error-1.10.orig/src/mkstrtable.awk	2010-01-21 12:09:02.000000000 +0100
++++ libgpg-error-1.10/src/mkstrtable.awk	2011-06-15 10:06:03.000000000 +0200
+@@ -157,7 +157,7 @@
+   print "    " pos[coded_msgs];
+   print "  };";
+   print "";
+-  print "static inline int";
++  print "static int";
+   print namespace "msgidxof (int code)";
+   print "{";
+   print "  return (0 ? 0";

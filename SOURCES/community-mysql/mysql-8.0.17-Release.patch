@@ -1,0 +1,18 @@
+--- ./sql/CMakeLists.txt.ORIGIN	2019-10-09 17:48:58 -0500
++++ ./sql/CMakeLists.txt	2019-10-09 17:51:09 -0500
+@@ -870,10 +870,12 @@
+ # 8.0.17 symbols from deleted libmyisam_sys are now in libmyisam_library
+ # 8.0.16/7 require symbol _ZN10binary_log4Uuid5parseEPKcm in libbinlogevents
+   add_custom_target(mysqld_symbols
+-    COMMAND printf "#! .\\n" > ./libmysqld.exp.1
++    COMMAND printf "#! .\\n" > ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
+     COMMAND CreateExportList   ./libmysqld.exp.2 ../archive_output_directory/libdbug.a ../archive_output_directory/libmysys.a ../archive_output_directory/libmytime.a ../archive_output_directory/libstrings.a ../archive_output_directory/libvio.a ../components/mysql_server/component_mysql_server.a ../extra/icu/source/common/libicuuc.a ../extra/icu/source/i18n/libicui18n.a ../extra/icu/source/stubdata/libicustubdata.a ../extra/libevent/lib/libevent.a ../libbinlogevents/lib/libbinlogevents.a ../plugin/fulltext/libngram_parser.a ../plugin/x/libmysqlx.a ../plugin/x/protocol/libmysqlxmessages_lite.a ../sql/libbinlog.a ../sql/libmaster.a ../sql/librpl.a ../sql/libslave.a ../sql/libsql_dd.a ../sql/libsql_gis.a ../sql/libsql_main.a ../storage/archive/libarchive.a ../storage/blackhole/libblackhole.a ../storage/csv/libcsv.a ../storage/federated/libfederated.a ../storage/heap/libheap.a ../storage/innobase/libinnobase.a ../storage/myisam/libmyisam.a ../storage/myisam/libmyisam_library.a ../storage/myisammrg/libmyisammrg.a ../storage/perfschema/libperfschema.a ../storage/temptable/libtemptable.a  -X64
+-    COMMAND cat ./libmysqld.exp.1 ./libmysqld.exp.2 > ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
+-    COMMAND rm  ./libmysqld.exp.1 ./libmysqld.exp.2
++    COMMAND printf "current_th\\n"  >> ./libmysqld.exp.2
++    COMMAND printf "current_thd\\n" >> ./libmysqld.exp.2
++    COMMAND sort -u                    ./libmysqld.exp.2 >> ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++    COMMAND rm                         ./libmysqld.exp.2
+     VERBATIM
+   )
+   ADD_DEPENDENCIES(mysqld_symbols archive binlog blackhole component_mysql_server csv dbug event federated heap icui18n icustubdata icuuc innobase master myisam myisam_library myisammrg mysqlx mysqlxmessages_lite mysys mytime ngram_parser perfschema rpl slave sql_dd sql_gis sql_main strings temptable vio)

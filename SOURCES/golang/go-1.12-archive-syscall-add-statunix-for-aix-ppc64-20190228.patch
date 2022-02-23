@@ -1,0 +1,72 @@
+From 8e8abf368d5b8050f40408b23a4027824351f674 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 11:27:41 +0100
+Subject: [PATCH] archive/tar, syscall: add statUnix for aix/ppc64
+
+This commit add statUnix function for aix/ppc64. It also adds Unix
+and Nano methods for AIX time structure.
+
+Change-Id: I9fd62d34a47e87cd46f2f936cb736da0bdff7959
+Reviewed-on: https://go-review.googlesource.com/c/163957
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/archive/tar/stat_actime1.go b/src/archive/tar/stat_actime1.go
+index cf9cc79..1bdd1c9 100644
+--- a/src/archive/tar/stat_actime1.go
++++ b/src/archive/tar/stat_actime1.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux dragonfly openbsd solaris
++// +build aix linux dragonfly openbsd solaris
+ 
+ package tar
+ 
+diff --git a/src/archive/tar/stat_unix.go b/src/archive/tar/stat_unix.go
+index 868105f..d1576db 100644
+--- a/src/archive/tar/stat_unix.go
++++ b/src/archive/tar/stat_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux darwin dragonfly freebsd openbsd netbsd solaris
++// +build aix linux darwin dragonfly freebsd openbsd netbsd solaris
+ 
+ package tar
+ 
+@@ -54,6 +54,11 @@
+ 	if h.Typeflag == TypeChar || h.Typeflag == TypeBlock {
+ 		dev := uint64(sys.Rdev) // May be int32 or uint32
+ 		switch runtime.GOOS {
++		case "aix":
++			var major, minor uint32
++			major = uint32((dev & 0x3fffffff00000000) >> 32)
++			minor = uint32((dev & 0x00000000ffffffff) >> 0)
++			h.Devmajor, h.Devminor = int64(major), int64(minor)
+ 		case "linux":
+ 			// Copied from golang.org/x/sys/unix/dev_linux.go.
+ 			major := uint32((dev & 0x00000000000fff00) >> 8)
+diff --git a/src/syscall/syscall_aix.go b/src/syscall/syscall_aix.go
+index 186522b..4947248 100644
+--- a/src/syscall/syscall_aix.go
++++ b/src/syscall/syscall_aix.go
+@@ -28,6 +28,14 @@
+ 	SYS_FCNTL
+ )
+ 
++func (ts *StTimespec_t) Unix() (sec int64, nsec int64) {
++	return int64(ts.Sec), int64(ts.Nsec)
++}
++
++func (ts *StTimespec_t) Nano() int64 {
++	return int64(ts.Sec)*1e9 + int64(ts.Nsec)
++}
++
+ /*
+  * Wrapped
+  */

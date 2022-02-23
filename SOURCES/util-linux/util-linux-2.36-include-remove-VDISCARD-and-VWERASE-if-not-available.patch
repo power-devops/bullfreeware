@@ -1,0 +1,29 @@
+From 10301d9d657739b9fe5587c038c5f8ce0a6f9dd0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 15 Sep 2021 16:24:46 +0200
+Subject: [PATCH] include: remove VDISCARD and VWERASE if not available
+
+---
+ include/ttyutils.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/ttyutils.h b/include/ttyutils.h
+index 5f58460..bf14ba6 100644
+--- a/include/ttyutils.h
++++ b/include/ttyutils.h
+@@ -196,8 +196,12 @@ static inline void reset_virtual_console(struct termios *tp, int flags)
+ 	tp->c_cc[VSUSP]    = CSUSP;
+ 	tp->c_cc[VEOL]     = _POSIX_VDISABLE;
+ 	tp->c_cc[VREPRINT] = CREPRINT;
++#ifdef VDISCARD
+ 	tp->c_cc[VDISCARD] = CDISCARD;
++#endif
++#ifdef VWERASE
+ 	tp->c_cc[VWERASE]  = CWERASE;
++#endif
+ 	tp->c_cc[VLNEXT]   = CLNEXT;
+ 	tp->c_cc[VEOL2]    = _POSIX_VDISABLE;
+ }
+-- 
+2.33.0
+

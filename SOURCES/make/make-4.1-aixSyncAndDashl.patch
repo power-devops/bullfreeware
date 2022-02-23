@@ -1,0 +1,24 @@
+Index: make-4.1/main.c
+===================================================================
+--- make-4.1.orig/main.c	2014-10-05 18:24:51.000000000 +0200
++++ make-4.1/main.c	2015-11-18 16:56:13.000000000 +0100
+@@ -343,7 +343,8 @@
+   -k, --keep-going            Keep going when some targets can't be made.\n"),
+     N_("\
+   -l [N], --load-average[=N], --max-load[=N]\n\
+-                              Don't start multiple jobs unless load is below N.\n"),
++                              Don't start multiple jobs unless load is below N.\n\
++			      Feature not supported on AIX.\n"),
+     N_("\
+   -L, --check-symlink-times   Use the latest mtime between symlinks and target.\n"),
+     N_("\
+@@ -354,7 +355,8 @@
+                               Consider FILE to be very old and don't remake it.\n"),
+     N_("\
+   -O[TYPE], --output-sync[=TYPE]\n\
+-                              Synchronize output of parallel jobs by TYPE.\n"),
++                              Synchronize output of parallel jobs by TYPE.\n\
++			      Feature not supported on AIX.\n"),
+     N_("\
+   -p, --print-data-base       Print make's internal database.\n"),
+     N_("\

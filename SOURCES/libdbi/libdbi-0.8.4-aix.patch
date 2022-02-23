@@ -1,0 +1,23 @@
+*** ./include/dbi/dbi.h.in.ORIG	Thu Nov 11 14:27:31 2010
+--- ./include/dbi/dbi.h.in	Thu Nov 11 15:09:40 2010
+***************
+*** 66,72 ****
+  #  define SIZE_T_MAX UINT_MAX
+  #endif
+  #ifndef ULLONG_MAX
+! #  define ULLONG_MAX ULONG_LONG_MAX
+  #endif
+  
+  typedef struct {
+--- 66,76 ----
+  #  define SIZE_T_MAX UINT_MAX
+  #endif
+  #ifndef ULLONG_MAX
+! #  if defined(_LONG_LONG) || defined(__64BIT__)
+! #    define ULLONG_MAX  (18446744073709551615ULL)
+! #  else
+! #    define ULLONG_MAX  ULONG_MAX
+! #  endif
+  #endif
+  
+  typedef struct {

@@ -1,0 +1,399 @@
+diff -crN ./liboil/examples/jpeg/jpeg_debug.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/jpeg/jpeg_debug.h
+*** ./liboil/examples/jpeg/jpeg_debug.h	Wed Dec 22 05:14:00 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/jpeg/jpeg_debug.h	Wed Apr 12 11:07:54 2006
+***************
+*** 2,8 ****
+  #ifndef _JPEG_DEBUG_H_
+  #define _JPEG_DEBUG_H_
+  
+! #define JPEG_DEBUG(n, format...)	do{ \
+  	if((n)<=JPEG_DEBUG_LEVEL)jpeg_debug((n),format); \
+  }while(0)
+  #define JPEG_DEBUG_LEVEL 4
+--- 2,8 ----
+  #ifndef _JPEG_DEBUG_H_
+  #define _JPEG_DEBUG_H_
+  
+! #define JPEG_DEBUG(n, format,...)	do{ \
+  	if((n)<=JPEG_DEBUG_LEVEL)jpeg_debug((n),format); \
+  }while(0)
+  #define JPEG_DEBUG_LEVEL 4
+diff -crN ./liboil/examples/jpeg/jpeg_rgb_internal.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/jpeg/jpeg_rgb_internal.h
+*** ./liboil/examples/jpeg/jpeg_rgb_internal.h	Wed Dec 22 05:14:00 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/jpeg/jpeg_rgb_internal.h	Wed Apr 12 11:07:55 2006
+***************
+*** 7,13 ****
+  #include "bits.h"
+  
+  
+! #define JPEG_DEBUG(n, format...)	do{ \
+  	if((n)<=JPEG_DEBUG_LEVEL)jpeg_debug((n),format); \
+  }while(0)
+  #define JPEG_DEBUG_LEVEL 4
+--- 7,13 ----
+  #include "bits.h"
+  
+  
+! #define JPEG_DEBUG(n, format,...)	do{ \
+  	if((n)<=JPEG_DEBUG_LEVEL)jpeg_debug((n),format); \
+  }while(0)
+  #define JPEG_DEBUG_LEVEL 4
+diff -crN ./liboil/examples/oil-test.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/oil-test.c
+*** ./liboil/examples/oil-test.c	Wed Dec 21 03:59:39 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/oil-test.c	Wed Apr 12 11:07:56 2006
+***************
+*** 177,184 ****
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+          printf ("  %s:\n", p->parameter_name);
+!         dump_array (p->test_data + OIL_TEST_HEADER,
+!             p->ref_data + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+--- 177,184 ----
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+          printf ("  %s:\n", p->parameter_name);
+!         dump_array ((char *)(p->test_data) + OIL_TEST_HEADER,
+!             (char *)(p->ref_data) + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+***************
+*** 194,201 ****
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 's') {
+          printf ("  %s:\n", p->parameter_name);
+!         dump_array (p->src_data + OIL_TEST_HEADER,
+!             p->src_data + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+--- 194,201 ----
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 's') {
+          printf ("  %s:\n", p->parameter_name);
+!         dump_array ((char *)(p->src_data) + OIL_TEST_HEADER,
+!             (char *)(p->src_data) + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+diff -crN ./liboil/examples/work/work.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/work/work.c
+*** ./liboil/examples/work/work.c	Mon Aug  1 12:10:33 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/examples/work/work.c	Wed Apr 12 11:07:57 2006
+***************
+*** 131,138 ****
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+          g_print ("  %s:\n", p->parameter_name);
+!         dump_array (p->test_data + OIL_TEST_HEADER,
+!             p->ref_data + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+--- 131,138 ----
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+          g_print ("  %s:\n", p->parameter_name);
+!         dump_array ((char *)(p->test_data) + OIL_TEST_HEADER,
+!             (char *)(p->ref_data) + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+***************
+*** 148,155 ****
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 's') {
+          g_print ("  %s:\n", p->parameter_name);
+!         dump_array (p->src_data + OIL_TEST_HEADER,
+!             p->src_data + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+--- 148,155 ----
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 's') {
+          g_print ("  %s:\n", p->parameter_name);
+!         dump_array ((char *)(p->src_data) + OIL_TEST_HEADER,
+!             (char *)(p->src_data) + OIL_TEST_HEADER,
+              p->type, p->pre_n, p->stride, p->post_n);
+        }
+      }
+diff -crN ./liboil/liboil/c/ag_clamp.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/c/ag_clamp.c
+*** ./liboil/liboil/c/ag_clamp.c	Mon Dec 26 22:56:56 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/c/ag_clamp.c	Fri Apr  7 14:29:54 2006
+***************
+*** 30,39 ****
+  #include "config.h"
+  #endif
+  
+- #include <math.h>
+- 
+  #include <liboil/liboil.h>
+  #include <liboil/liboilclasses.h>
+  
+  static void
+  clamp_s8_pointer (oil_type_s8 *dest, oil_type_s8 *src1,
+--- 30,38 ----
+  #include "config.h"
+  #endif
+  
+  #include <liboil/liboil.h>
+  #include <liboil/liboilclasses.h>
++ #include <math.h>
+  
+  static void
+  clamp_s8_pointer (oil_type_s8 *dest, oil_type_s8 *src1,
+diff -crN ./liboil/liboil/dct/idct8x8_c.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/dct/idct8x8_c.c
+*** ./liboil/liboil/dct/idct8x8_c.c	Wed Dec 21 04:05:11 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/dct/idct8x8_c.c	Wed Apr 12 11:07:58 2006
+***************
+*** 43,55 ****
+   */
+  
+  #define BLOCK8x8_F64(ptr, stride, row, column) \
+! 	(*((double *)((void *)ptr + stride*row) + column))
+  
+  #define BLOCK8x8_PTR_F64(ptr, stride, row, column) \
+! 	((double *)((void *)ptr + stride*row) + column)
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((void *)ptr + stride*row) + column))
+  
+  static void
+  idct8x8_test (OilTest *test)
+--- 43,55 ----
+   */
+  
+  #define BLOCK8x8_F64(ptr, stride, row, column) \
+! 	(*((double *)((char *)((void *)ptr) + stride*row) + column))
+  
+  #define BLOCK8x8_PTR_F64(ptr, stride, row, column) \
+! 	((double *)((char *)((void *)ptr) + stride*row) + column)
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((char *)((void *)ptr) + stride*row) + column))
+  
+  static void
+  idct8x8_test (OilTest *test)
+diff -crN ./liboil/liboil/jpeg/convert8x8_c.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/jpeg/convert8x8_c.c
+*** ./liboil/liboil/jpeg/convert8x8_c.c	Mon Mar  6 20:59:14 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/jpeg/convert8x8_c.c	Wed Apr 12 11:07:58 2006
+***************
+*** 74,89 ****
+      "uint8_t * d_8x8, int dstr, int16_t * s_8x8, int sstr");
+  
+  #define BLOCK8x8_F64(ptr, stride, row, column) \
+! 	(*((double *)((void *)ptr + stride*row) + column))
+  
+  #define BLOCK8x8_PTR_F64(ptr, stride, row, column) \
+! 	((double *)((void *)ptr + stride*row) + column)
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((void *)ptr + stride*row) + column))
+  
+  #define BLOCK8x8_U8(ptr, stride, row, column) \
+! 	(*((uint8_t *)((void *)ptr + stride*row) + column))
+  
+  
+  static void
+--- 74,89 ----
+      "uint8_t * d_8x8, int dstr, int16_t * s_8x8, int sstr");
+  
+  #define BLOCK8x8_F64(ptr, stride, row, column) \
+! 	(*((double *)((char *)((void *)ptr) + stride*row) + column))
+  
+  #define BLOCK8x8_PTR_F64(ptr, stride, row, column) \
+! 	((double *)((char *)((void *)ptr) + stride*row) + column)
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((char *)((void *)ptr) + stride*row) + column))
+  
+  #define BLOCK8x8_U8(ptr, stride, row, column) \
+! 	(*((uint8_t *)((char *)((void *)ptr) + stride*row) + column))
+  
+  
+  static void
+diff -crN ./liboil/liboil/jpeg/quantize8x8_c.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/jpeg/quantize8x8_c.c
+*** ./liboil/liboil/jpeg/quantize8x8_c.c	Sun Nov 13 20:47:05 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/jpeg/quantize8x8_c.c	Wed Apr 12 11:07:59 2006
+***************
+*** 48,54 ****
+      "int16_t *s2_8x8, int sstr2");
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((void *)ptr + stride*row) + column))
+  
+  static void
+  dequantize8x8_s16_ref (int16_t *dest, int dstr, int16_t *src, int sstr,
+--- 48,54 ----
+      "int16_t *s2_8x8, int sstr2");
+  
+  #define BLOCK8x8_S16(ptr, stride, row, column) \
+! 	(*((int16_t *)((char *)((void *)ptr) + stride*row) + column))
+  
+  static void
+  dequantize8x8_s16_ref (int16_t *dest, int dstr, int16_t *src, int sstr,
+diff -crN ./liboil/liboil/liboil.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboil.h
+*** ./liboil/liboil/liboil.h	Sat Dec 10 20:12:21 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboil.h	Wed Apr 12 11:08:00 2006
+***************
+*** 28,34 ****
+  #ifndef _LIBOIL_H_
+  #define _LIBOIL_H_
+  
+! #include <liboil/liboil-stdint.h>
+  
+  #include <liboil/liboilfuncs.h>
+  
+--- 28,34 ----
+  #ifndef _LIBOIL_H_
+  #define _LIBOIL_H_
+  
+! #include <inttypes.h>
+  
+  #include <liboil/liboilfuncs.h>
+  
+diff -crN ./liboil/liboil/liboilgcc.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboilgcc.h
+*** ./liboil/liboil/liboilgcc.h	Sat Dec 10 20:11:44 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboilgcc.h	Wed Apr 12 11:08:01 2006
+***************
+*** 32,38 ****
+  #error liboilgcc.h should only be included if the compiler is GCC
+  #endif
+  
+! #include <liboil/liboil-stdint.h>
+  
+  typedef int8_t vec_s8 __attribute__ ((mode(V8QI)));
+  typedef uint8_t vec_u8 __attribute__ ((mode(V8QI)));
+--- 32,38 ----
+  #error liboilgcc.h should only be included if the compiler is GCC
+  #endif
+  
+! #include <inttypes.h>
+  
+  typedef int8_t vec_s8 __attribute__ ((mode(V8QI)));
+  typedef uint8_t vec_u8 __attribute__ ((mode(V8QI)));
+diff -crN ./liboil/liboil/liboilprofile.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboilprofile.h
+*** ./liboil/liboil/liboilprofile.h	Thu Dec 22 21:57:06 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboilprofile.h	Wed Apr 12 11:08:02 2006
+***************
+*** 28,34 ****
+  #ifndef _LIBOIL_PROFILE_H_
+  #define _LIBOIL_PROFILE_H_
+  
+! #include <liboil/liboil-stdint.h>
+  
+  /**
+   * OIL_PROFILE_HIST_LENGTH
+--- 28,34 ----
+  #ifndef _LIBOIL_PROFILE_H_
+  #define _LIBOIL_PROFILE_H_
+  
+! #include <inttypes.h>
+  
+  /**
+   * OIL_PROFILE_HIST_LENGTH
+diff -crN ./liboil/liboil/liboiltest.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboiltest.c
+*** ./liboil/liboil/liboiltest.c	Sun Jan 29 20:14:52 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboiltest.c	Wed Apr 12 11:08:03 2006
+***************
+*** 370,377 ****
+  
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+!         x += check_array (p->test_data + p->test_header,
+!             p->ref_data + p->test_header, p->type, p->pre_n, p->stride,
+              p->post_n);
+          n += p->pre_n * p->post_n;
+          if (!check_guard (p->test_data, p->test_header, p->guard)) {
+--- 370,377 ----
+  
+      if (p->is_pointer) {
+        if (p->direction == 'i' || p->direction == 'd') {
+!         x += check_array ((char *)(p->test_data) + p->test_header,
+!             (char *)(p->ref_data) + p->test_header, p->type, p->pre_n, p->stride,
+              p->post_n);
+          n += p->pre_n * p->post_n;
+          if (!check_guard (p->test_data, p->test_header, p->guard)) {
+***************
+*** 499,505 ****
+      OIL_DEBUG("allocating %d bytes for src_data for %s", p->size, p->parameter_name);
+      p->src_data = malloc (p->size);
+      memset (p->src_data, p->guard, p->size);
+!     fill_array (p->src_data + p->test_header, p->type, p->pre_n, p->stride, p->post_n);
+    }
+  
+    if (p->direction == 'i' || p->direction == 'd') {
+--- 499,505 ----
+      OIL_DEBUG("allocating %d bytes for src_data for %s", p->size, p->parameter_name);
+      p->src_data = malloc (p->size);
+      memset (p->src_data, p->guard, p->size);
+!     fill_array ((char *)(p->src_data) + p->test_header, p->type, p->pre_n, p->stride, p->post_n);
+    }
+  
+    if (p->direction == 'i' || p->direction == 'd') {
+***************
+*** 664,670 ****
+    }
+  
+    for(i=0;i<post_n;i++){
+!     if (!check_guard (data + stride * i + chunk_size, hole_size, guard)) {
+        return 0;
+      }
+    }
+--- 664,670 ----
+    }
+  
+    for(i=0;i<post_n;i++){
+!     if (!check_guard ((char *)(data) + stride * i + chunk_size, hole_size, guard)) {
+        return 0;
+      }
+    }
+diff -crN ./liboil/liboil/liboiltypes.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboiltypes.h
+*** ./liboil/liboil/liboiltypes.h	Sun Dec 18 01:46:37 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/liboiltypes.h	Wed Apr 12 11:08:04 2006
+***************
+*** 28,34 ****
+  #ifndef _LIBOIL_TYPES_H_
+  #define _LIBOIL_TYPES_H_
+  
+! #include <liboil/liboil-stdint.h>
+  
+  /**
+   * NULL:
+--- 28,34 ----
+  #ifndef _LIBOIL_TYPES_H_
+  #define _LIBOIL_TYPES_H_
+  
+! #include <inttypes.h>
+  
+  /**
+   * NULL:
+diff -crN ./liboil/liboil/ref/clamp.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/ref/clamp.c
+*** ./liboil/liboil/ref/clamp.c	Mon Mar  6 20:59:14 2006
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./liboil/liboil/ref/clamp.c	Wed Apr 12 11:08:04 2006
+***************
+*** 53,62 ****
+  static void clamp_ ## type ## _test (OilTest *test) \
+  { \
+    oil_type_ ## type *lo = (oil_type_ ## type *) \
+!       (test->params[OIL_ARG_SRC2].src_data + \
+         test->params[OIL_ARG_SRC2].test_header); \
+    oil_type_ ## type *hi = (oil_type_ ## type *) \
+!       (test->params[OIL_ARG_SRC3].src_data + \
+         test->params[OIL_ARG_SRC3].test_header); \
+    if (*lo > *hi) { \
+      oil_type_ ## type tmp; \
+--- 53,62 ----
+  static void clamp_ ## type ## _test (OilTest *test) \
+  { \
+    oil_type_ ## type *lo = (oil_type_ ## type *) \
+!       ((char *)(test->params[OIL_ARG_SRC2].src_data) + \
+         test->params[OIL_ARG_SRC2].test_header); \
+    oil_type_ ## type *hi = (oil_type_ ## type *) \
+!       ((char *)(test->params[OIL_ARG_SRC3].src_data) + \
+         test->params[OIL_ARG_SRC3].test_header); \
+    if (*lo > *hi) { \
+      oil_type_ ## type tmp; \

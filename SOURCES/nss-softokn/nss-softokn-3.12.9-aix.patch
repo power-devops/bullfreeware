@@ -1,0 +1,52 @@
+*** ./mozilla/security/nss/lib/freebl/stubs.c.ORIG	Sun Feb  6 12:19:02 2011
+--- ./mozilla/security/nss/lib/freebl/stubs.c	Sun Feb  6 12:21:29 2011
+***************
+*** 345,350 ****
+--- 345,354 ----
+  extern char *
+  PR_GetLibraryFilePathname_stub(const char *name, PRFuncPtr addr)
+  {
++ #ifdef _AIX
++ /* AIX does not have Dl_info in <dlfcn.h> and dladdr() ! */
++     return NULL;
++ #else
+      Dl_info dli;
+      char *result;
+  
+***************
+*** 358,363 ****
+--- 362,368 ----
+          strcpy(result, dli.dli_fname);
+      }
+      return result;
++ #endif
+  }
+  
+  
+***************
+*** 538,545 ****
+--- 543,554 ----
+  /*
+   * fetch the library if it's loaded. For NSS it should already be loaded
+   */
++ #ifdef _AIX
++ #define freebl_getLibrary(libName) dlopen(libName, RTLD_LAZY)
++ #else
+  #define freebl_getLibrary(libName)  \
+      dlopen (libName, RTLD_LAZY|RTLD_NOLOAD)
++ #endif
+  
+  #define freebl_releaseLibrary(lib) \
+      if (lib) dlclose(lib)
+*** ./mozilla/security/nss/cmd/manifest.mn.ORIG	Sun Feb  6 21:49:43 2011
+--- ./mozilla/security/nss/cmd/manifest.mn	Sun Feb  6 21:49:52 2011
+***************
+*** 70,76 ****
+   selfserv  \
+   signtool \
+   signver \
+-  shlibsign \
+   smimetools  \
+   ssltap  \
+   strsclnt \
+--- 70,75 ----

@@ -1,0 +1,146 @@
+From 816e493495e7d86fc2d537b599feea5b8c368cc6 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:13:01 +0200
+Subject: [PATCH] internal/poll: add AIX operating system
+
+This commit adds AIX operating system to internal/poll package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: I9b1da9255012de58f16547c1b18f8840485da170
+Reviewed-on: https://go-review.googlesource.com/c/138717
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/internal/poll/export_posix_test.go b/src/internal/poll/export_posix_test.go
+index 73b2c11..6b9bb8b 100644
+--- a/src/internal/poll/export_posix_test.go
++++ b/src/internal/poll/export_posix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ // Export guts for testing on posix.
+ // Since testing imports os and os imports internal/poll,
+diff --git a/src/internal/poll/fd_poll_runtime.go b/src/internal/poll/fd_poll_runtime.go
+index 87a01a8..b91cbe4 100644
+--- a/src/internal/poll/fd_poll_runtime.go
++++ b/src/internal/poll/fd_poll_runtime.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd windows solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd windows solaris
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/fd_posix.go b/src/internal/poll/fd_posix.go
+index f899a74..b43ad51 100644
+--- a/src/internal/poll/fd_posix.go
++++ b/src/internal/poll/fd_posix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris windows
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/fd_posix_test.go b/src/internal/poll/fd_posix_test.go
+index cbe015e..246d498 100644
+--- a/src/internal/poll/fd_posix_test.go
++++ b/src/internal/poll/fd_posix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris windows
+ 
+ package poll_test
+ 
+diff --git a/src/internal/poll/fd_unix.go b/src/internal/poll/fd_unix.go
+index b311049..21966ad 100644
+--- a/src/internal/poll/fd_unix.go
++++ b/src/internal/poll/fd_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/hook_unix.go b/src/internal/poll/hook_unix.go
+index c2ad17e..a7512b1 100644
+--- a/src/internal/poll/hook_unix.go
++++ b/src/internal/poll/hook_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/sockopt.go b/src/internal/poll/sockopt.go
+index f86ce70..bb5ea02 100644
+--- a/src/internal/poll/sockopt.go
++++ b/src/internal/poll/sockopt.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/sockopt_unix.go b/src/internal/poll/sockopt_unix.go
+index b33644d..bd942c2 100644
+--- a/src/internal/poll/sockopt_unix.go
++++ b/src/internal/poll/sockopt_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/sockoptip.go b/src/internal/poll/sockoptip.go
+index 1ee490c..c55a1e3 100644
+--- a/src/internal/poll/sockoptip.go
++++ b/src/internal/poll/sockoptip.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris windows
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
+ 
+ package poll
+ 
+diff --git a/src/internal/poll/sys_cloexec.go b/src/internal/poll/sys_cloexec.go
+index 7bafa0d..64e4612 100644
+--- a/src/internal/poll/sys_cloexec.go
++++ b/src/internal/poll/sys_cloexec.go
+@@ -5,7 +5,7 @@
+ // This file implements sysSocket and accept for platforms that do not
+ // provide a fast path for setting SetNonblock and CloseOnExec.
+ 
+-// +build darwin js,wasm nacl solaris
++// +build aix darwin js,wasm nacl solaris
+ 
+ package poll
+ 

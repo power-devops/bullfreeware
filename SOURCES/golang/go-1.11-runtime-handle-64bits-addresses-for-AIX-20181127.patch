@@ -1,0 +1,219 @@
+From 041526c6ef669743afc6c4b757b95011f1475d1a Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 01 Oct 2018 09:58:40 +0200
+Subject: [PATCH] runtime: handle 64bits addresses for AIX
+
+This commit allows the runtime to handle 64bits addresses returned by
+mmap syscall on AIX.
+
+Mmap syscall returns addresses on 59bits on AIX. But the Arena
+implementation only allows addresses with less than 48 bits.
+This commit increases the arena size up to 1<<60 for aix/ppc64.
+
+Update: #25893
+
+Change-Id: Iea72e8a944d10d4f00be915785e33ae82dd6329e
+Reviewed-on: https://go-review.googlesource.com/c/138736
+Reviewed-by: Austin Clements <austin@google.com>
+---
+
+diff --git a/src/cmd/compile/internal/ppc64/galign.go b/src/cmd/compile/internal/ppc64/galign.go
+index ce805f4..da971d8 100644
+--- a/src/cmd/compile/internal/ppc64/galign.go
++++ b/src/cmd/compile/internal/ppc64/galign.go
+@@ -16,7 +16,7 @@
+ 		arch.LinkArch = &ppc64.Linkppc64le
+ 	}
+ 	arch.REGSP = ppc64.REGSP
+-	arch.MAXWIDTH = 1 << 50
++	arch.MAXWIDTH = 1 << 60
+ 
+ 	arch.ZeroRange = zerorange
+ 	arch.ZeroAuto = zeroAuto
+diff --git a/src/runtime/lfstack_64bit.go b/src/runtime/lfstack_64bit.go
+index 4ce7d2a..ea3455a 100644
+--- a/src/runtime/lfstack_64bit.go
++++ b/src/runtime/lfstack_64bit.go
+@@ -28,9 +28,20 @@
+ 	// bottom, because node must be pointer-aligned, giving a total of 19 bits
+ 	// of count.
+ 	cntBits = 64 - addrBits + 3
++
++	// On AIX, 64-bit addresses are split into 36-bit segment number and 28-bit
++	// offset in segment.  Segment numbers in the range 0x0A0000000-0x0AFFFFFFF(LSA)
++	// are available for mmap.
++	// We assume all lfnode addresses are from memory allocated with mmap.
++	// We use one bit to distinguish between the two ranges.
++	aixAddrBits = 57
++	aixCntBits  = 64 - aixAddrBits + 3
+ )
+ 
+ func lfstackPack(node *lfnode, cnt uintptr) uint64 {
++	if GOARCH == "ppc64" && GOOS == "aix" {
++		return uint64(uintptr(unsafe.Pointer(node)))<<(64-aixAddrBits) | uint64(cnt&(1<<aixCntBits-1))
++	}
+ 	return uint64(uintptr(unsafe.Pointer(node)))<<(64-addrBits) | uint64(cnt&(1<<cntBits-1))
+ }
+ 
+@@ -40,5 +51,8 @@
+ 		// val before unpacking.
+ 		return (*lfnode)(unsafe.Pointer(uintptr(int64(val) >> cntBits << 3)))
+ 	}
++	if GOARCH == "ppc64" && GOOS == "aix" {
++		return (*lfnode)(unsafe.Pointer(uintptr((val >> aixCntBits << 3) | 0xa<<56)))
++	}
+ 	return (*lfnode)(unsafe.Pointer(uintptr(val >> cntBits << 3)))
+ }
+diff --git a/src/runtime/malloc.go b/src/runtime/malloc.go
+index e827dba..678e689 100644
+--- a/src/runtime/malloc.go
++++ b/src/runtime/malloc.go
+@@ -160,7 +160,7 @@
+ 	// amd64, addresses are sign-extended beyond heapAddrBits. On
+ 	// other arches, they are zero-extended.
+ 	//
+-	// On 64-bit platforms, we limit this to 48 bits based on a
++	// On most 64-bit platforms, we limit this to 48 bits based on a
+ 	// combination of hardware and OS limitations.
+ 	//
+ 	// amd64 hardware limits addresses to 48 bits, sign-extended
+@@ -178,10 +178,9 @@
+ 	// bits, in the range [0, 1<<48).
+ 	//
+ 	// ppc64, mips64, and s390x support arbitrary 64 bit addresses
+-	// in hardware. However, since Go only supports Linux on
+-	// these, we lean on OS limits. Based on Linux's processor.h,
+-	// the user address space is limited as follows on 64-bit
+-	// architectures:
++	// in hardware. On Linux, Go leans on stricter OS limits. Based
++	// on Linux's processor.h, the user address space is limited as
++	// follows on 64-bit architectures:
+ 	//
+ 	// Architecture  Name              Maximum Value (exclusive)
+ 	// ---------------------------------------------------------------------
+@@ -198,13 +197,17 @@
+ 	// exceed Go's 48 bit limit, it's extremely unlikely in
+ 	// practice.
+ 	//
++	// On aix/ppc64, the limits is increased to 1<<60 to accept addresses
++	// returned by mmap syscall. These are in range:
++	//  0x0a00000000000000 - 0x0afffffffffffff
++	//
+ 	// On 32-bit platforms, we accept the full 32-bit address
+ 	// space because doing so is cheap.
+ 	// mips32 only has access to the low 2GB of virtual memory, so
+ 	// we further limit it to 31 bits.
+ 	//
+ 	// WebAssembly currently has a limit of 4GB linear memory.
+-	heapAddrBits = (_64bit*(1-sys.GoarchWasm))*48 + (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle))
++	heapAddrBits = (_64bit*(1-sys.GoarchWasm)*(1-sys.GoosAix))*48 + (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)) + 60*sys.GoosAix
+ 
+ 	// maxAlloc is the maximum size of an allocation. On 64-bit,
+ 	// it's theoretically possible to allocate 1<<heapAddrBits bytes. On
+@@ -223,6 +226,7 @@
+ 	//       Platform  Addr bits  Arena size  L1 entries  L2 size
+ 	// --------------  ---------  ----------  ----------  -------
+ 	//       */64-bit         48        64MB           1     32MB
++	//     aix/64-bit         60       256MB        4096     32MB
+ 	// windows/64-bit         48         4MB          64      8MB
+ 	//       */32-bit         32         4MB           1      4KB
+ 	//     */mips(le)         31         4MB           1      2KB
+@@ -244,7 +248,7 @@
+ 	// logHeapArenaBytes is log_2 of heapArenaBytes. For clarity,
+ 	// prefer using heapArenaBytes where possible (we need the
+ 	// constant to compute some other constants).
+-	logHeapArenaBytes = (6+20)*(_64bit*(1-sys.GoosWindows)) + (2+20)*(_64bit*sys.GoosWindows) + (2+20)*(1-_64bit)
++	logHeapArenaBytes = (6+20)*(_64bit*(1-sys.GoosWindows)*(1-sys.GoosAix)) + (2+20)*(_64bit*sys.GoosWindows) + (2+20)*(1-_64bit) + (8+20)*sys.GoosAix
+ 
+ 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
+ 	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2)
+@@ -264,7 +268,10 @@
+ 	// We use the L1 map on 64-bit Windows because the arena size
+ 	// is small, but the address space is still 48 bits, and
+ 	// there's a high cost to having a large L2.
+-	arenaL1Bits = 6 * (_64bit * sys.GoosWindows)
++	//
++	// We use the L1 map on aix/ppc64 to keep the same L2 value
++	// as on Linux.
++	arenaL1Bits = 6*(_64bit*sys.GoosWindows) + 12*sys.GoosAix
+ 
+ 	// arenaL2Bits is the number of bits of the arena number
+ 	// covered by the second level arena index.
+@@ -418,6 +425,8 @@
+ 		// allocation at 0x40 << 32 because when using 4k pages with 3-level
+ 		// translation buffers, the user address space is limited to 39 bits
+ 		// On darwin/arm64, the address space is even smaller.
++		// On AIX, mmaps starts at 0x0A00000000000000 for 64-bit.
++		// processes.
+ 		for i := 0x7f; i >= 0; i-- {
+ 			var p uintptr
+ 			switch {
+@@ -425,6 +434,13 @@
+ 				p = uintptr(i)<<40 | uintptrMask&(0x0013<<28)
+ 			case GOARCH == "arm64":
+ 				p = uintptr(i)<<40 | uintptrMask&(0x0040<<32)
++			case GOOS == "aix":
++				if i == 0 {
++					// We don't use addresses directly after 0x0A00000000000000
++					// to avoid collisions with others mmaps done by non-go programs.
++					continue
++				}
++				p = uintptr(i)<<40 | uintptrMask&(0xa0<<52)
+ 			case raceenabled:
+ 				// The TSAN runtime requires the heap
+ 				// to be in the range [0x00c000000000,
+@@ -458,7 +474,7 @@
+ 		// 3. We try to stake out a reasonably large initial
+ 		// heap reservation.
+ 
+-		const arenaMetaSize = unsafe.Sizeof([1 << arenaBits]heapArena{})
++		const arenaMetaSize = (1 << arenaBits) * unsafe.Sizeof(heapArena{})
+ 		meta := uintptr(sysReserve(nil, arenaMetaSize))
+ 		if meta != 0 {
+ 			mheap_.heapArenaAlloc.init(meta, arenaMetaSize)
+diff --git a/test/chancap.go b/test/chancap.go
+index 9675e38..8dce924 100644
+--- a/test/chancap.go
++++ b/test/chancap.go
+@@ -42,8 +42,10 @@
+ 	shouldPanic("makechan: size out of range", func() { _ = make(T, n) })
+ 	shouldPanic("makechan: size out of range", func() { _ = make(T, int64(n)) })
+ 	if ptrSize == 8 {
+-		var n2 int64 = 1 << 50
++		// Test mem > maxAlloc
++		var n2 int64 = 1 << 59
+ 		shouldPanic("makechan: size out of range", func() { _ = make(T, int(n2)) })
++		// Test elem.size*cap overflow
+ 		n2 = 1<<63 - 1
+ 		shouldPanic("makechan: size out of range", func() { _ = make(T, int(n2)) })
+ 	} else {
+diff --git a/test/fixedbugs/bug273.go b/test/fixedbugs/bug273.go
+index 7305c60..2af8800 100644
+--- a/test/fixedbugs/bug273.go
++++ b/test/fixedbugs/bug273.go
+@@ -14,7 +14,7 @@
+ 
+ var minus1 = -1
+ var five = 5
+-var big int64 = 10 | 1<<40
++var big int64 = 10 | 1<<46
+ 
+ type block [1 << 19]byte
+ 
+diff --git a/test/fixedbugs/issue4085b.go b/test/fixedbugs/issue4085b.go
+index 6bf315f..6304ce0 100644
+--- a/test/fixedbugs/issue4085b.go
++++ b/test/fixedbugs/issue4085b.go
+@@ -21,9 +21,11 @@
+ 	shouldPanic("cap out of range", func() { _ = make(T, 0, int64(n)) })
+ 	var t *byte
+ 	if unsafe.Sizeof(t) == 8 {
+-		var n2 int64 = 1 << 50
++		// Test mem > maxAlloc
++		var n2 int64 = 1 << 59
+ 		shouldPanic("len out of range", func() { _ = make(T, int(n2)) })
+ 		shouldPanic("cap out of range", func() { _ = make(T, 0, int(n2)) })
++		// Test elem.size*cap overflow
+ 		n2 = 1<<63 - 1
+ 		shouldPanic("len out of range", func() { _ = make(T, int(n2)) })
+ 		shouldPanic("cap out of range", func() { _ = make(T, 0, int(n2)) })

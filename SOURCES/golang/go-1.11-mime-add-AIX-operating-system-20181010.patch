@@ -1,0 +1,30 @@
+From 05581fcc5c100cc2efa58355af8665cb93fed758 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:44:06 +0200
+Subject: [PATCH] mime: add AIX operating system
+
+This commit adds AIX operating system to mime package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: I1b81a9204446c8c76ae24ea5c6fd33077c373ae4
+Reviewed-on: https://go-review.googlesource.com/c/138723
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/mime/type_unix.go b/src/mime/type_unix.go
+index 6549c0f..dfc1f88 100644
+--- a/src/mime/type_unix.go
++++ b/src/mime/type_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package mime
+ 

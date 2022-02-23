@@ -1,0 +1,11 @@
+--- ./libgo/go/internal/testenv/testenv.go.ORIGIN	2018-10-18 15:22:57 +0200
++++ ./libgo/go/internal/testenv/testenv.go	2018-10-18 15:23:32 +0200
+@@ -48,6 +48,8 @@
+ 		return false
+ 	}
+ 	switch runtime.GOOS {
++	case "aix":
++		return true
+ 	case "android", "nacl":
+ 		return false
+ 	case "darwin":

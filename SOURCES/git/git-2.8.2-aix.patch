@@ -1,0 +1,62 @@
+Index: git-2.8.2/git-compat-util.h
+===================================================================
+--- git-compat-util.h.ORIG      2016-04-29 23:37:00 +0200
++++ git-compat-util.h   2016-06-21 17:50:07 +0200
+@@ -256,13 +256,22 @@
+ #define setitimer(which,value,ovalue)
+ #endif
+ 
++#ifdef _AIX51
++#define NO_LIBGEN_H
++#endif
++
+ #ifndef NO_LIBGEN_H
+ #include <libgen.h>
+ #else
++#ifndef _AIX
+ #define basename gitbasename
+ extern char *gitbasename(char *);
+ #define dirname gitdirname
+ extern char *gitdirname(char *);
++#else
++extern char *basename(char *);
++extern char *dirname(char *);
++#endif
+ #endif
+ 
+ #ifndef NO_ICONV
+Index: git-1.8.3.2/utf8.c
+===================================================================
+--- utf8.c.ORIG 2016-04-29 23:37:00 +0200
++++ utf8.c      2016-06-21 18:01:39 +0200
+@@ -523,6 +523,10 @@
+ }
+ #endif
+ 
++#ifndef SIZE_MAX
++# define SIZE_MAX ((size_t) -1)
++#endif
++
+ /*
+  * Returns first character length in bytes for multi-byte `text` according to
+  * `encoding`.
+Index: git-1.8.3.2/vcs-svn/svndiff.c
+===================================================================
+--- vcs-svn/svndiff.c.ORIG      2016-04-29 23:37:00 +0200
++++ vcs-svn/svndiff.c   2016-06-21 18:07:42 +0200
+@@ -8,6 +8,15 @@
+ #include "line_buffer.h"
+ #include "svndiff.h"
+ 
++#ifdef _AIX51
++#if (__64BIT__)
++#define SIZE_MAX        UINT64_MAX
++#else
++#define SIZE_MAX        UINT32_MAX
++#endif
++#endif
++
++
+ /*
+  * svndiff0 applier
+  *

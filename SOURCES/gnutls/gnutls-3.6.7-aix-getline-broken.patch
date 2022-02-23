@@ -1,0 +1,25 @@
+--- configure_orig	2019-10-01 03:44:30 +0000
++++ configure	2019-10-01 03:50:09 +0000
+@@ -27072,6 +27072,11 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_working_getdelim" >&5
+ $as_echo "$gl_cv_func_working_getdelim" >&6; }
++
++case "$host_os" in
++  aix*) gl_cv_func_working_getdelim=no ;;
++esac
++
+     case "$gl_cv_func_working_getdelim" in
+       *no)
+         REPLACE_GETDELIM=1
+@@ -27234,6 +27234,10 @@
+     HAVE_DECL_GETLINE=0
+   fi
+ 
++  case "$host_os" in
++    aix*) am_cv_func_working_getline=no ;;
++  esac
++
+   case "$am_cv_func_working_getline" in
+     *no)
+                         REPLACE_GETLINE=1

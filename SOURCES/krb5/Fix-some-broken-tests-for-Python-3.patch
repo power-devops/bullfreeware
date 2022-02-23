@@ -1,0 +1,81 @@
+From eb60404564852a262d4082c3e38086742afb1bd9 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Mon, 16 Jul 2018 16:44:01 -0400
+Subject: [PATCH] Fix some broken tests for Python 3
+
+Remove python2 dependencies in .travis.yml and add python3-paste.
+Convert t_daemon.py and jsonwalker.py to python3.  csjon has no
+python3 version, so replace it with python's built-in JSON module.
+
+python3-pyrad isn't available for Trusty, so krad and OTP tests are
+currently not exercised by Travis.
+
+[ghudson@mit.edu: squashed commits; edited commit message]
+
+ticket: 8710
+(cherry picked from commit d1fb3551c0dff5c3e6555b31fcbf04ff04d577fe)
+[rharwood@redhat.com: .travis.yml]
+---
+ src/lib/krad/t_daemon.py |  2 +-
+ src/tests/jsonwalker.py  | 16 +++++-----------
+ 2 files changed, 6 insertions(+), 12 deletions(-)
+
+diff --git a/src/lib/krad/t_daemon.py b/src/lib/krad/t_daemon.py
+index 7d7a5d0c8..7668cd7f8 100755
+--- a/src/lib/krad/t_daemon.py
++++ b/src/lib/krad/t_daemon.py
+@@ -23,7 +23,7 @@
+ # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+-import StringIO
++from io import StringIO
+ import os
+ import sys
+ import signal
+diff --git a/src/tests/jsonwalker.py b/src/tests/jsonwalker.py
+index 7a0675e08..1880363d2 100644
+--- a/src/tests/jsonwalker.py
++++ b/src/tests/jsonwalker.py
+@@ -1,10 +1,5 @@
+ import sys
+-try:
+-    import cjson
+-except ImportError:
+-    print("Warning: skipping audit log verification because the cjson module" \
+-          " is unavailable")
+-    sys.exit(0)
++import json
+ from collections import defaultdict
+ from optparse import OptionParser
+ 
+@@ -72,7 +67,7 @@ class Parser(object):
+         """
+         Generator that works through dictionary.
+         """
+-        for a,v in adict.iteritems():
++        for a,v in adict.items():
+             if isinstance(v,dict):
+                 for (attrpath,u) in self._walk(v):
+                     yield (a+'.'+attrpath,u)
+@@ -93,17 +88,16 @@ if __name__ == '__main__':
+         with open(options.filename, 'r') as f:
+             content = list()
+             for l in f:
+-                content.append(cjson.decode(l.rstrip()))
++                content.append(json.loads(l.rstrip()))
+         f.close()
+     else:
+-        print('Input file in jason format is required')
++        print('Input file in JSON format is required')
+         exit()
+ 
+     defaults = None
+     if options.defaults is not None:
+         with open(options.defaults, 'r') as f:
+-            defaults = cjson.decode(f.read())
+-        f.close()
++            defaults = json.load(f)
+ 
+     # run test
+     p = Parser(defaults)

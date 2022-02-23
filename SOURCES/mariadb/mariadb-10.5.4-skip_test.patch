@@ -1,0 +1,53 @@
+--- ./mysql-test/unstable-tests.skip_unskip_test	2020-01-26 21:43:53 +0100
++++ ./mysql-test/unstable-tests	2020-01-29 13:42:50 +0100
+@@ -1047,3 +1047,50 @@
+ 
+ wsrep_info.*      : suite.pm modified in 10.4.13
+ wsrep_info.plugin : MDEV-22470 - WSREP: no nodes coming from prim view, prim not possible
++
++
++## From Fedora (mariadb 10.4.11)
++# The SSL test are failing correctly. For more explanation, see:
++# https://jira.mariadb.org/browse/MDEV-8404?focusedCommentId=84275&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-84275
++main.ssl_7937                                : #1399847 
++#  main.ssl_crl_clients                         : #1399847 OK on AIX for now
++main.ssl_8k_key                              : 
++
++perfschema.nesting                           : #1399847 From Fedora
++#  perfschema.socket_summary_by_instance_func   : #1399847 OK on AIX for now
++#  perfschema.socket_summary_by_event_name_func : OK on AIX for now
++perfschema.cnf_option                        : 
++
++# ------------------------------
++# Tests that fails because of 'Self Signed Certificate in the Certificate Chain'
++sys_vars.slave_parallel_threads_basic        : 
++#  rpl.rpl_row_img_blobs                        : OK on AIX for now
++#  rpl.rpl_row_img_eng_min                      : OK on AIX for now
++#  rpl.rpl_row_img_eng_noblob                   : OK on AIX for now
++
++# ------------------------------
++#  plugins.auth_ed25519                         : OK on AIX for now
++#  plugins.multiauth                            : OK on AIX for now
++
++# Fails since 10.1.12
++innodb.innodb_defrag_binlog                  : From Fedora
++
++# Fails everywhere since 10.2.15
++#  main.userstat                                : OK on AIX for now
++# Fails everywhere since 10.4.11
++#  main.events_bugs                             : OK on AIX for now
++sys_vars.tcp_nodelay                         :
++
++# Fails on ppc and arm since 10.2.15
++parts.partition_alter4_innodb                :
++
++# For AIX
++## Need threadpool
++sys_vars.sysvars_server_notembedded   : Needs threadpool
++sys_vars.thread_pool_*                : Needs threadpool
++
++main.connect-abstract                 : abstract socket is not available on AIX
++
++## Too long and space consuming test.
++#innodb_gis.rtree_debug                : Not the right errorcode, but OK. 5 hours, 30 Go
++#main.sum_distinct-big                 : OK. 4 hours, 60 Go

@@ -1,0 +1,48 @@
+--- ./lib/util/gpfswrap.c_orig	2017-09-14 12:43:43 +0530
++++ ./lib/util/gpfswrap.c	2017-09-14 12:55:07 +0530
+@@ -54,7 +54,11 @@
+ 		return 0;
+ 	}
+ 
++#ifdef _AIX
++	l = dlopen("libgpfs.a(shr.o)", RTLD_MEMBER | RTLD_LAZY);
++#else
+ 	l = dlopen("libgpfs.so", RTLD_LAZY);
++#endif
+ 	if (l == NULL) {
+ 		return -1;
+ 	}
+--- ./source3/modules/vfs_gpfs.c_orig	2017-09-14 12:45:48 +0530
++++ ./source3/modules/vfs_gpfs.c	2017-09-14 19:36:06 +0530
+@@ -34,6 +34,8 @@
+ #undef DBGC_CLASS
+ #define DBGC_CLASS DBGC_VFS
+ 
++#define AT_SYMLINK_NOFOLLOW 1
++
+ #ifndef GPFS_GETACL_NATIVE
+ #define GPFS_GETACL_NATIVE 0x00000004
+ #endif
+@@ -190,7 +192,9 @@
+ 	   libgpfs_gpl.so which results in a leaked fd on /dev/ss0
+ 	   each time we try this with the wrong capabilities set
+ 	*/
++#if HAVE_KERNEL_OPLOCKS_LINUX
+ 	linux_set_lease_capability();
++#endif
+ 	return gpfswrap_set_lease(fd, gpfs_type);
+ }
+ 
+@@ -206,10 +210,12 @@
+ 				struct gpfs_config_data,
+ 				return -1);
+ 
++#if HAVE_KERNEL_OPLOCKS_LINUX
+ 	if (linux_set_lease_sighandler(fsp->fh->fd) == -1) {
+ 		ret = -1;
+ 		goto failure;
+ 	}
++#endif
+ 
+ 	if (config->leases) {
+ 		/*

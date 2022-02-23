@@ -1,0 +1,95 @@
+From ca4314d39efd5f9dfa12b2eff7a945d9ead0b69e Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 27 Feb 2019 15:44:43 +0100
+Subject: [PATCH] net: allow build on aix/ppc64 with cgo
+
+This commit adds C support for net package for aix/ppc64.
+
+Change-Id: I704710991fc013c6ec3511671def6791df4854f1
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164038
+Run-TryBot: Mikio Hara <mikioh.public.networking@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Mikio Hara <mikioh.public.networking@gmail.com>
+---
+
+diff --git a/src/net/cgo_aix.go b/src/net/cgo_aix.go
+new file mode 100644
+index 0000000..d0ad414
+--- /dev/null
++++ b/src/net/cgo_aix.go
+@@ -0,0 +1,24 @@
++// Copyright 2019 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build cgo,!netgo
++
++package net
++
++/*
++#include <sys/types.h>
++#include <sys/socket.h>
++
++#include <netdb.h>
++*/
++import "C"
++
++import "unsafe"
++
++const cgoAddrInfoFlags = C.AI_CANONNAME
++
++func cgoNameinfoPTR(b []byte, sa *C.struct_sockaddr, salen C.socklen_t) (int, error) {
++	gerrno, err := C.getnameinfo(sa, C.size_t(salen), (*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)), nil, 0, C.NI_NAMEREQD)
++	return int(gerrno), err
++}
+diff --git a/src/net/cgo_sockold.go b/src/net/cgo_sockold.go
+index e629a09..e1e642b 100644
+--- a/src/net/cgo_sockold.go
++++ b/src/net/cgo_sockold.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd netbsd openbsd
++// +build aix darwin dragonfly freebsd netbsd openbsd
+ 
+ package net
+ 
+diff --git a/src/net/cgo_unix.go b/src/net/cgo_unix.go
+index b7cbcfe..6420fd0 100644
+--- a/src/net/cgo_unix.go
++++ b/src/net/cgo_unix.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 
+@@ -14,6 +14,11 @@
+ #include <netdb.h>
+ #include <unistd.h>
+ #include <string.h>
++
++// If nothing else defined EAI_OVERFLOW, make sure it has a value.
++#ifndef EAI_OVERFLOW
++#define EAI_OVERFLOW -12
++#endif
+ */
+ import "C"
+ 
+diff --git a/src/net/cgo_unix_test.go b/src/net/cgo_unix_test.go
+index c3eab5b..99d79a6 100644
+--- a/src/net/cgo_unix_test.go
++++ b/src/net/cgo_unix_test.go
+@@ -3,7 +3,7 @@
+ // license that can be found in the LICENSE file.
+ 
+ // +build cgo,!netgo
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package net
+ 

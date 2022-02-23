@@ -1,0 +1,21 @@
+From ab786ce6f599e3e2185b689dae73ea0922d7d744 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Tue, 23 Aug 2016 16:52:01 -0400
+Subject: [PATCH] krb5-1.11-kpasswdtest.patch
+
+---
+ src/kadmin/testing/proto/krb5.conf.proto | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/kadmin/testing/proto/krb5.conf.proto b/src/kadmin/testing/proto/krb5.conf.proto
+index 00c442978..9c4bc1de7 100644
+--- a/src/kadmin/testing/proto/krb5.conf.proto
++++ b/src/kadmin/testing/proto/krb5.conf.proto
+@@ -9,6 +9,7 @@
+ 	__REALM__ = {
+ 		kdc = __KDCHOST__:1750
+ 		admin_server = __KDCHOST__:1751
++		kpasswd_server = __KDCHOST__:1752
+ 		database_module = foobar_db2_module_blah
+ 	}
+ 

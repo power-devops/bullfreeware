@@ -1,0 +1,33 @@
+--- old/tests/scripts/common.sh	2016-09-14 14:38:42 +0200
++++ new/tests/scripts/common.sh	2016-09-14 14:41:40 +0200
+@@ -22,7 +22,7 @@
+ # due to the use of $RANDOM, this script requires bash
+ 
+ GETPORT='rc=0;while test $rc = 0;do PORT="$(((($$<<15)|RANDOM) % 63001 + 2000))";
+-	netstat -anl|grep "[\:\.]$PORT" >/dev/null 2>&1;
++        netstat -an|grep LISTEN|grep "[\:\.]$PORT" >/dev/null 2>&1
+ 	rc=$?;done;'
+ 
+ fail() {
+@@ -40,10 +40,10 @@
+ 	sleep 4
+ 
+ 	for i in 1 2 3 4 5 6;do
+-		netstat -anl|grep "[\:\.]$PORT"|grep LISTEN >/dev/null 2>&1
++		netstat -an|grep LISTEN|grep "[\:\.]$PORT" >/dev/null 2>&1
+ 		ret=$?
+ 		if test $ret != 0;then
+-		netstat -anl|grep "[\:\.]$PORT"
++		netstat -an|grep LISTEN|grep "[\:\.]$PORT"
+ 			echo try $i
+ 			sleep 2
+ 		else
+@@ -59,7 +59,7 @@
+ 	local PORT="$1"
+ 
+ 	for i in 1 2 3 4 5 6;do
+-		netstat -anl|grep "[\:\.]$PORT" >/dev/null 2>&1
++		netstat -an|grep LISTEN|grep "[\:\.]$PORT" >/dev/null 2>&1
+ 		ret=$?
+ 		if test $ret != 0;then
+ 			break

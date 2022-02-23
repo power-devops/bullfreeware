@@ -1,0 +1,41 @@
+diff -pruN fontconfig-2.13.92.orig/test/run-test.sh fontconfig-2.13.92/test/run-test.sh
+--- fontconfig-2.13.92.orig/test/run-test.sh	2020-01-30 20:19:55.148680493 +0900
++++ fontconfig-2.13.92/test/run-test.sh	2020-01-30 20:25:48.604550017 +0900
+@@ -409,7 +409,7 @@ rm -rf $MYCACHEBASEDIR $MYCONFIG my-font
+ 
+ fi # if [ "x$EXEEXT" = "x" ]
+ 
+-if [ -x $BUILDTESTDIR/test-crbug1004254 ]; then
++if [ -x $BUILDTESTDIR/test-crbug1004254 ] && [ 0 -eq 1 ]; then
+     dotest "MT-safe global config"
+     prep
+     curl -s -o $FONTDIR/noto.zip https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip
+From 8bddcb113779178e5b5ed711db08d9bfbff924cc Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Thu, 5 Dec 2019 19:55:06 +0900
+Subject: [PATCH] Fix a test fail when no bwrap was available
+
+Fixes https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/201
+---
+ test/run-test.sh | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/test/run-test.sh b/test/run-test.sh
+index e1ee6d0..9b2e54b 100644
+--- a/test/run-test.sh
++++ b/test/run-test.sh
+@@ -40,9 +40,8 @@ ECHO=true
+ FCLIST="$LOG_COMPILER ../fc-list/fc-list$EXEEXT"
+ FCCACHE="$LOG_COMPILER ../fc-cache/fc-cache$EXEEXT"
+ 
+-which bwrap > /dev/null 2>&1
+-if [ $? -eq 0 ]; then
+-    BWRAP=`which bwrap`
++if [ -x "$(command -v bwrap)" ]; then
++    BWRAP="$(command -v bwrap)"
+ fi
+ 
+ FONT1=$TESTDIR/4x6.pcf
+-- 
+2.24.1
+

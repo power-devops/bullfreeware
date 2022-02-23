@@ -1,0 +1,37 @@
+diff -crN ./hicolor-icon-theme/install-sh /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./hicolor-icon-theme/install-sh
+*** ./hicolor-icon-theme/install-sh	Tue Apr  6 15:21:24 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./hicolor-icon-theme/install-sh	Fri Jul  7 23:07:54 2006
+***************
+*** 196,202 ****
+  
+  	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dst; else true ; fi &&
+  	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dst; else true ; fi &&
+! 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dst; else true ; fi &&
+  	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dst; else true ; fi
+  else
+  
+--- 196,202 ----
+  
+  	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dst; else true ; fi &&
+  	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dst; else true ; fi &&
+! 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dst || true; else true ; fi &&
+  	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dst; else true ; fi
+  else
+  
+***************
+*** 237,243 ****
+  
+  	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dsttmp; else true;fi &&
+  	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dsttmp; else true;fi &&
+! 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dsttmp; else true;fi &&
+  	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else true;fi &&
+  
+  # Now rename the file to the real destination.
+--- 237,243 ----
+  
+  	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dsttmp; else true;fi &&
+  	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dsttmp; else true;fi &&
+! 	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dsttmp || true; else true;fi &&
+  	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else true;fi &&
+  
+  # Now rename the file to the real destination.

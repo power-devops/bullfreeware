@@ -1,0 +1,11 @@
+--- ./sql/sql_yacc.cc.ORIGIN	2019-07-05 10:03:10 -0500
++++ ./sql/sql_yacc.cc	2019-07-16 14:48:35 -0500
+@@ -310,7 +310,7 @@
+      The result will be in the process stderr (var/log/master.err)
+    */
+ 
+-  extern int yydebug;
++  static int yydebug;
+   yydebug= 1;
+ }
+ #endif

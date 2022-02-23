@@ -1,0 +1,11 @@
+--- gcc-7-20170203.orig/libgo/runtime/go-unsafe-pointer.c	2017-01-24 01:00:21 -0600
++++ gcc-7-20170203.new/libgo/runtime/go-unsafe-pointer.c	2017-02-06 13:04:48 -0600
+@@ -97,7 +97,7 @@
+ };
+ 
+ extern const uintptr pointer_unsafe_Pointer_gc[]
+-  __asm__ (GOSYM_PREFIX "__go_td_pN14_unsafe.Pointer$gc");
++  __asm__ (GOSYM_PREFIX "__go_td_pN14_unsafe.Pointer" DOLLAR_CHAR "gc");
+ 
+ const uintptr pointer_unsafe_Pointer_gc[] __attribute__((aligned(4))) =
+   {sizeof(void*), GC_APTR, 0, GC_END};

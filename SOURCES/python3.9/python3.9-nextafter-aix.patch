@@ -1,0 +1,15 @@
+--- ./Modules/mathmodule.c_orig	2021-02-01 08:36:07.226428203 -0600
++++ ./Modules/mathmodule.c	2021-02-01 08:39:17.666403170 -0600
+@@ -3391,6 +3391,12 @@
+            Bug fixed in bos.adt.libm 7.2.2.0 by APAR IV95512. */
+         return PyFloat_FromDouble(y);
+     }
++    if (Py_IS_NAN(x)) {
++        return PyFloat_FromDouble(x);
++    }
++    if (Py_IS_NAN(y)) {
++        return PyFloat_FromDouble(y);
++    }
+ #endif
+     return PyFloat_FromDouble(nextafter(x, y));
+ }

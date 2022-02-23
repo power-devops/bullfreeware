@@ -1,0 +1,19 @@
+diff -Nur cairo-1.15.2-orig/util/cairo-sphinx/fdr.c cairo-1.15.2-aix/util/cairo-sphinx/fdr.c
+--- cairo-1.15.2-orig/util/cairo-sphinx/fdr.c	2015-12-09 20:12:46 +0100
++++ cairo-1.15.2-aix/util/cairo-sphinx/fdr.c	2016-04-14 14:00:09 +0200
+@@ -35,12 +35,12 @@
+ 
+ static void *_dlhandle = RTLD_NEXT;
+ #define DLCALL(name, args...) ({ \
+-    static typeof (&name) name##_real; \
++    static __typeof__ (&name) name##_real; \
+     if (name##_real == NULL) { \
+-	name##_real = dlsym (_dlhandle, #name); \
++	name##_real = (static __typeof__ (&name)) dlsym (_dlhandle, #name); \
+ 	if (name##_real == NULL && _dlhandle == RTLD_NEXT) { \
+ 	    _dlhandle = dlopen ("libcairo.so", RTLD_LAZY); \
+-	    name##_real = dlsym (_dlhandle, #name); \
++	    name##_real = (static __typeof__ (&name)) dlsym (_dlhandle, #name); \
+ 	    assert (name##_real != NULL); \
+ 	} \
+     } \

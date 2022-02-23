@@ -1,0 +1,16 @@
+*** ./libmetrics/libmetrics.h.ORIG	Mon Jun 10 23:24:38 2013
+--- ./libmetrics/libmetrics.h	Mon Jun 10 23:26:22 2013
+***************
+*** 103,106 ****
+--- 103,113 ----
+  
+  #endif
+  
++ #ifdef _AIX
++ 
++  g_val_t cpu_entc_func(void);
++  g_val_t cpu_physc_func(void);
++ 
++ #endif
++ 
+  #endif /* LIBMETRICS_H */

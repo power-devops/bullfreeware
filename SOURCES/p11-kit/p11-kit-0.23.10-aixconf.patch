@@ -1,0 +1,69 @@
+Index: common/debug.h
+===================================================================
+--- common.orig/debug.h 2018-01-31 13:47:38 +0100
++++ common/debug.h	2018-04-18 14:07:28 +0200
+@@ -129,13 +129,13 @@
+ #undef p11_debug
+ #define p11_debug(format, ...) do { \
+ 	if (P11_DEBUG_FLAG & p11_debug_current_flags) \
+-		p11_debug_message (P11_DEBUG_FLAG, "%s: " format, __PRETTY_FUNCTION__, ##__VA_ARGS__); \
++		p11_debug_message (P11_DEBUG_FLAG, "%s: " format, __FUNCTION__, ##__VA_ARGS__); \
+ 	} while (0)
+ 
+ #undef p11_debug_err
+ #define p11_debug_err(errnum, format, ...) do {	      \
+ 	if (P11_DEBUG_FLAG & p11_debug_current_flags) \
+-		p11_debug_message_err (P11_DEBUG_FLAG, errnum, "%s: " format, __PRETTY_FUNCTION__, ##__VA_ARGS__); \
++		p11_debug_message_err (P11_DEBUG_FLAG, errnum, "%s: " format, __FUNCTION__, ##__VA_ARGS__); \
+ 	} while (0)
+ 
+ #undef p11_debugging
+Index: p11-kit/modules.c
+===================================================================
+--- p11-kit.orig/modules.c	2018-01-31 13:47:38 +0100
++++ p11-kit/modules.c	2018-04-17 15:47:54 +0200
+@@ -1864,7 +1864,7 @@
+ 	int i;
+ 
+ 	for (i = 0; modules[i] != NULL; i++) {
+-		rv = release_module_inlock_rentrant (modules[i], __PRETTY_FUNCTION__);
++		rv = release_module_inlock_rentrant (modules[i], __FUNCTION__);
+ 		if (rv != CKR_OK)
+ 			ret = rv;
+ 	}
+@@ -2662,7 +2662,7 @@
+ 
+ 		p11_message_clear ();
+ 
+-		release_module_inlock_rentrant (module, __PRETTY_FUNCTION__);
++		release_module_inlock_rentrant (module, __FUNCTION__);
+ 
+ 	p11_unlock ();
+ 
+@@ -2672,7 +2672,7 @@
+ CK_RV
+ p11_module_release_inlock_reentrant (CK_FUNCTION_LIST *module)
+ {
+-	return release_module_inlock_rentrant (module, __PRETTY_FUNCTION__);
++	return release_module_inlock_rentrant (module, __FUNCTION__);
+ }
+ 
+ /**
+Index: common/compat.c 
+===================================================================
+--- common.orig/compat.c    2018-01-31 13:47:38 +0100
++++ common/compat.c   2018-04-17 15:47:54 +0200
+@@ -120,8 +120,14 @@
+ #elif defined (HAVE___PROGNAME)
+ 	name = __progname;
+ #else
++#ifdef _AIX
++#define DEF_NAME "progname-test"
++	name = (char *) malloc(sizeof(DEF_NAME)+1);
++	strcpy( name, DEF_NAME);
++#else
+ 	#error No way to retrieve short program name
++#endif
+ #endif
+
+ 	return name;

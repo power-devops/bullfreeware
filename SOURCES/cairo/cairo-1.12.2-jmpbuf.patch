@@ -1,0 +1,334 @@
+Index: cairo-1.12.2/util/cairo-script/cairo-script-private.h
+===================================================================
+--- cairo-1.12.2.orig/util/cairo-script/cairo-script-private.h	2012-02-02 01:48:15.000000000 +0100
++++ cairo-1.12.2/util/cairo-script/cairo-script-private.h	2012-06-21 10:44:55.000000000 +0200
+@@ -430,7 +430,7 @@
+ };
+ 
+ struct _csi_scanner {
+-    jmp_buf jmpbuf;
++    jmp_buf jmpbuff;
+     int depth;
+ 
+     int bind;
+Index: cairo-1.12.2/util/cairo-script/cairo-script-scanner.c
+===================================================================
+--- cairo-1.12.2.orig/util/cairo-script/cairo-script-scanner.c	2012-02-02 01:48:15.000000000 +0100
++++ cairo-1.12.2/util/cairo-script/cairo-script-scanner.c	2012-06-21 10:46:33.000000000 +0200
+@@ -191,13 +191,13 @@
+     char *base;
+ 
+     if (_csi_unlikely (scan->buffer.size > INT_MAX / 2))
+-	longjmp (scan->jmpbuf,  _csi_error (CSI_STATUS_NO_MEMORY));
++	longjmp (scan->jmpbuff,  _csi_error (CSI_STATUS_NO_MEMORY));
+ 
+     offset = scan->buffer.ptr - scan->buffer.base;
+     newsize = scan->buffer.size * 2;
+     base = _csi_realloc (ctx, scan->buffer.base, newsize);
+     if (_csi_unlikely (base == NULL))
+-	longjmp (scan->jmpbuf,  _csi_error (CSI_STATUS_NO_MEMORY));
++	longjmp (scan->jmpbuff,  _csi_error (CSI_STATUS_NO_MEMORY));
+ 
+     scan->buffer.base = base;
+     scan->buffer.ptr  = base + offset;
+@@ -433,12 +433,12 @@
+ 					  &scan->procedure_stack,
+ 					  &scan->build_procedure);
+ 		if (_csi_unlikely (status))
+-		    longjmp (scan->jmpbuf, status);
++		    longjmp (scan->jmpbuff, status);
+ 	    }
+ 
+ 	    status = csi_array_new (ctx, 0, &scan->build_procedure);
+ 	    if (_csi_unlikely (status))
+-		longjmp (scan->jmpbuf, status);
++		longjmp (scan->jmpbuff, status);
+ 
+ 	    scan->build_procedure.type |= CSI_OBJECT_ATTR_EXECUTABLE;
+ 	    return;
+@@ -446,7 +446,7 @@
+ 	    if (_csi_unlikely
+ 		(scan->build_procedure.type == CSI_OBJECT_TYPE_NULL))
+ 	    {
+-		longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++		longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 	    }
+ 
+ 	    if (scan->procedure_stack.len) {
+@@ -462,7 +462,7 @@
+ 		scan->build_procedure.type = CSI_OBJECT_TYPE_NULL;
+ 	    }
+ 	    if (_csi_unlikely (status))
+-		longjmp (scan->jmpbuf, status);
++		longjmp (scan->jmpbuff, status);
+ 
+ 	    return;
+ 	}
+@@ -472,19 +472,19 @@
+ 	if (len >= 2 && s[1] == '/') { /* substituted name */
+ 	    status = csi_name_new (ctx, &obj, s + 2, len - 2);
+ 	    if (_csi_unlikely (status))
+-		longjmp (scan->jmpbuf, status);
++		longjmp (scan->jmpbuff, status);
+ 
+ 	    status = _csi_name_lookup (ctx, obj.datum.name, &obj);
+ 	} else { /* literal name */
+ 	    status = csi_name_new (ctx, &obj, s + 1, len - 1);
+ 	}
+ 	if (_csi_unlikely (status))
+-	    longjmp (scan->jmpbuf, status);
++	    longjmp (scan->jmpbuff, status);
+     } else {
+ 	if (! _csi_parse_number (&obj, s, len)) {
+ 	    status = csi_name_new (ctx, &obj, s, len);
+ 	    if (_csi_unlikely (status))
+-		longjmp (scan->jmpbuf, status);
++		longjmp (scan->jmpbuff, status);
+ 
+ 	    obj.type |= CSI_OBJECT_ATTR_EXECUTABLE;
+ 	}
+@@ -502,7 +502,7 @@
+ 	status = scan_push (ctx, &obj);
+     }
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ }
+ 
+ static void
+@@ -523,7 +523,7 @@
+ 			     scan->buffer.base,
+ 			     scan->buffer.ptr - scan->buffer.base);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ 
+     if (scan->build_procedure.type != CSI_OBJECT_TYPE_NULL)
+ 	status = csi_array_append (ctx,
+@@ -532,7 +532,7 @@
+     else
+ 	status = scan_push (ctx, &obj);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ }
+ 
+ static int
+@@ -580,7 +580,7 @@
+ 			     scan->buffer.base,
+ 			     scan->buffer.ptr - scan->buffer.base);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ 
+     if (scan->build_procedure.type != CSI_OBJECT_TYPE_NULL)
+ 	status = csi_array_append (ctx,
+@@ -589,7 +589,7 @@
+     else
+ 	status = scan_push (ctx, &obj);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ }
+ 
+ static void
+@@ -597,7 +597,7 @@
+ {
+     if (c == 'z') {
+ 	if (_csi_unlikely (scan->accumulator_count != 0))
+-	    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ 	buffer_check (ctx, scan, 4);
+ 	buffer_add (&scan->buffer, 0);
+@@ -605,7 +605,7 @@
+ 	buffer_add (&scan->buffer, 0);
+ 	buffer_add (&scan->buffer, 0);
+     } else if (_csi_unlikely (c < '!' || c > 'u')) {
+-	longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+     } else {
+ 	scan->accumulator = scan->accumulator*85 + c - '!';
+ 	if (++scan->accumulator_count == 5) {
+@@ -633,7 +633,7 @@
+     case 0:
+ 	break;
+     case 1:
+-	longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 	break;
+ 
+     case 2:
+@@ -662,14 +662,14 @@
+ 					 (Bytef *) scan->buffer.ptr - source,
+ 					 len);
+ 	if (_csi_unlikely (status))
+-	    longjmp (scan->jmpbuf, status);
++	    longjmp (scan->jmpbuff, status);
+     } else {
+ 	status = csi_string_new (ctx,
+ 				 &obj,
+ 				 scan->buffer.base,
+ 				 scan->buffer.ptr - scan->buffer.base);
+ 	if (_csi_unlikely (status))
+-	    longjmp (scan->jmpbuf, status);
++	    longjmp (scan->jmpbuff, status);
+     }
+ 
+     if (scan->build_procedure.type != CSI_OBJECT_TYPE_NULL)
+@@ -679,7 +679,7 @@
+     else
+ 	status = scan_push (ctx, &obj);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ }
+ 
+ static void
+@@ -756,7 +756,7 @@
+ 			     scan->buffer.base,
+ 			     scan->buffer.ptr - scan->buffer.base);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ 
+     if (scan->build_procedure.type != CSI_OBJECT_TYPE_NULL)
+ 	status = csi_array_append (ctx,
+@@ -765,7 +765,7 @@
+     else
+ 	status = scan_push (ctx, &obj);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ }
+ 
+ static void
+@@ -775,7 +775,7 @@
+     do {
+ 	int ret = csi_file_read (src, data, len);
+ 	if (_csi_unlikely (ret == 0))
+-	    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_READ_ERROR));
++	    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_READ_ERROR));
+ 	data += ret;
+ 	len -= ret;
+     } while (_csi_unlikely (len));
+@@ -793,7 +793,7 @@
+ 
+     status = csi_string_new (ctx, obj, NULL, len);
+     if (_csi_unlikely (status))
+-	longjmp (scan->jmpbuf, status);
++	longjmp (scan->jmpbuff, status);
+ 
+     if (compressed) {
+ 	uint32_t u32;
+@@ -1001,7 +1001,7 @@
+ 	case 157:
+ 	case 158:
+ 	case 159:
+-	    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ 	case '#': /* PDF 1.2 escape code */
+ 	    {
+@@ -1030,7 +1030,7 @@
+ 		status = scan_push (ctx, &obj);
+ 	    }
+ 	    if (_csi_unlikely (status))
+-		longjmp (scan->jmpbuf, status);
++		longjmp (scan->jmpbuff, status);
+ 	}
+     }
+     return;
+@@ -1121,7 +1121,7 @@
+ 	    next = csi_file_getc (src);
+ 	    switch (next) {
+ 	    case EOF:
+-		longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++		longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ 	    case 'n':
+ 		string_add (ctx, scan, '\n');
+@@ -1215,7 +1215,7 @@
+ 	    break;
+ 	}
+     }
+-    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ scan_hex:
+     buffer_reset (&scan->buffer);
+@@ -1262,10 +1262,10 @@
+ 	    break;
+ 
+ 	default:
+-	    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 	}
+     }
+-    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ scan_base85:
+     buffer_reset (&scan->buffer);
+@@ -1292,7 +1292,7 @@
+ 	    break;
+ 	}
+     }
+-    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ scan_base64:
+     buffer_reset (&scan->buffer);
+@@ -1310,14 +1310,14 @@
+ 		base64_end (ctx, scan);
+ 		goto scan_none;
+ 	    }
+-	    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 
+ 	default:
+ 	    base64_add (ctx, scan, c);
+ 	    break;
+ 	}
+     }
+-    longjmp (scan->jmpbuf, _csi_error (CSI_STATUS_INVALID_SCRIPT));
++    longjmp (scan->jmpbuff, _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ }
+ 
+ static csi_status_t
+@@ -1382,7 +1382,7 @@
+      */
+ 
+     if (ctx->scanner.depth++ == 0) {
+-	if ((status = setjmp (ctx->scanner.jmpbuf))) {
++	if ((status = setjmp (ctx->scanner.jmpbuff))) {
+ 	    ctx->scanner.depth = 0;
+ 	    return status;
+ 	}
+@@ -1656,7 +1656,7 @@
+     case CSI_OBJECT_TYPE_PATTERN:
+     case CSI_OBJECT_TYPE_SCALED_FONT:
+     case CSI_OBJECT_TYPE_SURFACE:
+-	longjmp (ctx->scanner.jmpbuf,  _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	longjmp (ctx->scanner.jmpbuff,  _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 	break;
+     }
+ 
+@@ -1702,7 +1702,7 @@
+     case CSI_OBJECT_TYPE_PATTERN:
+     case CSI_OBJECT_TYPE_SCALED_FONT:
+     case CSI_OBJECT_TYPE_SURFACE:
+-	longjmp (ctx->scanner.jmpbuf,  _csi_error (CSI_STATUS_INVALID_SCRIPT));
++	longjmp (ctx->scanner.jmpbuff,  _csi_error (CSI_STATUS_INVALID_SCRIPT));
+ 	break;
+     }
+ 
+@@ -1774,7 +1774,7 @@
+     csi_status_t status;
+     struct _translate_closure translator;
+ 
+-    if ((status = setjmp (ctx->scanner.jmpbuf)))
++    if ((status = setjmp (ctx->scanner.jmpbuff)))
+ 	return status;
+ 
+     status = build_opcodes (ctx, &translator.opcodes);

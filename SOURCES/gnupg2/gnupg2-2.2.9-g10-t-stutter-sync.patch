@@ -1,0 +1,10 @@
+--- ./g10/t-stutter.c.orig	2017-08-28 12:22:54 +0200
++++ ./g10/t-stutter.c	2018-10-23 16:36:41 +0200
+@@ -195,6 +195,7 @@
+ /* Whether we need to resynchronize the CFB after writing the random
+    data (this is the case for encrypted packets, but not encrypted and
+    integrity protected packets).  */
++#define sync Sync
+ static int sync;
+ 
+ static int

@@ -1,0 +1,54 @@
+Index: libiberty/simple-object-xcoff.c
+===================================================================
+--- ./libiberty/simple-object-xcoff.c	(revision 251399)
++++ ./libiberty/simple-object-xcoff.c	(working copy)
+@@ -255,11 +255,15 @@ union external_auxent
+ #define IMAGE_SYM_TYPE \
+   ((IMAGE_SYM_DTYPE_NULL << 4) | IMAGE_SYM_TYPE_NULL)
+ 
++#define C_EXT		(2)
+ #define C_STAT		(3)
+ #define C_FILE		(103)
++#define C_HIDEXT	(107)
+ 
+-#define DBXMASK		0x80
++#define XTY_SD		(1)	/* section definition */
+ 
++#define XMC_XO		(7)	/* extended operation */
++
+ /* Private data for an simple_object_read.  */
+ 
+ struct simple_object_xcoff_read
+@@ -400,6 +404,7 @@ simple_object_xcoff_find_sections (simple_object_r
+   size_t scnhdr_size;
+   unsigned char *scnbuf;
+   const char *errmsg;
++  unsigned short (*fetch_16) (const unsigned char *);
+   unsigned int (*fetch_32) (const unsigned char *);
+   ulong_type (*fetch_64) (const unsigned char *);
+   unsigned int nscns;
+@@ -407,7 +412,6 @@ simple_object_xcoff_find_sections (simple_object_r
+   size_t strtab_size;
+   struct external_syment *symtab = NULL;
+   unsigned int i;
+-  off_t textptr = 0;
+ 
+   scnhdr_size = u64 ? SCNHSZ64 : SCNHSZ32;
+   scnbuf = XNEWVEC (unsigned char, scnhdr_size * ocr->nscns);
+@@ -420,6 +424,7 @@ simple_object_xcoff_find_sections (simple_object_r
+       return errmsg;
+     }
+ 
++  fetch_16 = simple_object_fetch_big_16;
+   fetch_32 = simple_object_fetch_big_32;
+   fetch_64 = simple_object_fetch_big_64;
+ 
+@@ -433,7 +438,7 @@ simple_object_xcoff_find_sections (simple_object_r
+       char namebuf[SCNNMLEN + 1];
+       char *name;
+       off_t scnptr;
+-      unsigned int size;
++      off_t size;
+ 
+       scnhdr = scnbuf + i * scnhdr_size;
+       scnname = scnhdr + offsetof (struct external_scnhdr, s_name);

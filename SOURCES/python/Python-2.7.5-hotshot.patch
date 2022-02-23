@@ -1,0 +1,18 @@
+Index: Python-2.7.4/Modules/_hotshot.c
+===================================================================
+--- Python-2.7.4.orig/Modules/_hotshot.c	2013-04-06 16:02:36.000000000 +0200
++++ Python-2.7.4/Modules/_hotshot.c	2013-04-30 17:16:52.000000000 +0200
+@@ -345,9 +345,10 @@
+     err = unpack_string(self, &key);
+     if (!err) {
+         err = unpack_string(self, &value);
+-        if (err)
+-            Py_DECREF(key);
+-        else {
++        if (!err) {
++/*         if (err) */
++/*             Py_DECREF(key); */
++/*         else { */
+             PyObject *list = PyDict_GetItem(self->info, key);
+             if (list == NULL) {
+                 list = PyList_New(0);

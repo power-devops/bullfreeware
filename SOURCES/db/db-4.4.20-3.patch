@@ -1,0 +1,209 @@
+configure takes now aix6* into account
+
+
+Index: db-4.4.20/dist/configure
+===================================================================
+--- db-4.4.20.orig/dist/configure	2008-05-20 15:59:36.000000000 +0200
++++ db-4.4.20/dist/configure	2008-05-20 15:59:24.1591414984 +0200
+@@ -3472,7 +3472,7 @@
+ # Don't override anything if it's already set from the environment.
+ optimize_debug="-O"
+ case "$host_os" in
+-aix4.3.*|aix5*)
++aix4.3.*|aix5*|aix6*)
+ 	optimize_debug="-O2"
+ 	CC=${CC-"xlc_r"}
+ 	CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE"
+@@ -5881,7 +5881,7 @@
+ # whether `pass_all' will *always* work, you probably want this one.
+ 
+ case $host_os in
+-aix4* | aix5*)
++aix4* | aix5*|aix6*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+@@ -8763,7 +8763,7 @@
+ 
+     # See if GNU ld supports shared libraries.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5*| aix6*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+ 	ld_shlibs=no
+@@ -8931,7 +8931,7 @@
+       fi
+       ;;
+ 
+-    aix4* | aix5*)
++    aix4* | aix5*| aix6*)
+       if test "$host_cpu" = ia64; then
+ 	# On IA64, the linker does run time linking by default, so we don't
+ 	# have to do anything special.
+@@ -8951,7 +8951,7 @@
+ 	# Test if we are trying to use run time linking or normal
+ 	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
+ 	# need to do runtime linking.
+-	case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++	case $host_os in aix4.[23]|aix4.[23].*|aix5*| aix6*)
+ 	  for ld_flag in $LDFLAGS; do
+   	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+   	    aix_use_runtimelinking=yes
+@@ -9684,7 +9684,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -11090,7 +11090,7 @@
+   fi
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   if test "$host_cpu" != ia64 && test "$aix_use_runtimelinking" = no ; then
+     test "$enable_shared" = yes && enable_static=no
+   fi
+@@ -11923,7 +11923,7 @@
+     # FIXME: insert proper C++ library support
+     ld_shlibs_CXX=no
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5*| aix6*)
+     if test "$host_cpu" = ia64; then
+       # On IA64, the linker does run time linking by default, so we don't
+       # have to do anything special.
+@@ -11936,7 +11936,7 @@
+       # Test if we are trying to use run time linking or normal
+       # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+       # need to do runtime linking.
+-      case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++      case $host_os in aix4.[23]|aix4.[23].*|aix5*| aix6*)
+ 	for ld_flag in $LDFLAGS; do
+ 	  case $ld_flag in
+ 	  *-brtl*)
+@@ -12991,7 +12991,7 @@
+     esac
+   else
+     case $host_os in
+-      aix4* | aix5*)
++      aix4* | aix5*| aix6*)
+ 	# All AIX code is PIC.
+ 	if test "$host_cpu" = ia64; then
+ 	  # AIX 5 now supports IA64 processor
+@@ -13343,7 +13343,7 @@
+ 
+   export_symbols_cmds_CXX='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
+   case $host_os in
+-  aix4* | aix5*)
++  aix4* | aix5*| aix6*)
+     # If we're using GNU nm, then we don't want the "-C" option.
+     # -C means demangle to AIX nm, but means don't demangle with GNU nm
+     if $NM -V 2>&1 | grep 'GNU' > /dev/null; then
+@@ -13480,7 +13480,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -15391,7 +15391,7 @@
+     postinstall_cmds='$RANLIB $lib'
+   fi
+   ;;
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   if test "$host_cpu" != ia64 && test "$aix_use_runtimelinking" = no ; then
+     test "$enable_shared" = yes && enable_static=no
+   fi
+@@ -15852,7 +15852,7 @@
+ 
+     # See if GNU ld supports shared libraries.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5*| aix6*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+ 	ld_shlibs_F77=no
+@@ -16020,7 +16020,7 @@
+       fi
+       ;;
+ 
+-    aix4* | aix5*)
++    aix4* | aix5*| aix6*)
+       if test "$host_cpu" = ia64; then
+ 	# On IA64, the linker does run time linking by default, so we don't
+ 	# have to do anything special.
+@@ -16040,7 +16040,7 @@
+ 	# Test if we are trying to use run time linking or normal
+ 	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
+ 	# need to do runtime linking.
+-	case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++	case $host_os in aix4.[23]|aix4.[23].*|aix5*| aix6*)
+ 	  for ld_flag in $LDFLAGS; do
+   	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+   	    aix_use_runtimelinking=yes
+@@ -16753,7 +16753,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+@@ -18310,7 +18310,7 @@
+ 
+     # See if GNU ld supports shared libraries.
+     case $host_os in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5*| aix6*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+ 	ld_shlibs_GCJ=no
+@@ -18478,7 +18478,7 @@
+       fi
+       ;;
+ 
+-    aix4* | aix5*)
++    aix4* | aix5*| aix6*)
+       if test "$host_cpu" = ia64; then
+ 	# On IA64, the linker does run time linking by default, so we don't
+ 	# have to do anything special.
+@@ -18498,7 +18498,7 @@
+ 	# Test if we are trying to use run time linking or normal
+ 	# AIX style linking. If -brtl is somewhere in LDFLAGS, we
+ 	# need to do runtime linking.
+-	case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++	case $host_os in aix4.[23]|aix4.[23].*|aix5*| aix6*)
+ 	  for ld_flag in $LDFLAGS; do
+   	  if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+   	    aix_use_runtimelinking=yes
+@@ -19231,7 +19231,7 @@
+   soname_spec='${libname}${release}${shared_ext}$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5*| aix6*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+Index: db-4.4.20/dist/configure.ac
+===================================================================
+--- db-4.4.20.orig/dist/configure.ac	2005-10-14 22:52:29.000000000 +0200
++++ db-4.4.20/dist/configure.ac	2008-05-20 16:00:57.-859306576 +0200
+@@ -138,7 +138,7 @@
+ # Don't override anything if it's already set from the environment.
+ optimize_debug="-O"
+ case "$host_os" in
+-aix4.3.*|aix5*)
++aix4.3.*|aix5*|aix6*)
+ 	optimize_debug="-O2"
+ 	CC=${CC-"xlc_r"}
+ 	CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE"

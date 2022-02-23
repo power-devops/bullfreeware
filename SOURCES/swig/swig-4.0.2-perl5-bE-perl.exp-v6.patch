@@ -1,0 +1,70 @@
+--- ./configure.ac.ORIGIN	2021-01-12 10:23:18 +0100
++++ ./configure.ac	2021-01-12 10:26:17 +0100
+@@ -1014,7 +1014,10 @@
+  			AC_MSG_RESULT($PERL5CCFLAGS)
+  		fi
+     AC_MSG_CHECKING(for Perl5 ccdlflags)
+-    PERL5CCDLFLAGS=`($PERL -e 'use Config; print $Config{ccdlflags}, "\n"') 2>/dev/null`
++    case $host in
++	*-*-aix*) PERL5CCDLFLAGS="-Xlinker -bE:./perl.exp";;
++	*)	  PERL5CCDLFLAGS=`($PERL -e 'use Config; print $Config{ccdlflags}, "\n"') 2>/dev/null`;;
++	esac
+     if test -z "$PERL5CCDLFLAGS" ; then
+       AC_MSG_RESULT(not found)
+       else
+--- ./Examples/test-suite/common.mk.ORIGIN	2021-01-12 16:35:18 +0100
++++ ./Examples/test-suite/common.mk	2021-01-12 16:40:58 +0100
+@@ -819,6 +819,7 @@
+ 	SWIG_LIB_DIR='$(SWIG_LIB_DIR)' SWIGEXE='$(SWIGEXE)' \
+ 	INCLUDES='$(INCLUDES)' SWIGOPT='$(SWIGOPT)' NOLINK=true \
+ 	TARGET='$(TARGETPREFIX)$*$(TARGETSUFFIX)' INTERFACEDIR='$(INTERFACEDIR)' INTERFACE='$*.i' \
++	TARGET_NAME=$*_ \
+ 	$(LANGUAGE)$(VARIANT)_cpp
+ 
+ swig_and_compile_c =  \
+@@ -826,6 +827,7 @@
+ 	SWIG_LIB_DIR='$(SWIG_LIB_DIR)' SWIGEXE='$(SWIGEXE)' \
+ 	INCLUDES='$(INCLUDES)' SWIGOPT='$(SWIGOPT)' NOLINK=true \
+ 	TARGET='$(TARGETPREFIX)$*$(TARGETSUFFIX)' INTERFACEDIR='$(INTERFACEDIR)' INTERFACE='$*.i' \
++	TARGET_NAME=$*_ \
+ 	$(LANGUAGE)$(VARIANT)
+ 
+ swig_and_compile_multi_cpp = \
+@@ -836,6 +836,7 @@
+ 	  SWIG_LIB_DIR='$(SWIG_LIB_DIR)' SWIGEXE='$(SWIGEXE)' \
+ 	  LIBS='$(LIBS)' INCLUDES='$(INCLUDES)' SWIGOPT='$(SWIGOPT)' NOLINK=true \
+ 	  TARGET="$(TARGETPREFIX)$${f}$(TARGETSUFFIX)" INTERFACEDIR='$(INTERFACEDIR)' INTERFACE="$$f.i" \
++	  TARGET_NAME=$*_ \
+ 	  $(LANGUAGE)$(VARIANT)_cpp; \
+ 	done
+ 
+@@ -848,6 +849,7 @@
+ 	SWIG_LIB_DIR='$(SWIG_LIB_DIR)' SWIGEXE='$(SWIGEXE)' \
+ 	INCLUDES='$(INCLUDES)' SWIGOPT='$(SWIGOPT)' NOLINK=true \
+ 	TARGET='$(TARGETPREFIX)$*$(TARGETSUFFIX)' INTERFACEDIR='$(INTERFACEDIR)' INTERFACE='$*.i' \
++	TARGET_NAME=$*_ \
+ 	$(LANGUAGE)$(VARIANT)_cpp
+ 
+ swig_and_compile_runtime = \
+--- ./Examples/Makefile.in.ORIGIN	2021-01-15 13:54:44 +0100
++++ ./Examples/Makefile.in	2021-01-15 13:55:14 +0100
+@@ -249,6 +249,9 @@
+ perl5: $(SRCDIR_SRCS)
+ 	$(SWIG) -perl5 $(SWIGOPT) -o $(ISRCS) $(INTERFACEPATH)
+ 	$(CC) -c -Dbool=char $(CCSHARED) $(CPPFLAGS) $(CFLAGS) $(SRCDIR_SRCS) $(ISRCS) $(INCLUDES) $(PERL5_CCFLAGS) $(PERL5_CCCDLFLAGS) -I$(PERL5_INCLUDE)
++	echo "#! .." > ./perl.exp
++	grep -s "^BEGIN { " $(TARGET_NAME)runme.pl | awk -F\' '{print "boot_" $$2}' | sort -u >> ./perl.exp
++	grep -s "^use " $(TARGET_NAME)runme.pl | grep -v -e "Test::More" -e "Devel::Peek" -e "warnings" -e strict -e vars | awk '{print "boot_" $$2}' | sed s"/;//" >> ./perl.exp
+ 	$(LDSHARED) $(CFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(SO) $(PERL5_LIB)
+ 
+ # ----------------------------------------------------------------
+@@ -258,6 +261,9 @@
+ perl5_cpp: $(SRCDIR_SRCS)
+ 	$(SWIG) -perl5 -c++ $(SWIGOPT) -o $(ICXXSRCS) $(INTERFACEPATH)
+ 	$(CXX) -c $(CCSHARED) $(CPPFLAGS) $(CXXFLAGS) $(SRCDIR_SRCS) $(SRCDIR_CXXSRCS) $(ICXXSRCS) $(INCLUDES) $(PERL5_CCFLAGS) $(PERL5_CCCDLFLAGS) -I$(PERL5_INCLUDE)
++	echo "#! .." > ./perl.exp
++	grep -s "^BEGIN { " $(TARGET_NAME)runme.pl | awk -F\' '{print "boot_" $$2}' | sort -u >> ./perl.exp
++	grep -s "^use " $(TARGET_NAME)runme.pl | grep -v -e "Test::More" -e "Devel::Peek" -e "warnings" -e strict -e vars | awk '{print "boot_" $$2}' | sed s"/;//" >> ./perl.exp
+ 	$(CXXSHARED) $(CXXFLAGS) $(LDFLAGS) $(PERL5_CCDLFLAGS) $(OBJS) $(IOBJS) $(PERL5_LDFLAGS) $(PERL5_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(SO) $(PERL5_LIB)
+ 
+ # ----------------------------------------------------------------

@@ -1,0 +1,44 @@
+*** pth.h.in.ORIG	Tue Oct  9 12:55:13 2007
+--- pth.h.in	Tue Oct  9 12:55:57 2007
+***************
+*** 90,96 ****
+--- 90,100 ----
+      /* check if the user requests a bigger FD_SETSIZE than we can handle */
+  #if defined(FD_SETSIZE)
+  #if FD_SETSIZE > @PTH_FDSETSIZE@
++ #ifdef _AIX
++ #define FD_SETSIZE 65534
++ #else
+  #error "FD_SETSIZE is larger than what GNU Pth can handle."
++ #endif
+  #endif
+  #endif
+  
+--- aclocal.m4.ORIGIN	2017-11-09 10:31:17 +0100
++++ aclocal.m4	2017-11-09 10:33:13 +0100
+@@ -1214,8 +1214,8 @@
+ AC_ARG_WITH(fdsetsize,dnl
+ [  --with-fdsetsize=NUM    set FD_SETSIZE while building GNU Pth],[
+ case $withval in
+-    [[1-9]][[0-9]]|[[1-9]][[0-9]][[0-9]]|[[1-9]][[0-9]][[0-9]][[0-9]]) $1=$withval ;;
+-    * ) AC_ERROR([invalid FD_SETSIZE specified -- allowed: 10-9999]) ;;
++    [[1-9]][[0-9]]|[[1-9]][[0-9]][[0-9]]|[[1-9]][[0-9]][[0-9]][[0-9]]|[[1-9]][[0-9]][[0-9]][[0-9]][[0-9]]) $1=$withval ;;
++    * ) AC_ERROR([invalid FD_SETSIZE specified -- allowed: 10-99999]) ;;
+ esac
+ dnl # we cannot use the usual
+ dnl # AC_DEFINE_UNQUOTED(FD_SETSIZE, $$1, [Define to the maximum size of fd_set])
+--- configure.ORIGIN	2017-11-09 10:40:38 +0100
++++ configure	2017-11-09 10:41:22 +0100
+@@ -19667,9 +19667,9 @@
+   withval="$with_fdsetsize"
+ 
+ case $withval in
+-    [1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]) PTH_FDSETSIZE=$withval ;;
+-    * ) { { echo "$as_me:$LINENO: error: invalid FD_SETSIZE specified -- allowed: 10-9999" >&5
+-echo "$as_me: error: invalid FD_SETSIZE specified -- allowed: 10-9999" >&2;}
++    [1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9]) PTH_FDSETSIZE=$withval ;;
++    * ) { { echo "$as_me:$LINENO: error: invalid FD_SETSIZE specified -- allowed: 10-99999" >&5
++echo "$as_me: error: invalid FD_SETSIZE specified -- allowed: 10-99999" >&2;}
+    { (exit 1); exit 1; }; } ;;
+ esac
+ CPPFLAGS="$CPPFLAGS -DFD_SETSIZE=$PTH_FDSETSIZE"

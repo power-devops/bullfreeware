@@ -1,0 +1,206 @@
+From 3e198e83ed989b539ef9fe188c884d980c215f4f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 23 Oct 2019 16:50:51 +0200
+Subject: [PATCH] fix --disable-rpath
+
+---
+ gettext-runtime/configure | 15 ++++++++++++---
+ gettext-tools/configure   | 35 ++++++++++++++++++++++++++++-------
+ libtextstyle/configure    | 25 ++++++++++++++++++++-----
+ 3 files changed, 60 insertions(+), 15 deletions(-)
+
+diff --git a/gettext-runtime/configure b/gettext-runtime/configure
+index 632e87b..44e3b56 100755
+--- a/gettext-runtime/configure
++++ b/gettext-runtime/configure
+@@ -17588,7 +17588,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name" ;;
++                  *) LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -18363,7 +18366,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -21165,7 +21171,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+diff --git a/gettext-tools/configure b/gettext-tools/configure
+index 3573a77..e95738a 100755
+--- a/gettext-tools/configure
++++ b/gettext-tools/configure
+@@ -19822,7 +19822,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name" ;;
++                  *) LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -20597,7 +20600,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -23399,7 +23405,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -29259,7 +29268,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }-L$found_dir -l$name" ;;
++                  *) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -29811,7 +29823,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }-L$found_dir -l$name" ;;
++                  *) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -30366,7 +30381,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }-L$found_dir -l$name" ;;
++                  *) LIBUNISTRING="${LIBUNISTRING}${LIBUNISTRING:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -43423,7 +43441,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBXML2="${LIBXML2}${LIBXML2:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBXML2="${LIBXML2}${LIBXML2:+ }-L$found_dir -l$name" ;;
++                  *) LIBXML2="${LIBXML2}${LIBXML2:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+diff --git a/libtextstyle/configure b/libtextstyle/configure
+index 9de5431..dd14297 100755
+--- a/libtextstyle/configure
++++ b/libtextstyle/configure
+@@ -16633,7 +16633,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -21617,7 +21620,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBNCURSES="${LIBNCURSES}${LIBNCURSES:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBNCURSES="${LIBNCURSES}${LIBNCURSES:+ }-L$found_dir -l$name" ;;
++                  *) LIBNCURSES="${LIBNCURSES}${LIBNCURSES:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -22077,7 +22083,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBTERMCAP="${LIBTERMCAP}${LIBTERMCAP:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBTERMCAP="${LIBTERMCAP}${LIBTERMCAP:+ }-L$found_dir -l$name" ;;
++                  *) LIBTERMCAP="${LIBTERMCAP}${LIBTERMCAP:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -22537,7 +22546,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBXCURSES="${LIBXCURSES}${LIBXCURSES:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBXCURSES="${LIBXCURSES}${LIBXCURSES:+ }-L$found_dir -l$name" ;;
++                  *) LIBXCURSES="${LIBXCURSES}${LIBXCURSES:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -22997,7 +23009,10 @@ fi
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem2"; then
+-                                LIBCURSES="${LIBCURSES}${LIBCURSES:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBCURSES="${LIBCURSES}${LIBCURSES:+ }-L$found_dir -l$name" ;;
++                  *) LIBCURSES="${LIBCURSES}${LIBCURSES:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+-- 
+2.22.0
+

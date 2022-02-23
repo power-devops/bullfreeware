@@ -1,0 +1,26 @@
+From 8c85c9301f958446322faeb919dd4e42ea15d31c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 9 Jan 2020 15:51:19 +0100
+Subject: [PATCH] add -lm for AIX
+
+---
+ drv_posix.go | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drv_posix.go b/drv_posix.go
+index c88fa6e..ccd8b5c 100644
+--- a/drv_posix.go
++++ b/drv_posix.go
+@@ -7,5 +7,8 @@
+ 
+ package godror
+ 
+-// #cgo LDFLAGS: -ldl -lpthread
++/*
++#cgo LDFLAGS: -ldl -lpthread
++#cgo aix LDFLAGS: -lm
++*/
+ import "C"
+-- 
+2.22.0
+

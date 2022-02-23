@@ -1,0 +1,17 @@
+Index: Python-2.7.5/Lib/distutils/unixccompiler.py
+===================================================================
+--- Python-2.7.5.orig/Lib/distutils/unixccompiler.py	2013-05-12 05:32:42.000000000 +0200
++++ Python-2.7.5/Lib/distutils/unixccompiler.py	2013-05-23 10:51:24.000000000 +0200
+@@ -189,8 +189,11 @@
+                         i = 1
+                         while '=' in linker[i]:
+                             i = i + 1
++                    # see http://bugs.python.org/issue17454
++                    if 'ld_so_aix' in linker[i]:
++                        i = i + 1
+ 
+-                    linker[i] = self.compiler_cxx[i]
++                    linker[i] = self.compiler_cxx[0]
+ 
+                 if sys.platform == 'darwin':
+                     linker = _osx_support.compiler_fixup(linker, ld_args)

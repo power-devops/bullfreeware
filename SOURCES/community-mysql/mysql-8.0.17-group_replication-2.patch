@@ -1,0 +1,313 @@
+--- ./plugin/group_replication/libmysqlgcs/CMakeLists.txt.orig	2019-11-07 17:17:11.000000000 +0100
++++ ./plugin/group_replication/libmysqlgcs/CMakeLists.txt	2019-11-08 09:47:17.000000000 +0100
+@@ -70,6 +70,7 @@
+   src/bindings/xcom/xcom/node_list.c
+   src/bindings/xcom/xcom/task_debug.c
+   src/bindings/xcom/xcom/sock_probe.c
++  src/bindings/xcom/xcom/getifaddrs.c
+   src/bindings/xcom/xcom/task_net.c
+   src/bindings/xcom/xcom/synode_no.c
+   src/bindings/xcom/xcom/xcom_detector.c
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c.old	2019-11-07 16:47:23.000000000 +0100
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/sock_probe_ix.c	2019-11-08 10:57:45.000000000 +0100
+@@ -23,12 +23,18 @@
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+ #ifndef __linux__
++#ifndef _AIX
+ #include <sys/sockio.h>
+ #endif
++#endif
+ #include <arpa/inet.h>
+ #include <assert.h>
+ #include <errno.h>
++#ifndef _AIX
+ #include <ifaddrs.h>
++#else
++#include "plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/ifaddrs.h"
++#endif
+ #include <net/if.h>
+ #include <netdb.h>
+ #include <stdlib.h>
+--- /dev/null	2019-11-08 15:19:19.660000643 +0100
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/ifaddrs.h	2019-11-08 14:39:43.000000000 +0100
+@@ -0,0 +1,45 @@
++#ifndef GENERIC_AIX_IFADDRS_H
++#define GENERIC_AIX_IFADDRS_H
++
++#include <sys/socket.h>
++#include <net/if.h>
++#include <netinet/in6_var.h>
++
++#undef  ifa_dstaddr
++#undef  ifa_broadaddr
++
++struct ifaddrs {
++    struct ifaddrs  *ifa_next;    /* Next item in list */
++    char            *ifa_name;    /* Name of interface */
++    unsigned int     ifa_flags;   /* Flags from SIOCGIFFLAGS */
++    struct sockaddr *ifa_addr;    /* Address of interface */
++    struct sockaddr *ifa_netmask; /* Netmask of interface */
++    union {
++        struct sockaddr *ifu_broadaddr;
++                        /* Broadcast address of interface */
++        struct sockaddr *ifu_dstaddr;
++                        /* Point-to-point destination address */
++    } ifa_ifu;
++#define              ifa_broadaddr ifa_ifu.ifu_broadaddr
++#define              ifa_dstaddr   ifa_ifu.ifu_dstaddr
++    void            *ifa_data;    /* Address-specific data */
++};
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++    /* Create a linked list of `struct ifaddrs' structures, one for each
++    network interface on the host machine.  If successful, store the
++    list in *IFAP and return 0.  On errors, return -1 and set `errno'.
++
++    The storage returned in *IFAP is allocated dynamically and can
++    only be properly freed by passing it to `freeifaddrs'.  */
++    extern int getifaddrs (struct ifaddrs **);
++
++    /* Reclaim the storage allocated by a previous `getifaddrs' call.  */
++    extern void freeifaddrs (struct ifaddrs *);
++#ifdef __cplusplus
++}
++#endif
++
++#endif // AIX_IFADDRS_H
+--- ./mysql-test/include/mtr_warnings.sql.old	2019-11-08 17:03:27.000000000 +0100
++++ ./mysql-test/include/mtr_warnings.sql	2019-11-08 15:47:21.000000000 +0100
+@@ -237,6 +237,7 @@
+  ("\\[GCS\\] Error pushing message into group communication engine."),
+  ("\\[GCS\\] Message cannot be sent because the member does not belong to a group."),
+  ("\\[GCS\\] Automatically adding IPv4 localhost address to the whitelist. It is mandatory that it is added."),
++ ("\\[GCS\\] Automatically adding IPv6 localhost address to the whitelist. It is mandatory that it is added."),
+  ("Member with address .* has become unreachable."),
+  ("This server is not able to reach a majority of members in the group.*"),
+  ("Member with address .* is reachable again."),
+--- ./mysql-test/suite/group_replication/include/gr_startup_check_node_seed_skips_own_address.inc.orig  2019-11-21 14:05:44 +0100
++++ ./mysql-test/suite/group_replication/include/gr_startup_check_node_seed_skips_own_address.inc       2019-11-21 14:05:53 +0100
+@@ -60,7 +60,7 @@
+ # Assemble the new values:
+ # - local address with raw values
+ # - local address first in seeds with name (which is default)
+---let $localhost_address= [::1]:
++#--let $localhost_address= [::1]:
+ --let $local_address_with_raw_address= $localhost_address$SERVER_GR_PORT_2
+
+ # Set values
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_base.c.orig	2019-11-21 10:39:23 +0100
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_base.c	2019-11-21 10:38:45 +0100
+@@ -253,9 +253,9 @@
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+ #include <sys/socket.h>
+-#ifndef __linux__
+-#include <sys/sockio.h>
+-#endif
++//#ifndef __linux__
++//#include <sys/sockio.h>
++//#endif
+ #endif
+ 
+ #if defined(_WIN32)
+--- ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_vp_platform.h.gen.orig	2019-11-21 15:11:12 +0100
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/xcom_vp_platform.h.gen	2019-11-21 15:11:25 +0100
+@@ -52,4 +52,10 @@
+ #endif
+ #endif
+ 
++#ifdef _AIX
++#define xdr_uint32_t  xdr_u_int
++#define xdr_uint64_t  xdr_u_long
++#define xdr_int32_t   xdr_int
++#endif
++
+ #endif
+--- /dev/null	2019-11-13 09:30:53.063999959 +0100
++++ ./plugin/group_replication/libmysqlgcs/src/bindings/xcom/xcom/getifaddrs.c	2019-11-26 12:16:40.000000000 +0100
+@@ -0,0 +1,182 @@
++/*
++   Unix SMB/CIFS implementation.
++   Samba utility functions
++   Copyright (C) Andrew Tridgell 1998
++   Copyright (C) Jeremy Allison 2007
++   Copyright (C) Jelmer Vernooij <jelmer@samba.org> 2007
++
++     ** NOTE! The following LGPL license applies to the replace
++     ** library. This does NOT imply that all of Samba is released
++     ** under the LGPL
++
++   This library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 3 of the License, or (at your option) any later version.
++
++   This library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Library General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with this library; if not, see <http://www.gnu.org/licenses/>.
++*/
++// Copyied from Samba
++// Modified to support IPv6 by Etienne Guesnet 2019
++// Licenced under LGPL
++
++#include <string.h>
++#include <sys/ioctl.h>
++#include <stdlib.h>
++
++#include "ifaddrs.h"
++
++#include <unistd.h>
++#include <stdio.h>
++#include <sys/types.h>
++#include <sys/time.h>
++
++void freeifaddrs(struct ifaddrs *ifp)
++{
++    if (ifp != NULL) {
++        free(ifp->ifa_name);
++        free(ifp->ifa_addr);
++        free(ifp->ifa_netmask);
++        free(ifp->ifa_dstaddr);
++        freeifaddrs(ifp->ifa_next);
++        free(ifp);
++    }
++}
++
++static struct sockaddr *sockaddr_dup(struct sockaddr *sa)
++{
++    struct sockaddr *ret;
++    socklen_t socklen;
++    socklen = sa->sa_len;
++    ret = calloc(1, socklen);
++    if (ret == NULL)
++        return NULL;
++    memcpy(ret, sa, socklen);
++    return ret;
++}
++
++int getifaddrs(struct ifaddrs **ifap)
++{
++    char buff[8192];
++    int fd4, fd6, i;
++    struct ifconf ifc;
++    struct ifreq *ifr=NULL;
++    struct ifaddrs *curif, *curif2;
++    struct ifaddrs *lastif = NULL;
++
++    *ifap = NULL;
++
++    if ((fd4 = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
++        return -1;
++    }
++    if ((fd6 = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
++        return -1;
++    }
++
++    ifc.ifc_len = sizeof(buff);
++    ifc.ifc_buf = buff;
++
++    if (ioctl(fd4, SIOCGIFCONF, &ifc) != 0) {
++        close(fd4);
++        close(fd6);
++        return -1;
++    }
++
++    ifr = ifc.ifc_req;
++
++    /* Loop through interfaces */
++    i = ifc.ifc_len;
++
++    while (i > 0) {
++        unsigned int inc;
++        
++        inc = ifr->ifr_addr.sa_len;
++
++        if (ioctl(fd4, SIOCGIFADDR, ifr) != 0) {
++            goto caseV6;
++        }
++        
++        curif = calloc(1, sizeof(struct ifaddrs));
++        curif->ifa_name = strdup(ifr->ifr_name);
++        curif->ifa_addr = sockaddr_dup(&ifr->ifr_addr);
++        curif->ifa_dstaddr = NULL;
++        curif->ifa_data = NULL;
++        curif->ifa_netmask = NULL;
++        curif->ifa_next = NULL;
++        
++        if (ioctl(fd4, SIOCGIFNETMASK, ifr) != 0) {
++            goto caseV6;
++        }
++        
++        if (ioctl(fd4, SIOCGIFFLAGS, ifr) != 0) 
++        {
++            goto caseV6;
++        }
++        
++        if (lastif == NULL) {
++            *ifap = curif;
++        } else {
++            lastif->ifa_next = curif;
++        }
++        curif->ifa_flags = ifr->ifr_flags;
++        curif->ifa_netmask = sockaddr_dup(&ifr->ifr_addr);
++        lastif = curif;
++
++caseV6:
++        if (ioctl(fd6, SIOCGIFADDR6, ifr) != 0) {
++            goto next;
++        }
++
++        curif2 = calloc(1, sizeof(struct ifaddrs));
++        curif2->ifa_name = strdup(ifr->ifr_name);
++        curif2->ifa_addr = sockaddr_dup(&ifr->ifr_addr);
++        curif2->ifa_dstaddr = NULL;
++        curif2->ifa_data = NULL;
++        curif2->ifa_netmask = NULL;
++        curif2->ifa_next = NULL;
++        
++        if (ioctl(fd6, SIOCGIFNETMASK6, ifr) != 0) {
++            goto next;
++        }
++        if (ioctl(fd6, SIOCGIFFLAGS, ifr) != 0) 
++        {
++            goto next;
++        }
++        if (lastif == NULL) {
++            *ifap = curif2;
++        } else {
++            lastif->ifa_next = curif2;
++        }
++        
++        curif2->ifa_flags = ifr->ifr_flags;
++        curif2->ifa_netmask = sockaddr_dup(&ifr->ifr_addr);
++
++        lastif = curif2;
++        
++next:
++        /*
++         * Patch from Archie Cobbs (archie@whistle.com).  The
++         * addresses in the SIOCGIFCONF interface list have a
++         * minimum size. Usually this doesn't matter, but if
++         * your machine has tunnel interfaces, etc. that have
++         * a zero length "link address", this does matter.  */
++
++        if (inc < sizeof(ifr->ifr_addr))
++            inc = sizeof(ifr->ifr_addr);
++        inc += IFNAMSIZ;
++
++        ifr = (struct ifreq*) (((char*) ifr) + inc);
++        i -= inc;
++    }
++    
++    close(fd4);
++    close(fd6);
++    return 0;
++}
++

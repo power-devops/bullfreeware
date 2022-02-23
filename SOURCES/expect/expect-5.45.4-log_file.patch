@@ -1,0 +1,12 @@
+diff -up expect-5.44.1.15/exp_log.c.orig expect-5.44.1.15/exp_log.c
+--- expect-5.44.1.15/exp_log.c.orig	2010-03-08 15:45:20.581378309 +0100
++++ expect-5.44.1.15/exp_log.c	2010-03-08 15:45:38.838398279 +0100
+@@ -374,7 +374,7 @@ expDiagChannelOpen(interp,filename)
+ 	Tcl_DStringAppend(&tsdPtr->diagFilename,filename,-1);
+     }
+ 
+-    tsdPtr->diagChannel = Tcl_OpenFileChannel(interp,newfilename,"a",0777);
++    tsdPtr->diagChannel = Tcl_OpenFileChannel(interp,newfilename,"a",0666);
+     if (!tsdPtr->diagChannel) {
+ 	Tcl_DStringFree(&tsdPtr->diagFilename);
+ 	return TCL_ERROR;

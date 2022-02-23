@@ -1,0 +1,10 @@
+--- a/Makefile	2019-11-07 11:01:39 +0100
++++ b/Makefile	2019-11-07 11:02:22 +0100
+@@ -161,6 +161,7 @@
+ 	-ldflags="$(LD_FLAGS)" \
+ 	-gcflags="$(GC_FLAGS)" \
+ 	-asmflags="$(ASM_FLAGS)" \
++	-mod=vendor \
+ 	$(TRIMPATH) \
+ 	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
+ 

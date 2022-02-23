@@ -1,0 +1,15 @@
+--- ./misc/fts.c.aixdef   2019-06-26 09:17:31 +0000
++++ ./misc/fts.c  2020-04-07 13:20:58 +0000
+@@ -64,6 +64,12 @@
+ #if defined(__APPLE__)
+ #   define __errno_location()  (__error())
+ #endif
++#   define __errno_location()   (&errno)
++#ifndef _AIX
++#   define dirfd(dirp)          -1
++#endif
++#   define _STAT_VER
++#   define __fxstat64(_stat_ver, _fd, _sbp)     fstat((_fd), (_sbp))
+ 
+ #include "system.h"
+ #include <stdlib.h>

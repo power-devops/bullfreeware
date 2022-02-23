@@ -1,0 +1,11 @@
+--- c_check_orig	2019-02-27 17:47:05 +0000
++++ c_check	2019-02-27 17:51:29 +0000
+@@ -233,6 +233,8 @@
+ 
+ $cross = 1 if ($os ne $hostos);
+ 
++$cross = 0;
++
+ $openmp = "" if $ENV{USE_OPENMP} != 1;
+ 
+ $linker_L = "";

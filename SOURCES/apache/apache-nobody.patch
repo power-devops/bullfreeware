@@ -1,0 +1,19 @@
+*** apache_1.3.26/conf/httpd.conf-dist.org	Wed Oct 17 17:09:08 2001
+--- apache_1.3.26/conf/httpd.conf-dist	Wed Oct 17 17:09:44 2001
+***************
+*** 244,250 ****
+  #  don't use Group "#-1" on these systems!
+  #
+  User nobody
+! Group "#-1"
+  
+  #
+  # ServerAdmin: Your address, where problems with the server should be
+--- 244,250 ----
+  #  don't use Group "#-1" on these systems!
+  #
+  User nobody
+! Group nobody
+  
+  #
+  # ServerAdmin: Your address, where problems with the server should be

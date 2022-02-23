@@ -1,0 +1,29 @@
+From 211b40123d07600ae88081ad610ce131dd20317a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 9 Jun 2020 16:40:58 -0500
+Subject: [PATCH] syscall: fix syscall_unix_test.go compilation
+
+---
+ libgo/go/syscall/syscall_unix_test.go | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/libgo/go/syscall/syscall_unix_test.go b/libgo/go/syscall/syscall_unix_test.go
+index b99e07dd38b..97985b78291 100644
+--- a/libgo/go/syscall/syscall_unix_test.go
++++ b/libgo/go/syscall/syscall_unix_test.go
+@@ -51,9 +51,9 @@ func _() {
+ 			// on the Hurd they are int32, not int16.
+ 			// Type:   int16(0),
+ 			// Whence: int16(0),
+-			Start: int64(0),
+-			Len:   int64(0),
+-			Pid:   int32(0),
++			// Start: int64(0),
++			// Len:   int64(0),
++			Pid: int32(0),
+ 		}
+ 	)
+ 	const (
+-- 
+2.25.0
+

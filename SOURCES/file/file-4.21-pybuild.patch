@@ -1,0 +1,14 @@
+diff -up file-4.21/python/setup.py.pybuild file-4.21/python/setup.py
+--- file-4.21/python/setup.py.pybuild	2007-12-11 09:40:29.000000000 +0100
++++ file-4.21/python/setup.py	2007-12-11 09:40:59.000000000 +0100
+@@ -3,8 +3,8 @@ from distutils.core import setup, Extens
+ 
+ magic_module = Extension('magic',
+     libraries = ['magic'],
+-    library_dirs = ['./','../','../src','/usr/lib/'],
+-    include_dirs = ['./','../','../src','/usr/include/'],
++    library_dirs = ['./','../','../src','../src/.libs','/usr/lib/'],
++    include_dirs = ['./','../','../src','../src/.libs','/usr/include/'],
+     sources = ['py_magic.c'])
+ 
+ setup (name = 'Magic file extensions',

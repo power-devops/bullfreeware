@@ -1,0 +1,18 @@
+--- ./storage/heap/CMakeLists.txt.orig	2022-02-02 14:04:43.860713918 +0000
++++ ./storage/heap/CMakeLists.txt	2022-02-02 14:04:53.235476212 +0000
+@@ -21,7 +21,7 @@
+ 
+ MYSQL_ADD_PLUGIN(heap ${HEAP_SOURCES} STORAGE_ENGINE MANDATORY RECOMPILE_FOR_EMBEDDED)
+ 
+-IF(CMAKE_SYSTEM_NAME MATCHES AIX AND CMAKE_BUILD_TYPE STREQUAL "DEBUG")
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
+   # Workaround linker bug on AIX
+   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-berok")
+ ENDIF()
+@@ -32,4 +32,4 @@
+ 
+   ADD_EXECUTABLE(hp_test2 hp_test2.c)
+   TARGET_LINK_LIBRARIES(hp_test2 heap mysys dbug strings)
+-ENDIF()
+\ No newline at end of file
++ENDIF()

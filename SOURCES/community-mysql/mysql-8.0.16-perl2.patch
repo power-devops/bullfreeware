@@ -1,0 +1,176 @@
+--- ./dbug/dbug_add_tags.pl.ORIGIN	2019-08-08 09:21:16 -0500
++++ ./dbug/dbug_add_tags.pl	2019-08-08 09:21:16 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2002 MySQL AB, 2009 Sun Microsystems, Inc.
+ # Use is subject to license terms.
+--- ./dbug/remove_function_from_trace.pl.ORIGIN	2019-08-08 09:21:16 -0500
++++ ./dbug/remove_function_from_trace.pl	2019-08-08 09:21:16 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ 
+ die <<EEE unless @ARGV;
+--- ./extra/re2/re2/make_perl_groups.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./extra/re2/re2/make_perl_groups.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ # Copyright 2008 The RE2 Authors.  All Rights Reserved.
+ # Use of this source code is governed by a BSD-style
+ # license that can be found in the LICENSE file.
+--- ./mysql-test/lib/t/SafeProcessStress.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/lib/t/SafeProcessStress.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ # -*- cperl -*-
+ 
+ # Copyright (c) 2007, 2008 MySQL AB
+--- ./mysql-test/lib/t/dummyd.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/lib/t/dummyd.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ # -*- cperl -*-
+ 
+ # Copyright (c) 2007 MySQL AB
+--- ./mysql-test/lib/t/test_child.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/lib/t/test_child.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ # -*- cperl -*-
+ 
+ # Copyright (c) 2007 MySQL AB
+--- ./mysql-test/mysql-stress-test.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/mysql-stress-test.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
+ #
+--- ./mysql-test/suite/engines/rr_trx/run_stress_tx_rr.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/engines/rr_trx/run_stress_tx_rr.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ ################################################################################
+ #
+ # This script runs the transactional stress test "stress_tx_rr" against the
+--- ./mysql-test/suite/funcs_1/lib/DataGen_local.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/funcs_1/lib/DataGen_local.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ 
+ if ( (scalar(@ARGV) != 1 ) || ($ARGV[0] =~ /[^0-9]/i ) )
+--- ./mysql-test/suite/funcs_1/lib/DataGen_modify.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/funcs_1/lib/DataGen_modify.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ 
+ if ( (scalar(@ARGV) != 2 ) || ($ARGV[0] =~ /[^0-9]/i ) )
+--- ./mysql-test/suite/funcs_2/lib/gen_charset_utf8.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/funcs_2/lib/gen_charset_utf8.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ #################################################################################
+ # Author:  Serge Kozlov								#	
+--- ./mysql-test/suite/opt_trace/validate_json.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/opt_trace/validate_json.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ use strict;
+ use JSON;
+ use File::Spec::Functions qw/ canonpath /;
+--- ./mysql-test/suite/rpl/extension/bhs.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/rpl/extension/bhs.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ #
+--- ./mysql-test/suite/rpl/extension/checksum.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./mysql-test/suite/rpl/extension/checksum.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ #
+--- ./plugin/innodb_memcached/daemon_memcached/devtools/clean-whitespace.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/devtools/clean-whitespace.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ use strict;
+ use FindBin qw($Bin);
+ chdir "$Bin/.." or die;
+--- ./plugin/innodb_memcached/daemon_memcached/devtools/svn-tarballs.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/devtools/svn-tarballs.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ use strict;
+ use FindBin qw($Bin);
+--- ./plugin/innodb_memcached/daemon_memcached/t/stress-memcached.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./plugin/innodb_memcached/daemon_memcached/t/stress-memcached.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ #
+ 
+ use strict;
+--- ./storage/myisam/ftbench/Ecompare.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./storage/myisam/ftbench/Ecompare.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2003, 2005 MySQL AB
+ # Use is subject to license terms
+--- ./storage/myisam/ftbench/Ecreate.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./storage/myisam/ftbench/Ecreate.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2003, 2005 MySQL AB
+ # Use is subject to license terms
+--- ./storage/myisam/ftbench/Ereport.pl.ORIGIN	2019-08-08 09:21:17 -0500
++++ ./storage/myisam/ftbench/Ereport.pl	2019-08-08 09:21:17 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/opt/freeware/bin/perl
+ 
+ # Copyright (c) 2003, 2005 MySQL AB
+ # Use is subject to license terms
+--- ./scripts/randomize-order.pl.ORIGIN	2019-08-08 09:24:15 -0500
++++ ./scripts/randomize-order.pl	2019-08-08 09:24:52 -0500
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl
++#! /opt/freeware/bin/perl
+ #
+ # Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ #
+--- ./scripts/invoke-with-relative-paths.pl.ORIGIN	2019-08-08 09:24:01 -0500
++++ ./scripts/invoke-with-relative-paths.pl	2019-08-08 09:24:59 -0500
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl
++#! /opt/freeware/bin/perl
+ #
+ # Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ #

@@ -1,0 +1,19 @@
+*** ./Makefile.in.ORIG	Thu Apr 19 16:57:42 2012
+--- ./Makefile.in	Thu Apr 19 17:00:50 2012
+***************
+*** 227,233 ****
+  libsvn_ra_serf_LDFLAGS = @libsvn_ra_serf_LDFLAGS@
+  libsvn_ra_svn_LDFLAGS = @libsvn_ra_svn_LDFLAGS@
+  libsvn_repos_LDFLAGS = @libsvn_repos_LDFLAGS@
+! libsvn_subr_LDFLAGS = @libsvn_subr_LDFLAGS@
+  libsvn_wc_LDFLAGS = @libsvn_wc_LDFLAGS@
+  
+  # Compilation of SWIG-generated C source code
+--- 227,233 ----
+  libsvn_ra_serf_LDFLAGS = @libsvn_ra_serf_LDFLAGS@
+  libsvn_ra_svn_LDFLAGS = @libsvn_ra_svn_LDFLAGS@
+  libsvn_repos_LDFLAGS = @libsvn_repos_LDFLAGS@
+! libsvn_subr_LDFLAGS = -L/opt/freeware/lib -lsqlite3
+  libsvn_wc_LDFLAGS = @libsvn_wc_LDFLAGS@
+  
+  # Compilation of SWIG-generated C source code

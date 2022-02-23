@@ -1,0 +1,54 @@
+diff --git a/libgo/go/os/dir_gccgo.go b/libgo/go/os/dir_gccgo.go
+--- a/libgo/go/os/dir_gccgo.go
++++ b/libgo/go/os/dir_gccgo.go
+@@ -12,12 +12,6 @@
+ 	"unsafe"
+ )
+ 
+-//extern opendir
+-func libc_opendir(*byte) *syscall.DIR
+-
+-//extern closedir
+-func libc_closedir(*syscall.DIR) int
+-
+ // FIXME: pathconf returns long, not int.
+ //extern pathconf
+ func libc_pathconf(*byte, int) int
+diff --git a/libgo/go/os/dir_libc64_gccgo.go b/libgo/go/os/dir_libc64_gccgo.go
+--- /dev/null
++++ b/libgo/go/os/dir_libc64_gccgo.go
+@@ -0,0 +1,15 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package os
++
++import "syscall"
++
++//extern opendir64
++func libc_opendir(*byte) *syscall.DIR
++
++//extern closedir64
++func libc_closedir(*syscall.DIR) int
+diff --git a/libgo/go/os/dir_libc_gccgo.go b/libgo/go/os/dir_libc_gccgo.go
+--- /dev/null
++++ b/libgo/go/os/dir_libc_gccgo.go
+@@ -0,0 +1,15 @@
++// Copyright 2017 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build !aix
++
++package os
++
++import "syscall"
++
++//extern opendir
++func libc_opendir(*byte) *syscall.DIR
++
++//extern closedir
++func libc_closedir(*syscall.DIR) int

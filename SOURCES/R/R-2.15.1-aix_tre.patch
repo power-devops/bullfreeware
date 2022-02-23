@@ -1,0 +1,22 @@
+Index: R-2.15.1/src/extra/tre/tre-internal.h
+===================================================================
+--- R-2.15.1.orig/src/extra/tre/tre-internal.h	2012-03-02 00:02:09.000000000 +0100
++++ R-2.15.1/src/extra/tre/tre-internal.h	2012-09-05 13:30:55.000000000 +0200
+@@ -48,7 +48,17 @@
+ 
+ /* Wide characters. */
+ typedef wint_t tre_cint_t;
++/*
++  WCHAR_MAX not possible to function for UINT32_MAX on AIX.
++  AIX 64bit         WCHAR_MAX = UINT32_MAX
++  Solaris-sparcv9   WCHAR_MAX = INT32_MAX
++  Linux amd64       WCHAR_MAX = INT32_MAX
++*/
++#if ( WCHAR_MAX == UINT32_MAX )
++#define TRE_CHAR_MAX INT32_MAX
++#else
+ #define TRE_CHAR_MAX WCHAR_MAX
++#endif
+ 
+ #ifdef TRE_MULTIBYTE
+ #define TRE_MB_CUR_MAX MB_CUR_MAX

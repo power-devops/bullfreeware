@@ -1,0 +1,33 @@
+From 8bdcbe143adc71918bd6e5f2e075df6b8e31267a Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Thu, 14 Feb 2019 11:50:35 -0500
+Subject: [PATCH] Properly size #ifdef in k5_cccol_lock()
+
+The cleanup code only could get executed in the USE_CCAPI_V3 case, so
+move it inside that block.  Reported by Coverity.
+
+(cherry picked from commit 444a15f9cf82b9a6c1bca3f20307f82fee91c228)
+---
+ src/lib/krb5/ccache/ccbase.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/lib/krb5/ccache/ccbase.c b/src/lib/krb5/ccache/ccbase.c
+index 8198f2b9b..2702bef69 100644
+--- a/src/lib/krb5/ccache/ccbase.c
++++ b/src/lib/krb5/ccache/ccbase.c
+@@ -511,7 +511,6 @@ krb5_cccol_lock(krb5_context context)
+ #endif
+ #ifdef USE_CCAPI_V3
+     ret = krb5_stdccv3_context_lock(context);
+-#endif
+     if (ret) {
+         k5_cc_mutex_unlock(context, &krb5int_mcc_mutex);
+         k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+@@ -519,6 +518,7 @@ krb5_cccol_lock(krb5_context context)
+         k5_cc_mutex_unlock(context, &cccol_lock);
+         return ret;
+     }
++#endif
+     k5_mutex_unlock(&cc_typelist_lock);
+     return ret;
+ }

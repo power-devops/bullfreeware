@@ -1,0 +1,95 @@
+From f683b351a57bdfc4aaac5c39243b1c041393ce72 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 24 Feb 2020 15:56:50 +0100
+Subject: [PATCH] configure: fix --disable-rpath for AIX
+
+Current --disable-rpath will add directly $found_so to the compilation
+line. However, on AIX, this will result on the path being hardcoded in
+the built binaries.
+The only way to avoid hardcoded paths is to add -l$name.
+---
+ gcc/configure          |  5 ++++-
+ intl/configure         | 10 ++++++++--
+ libcpp/configure       |  5 ++++-
+ libstdc++-v3/configure |  5 ++++-
+ 4 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/gcc/configure b/gcc/configure
+index f55cdb8c77f..7042ab30046 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -10841,7 +10841,10 @@ fi
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+diff --git a/intl/configure b/intl/configure
+index 870b29f7d3f..4b68ab2c85c 100755
+--- a/intl/configure
++++ b/intl/configure
+@@ -5302,7 +5302,10 @@ fi
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -6148,7 +6151,10 @@ fi
+                         LTLIBINTL="${LTLIBINTL}${LTLIBINTL:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so";;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+diff --git a/libcpp/configure b/libcpp/configure
+index 11da199083b..e781b3a6428 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -6858,7 +6858,10 @@ fi
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+diff --git a/libstdc++-v3/configure b/libstdc++-v3/configure
+index 9f9c5a2419a..b0663a2dc91 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -29298,7 +29298,10 @@ fi
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+-- 
+2.17.1
+

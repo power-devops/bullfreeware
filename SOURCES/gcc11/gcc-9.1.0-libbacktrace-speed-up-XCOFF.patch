@@ -1,0 +1,39 @@
+Index: libbactrace/xcoff.c
+===================================================================
+--- a/libbacktrace/xcoff.c	(revision 272000)
++++ b/libbacktrace/xcoff.c	(working copy)
+@@ -617,12 +617,15 @@ xcoff_initialize_syminfo (struct backtrace_state *
+       const b_xcoff_syment *asym = &syms[i];
+       if ((asym->n_sclass == C_EXT || asym->n_sclass == C_HIDEXT
+ 	    || asym->n_sclass == C_WEAKEXT)
+-	  && ISFCN (asym->n_type) && asym->n_numaux > 0 && asym->n_scnum > 0)
++	  && ISFCN (asym->n_type) && asym->n_numaux > 1 && asym->n_scnum > 0)
+ 	++xcoff_symbol_count;
+ 
+       i += asym->n_numaux;
+     }
+ 
++  if (!xcoff_symbol_count)
++	  return 0;
++
+   xcoff_symbol_size = xcoff_symbol_count * sizeof (struct xcoff_symbol);
+   xcoff_symbols = ((struct xcoff_symbol *)
+ 		   backtrace_alloc (state, xcoff_symbol_size, error_callback,
+@@ -636,7 +639,7 @@ xcoff_initialize_syminfo (struct backtrace_state *
+       const b_xcoff_syment *asym = &syms[i];
+       if ((asym->n_sclass == C_EXT || asym->n_sclass == C_HIDEXT
+ 	    || asym->n_sclass == C_WEAKEXT)
+-	  && ISFCN (asym->n_type) && asym->n_numaux > 0 && asym->n_scnum > 0)
++	  && ISFCN (asym->n_type) && asym->n_numaux > 1 && asym->n_scnum > 0)
+ 	{
+ 	  const b_xcoff_auxent *aux = (const b_xcoff_auxent *) (asym + 1);
+ 	  xcoff_symbols[j].name = xcoff_symname (asym, strtab, strtab_size);
+@@ -972,7 +975,7 @@ xcoff_initialize_fileline (struct backtrace_state
+ 	    fsym = NULL;
+ 	    lnnoptr = 0;
+ 	    fsize = 0;
+-	    if (!ISFCN (asym->n_type) || asym->n_numaux == 0
++	    if (!ISFCN (asym->n_type) || asym->n_numaux < 2
+ 		|| asym->n_scnum <= 0)
+ 	      break;
+ 	    if (filename == NULL)

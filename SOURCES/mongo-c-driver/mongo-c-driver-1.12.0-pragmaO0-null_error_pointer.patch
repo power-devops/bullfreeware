@@ -1,0 +1,20 @@
+--- ./src/libmongoc/src/mongoc/mongoc-client.c.ORIGIN	2018-08-16 16:57:25 +0200
++++ ./src/libmongoc/src/mongoc/mongoc-client.c	2018-08-16 17:34:02 +0200
+@@ -362,6 +362,8 @@
+  *--------------------------------------------------------------------------
+  */
+ 
++#pragma GCC optimize ("O0")
++
+ static bool
+ _mongoc_get_rr_search (const char *service,
+                        mongoc_rr_type_t rr_type,
+@@ -459,6 +461,8 @@
+ #endif
+    RETURN (dns_success && callback_success);
+ }
++#pragma GCC optimize ("O2")
++
+ #endif
+ 
+ /*

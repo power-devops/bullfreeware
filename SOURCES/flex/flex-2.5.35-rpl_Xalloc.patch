@@ -1,0 +1,20 @@
+Index: flex-2.5.35/config.h
+===================================================================
+--- flex-2.5.35.orig/config.h	2010-05-28 16:35:30.000000000 +0200
++++ flex-2.5.35/config.h	2010-05-31 16:23:15.000000000 +0200
+@@ -183,13 +183,13 @@
+ /* #undef const */
+ 
+ /* Define to rpl_malloc if the replacement function should be used. */
+-#define malloc rpl_malloc
++/* #define malloc rpl_malloc */
+ 
+ /* Define to `int' if <sys/types.h> does not define. */
+ /* #undef pid_t */
+ 
+ /* Define to rpl_realloc if the replacement function should be used. */
+-#define realloc rpl_realloc
++/* #define realloc rpl_realloc */
+ 
+ /* Define to `unsigned' if <sys/types.h> does not define. */
+ /* #undef size_t */

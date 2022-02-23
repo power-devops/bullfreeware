@@ -1,0 +1,98 @@
+*** ./libjbig/Makefile.ORIG	Thu Sep 17 10:19:09 2009
+--- ./libjbig/Makefile	Thu Sep 17 10:19:42 2009
+***************
+*** 2,11 ****
+  # $Id: Makefile 1285 2008-08-18 13:36:45Z mgk25 $
+  
+  # Select an ANSI/ISO C compiler here, GNU gcc is recommended
+! CC = gcc
+  
+  # Options for the compiler: A high optimization level is suggested
+! CFLAGS = -g -O -Wall -ansi -pedantic # --coverage
+  
+  all: libjbig.a tstcodec tstcodec85
+  
+--- 2,11 ----
+  # $Id: Makefile 1285 2008-08-18 13:36:45Z mgk25 $
+  
+  # Select an ANSI/ISO C compiler here, GNU gcc is recommended
+! CC = /usr/vac/bin/xlc_r
+  
+  # Options for the compiler: A high optimization level is suggested
+! CFLAGS = -O -I/opt/freeware/include
+  
+  all: libjbig.a tstcodec tstcodec85
+  
+*** ./Makefile.ORIG	Wed Sep 16 11:19:29 2009
+--- ./Makefile	Thu Sep 17 10:06:51 2009
+***************
+*** 2,11 ****
+  # $Id: Makefile 1303 2008-08-30 20:16:20Z mgk25 $
+  
+  # Select an ANSI/ISO C compiler here, GNU gcc is recommended
+! CC = gcc
+  
+  # Options for the compiler: A high optimization level is suggested
+! CCFLAGS = -O2 -W
+  #CCFLAGS = -O -g -W -Wall -ansi -pedantic #-DDEBUG  # developer only
+  
+  CFLAGS = $(CCFLAGS) -I../libjbig
+--- 2,11 ----
+  # $Id: Makefile 1303 2008-08-30 20:16:20Z mgk25 $
+  
+  # Select an ANSI/ISO C compiler here, GNU gcc is recommended
+! CC = /usr/vac/bin/xlc_r
+  
+  # Options for the compiler: A high optimization level is suggested
+! CCFLAGS = -O -I/opt/freeware/include
+  #CCFLAGS = -O -g -W -Wall -ansi -pedantic #-DDEBUG  # developer only
+  
+  CFLAGS = $(CCFLAGS) -I../libjbig
+*** ./pbmtools/Makefile.ORIG	Thu Sep 17 10:59:31 2009
+--- ./pbmtools/Makefile	Thu Sep 17 11:01:06 2009
+***************
+*** 7,12 ****
+--- 7,14 ----
+  # Options for the compiler
+  CFLAGS = -g -Wall -ansi -pedantic -I../libjbig # --coverage
+  
++ LDFLAGS = -Wl,-blibpath:/opt/freeware/lib:/usr/vac/lib:/usr/lib:/lib
++ 
+  .SUFFIXES: .1 .5 .txt $(SUFFIXES)
+  
+  all: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 \
+***************
+*** 13,28 ****
+  	pbmtojbg.txt jbgtopbm.txt pbm.txt pgm.txt
+  
+  pbmtojbg: pbmtojbg.o ../libjbig/libjbig.a
+! 	$(CC) $(CFLAGS) -o pbmtojbg pbmtojbg.o -L../libjbig -ljbig
+  
+  jbgtopbm: jbgtopbm.o ../libjbig/libjbig.a
+! 	$(CC) $(CFLAGS) -o jbgtopbm jbgtopbm.o -L../libjbig -ljbig
+  
+  pbmtojbg85: pbmtojbg85.o ../libjbig/libjbig85.a
+! 	$(CC) $(CFLAGS) -o pbmtojbg85 pbmtojbg85.o -L../libjbig -ljbig85
+  
+  jbgtopbm85: jbgtopbm85.o ../libjbig/libjbig85.a
+! 	$(CC) $(CFLAGS) -o jbgtopbm85 jbgtopbm85.o -L../libjbig -ljbig85
+  
+  jbgtopbm.o: jbgtopbm.c ../libjbig/jbig.h
+  pbmtojbg.o: pbmtojbg.c ../libjbig/jbig.h
+--- 15,30 ----
+  	pbmtojbg.txt jbgtopbm.txt pbm.txt pgm.txt
+  
+  pbmtojbg: pbmtojbg.o ../libjbig/libjbig.a
+! 	$(CC) $(CFLAGS) -o pbmtojbg pbmtojbg.o $(LDFLAGS) -L../libjbig -ljbig
+  
+  jbgtopbm: jbgtopbm.o ../libjbig/libjbig.a
+! 	$(CC) $(CFLAGS) -o jbgtopbm jbgtopbm.o $(LDFLAGS) -L../libjbig -ljbig
+  
+  pbmtojbg85: pbmtojbg85.o ../libjbig/libjbig85.a
+! 	$(CC) $(CFLAGS) -o pbmtojbg85 pbmtojbg85.o $(LDFLAGS) -L../libjbig -ljbig85
+  
+  jbgtopbm85: jbgtopbm85.o ../libjbig/libjbig85.a
+! 	$(CC) $(CFLAGS) -o jbgtopbm85 jbgtopbm85.o $(LDFLAGS) -L../libjbig -ljbig85
+  
+  jbgtopbm.o: jbgtopbm.c ../libjbig/jbig.h
+  pbmtojbg.o: pbmtojbg.c ../libjbig/jbig.h

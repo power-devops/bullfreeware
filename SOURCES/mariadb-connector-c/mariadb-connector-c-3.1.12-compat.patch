@@ -1,0 +1,11 @@
+--- ./include/mariadb_version.h.in.orig	2021-02-11 19:28:56 +0100
++++ ./include/mariadb_version.h.in	2021-03-01 14:55:46 +0100
+@@ -30,7 +30,7 @@
+ #define MARIADB_PACKAGE_VERSION_ID @MARIADB_PACKAGE_VERSION_ID@
+ #define MARIADB_SYSTEM_TYPE "@CMAKE_SYSTEM_NAME@"
+ #define MARIADB_MACHINE_TYPE "@CMAKE_SYSTEM_PROCESSOR@"
+-#define MARIADB_PLUGINDIR "@CMAKE_INSTALL_PREFIX@/@INSTALL_PLUGINDIR@"
++#define MARIADB_PLUGINDIR "@PLUGINDIR@"
+ 
+ /* mysqld compile time options */
+ #ifndef MYSQL_CHARSET

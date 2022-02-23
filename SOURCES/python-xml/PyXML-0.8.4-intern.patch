@@ -1,0 +1,18 @@
+--- PyXML-0.8.2/xml/sax/expatreader.py.intern	2003-01-25 14:30:58.000000000 +0100
++++ PyXML-0.8.2/xml/sax/expatreader.py	2003-06-25 23:24:55.000000000 +0200
+@@ -243,13 +243,12 @@
+ 
+     def reset(self):
+         if self._namespaces:
+-            self._parser = expat.ParserCreate(None, " ",
+-                                              intern=self._interning)
++            self._parser = expat.ParserCreate(None, " ")
+             self._parser.namespace_prefixes = 1
+             self._parser.StartElementHandler = self.start_element_ns
+             self._parser.EndElementHandler = self.end_element_ns
+         else:
+-            self._parser = expat.ParserCreate(intern = self._interning)
++            self._parser = expat.ParserCreate()
+             self._parser.StartElementHandler = self.start_element
+             self._parser.EndElementHandler = self.end_element
+ 

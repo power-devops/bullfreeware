@@ -1,0 +1,11 @@
+--- ./libgo/go/cmd/go/internal/work/gccgo.go.ORIGIN	2018-05-04 16:21:58 -0500
++++ ./libgo/go/cmd/go/internal/work/gccgo.go	2018-05-04 16:22:17 -0500
+@@ -198,7 +198,7 @@
+ 			// AIX "ar" command does not know D option.
+ 			arArgs = append(arArgs, "-X64")
+ 		}
+-		return b.run(a, p.Dir, p.ImportPath, nil, "ar", "rc", arArgs, absAfile, absOfiles)
++		return b.run(a, p.Dir, p.ImportPath, nil, "ar", arArgs, "rc", absAfile, absOfiles)
+ 	}
+ 	return nil
+ }

@@ -1,0 +1,11 @@
+--- ./mysql-test/include/check_openssl_version.inc.ORIGIN2	2019-11-14 18:29:43 -0600
++++ ./mysql-test/include/check_openssl_version.inc	2019-11-14 18:31:05 -0600
+@@ -10,7 +10,7 @@
+ --remove_file $OPENSSL_CONFIG_INC
+ 
+ --error 0,1, 127
+---exec openssl version > $OPENSSL_VERSION_INFO
++--exec openssl version | /usr/bin/cut -f2 -d" " > $OPENSSL_VERSION_INFO
+ 
+ perl;
+  use strict;

@@ -1,0 +1,86 @@
+Index: quilt.spec.in
+===================================================================
+--- quilt.spec.in.orig	2008-02-12 17:17:06.-362035360 +0100
++++ quilt.spec.in	2008-02-12 18:50:39.-1860974968 +0100
+@@ -8,11 +8,21 @@
+ Group:		Productivity/Text/Utilities
+ Version:	@VERSION@
+ Release:	@RELEASE@
+-Requires:	coreutils diffutils patch gzip bzip2 perl mktemp gettext
++Requires:	coreutils diffutils patch gzip bzip2 perl gettext
+ Autoreqprov:	off
+ Source:		quilt-%{version}.tar.gz
++Patch:		aix-spec.patch
+ BuildRoot:	%{_tmppath}/%{name}-%{version}-build
+ 
++%ifos aix6.1
++Requires: AIX-rpm >= 5.3.0.0
++Requires: findutils grep bash gawk
++%define configureflags	--prefix=%{_prefix} --with-bash=/usr/bin/bash --mandir=%_mandir --with-cp=/usr/linux/bin/cp --with-grep=/usr/linux/bin/grep --without-column --without-getopt --with-find=/usr/linux/bin/find --with-awk=/usr/linux/bin/awk --with-date=/usr/linux/bin/date --with-sed=/usr/linux/bin/sed --with-diff=/usr/linux/bin/diff
++%else
++%define configureflags	--mandir=%_mandir --prefix=%{_prefix}
++Requires:	mktemp
++%endif
++
+ %description
+ The scripts allow to manage a series of patches by keeping
+ track of the changes each patch makes. Patches can be
+@@ -28,15 +38,24 @@
+ 
+ %prep
+ %setup
++%patch
+ 
+ %build
+-CFLAGS="$RPM_OPT_FLAGS" ./configure --mandir=%_mandir
+-make prefix=/usr BUILD_ROOT=$RPM_BUILD_ROOT RELEASE=%release
++%ifos aix6.1
++export CONFIG_SHELL=/opt/freeware/bin/bash
++export CONFIGURE_ENV_ARGS=/opt/freeware/bin/bash
++%endif
++CFLAGS="$RPM_OPT_FLAGS" ./configure %{configureflags}
++make BUILD_ROOT=$RPM_BUILD_ROOT RELEASE=%release
+ 
+ %install
+ rm -rf $RPM_BUILD_ROOT
+-make install prefix=/usr BUILD_ROOT=$RPM_BUILD_ROOT
++make install BUILD_ROOT=$RPM_BUILD_ROOT
+ %{find_lang} %{name}
++mkdir -p $RPM_BUILD_ROOT/usr/bin/
++for file in guards quilt; do
++	ln -s %{_prefix}/bin/${file} $RPM_BUILD_ROOT/usr/bin/${file}
++done
+ 
+ %clean
+ rm -rf $RPM_BUILD_ROOT
+@@ -45,10 +64,12 @@
+ %defattr(-, root, root)
+ /usr/bin/guards
+ /usr/bin/quilt
+-/usr/share/quilt/
+-/usr/lib/quilt/
+-/etc/bash_completion.d/quilt
+-%config(noreplace) /etc/quilt.quiltrc
++%{_prefix}/bin/guards
++%{_prefix}/bin/quilt
++%{_prefix}/share/quilt/
++%{_prefix}/lib/quilt/
++%{_prefix}/etc/bash_completion.d/quilt
++%config(noreplace) %{_prefix}/etc/quilt.quiltrc
+ %doc %{_mandir}/man1/guards.1*
+ %doc %{_mandir}/man1/quilt.1*
+ %doc %{_docdir}/%{name}-%{version}/README
+Index: quilt.changes
+===================================================================
+--- quilt.changes.orig	2008-02-12 17:17:06.824155864 +0100
++++ quilt.changes	2008-02-12 17:19:42.-1343878912 +0100
+@@ -1,4 +1,9 @@
+ -------------------------------------------------------------------
++Tue Feb 12 17:08:29 CET 2008 - Laurent.Vivier@bull.net
++
++- Modify quilt.spec.in to support AIX6.1
++
++-------------------------------------------------------------------
+ Thu Oct 19 18:04:36 CEST 2006 - khali@linux-fr.org
+ 
+ - Bump version to 0.46.

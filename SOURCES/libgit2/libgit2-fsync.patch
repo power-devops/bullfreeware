@@ -1,0 +1,26 @@
+diff --git a/src/futils.c b/src/futils.c
+index 2ad8a1b80..670227da0 100644
+--- a/src/futils.c
++++ b/src/futils.c
+@@ -1162,13 +1162,20 @@ int git_futils_fsync_dir(const char *path)
+ #else
+ 	int fd, error = -1;
+ 
+-	if ((fd = p_open(path, O_RDONLY)) < 0) {
++	if ((fd = p_open(path, O_WRONLY)) < 0) {
+ 		git_error_set(GIT_ERROR_OS, "failed to open directory '%s' for fsync", path);
+ 		return -1;
+ 	}
+ 
+ 	if ((error = p_fsync(fd)) < 0)
++#ifdef _AIX
++		/* Some systems have not implemented fsync on a directory,
++		 * ignore the error return
++		 */
++		error = 0;
++#else
+ 		git_error_set(GIT_ERROR_OS, "failed to fsync directory '%s'", path);
++#endif /* _AIX */
+ 
+ 	p_close(fd);
+ 	return error;

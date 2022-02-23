@@ -1,0 +1,15 @@
+--- a/util/perlpath.pl	2019-12-16 12:25:11 +0100
++++ b/util/perlpath.pl	2019-12-16 12:25:49 +0100
+@@ -4,10 +4,10 @@
+ # line in all scripts that rely on perl.
+ #
+ 
+-require "find.pl";
++use File::Find;
+ 
+ $#ARGV == 0 || print STDERR "usage: perlpath newpath  (eg /usr/bin)\n";
+-&find(".");
++find(\&wanted, ".");
+ 
+ sub wanted
+ 	{

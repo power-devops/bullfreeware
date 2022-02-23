@@ -1,0 +1,254 @@
+--- ./erts/include/internal/ppc32/atomic.h.origin	2017-01-10 15:12:06 +0100
++++ ./erts/include/internal/ppc32/atomic.h	2017-01-10 15:41:10 +0100
+@@ -32,6 +32,18 @@
+ #define ETHR_HAVE_NATIVE_ATOMIC32 1
+ #define ETHR_NATIVE_ATOMIC32_IMPL "ethread"
+ 
++
++#ifdef _AIX
++  /* Labels are not supported on AIX.                   */
++  /* ppc64 has same size of instructions as 32-bit one. */
++# define AO_PPC_L(label) /* empty */
++# define AO_PPC_BR_A(labelBF, addr) addr
++#else
++# define AO_PPC_L(label) label ": "
++# define AO_PPC_BR_A(labelBF, addr) labelBF
++#endif
++
++
+ typedef struct {
+     volatile ethr_sint32_t counter;
+ } ethr_native_atomic32_t;
+@@ -70,11 +82,11 @@
+     ethr_sint32_t tmp;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"
+ 	"add	%0,%2,%0\n\t"
+ 	"stwcx.	%0,0,%1\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(tmp)
+ 	: "r"(&var->counter), "r"(incr)
+ 	: "cc", "memory");
+@@ -114,11 +126,11 @@
+     ethr_sint32_t tmp;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"
+ 	"addic	%0,%0,1\n\t" /* due to addi's (rA|0) behaviour */
+ 	"stwcx.	%0,0,%1\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(tmp)
+ 	: "r"(&var->counter)
+ 	: "cc", "memory");
+@@ -157,11 +169,11 @@
+     ethr_sint32_t tmp;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"
+ 	"addic	%0,%0,-1\n\t"
+ 	"stwcx.	%0,0,%1\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(tmp)
+ 	: "r"(&var->counter)
+ 	: "cc", "memory");
+@@ -200,11 +212,11 @@
+     ethr_sint32_t old, new;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%2\n\t"
+ 	"and	%1,%0,%3\n\t"
+ 	"stwcx.	%1,0,%2\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(old), "=&r"(new)
+ 	: "r"(&var->counter), "r"(mask)
+ 	: "cc", "memory");
+@@ -243,11 +255,11 @@
+     ethr_sint32_t old, new;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%2\n\t"
+ 	"or	%1,%0,%3\n\t"
+ 	"stwcx.	%1,0,%2\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(old), "=&r"(new)
+ 	: "r"(&var->counter), "r"(mask)
+ 	: "cc", "memory");
+@@ -286,10 +298,10 @@
+     ethr_sint32_t tmp;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"
+ 	"stwcx.	%2,0,%1\n\t"
+-	"bne-	1b\n\t"
++	"bne- " AO_PPC_BR_A("1b", "$-8") "\n\t"
+ 	: "=&r"(tmp)
+ 	: "r"(&var->counter), "r"(val)
+ 	: "cc", "memory");
+@@ -330,13 +342,13 @@
+   ethr_sint32_t old;
+ 
+   __asm__ __volatile__(
+-    "1:\t"
++    AO_PPC_L("1") "\t"
+     "lwarx	%0,0,%2\n\t"
+     "cmpw	0,%0,%3\n\t"
+-    "bne	2f\n\t"
++    "bne " AO_PPC_BR_A("2f", "$+8") "\n\t"
+     "stwcx.	%1,0,%2\n\t"
+-    "bne-	1b\n\t"
+-    "2:"
++    "bne- " AO_PPC_BR_A("1b", "$-16") "\n\t"
++    AO_PPC_L("2")
+     : "=&r"(old)
+     : "r"(new), "r"(&var->counter), "r"(expected)
+     : "cc", "memory");
+@@ -354,14 +366,14 @@
+   ethr_sint32_t old;
+ 
+   __asm__ __volatile__(
+-    "1:\t"
++    AO_PPC_L("1") "\t"
+     "lwarx	%0,0,%2\n\t"
+     "cmpw	0,%0,%3\n\t"
+-    "bne	2f\n\t"
++    "bne " AO_PPC_BR_A("2f", "$+12") "\n\t"
+     "stwcx.	%1,0,%2\n\t"
+-    "bne-	1b\n\t"
++    "bne- " AO_PPC_BR_A("1b", "$-16") "\n\t"
+     "isync\n"
+-    "2:"
++    AO_PPC_L("2")
+     : "=&r"(old)
+     : "r"(new), "r"(&var->counter), "r"(expected)
+     : "cc", "memory");
+--- ./erts/include/internal/ppc32/rwlock.h.origin	2017-01-10 15:26:05 +0100
++++ ./erts/include/internal/ppc32/rwlock.h	2017-01-10 15:33:37 +0100
+@@ -32,6 +32,18 @@
+ #define ETHR_HAVE_NATIVE_RWSPINLOCKS 1
+ #define ETHR_NATIVE_RWSPINLOCK_IMPL "ethread"
+ 
++
++#ifdef _AIX
++  /* Labels are not supported on AIX.                   */
++  /* ppc64 has same size of instructions as 32-bit one. */
++# define AO_PPC_L(label) /* empty */
++# define AO_PPC_BR_A(labelBF, addr) addr
++#else
++# define AO_PPC_L(label) label ": "
++# define AO_PPC_BR_A(labelBF, addr) labelBF
++#endif
++
++
+ /* Unlocked if zero, read-locked if negative, write-locked if +1. */
+ typedef struct {
+     volatile int lock;
+@@ -54,11 +66,11 @@
+ 
+     /* this is ethr_native_atomic_inc() - isync */
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"
+ 	"addic	%0,%0,1\n\t"
+ 	"stwcx.	%0,0,%1\n\t"
+-	"bne-	1b"
++	"bne- " AO_PPC_BR_A("1b", "$-12") "\n\t"
+ 	: "=&r"(tmp)
+ 	: "r"(&lock->lock)
+ 	: "cr0", "memory");
+@@ -70,14 +82,14 @@
+     int counter;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"	/* read lock to counter */
+ 	"addic.	%0,%0,-1\n\t"	/* decrement counter */
+-	"bge-	2f\n\t"		/* bail if >= 0 (write-locked) */
++	"bge- " AO_PPC_BR_A("2f", "$+12") "\n\t" /* bail if >= 0 (write-locked) */
+ 	"stwcx.	%0,0,%1\n\t"	/* try to store decremented counter */
+-	"bne-	1b\n\t"		/* loop if lost reservation */
++	"bne- " AO_PPC_BR_A("1b", "$-16") "\n\t" /* loop if lost reservation */
+ 	"isync\n\t"		/* wait for previous insns to complete */
+-	"2:"
++	AO_PPC_L("2")
+ 	: "=&r"(counter)
+ 	: "r"(&lock->lock)
+ 	: "cr0", "memory"
+@@ -120,14 +132,14 @@
+ 
+     /* identical to ethr_native_spin_trylock() */
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"	/* read lock to prev */
+ 	"cmpwi	0,%0,0\n\t"
+-	"bne-	2f\n\t"		/* bail if non-zero (any lock) */
++	"bne- " AO_PPC_BR_A("2f", "$+12") "\n\t" /* bail if non-zero (any lock) */
+ 	"stwcx.	%2,0,%1\n\t"	/* try to make the lock positive */
+-	"bne-	1b\n\t"		/* loop if lost reservation */
++	"bne- " AO_PPC_BR_A("1b", "$-16") "\n\t" /* loop if lost reservation */
+ 	"isync\n\t"		/* wait for previous insns to complete */
+-	"2:"
++	AO_PPC_L("2")
+ 	: "=&r"(prev)
+ 	: "r"(&lock->lock), "r"(1)
+ 	: "cr0", "memory");
+--- ./erts/include/internal/ppc32/spinlock.h.origin	2017-01-10 15:29:27 +0100
++++ ./erts/include/internal/ppc32/spinlock.h	2017-01-10 15:31:55 +0100
+@@ -32,6 +32,18 @@
+ #define ETHR_HAVE_NATIVE_SPINLOCKS 1
+ #define ETHR_NATIVE_SPINLOCK_IMPL "ethread"
+ 
++
++#ifdef _AIX
++  /* Labels are not supported on AIX.                   */
++  /* ppc64 has same size of instructions as 32-bit one. */
++# define AO_PPC_L(label) /* empty */
++# define AO_PPC_BR_A(labelBF, addr) addr
++#else
++# define AO_PPC_L(label) label ": "
++# define AO_PPC_BR_A(labelBF, addr) labelBF
++#endif
++
++
+ /* Unlocked if zero, locked if non-zero. */
+ typedef struct {
+     volatile unsigned int lock;
+@@ -58,14 +70,14 @@
+     unsigned int prev;
+ 
+     __asm__ __volatile__(
+-	"1:\t"
++	AO_PPC_L("1") "\t"
+ 	"lwarx	%0,0,%1\n\t"	/* read lock to prev */
+ 	"cmpwi	0,%0,0\n\t"
+-	"bne-	2f\n\t"		/* bail if non-zero/locked */
++	"bne- " AO_PPC_BR_A("2f", "$+12") "\n\t" /* bail if non-zero/locked */
+ 	"stwcx.	%2,0,%1\n\t"	/* try to make the lock non-zero */
+-	"bne-	1b\n\t"		/* loop if lost reservation */
++	"bne- " AO_PPC_BR_A("1b", "$-16") "\n\t" /* loop if lost reservation */
+ 	"isync\n\t"		/* wait for previous insns to complete */
+-	"2:"
++	AO_PPC_L("2")
+ 	: "=&r"(prev)
+ 	: "r"(&lock->lock), "r"(1)
+ 	: "cr0", "memory");

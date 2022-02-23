@@ -1,0 +1,192 @@
+#
+# RPM macros for Java applications.
+#
+# JPackage Project  <http://www.jpackage.org/>
+#   David Walluck   <david@jpackage.org>
+#   Ville Skyttä    <scop at jpackage.org>
+#   Nicolas Mailhot <Nicolas.Mailhot@laPoste.net>
+#
+
+#==============================================================================
+# ---- default Java directories
+
+#
+# Root directory where all Java VMs/SDK/JREs are installed.
+#
+%_jvmdir        %{_prefix}/lib/jvm
+
+#
+# Root directory where all Java VMs/SDK/JREs expose their jars
+#
+%_jvmjardir     %{_prefix}/lib/jvm-exports
+
+#
+# Root directory for all Java VM/SDK/JRE's private things.
+#
+%_jvmprivdir    %{_prefix}/lib/jvm-private
+
+#
+# Root directory for all architecture dependent parts of Java VM/SDK/JRE's
+#
+%_jvmlibdir     %{_prefix}/lib/jvm
+
+#
+# Root directory for all architecture independent parts of Java VM/SDK/JRE's
+#
+%_jvmdatadir    %{_datadir}/jvm
+
+#
+# Root directory for all configurations parts of Java VM/SDK/JRE's
+#
+%_jvmsysconfdir %{_sysconfdir}/jvm
+
+#
+# Root directory for all common architecture dependent parts of Java VM/SDK/JRE's
+#
+%_jvmcommonlibdir %{_prefix}/lib/jvm-commmon
+
+#
+# Root directory for all common architecture independent parts of Java VM/SDK/JRE's
+#
+%_jvmcommondatadir %{_datadir}/jvm-commmon
+
+#
+# Root directory for all common configurations parts of Java VM/SDK/JRE's
+#
+%_jvmcommonsysconfdir %{_sysconfdir}/jvm-commmon
+
+#
+# Directory containing Java configuration file (java.conf)
+#
+%_javaconfdir %{_sysconfdir}/java
+
+#
+# Directory where arch and version independent jars are installed.
+# This has already been integrated in RH macros following our request.
+#
+# By extension:
+# %{_javadir}-ext:
+#   - version dependent jars
+# %{_javadir}-x.y.z:
+#   - jars for Java standard x.y.z (usually symlinks to  %{_javadir}-ext)
+# %{_javadir}-utils:
+#   - Java-related scripts
+#
+# To simplify things only %{_javadir} is defined.
+#
+%_javadir       %{_datadir}/java
+
+#
+# Directory where arch-specific (JNI) version-independent jars are installed.
+#
+# By extension:
+# %{_jnidir}-ext:
+#   - version dependent jars
+# %{_jnidir}-x.y.z:
+#   - jars for Java standard x.y.z (usually symlinks to  %{_jnidir}-ext)
+# To simplify things only %{_jnidir} is defined.
+#
+%_jnidir        %{_prefix}/lib/java
+
+#
+# Root directory where all javadoc is installed. Also already in RH macros.
+#
+%_javadocdir    %{_datadir}/javadoc
+
+#
+# Directory for Maven POM files
+#
+%_mavenpomdir   %{_datadir}/maven-poms
+
+#
+# Directory for Ivy XML files
+#
+%_ivyxmldir     %{_datadir}/ivy-xmls
+
+
+#
+# Current default JVM home.
+#
+%java_home      %(. %{_javadir}-utils/java-functions; set_jvm; echo $JAVA_HOME)
+
+#==============================================================================
+# ---- default Java commands
+
+%ant            JAVA_HOME=%{java_home} ant
+%jar            %{java_home}/bin/jar
+%java           %(. %{_javadir}-utils/java-functions; set_javacmd; echo $JAVACMD)
+%javac          %{java_home}/bin/javac
+%javadoc        %{java_home}/bin/javadoc
+
+#==============================================================================
+# ---- Java extension handling macros
+
+#
+# add_jvm_extension should be used in %install by extension packages to declare
+# what extension jars they provide.
+#
+# For example a package that provides foo.jar which is the bar extension
+# under java 1.2 and 1.3 should do a:
+#
+#   %install
+#   ... # create foo.jar in %{javadir}-ext
+#   %add_jvm_extension  foo bar 1.2 1.3
+#
+#   %files
+#   %{javadir}-ext/foo.jar
+#   %{javadir}-*/bar.jar
+#
+%add_jvm_extension JAVA_LIBDIR=%{buildroot}%{_javadir} %{_bindir}/jvmjar -l
+
+
+#
+# Standard JPackage script
+#
+# This is kind of tasteless and should be moved to an external template
+#
+# %1    main class
+# %2    flags
+# %3    options
+# %4    jars (separated by ':')
+# %5    the name of script you wish to create
+# %6    whether to prefer a jre over a sdk when finding a jvm
+#
+%jpackage_script() \
+install -d -m 755 %{buildroot}%{_bindir} \
+cat > %{buildroot}%{_bindir}/%5 << EOF \
+#!/bin/bash\
+#\
+# %{name} script\
+# JPackage Project <http://www.jpackage.org/>\
+\
+# Source functions library\
+_prefer_jre="%{?6}"\
+. %{_javadir}-utils/java-functions\
+\
+# Source system prefs\
+if [ -f %{_sysconfdir}/java/%{name}.conf ] ; then\
+  . %{_sysconfdir}/java/%{name}.conf\
+fi\
+\
+# Source user prefs\
+if [ -f \\$HOME/.%{name}rc ] ; then\
+  . \\$HOME/.%{name}rc\
+fi\
+\
+# Configuration\
+MAIN_CLASS=%1\
+BASE_FLAGS=%2\
+BASE_OPTIONS=%3\
+BASE_JARS="%(echo %4 | sed -e 's,:, ,g')"\
+\
+# Set parameters\
+set_jvm\
+set_classpath \\$BASE_JARS\
+set_flags \\$BASE_FLAGS\
+set_options \\$BASE_OPTIONS\
+\
+# Let's start\
+run "\\$@"\
+EOF\
+chmod 755 %{buildroot}%{_bindir}/%5\
+%{nil}

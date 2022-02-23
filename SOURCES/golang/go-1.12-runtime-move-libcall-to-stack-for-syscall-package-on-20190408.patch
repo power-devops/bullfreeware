@@ -1,0 +1,49 @@
+From ca5fe4d01a868af14eab9f9162b41ae1d956ce52 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Tue, 2 Apr 2019 11:03:08 -0500
+Subject: [PATCH 1/2] runtime: move libcall to stack for syscall package on
+ aix/ppc64
+
+---
+ src/runtime/syscall_aix.go | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/src/runtime/syscall_aix.go b/src/runtime/syscall_aix.go
+index 7f2bcbe9d9..7b620d771d 100644
+--- a/src/runtime/syscall_aix.go
++++ b/src/runtime/syscall_aix.go
+@@ -70,10 +70,11 @@ func syscall_RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr) {
+ 
+ //go:nosplit
+ func syscall_syscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
+-	c := getg().m.libcall
+-	c.fn = uintptr(unsafe.Pointer(fn))
+-	c.n = nargs
+-	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++	c := libcall{
++		fn:   fn,
++		n:    nargs,
++		args: uintptr(unsafe.Pointer(&a1)),
++	}
+ 
+ 	entersyscallblock()
+ 	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
+@@ -83,10 +84,11 @@ func syscall_syscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err ui
+ 
+ //go:nosplit
+ func syscall_rawSyscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
+-	c := getg().m.libcall
+-	c.fn = uintptr(unsafe.Pointer(fn))
+-	c.n = nargs
+-	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++	c := libcall{
++		fn:   fn,
++		n:    nargs,
++		args: uintptr(unsafe.Pointer(&a1)),
++	}
+ 
+ 	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
+ 
+-- 
+2.21.0
+

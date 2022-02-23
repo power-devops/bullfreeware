@@ -1,0 +1,11 @@
+--- ./support/apachectl.in.orig	2019-03-21 04:26:44 +0000
++++ ./support/apachectl.in	2019-03-21 04:26:56 +0000
+@@ -42,7 +42,7 @@
+ # --------------------                              --------------------
+ # 
+ # the path to your httpd binary, including options if necessary
+-HTTPD='@exp_sbindir@/@progname@'
++HTTPD='@exp_sbindir@/@progname@_64'
+ #
+ # pick up any necessary environment variables
+ if test -f @exp_sbindir@/envvars; then

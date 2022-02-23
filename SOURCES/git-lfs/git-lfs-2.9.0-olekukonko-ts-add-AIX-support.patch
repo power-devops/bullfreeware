@@ -1,0 +1,111 @@
+From 18f16ba8d9baf6fdb25f051b6ebf3f9858c1ae69 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 31 Oct 2019 10:23:44 -0500
+Subject: [PATCH] Add AIX support
+
+As Solaris, AIX doesn't allow to call syscall.Syscall and thus must
+use sys/unix functions
+---
+ ts_nosyscall.go | 27 +++++++++++++++++++++++++++
+ ts_other.go     |  2 +-
+ ts_solaris.go   | 18 ------------------
+ ts_unix.go      |  2 +-
+ ts_x.go         |  2 +-
+ 5 files changed, 30 insertions(+), 21 deletions(-)
+ create mode 100644 ts_nosyscall.go
+
+diff --git a/ts_nosyscall.go b/ts_nosyscall.go
+new file mode 100644
+index 0000000..34df67f
+--- /dev/null
++++ b/ts_nosyscall.go
+@@ -0,0 +1,27 @@
++// +build aix solaris
++
++// Copyright 2017 Oleku Konko All rights reserved.
++// Use of this source code is governed by a MIT
++// license that can be found in the LICENSE file.
++
++// This module is a Terminal  API for the Go Programming Language.
++// The protocols were written in pure Go and works on windows and unix systems
++package ts
++
++import (
++	"golang.org/x/sys/unix"
++	"syscall"
++)
++
++// Get Windows Size
++func GetSize() (ws Size, err error) {
++	var wsz *unix.Winsize
++	wsz, err = unix.IoctlGetWinsize(syscall.Stdout, TIOCGWINSZ)
++
++	if err != nil {
++		ws = Size{80, 25, 0, 0}
++	} else {
++		ws = Size{wsz.Row, wsz.Col, wsz.Xpixel, wsz.Ypixel}
++	}
++	return ws, err
++}
+diff --git a/ts_other.go b/ts_other.go
+index 9f85219..8705a5f 100644
+--- a/ts_other.go
++++ b/ts_other.go
+@@ -1,4 +1,4 @@
+-// +build !windows,!darwin,!freebsd,!netbsd,!openbsd,!linux,!solaris
++// +build !windows,!darwin,!freebsd,!netbsd,!openbsd,!linux,!solaris,!aix
+ 
+ // Copyright 2014 Oleku Konko All rights reserved.
+ // Use of this source code is governed by a MIT
+diff --git a/ts_solaris.go b/ts_solaris.go
+index da9ab1a..92a3653 100644
+--- a/ts_solaris.go
++++ b/ts_solaris.go
+@@ -8,24 +8,6 @@
+ // The protocols were written in pure Go and works on windows and unix systems
+ package ts
+ 
+-import (
+-	"syscall"
+-	"golang.org/x/sys/unix"
+-)
+-
+ const (
+ 	TIOCGWINSZ = 21608
+ )
+-
+-// Get Windows Size
+-func GetSize() (ws Size, err error) {
+-	var wsz *unix.Winsize
+-	wsz, err = unix.IoctlGetWinsize(syscall.Stdout, TIOCGWINSZ)
+-
+-	if err != nil {
+-		ws = Size{80, 25, 0, 0}
+-	} else {
+-		ws = Size{wsz.Row, wsz.Col, wsz.Xpixel, wsz.Ypixel}
+-	}
+-	return ws, err
+-}
+diff --git a/ts_unix.go b/ts_unix.go
+index 8728b61..f3224e7 100644
+--- a/ts_unix.go
++++ b/ts_unix.go
+@@ -1,4 +1,4 @@
+-// +build  freebsd netbsd openbsd
++// +build aix freebsd netbsd openbsd
+ 
+ // Copyright 2014 Oleku Konko All rights reserved.
+ // Use of this source code is governed by a MIT
+diff --git a/ts_x.go b/ts_x.go
+index 3b983c9..f165cf1 100644
+--- a/ts_x.go
++++ b/ts_x.go
+@@ -1,4 +1,4 @@
+-// +build !windows,!solaris
++// +build !windows,!solaris,!aix
+ 
+ // Copyright 2014 Oleku Konko All rights reserved.
+ // Use of this source code is governed by a MIT
+-- 
+2.21.0
+

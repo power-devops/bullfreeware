@@ -1,0 +1,26 @@
+Index: cairo-1.8.8/configure
+===================================================================
+--- cairo-1.8.8.orig/configure	2009-06-16 14:25:50.000000000 +0200
++++ cairo-1.8.8/configure	2011-09-08 14:05:14.000000000 +0200
+@@ -27890,7 +27890,7 @@
+ 
+   if test "x$png_REQUIRES" = x; then
+     # libpng13 is GnuWin32's libpng-1.2.8 :-(
+-    for l in libpng12 libpng13 libpng10 ; do
++    for l in libpng libpng12 libpng13 libpng10 ; do
+       if $PKG_CONFIG --exists $l ; then
+         png_REQUIRES=$l
+         use_png=yes
+Index: cairo-1.8.8/configure.ac
+===================================================================
+--- cairo-1.8.8.orig/configure.ac	2009-06-03 10:11:43.000000000 +0200
++++ cairo-1.8.8/configure.ac	2011-09-08 14:05:28.000000000 +0200
+@@ -161,7 +161,7 @@
+   AC_ARG_VAR([png_REQUIRES], [module name for libpng to search for using pkg-config])
+   if test "x$png_REQUIRES" = x; then
+     # libpng13 is GnuWin32's libpng-1.2.8 :-(
+-    for l in libpng12 libpng13 libpng10 ; do
++    for l in libpng libpng12 libpng13 libpng10 ; do
+       if $PKG_CONFIG --exists $l ; then
+         png_REQUIRES=$l
+         use_png=yes

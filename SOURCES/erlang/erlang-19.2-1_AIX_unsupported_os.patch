@@ -1,0 +1,38 @@
+--- ./lib/os_mon/src/cpu_sup.erl.origin	2017-01-20 13:58:54 +0100
++++ ./lib/os_mon/src/cpu_sup.erl	2017-01-20 14:00:06 +0100
+@@ -489,6 +489,7 @@
+     OS = os:type(),
+     Server = case OS of
+ 	{unix, Flavor} when
++			    Flavor==aix;
+ 			    Flavor==sunos;
+ 			    Flavor==linux;
+ 			    Flavor==darwin;
+--- ./lib/os_mon/src/disksup.erl.origin	2017-01-20 14:00:08 +0100
++++ ./lib/os_mon/src/disksup.erl	2017-01-20 14:01:00 +0100
+@@ -106,6 +106,7 @@
+ 				    Flavor==dragonfly;
+ 				    Flavor==darwin;
+ 				    Flavor==linux;
++				    Flavor==aix;
+ 				    Flavor==posix;
+ 				    Flavor==openbsd;
+ 				    Flavor==netbsd;
+--- ./lib/os_mon/src/memsup.erl.origin	2017-01-20 14:01:00 +0100
++++ ./lib/os_mon/src/memsup.erl	2017-01-20 14:02:53 +0100
+@@ -180,6 +180,7 @@
+ 		   {unix, dragonfly} -> false;
+ 		   % Linux supports this.
+ 		   {unix, linux} -> true;
++		   {unix, aix} -> true;
+ 		   {unix, openbsd} -> true;
+ 		   {unix, netbsd} -> true;
+ 		   {unix, irix64} -> true;
+@@ -687,6 +688,7 @@
+ get_os_wordsize({unix, irix64})  -> 64;
+ get_os_wordsize({unix, irix})    -> 32;
+ get_os_wordsize({unix, linux})   -> get_os_wordsize_with_uname();
++get_os_wordsize({unix, aix})     -> get_os_wordsize_with_uname();
+ get_os_wordsize({unix, darwin})  -> get_os_wordsize_with_uname();
+ get_os_wordsize({unix, netbsd})  -> get_os_wordsize_with_uname();
+ get_os_wordsize({unix, freebsd}) -> get_os_wordsize_with_uname();

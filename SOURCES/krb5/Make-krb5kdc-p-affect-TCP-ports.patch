@@ -1,0 +1,67 @@
+From 5587c1de938324faa1871e08ccfc835415acb443 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 17 Jul 2018 11:29:19 -0400
+Subject: [PATCH] Make krb5kdc -p affect TCP ports
+
+Now that the KDC listens for TCP connections by default (ticket 6731),
+the "-p" option should affect both UDP and TCP default listening
+ports.
+
+ticket: 8715 (new)
+(cherry picked from commit eb514587acc5c357bf0f554199bf0489b5515f8b)
+---
+ doc/admin/admin_commands/krb5kdc.rst | 12 ++++++------
+ src/kdc/main.c                       | 12 ++++--------
+ 2 files changed, 10 insertions(+), 14 deletions(-)
+
+diff --git a/doc/admin/admin_commands/krb5kdc.rst b/doc/admin/admin_commands/krb5kdc.rst
+index 7ec4ee4d3..bda2c015c 100644
+--- a/doc/admin/admin_commands/krb5kdc.rst
++++ b/doc/admin/admin_commands/krb5kdc.rst
+@@ -57,12 +57,12 @@ The **-P** *pid_file* option tells the KDC to write its PID into
+ the KDC is still running and to allow init scripts to stop the correct
+ process.
+ 
+-The **-p** *portnum* option specifies the default UDP port numbers
+-which the KDC should listen on for Kerberos version 5 requests, as a
+-comma-separated list.  This value overrides the UDP port numbers
+-specified in the :ref:`kdcdefaults` section of :ref:`kdc.conf(5)`, but
+-may be overridden by realm-specific values.  If no value is given from
+-any source, the default port is 88.
++The **-p** *portnum* option specifies the default UDP and TCP port
++numbers which the KDC should listen on for Kerberos version 5
++requests, as a comma-separated list.  This value overrides the port
++numbers specified in the :ref:`kdcdefaults` section of
++:ref:`kdc.conf(5)`, but may be overridden by realm-specific values.
++If no value is given from any source, the default port is 88.
+ 
+ The **-w** *numworkers* option tells the KDC to fork *numworkers*
+ processes to listen to the KDC ports and process requests in parallel.
+diff --git a/src/kdc/main.c b/src/kdc/main.c
+index ccac3a759..89dac23ae 100644
+--- a/src/kdc/main.c
++++ b/src/kdc/main.c
+@@ -793,19 +793,15 @@ initialize_realms(krb5_context kcontext, int argc, char **argv,
+             pid_file = optarg;
+             break;
+         case 'p':
+-            if (def_udp_listen)
+-                free(def_udp_listen);
++            free(def_udp_listen);
++            free(def_tcp_listen);
+             def_udp_listen = strdup(optarg);
+-            if (!def_udp_listen) {
++            def_tcp_listen = strdup(optarg);
++            if (def_udp_listen == NULL || def_tcp_listen == NULL) {
+                 fprintf(stderr, _(" KDC cannot initialize. Not enough "
+                                   "memory\n"));
+                 exit(1);
+             }
+-#if 0 /* not yet */
+-            if (default_tcp_ports)
+-                free(default_tcp_ports);
+-            default_tcp_ports = strdup(optarg);
+-#endif
+             break;
+         case 'T':
+             time_offset = atoi(optarg);

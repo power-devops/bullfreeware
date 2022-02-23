@@ -1,0 +1,25 @@
+From 4635e5dc32f35a8b7aae53ec2cc55c64e6ef56ed Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 12 Aug 2021 16:43:32 +0200
+Subject: [PATCH] zck_gen_zdict: remove stdout as variable name
+
+---
+ src/zck_gen_zdict.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/zck_gen_zdict.c b/src/zck_gen_zdict.c
+index 0263eea..a8664fe 100644
+--- a/src/zck_gen_zdict.c
++++ b/src/zck_gen_zdict.c
+@@ -62,7 +62,7 @@ struct arguments {
+   char *args[1];
+   char *dir;
+   zck_log_type log_level;
+-  bool stdout;
++  /*bool stdout;*/
+   bool exit;
+ };
+ 
+-- 
+2.32.0
+

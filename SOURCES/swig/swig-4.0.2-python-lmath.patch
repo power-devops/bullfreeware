@@ -1,0 +1,12 @@
+--- ./configure.ac.ORIGIN	2021-01-08 16:24:57 +0100
++++ ./configure.ac	2021-01-08 16:30:49 +0100
+@@ -894,6 +894,9 @@
+       fi
+ 
+       PY3LINK="-l$PY3VERSION"
++      case $host in
++        *-*-aix*) PY3LINK="$PY3LINK -lm";;
++      esac
+ 
+       AC_MSG_CHECKING([for Python 3.x library])
+       if test -z "$PY3LINK"; then

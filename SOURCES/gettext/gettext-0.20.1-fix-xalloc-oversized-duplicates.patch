@@ -1,0 +1,132 @@
+--- a/gettext-runtime/gnulib-lib/xalloc.h	2019-10-16 11:06:54 +0200
++++ b/gettext-runtime/gnulib-lib/xalloc.h	2019-10-16 11:11:59 +0200
+@@ -19,6 +19,7 @@
+ #define _XALLOC_H
+ 
+ #include <stddef.h>
++#include "xalloc-oversized.h"
+ 
+ 
+ #ifdef __cplusplus
+@@ -134,22 +135,6 @@
+ extern char *xstrdup (const char *string);
+ 
+ 
+-/* Return 1 if an array of N objects, each of size S, cannot exist due
+-   to size arithmetic overflow.  S must be positive and N must be
+-   nonnegative.  This is a macro, not an inline function, so that it
+-   works correctly even when SIZE_MAX < N.
+-
+-   By gnulib convention, SIZE_MAX represents overflow in size
+-   calculations, so the conservative dividend to use here is
+-   SIZE_MAX - 1, since SIZE_MAX might represent an overflowed value.
+-   However, malloc (SIZE_MAX) fails on all known hosts where
+-   sizeof (ptrdiff_t) <= sizeof (size_t), so do not bother to test for
+-   exactly-SIZE_MAX allocations on such hosts; this avoids a test and
+-   branch when S is known to be 1.  */
+-# define xalloc_oversized(n, s) \
+-    ((size_t) (sizeof (ptrdiff_t) <= sizeof (size_t) ? -1 : -2) / (s) < (n))
+-
+-
+ #ifdef __cplusplus
+ }
+ #endif
+--- a/gettext-tools/gnulib-lib/xalloc.h	2019-10-16 11:06:54 +0200
++++ b/gettext-tools/gnulib-lib/xalloc.h	2019-10-16 11:11:59 +0200
+@@ -19,6 +19,7 @@
+ #define _XALLOC_H
+ 
+ #include <stddef.h>
++#include "xalloc-oversized.h"
+ 
+ 
+ #ifdef __cplusplus
+@@ -134,22 +135,6 @@
+ extern char *xstrdup (const char *string);
+ 
+ 
+-/* Return 1 if an array of N objects, each of size S, cannot exist due
+-   to size arithmetic overflow.  S must be positive and N must be
+-   nonnegative.  This is a macro, not an inline function, so that it
+-   works correctly even when SIZE_MAX < N.
+-
+-   By gnulib convention, SIZE_MAX represents overflow in size
+-   calculations, so the conservative dividend to use here is
+-   SIZE_MAX - 1, since SIZE_MAX might represent an overflowed value.
+-   However, malloc (SIZE_MAX) fails on all known hosts where
+-   sizeof (ptrdiff_t) <= sizeof (size_t), so do not bother to test for
+-   exactly-SIZE_MAX allocations on such hosts; this avoids a test and
+-   branch when S is known to be 1.  */
+-# define xalloc_oversized(n, s) \
+-    ((size_t) (sizeof (ptrdiff_t) <= sizeof (size_t) ? -1 : -2) / (s) < (n))
+-
+-
+ #ifdef __cplusplus
+ }
+ #endif
+--- a/gettext-tools/libgettextpo/xalloc.h	2019-10-16 11:06:54 +0200
++++ b/gettext-tools/libgettextpo/xalloc.h	2019-10-16 11:11:59 +0200
+@@ -19,6 +19,7 @@
+ #define _XALLOC_H
+ 
+ #include <stddef.h>
++#include "xalloc-oversized.h"
+ 
+ 
+ #ifdef __cplusplus
+@@ -134,22 +135,6 @@
+ extern char *xstrdup (const char *string);
+ 
+ 
+-/* Return 1 if an array of N objects, each of size S, cannot exist due
+-   to size arithmetic overflow.  S must be positive and N must be
+-   nonnegative.  This is a macro, not an inline function, so that it
+-   works correctly even when SIZE_MAX < N.
+-
+-   By gnulib convention, SIZE_MAX represents overflow in size
+-   calculations, so the conservative dividend to use here is
+-   SIZE_MAX - 1, since SIZE_MAX might represent an overflowed value.
+-   However, malloc (SIZE_MAX) fails on all known hosts where
+-   sizeof (ptrdiff_t) <= sizeof (size_t), so do not bother to test for
+-   exactly-SIZE_MAX allocations on such hosts; this avoids a test and
+-   branch when S is known to be 1.  */
+-# define xalloc_oversized(n, s) \
+-    ((size_t) (sizeof (ptrdiff_t) <= sizeof (size_t) ? -1 : -2) / (s) < (n))
+-
+-
+ #ifdef __cplusplus
+ }
+ #endif
+--- a/gnulib-local/lib/xalloc.h	2019-10-16 11:06:54 +0200
++++ b/gnulib-local/lib/xalloc.h	2019-10-16 11:11:59 +0200
+@@ -19,6 +19,7 @@
+ #define _XALLOC_H
+ 
+ #include <stddef.h>
++#include "xalloc-oversized.h"
+ 
+ 
+ #ifdef __cplusplus
+@@ -134,22 +135,6 @@
+ extern char *xstrdup (const char *string);
+ 
+ 
+-/* Return 1 if an array of N objects, each of size S, cannot exist due
+-   to size arithmetic overflow.  S must be positive and N must be
+-   nonnegative.  This is a macro, not an inline function, so that it
+-   works correctly even when SIZE_MAX < N.
+-
+-   By gnulib convention, SIZE_MAX represents overflow in size
+-   calculations, so the conservative dividend to use here is
+-   SIZE_MAX - 1, since SIZE_MAX might represent an overflowed value.
+-   However, malloc (SIZE_MAX) fails on all known hosts where
+-   sizeof (ptrdiff_t) <= sizeof (size_t), so do not bother to test for
+-   exactly-SIZE_MAX allocations on such hosts; this avoids a test and
+-   branch when S is known to be 1.  */
+-# define xalloc_oversized(n, s) \
+-    ((size_t) (sizeof (ptrdiff_t) <= sizeof (size_t) ? -1 : -2) / (s) < (n))
+-
+-
+ #ifdef __cplusplus
+ }
+ #endif

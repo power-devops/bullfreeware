@@ -1,0 +1,25 @@
+From 35568b41699ca1cd466fc8d23a84139b73ad0f1b Mon Sep 17 00:00:00 2001
+From: naruse <naruse@b2dd03c8-39d4-4d8f-98ff-823fe69b080e>
+Date: Tue, 19 Jan 2016 02:52:37 +0000
+Subject: [PATCH] increase timeout for ARMv7
+
+http://rubyci.s3.amazonaws.com/scw-9d6766/ruby-trunk/log/20160113T091704Z.diff.html.gz
+
+git-svn-id: svn+ssh://ci.ruby-lang.org/ruby/trunk@53586 b2dd03c8-39d4-4d8f-98ff-823fe69b080e
+---
+ test/ruby/test_iseq.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/ruby/test_iseq.rb b/test/ruby/test_iseq.rb
+index 7af8c1b..4561eeb 100644
+--- a/test/ruby/test_iseq.rb
++++ b/test/ruby/test_iseq.rb
+@@ -187,7 +187,7 @@ def test_safe_call_chain
+   end
+ 
+   def test_parent_iseq_mark
+-    assert_separately([], <<-'end;')
++    assert_separately([], <<-'end;', timeout: 20)
+       ->{
+         ->{
+           ->{

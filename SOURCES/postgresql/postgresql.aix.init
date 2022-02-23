@@ -1,0 +1,269 @@
+#!/usr/bin/ksh
+#
+# postgresql:	This is the init script for starting up the PostgreSQL
+#		server.
+#
+# Description:  PostgreSQL database server.
+#
+# Processname:  postmaster
+# pidfile:      /var/run/postmaster.PORT.pid
+#
+# This script is slightly unusual in that the name of the daemon (postmaster)
+# is not the same as the name of the subsystem (postgresql)
+#
+# Jan 09, 2014, Michael Perzl (michael@perzl.org)
+#
+
+# PGVERSION is the full package version, e.g., 9.0.2
+# Note: the specfile inserts the correct value during package build
+PGVERSION=9.2.6
+# PGMAJORVERSION is major version, e.g., 9.0 (this should match PG_VERSION)
+PGMAJORVERSION=`echo "${PGVERSION}" | sed 's/^\([0-9]*\.[0-9]*\).*$/\1/'`
+# PGDOCDIR is the directory containing the package's documentation
+# Note: the specfile inserts the correct value during package build
+PGDOCDIR=/opt/freeware/doc/postgresql-9.2.6
+
+NAME=postgresql
+PROG=postmaster
+
+# set defaults for configuration variables
+PGENGINE=/opt/freeware/bin
+PGPORT=5432
+PGDATA=/var/lib/${NAME}/data
+PGLOG=/var/lib/${NAME}/pgstartup.log
+
+# override defaults from /etc/sysconfig/postgresql/postgresql if file is present
+if [ -f /etc/sysconfig/${NAME}/${NAME} ] ; then
+    . /etc/sysconfig/${NAME}/${NAME}
+fi
+
+export PGDATA
+export PGPORT
+
+PIDFILE="/var/run/${PROG}.${PGPORT}.pid"
+
+LOCKFILE="/var/locks/${PROG}.${PGPORT}.lock"
+
+script_result=0
+
+
+# define some generic commands
+AWK=/usr/bin/awk
+CAT=/usr/bin/cat
+CHMOD=/usr/bin/chmod
+CHOWN=/usr/bin/chown
+ECHO=/usr/bin/echo
+GREP=/usr/bin/grep
+HEAD=/usr/bin/head
+KILL=/usr/bin/kill
+MKDIR=/usr/bin/mkdir
+PRINTF=/usr/bin/printf
+PS=/usr/bin/ps
+RM=/usr/bin/rm
+SLEEP=/usr/bin/sleep
+SU=/usr/bin/su
+TOUCH=/usr/bin/touch
+
+
+echo_success() {
+    $PRINTF "done."
+}
+
+
+echo_failure() {
+    $PRINTF "FAILED."
+}
+
+
+startdb() {
+    [ -x "${PGENGINE}/${PROG}" ] || exit 5
+
+    PSQL_START="Starting ${NAME} service... "
+
+    # Make sure startup-time log file is valid
+    if [ ! -e "${PGLOG}" -a ! -h "${PGLOG}" ] ; then
+        $TOUCH "${PGLOG}" || exit 4
+        $CHOWN postgres:postgres "${PGLOG}"
+        $CHMOD go-rwx "${PGLOG}"
+    fi
+
+    # Check for the PGDATA structure
+    if [ -f "$PGDATA/PG_VERSION" ] && [ -d "$PGDATA/base" ] ; then
+        # Check version of existing PGDATA
+        if [ x`$CAT "${PGDATA}/PG_VERSION"` = x"${PGMAJORVERSION}" ] ; then
+            : A-OK
+        else
+            $ECHO ""
+            $ECHO "An old version of the database format was found."
+            $ECHO "You need to dump and reload before using PostgreSQL ${PGMAJORVERSION}."
+            $ECHO "See ${PGDOCDIR}/README.rpm-dist for more information."
+            $ECHO ""
+            exit 1
+        fi
+    else
+        # No existing PGDATA! Warn the user to initdb it.
+        $ECHO ""
+        $ECHO "${PGDATA} is missing."
+        $ECHO "Use \"/etc/rc.d/init.d/postgresql initdb\" to initialize the cluster first."
+        $ECHO ""
+        exit 1
+    fi
+
+    $PRINTF "${PSQL_START}"
+    $SU postgres -c "${PGENGINE}/${PROG} -p '${PGPORT}' -D '${PGDATA}' ${PGOPTS} &" >> "${PGLOG}" 2>&1 < /dev/null
+    $SLEEP 2
+    pid=`$HEAD -n 1 "${PGDATA}/${PROG}.pid" 2>/dev/null`
+    if [ "x${pid}" != x ] ; then
+        echo_success
+        $TOUCH "${LOCKFILE}"
+        $ECHO ${pid} > "${PIDFILE}"
+        $ECHO ""
+    else
+        echo_failure
+        $ECHO ""
+        script_result=1
+    fi
+}
+
+
+stopdb() {
+    $PRINTF "Stopping ${NAME} service... "
+    if [ -e "${LOCKFILE}" ] ; then
+        $SU postgres -c "${PGENGINE}/pg_ctl stop -D '${PGDATA}' -s -m fast" > /dev/null 2>&1 < /dev/null
+        ret=$? 
+        if [ ${ret} -eq 0 ] ; then
+            echo_success
+            $RM -f "${PIDFILE}"
+            $RM -f "${LOCKFILE}"
+        else
+            echo_failure
+            script_result=1
+        fi
+    else
+        # not running, this is "ok"
+        echo_success
+    fi
+    $ECHO ""
+}
+
+
+restart() {
+    ## stop the service and regardless of whether it was
+    ## running or not, start it again.
+    stopdb
+    startdb
+}
+
+
+condrestart() {
+    if [ -r ${PIDFILE} ] ; then
+        pid=`$CAT ${PIDFILE}`
+        if [ "`$PS -ef | $GREP -v grep | $GREP ${PROG} | $GREP ${pid} | $AWK '{ print $2 }' | $GREP ${pid}`" = "${pid}" ] ; then
+            restart
+        fi
+    fi
+}
+
+
+reload() {
+    $SU postgres -c "${PGENGINE}/pg_ctl reload -D '${PGDATA}' -s" > /dev/null 2>&1 < /dev/null
+}
+
+
+# code shared between initdb and upgrade actions
+perform_initdb() {
+    if [ ! -e "${PGDATA}" -a ! -h "${PGDATA}" ] ; then
+        $MKDIR -p "${PGDATA}" || return 1
+        $CHOWN postgres:postgres "${PGDATA}"
+        $CHMOD go-rwx "${PGDATA}"
+    fi
+
+    # Make sure the startup-time log file is OK, too
+    if [ ! -e "${PGLOG}" -a ! -h "${PGLOG}" ] ; then
+        $TOUCH "{$PGLOG}" || return 1
+        $CHOWN postgres:postgres "${PGLOG}"
+        $CHMOD go-rwx "${PGLOG}"
+    fi
+
+    # Initialize the database
+    $SU postgres -c "${PGENGINE}/initdb --pgdata='${PGDATA}' --auth='ident'" >> "${PGLOG}" 2>&1 < /dev/null
+
+    # Create directory for postmaster log
+    $MKDIR "${PGDATA}/pg_log"
+    $CHOWN postgres:postgres "${PGDATA}/pg_log"
+    $CHMOD go-rwx "${PGDATA}/pg_log"
+
+    if [ -f "${PGDATA}/PG_VERSION" ] ; then
+        return 0
+    fi
+    return 1
+}
+
+
+initdb() {
+    if [ -f "${PGDATA}/PG_VERSION" ] ; then
+        $PRINTF "Data directory is not empty! "
+        echo_failure
+        $ECHO ""
+        script_result=1
+    else
+        $PRINTF "Initializing database... "
+        if perform_initdb ; then
+            echo_success
+	else
+            echo_failure
+	    script_result=1
+        fi
+        $ECHO ""
+    fi
+}
+
+
+status() {
+    if [ -r ${PIDFILE} ] ; then
+        pid=`$CAT ${PIDFILE}`
+        if [ "`$PS -ef | $GREP -v grep | $GREP ${PROG} | $GREP ${pid} | $AWK '{ print $2 }' | $GREP ${pid}`" = "${pid}" ] ; then
+            $ECHO "PostgreSQL DB is running with PID ${pid}."
+        else
+            $ECHO "PostgreSQL DB is not running."
+        fi
+    else
+        $ECHO "PostgreSQL DB is not running."
+    fi
+    script_result=0
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+        startdb
+        ;;
+  stop)
+        stopdb
+        ;;
+  status)
+        status
+        ;;
+  restart)
+        restart
+        ;;
+  condrestart|try-restart)
+        condrestart
+        ;;
+  reload)
+        reload
+        ;;
+  force-reload)
+        restart
+        ;;
+  initdb)
+        initdb
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload|initdb}"
+        exit 2
+esac
+
+exit ${script_result}
+

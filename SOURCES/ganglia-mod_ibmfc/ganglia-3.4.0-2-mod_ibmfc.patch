@@ -1,0 +1,976 @@
+*** ./gmond/modules/conf.d/ibmfc.conf.ORIG	Thu Sep  2 14:11:37 2010
+--- ./gmond/modules/conf.d/ibmfc.conf	Thu Sep  2 14:11:37 2010
+***************
+*** 0 ****
+--- 1,99 ----
++ 
++ modules {
++   module {
++     name = "ibmfc_module"
++     path = "modibmfc.so"
++   }
++ }
++ 
++ collection_group {
++   collect_every = 15
++   time_threshold = 60
++ /*
++   metric {
++     name = "fcs0_input_requests"
++     title = "fcs0 Read IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs0_output_requests"
++     title = "fcs0 Write IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs0_input_bytes"
++     title = "fcs0 Bytes Read"
++     value_threshold = 0.1
++   }
++   metric {
++     name = "fcs0_output_bytes"
++     title = "fcs0 Bytes Written"
++     value_threshold = 0.1
++   }
++ */
++ /*
++   metric {
++     name = "fcs1_input_requests"
++     title = "fcs1 Read IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs1_output_requests"
++     title = "fcs1 Write IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs1_input_bytes"
++     title = "fcs1 Bytes Read"
++     value_threshold = 0.1
++   }
++   metric {
++     name = "fcs1_output_bytes"
++     title = "fcs1 Bytes Written"
++     value_threshold = 0.1
++   }
++ */
++ /*
++   metric {
++     name = "fcs15_input_requests"
++     title = "fcs15 Read IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs15_output_requests"
++     title = "fcs15 Write IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs15_input_bytes"
++     title = "fcs15 Bytes Read"
++     value_threshold = 0.1
++   }
++   metric {
++     name = "fcs15_output_bytes"
++     title = "fcs15 Bytes Written"
++     value_threshold = 0.1
++   }
++   metric {
++     name = "fcs16_input_requests"
++     title = "fcs16 TSM Read IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs16_output_requests"
++     title = "fcs16 TSM Write IOs"
++     value_threshold = 0.001
++   }
++   metric {
++     name = "fcs16_input_bytes"
++     title = "fcs16 TSM Bytes Read"
++     value_threshold = 0.1
++   }
++   metric {
++     name = "fcs16_output_bytes"
++     title = "fcs16 TSM Bytes Written"
++     value_threshold = 0.1
++   }
++ */
++ }
++ 
+*** ./gmond/modules/ibmfc/Makefile.am.ORIG	Thu Sep  2 14:01:31 2010
+--- ./gmond/modules/ibmfc/Makefile.am	Thu Sep  2 14:01:31 2010
+***************
+*** 0 ****
+--- 1,16 ----
++ AM_CFLAGS  = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/libmetrics
++ 
++ if STATIC_BUILD
++ noinst_LTLIBRARIES    = libmodibmfc.la
++ libmodibmfc_la_SOURCES = mod_ibmfc.c 
++ else
++ pkglib_LTLIBRARIES    = modibmfc.la
++ modibmfc_la_SOURCES = mod_ibmfc.c 
++ modibmfc_la_LDFLAGS = -module -avoid-version
++ modibmfc_la_LIBADD = $(top_builddir)/libmetrics/libmetrics.la
++ 
++ EXTRA_DIST = ../conf.d/ibmfc.conf
++ endif
++ 
++ INCLUDES = @APR_INCLUDES@
++ 
+*** ./gmond/modules/ibmfc/mod_ibmfc-aix.c.ORIG	Fri May  6 12:55:45 2011
+--- ./gmond/modules/ibmfc/mod_ibmfc-aix.c	Fri May  6 12:56:39 2011
+***************
+*** 0 ****
+--- 1,785 ----
++ /******************************************************************************
++  *
++  *  This module implements IBM AIX Fibre Channel statistics to circumvent the
++  *  limitations of libperfstat.  libperfstat only knows about a Fibre Channel
++  *  device if there are disks attachet to that device.  Fibre Channel tapes,
++  *  for instance, would be left out.  Therefore, the AIX command 'fcstat'
++  *  is used to gather the Fibre Channel statistics.
++  *
++  *  The command '/usr/bin/fcstat' is available since AIX5L V5.3 TL 05.
++  *
++  *  The code has been tested with AIX 5.3 and AIX 6.1 on different systems.
++  *
++  *  Written by Michael Perzl (michael@perzl.org)
++  *
++  *  Version 1.1, May 06, 2011
++  *
++  *  Version 1.1:  May 06, 2011
++  *                - changed method to detect all Fibre Channel adapters which
++  *                  are in state 'Available'
++  *
++  *  Version 1.0:  Jul 29, 2010
++  *                - initial version
++  *
++  ******************************************************************************/
++ 
++ /*
++  * The ganglia metric "C" interface, required for building DSO modules.
++  */
++ 
++ #include <gm_metric.h>
++ 
++ 
++ #include <stdlib.h>
++ #include <string.h>
++ #include <strings.h>
++ #include <time.h>
++ #include <unistd.h>
++ 
++ #include <utmp.h>
++ #include <stdio.h>
++ #include <sys/types.h>
++ #include <signal.h>
++ #include <sys/utsname.h>
++ #include <syslog.h>
++ #include <setjmp.h>
++ 
++ #include <apr_tables.h>
++ #include <apr_strings.h>
++ 
++ #include "libmetrics.h"
++ 
++ 
++ #undef DEBUG
++ #define USE_SIGNALS
++ 
++ #define MIN_THRESHOLD 5.0
++ 
++ #define MAX_BUF_SIZE 1024
++ 
++ 
++ static time_t boottime;
++ 
++ 
++ struct fcs_devices_t {
++    int enabled;
++    double last_read;
++    double threshold;
++    char devName[MAX_G_STRING_SIZE];
++ };
++ 
++ typedef struct fcs_devices_t fcs_devices_t;
++ 
++ 
++ struct fcs_perf_data_t {
++    double last_value;
++    double curr_value;
++    long long last_total_value;
++ };
++ 
++ typedef struct fcs_perf_data_t fcs_perf_data_t;
++ 
++ 
++ static unsigned int fcs_count = 0;
++ 
++ static fcs_devices_t *fcs_devices = NULL;
++ 
++ static fcs_perf_data_t *fcs_input_requests = NULL;
++ static fcs_perf_data_t *fcs_output_requests = NULL;
++ static fcs_perf_data_t *fcs_input_bytes = NULL;
++ static fcs_perf_data_t *fcs_output_bytes = NULL;
++ 
++ static apr_pool_t *pool;
++ 
++ static apr_array_header_t *metric_info = NULL;
++ 
++ static int Signal_devIndex = -1;
++ 
++ static jmp_buf my_jumpbuf;
++ 
++ 
++ 
++ #ifdef USE_SIGNALS
++ /* Signal handler */
++ void my_sig_handler( int sig_num )
++ {
++    char msg[512];
++ 
++ 
++    switch( sig_num )
++    {
++ /* the fcstat command took too long - don't call fcstat for that adapter anymore */
++       case SIGALRM: fcs_devices[Signal_devIndex].enabled = FALSE;
++                     alarm( 0 );
++ /* write a message to system log */
++                     sprintf( msg, "Ganglia gmond module ibmfc: Disabling FC adapter %s.",
++                                   fcs_devices[Signal_devIndex].devName );
++                     syslog( LOG_WARNING, msg );
++                     longjmp( my_jumpbuf, 1 );
++                     break;
++    }
++ }
++ #endif
++ 
++ 
++ 
++ static time_t
++ boottime_func_CALLED_ONCE( void )
++ {
++    time_t boottime;
++    struct utmp buf;
++    FILE *utmp;
++ 
++ 
++    utmp = fopen( UTMP_FILE, "r" );
++ 
++    if (utmp == NULL)
++    {
++       /* Can't open utmp, use current time as boottime */
++       boottime = time( NULL );
++    }
++    else
++    {
++       while (fread( (char *) &buf, sizeof( buf ), 1, utmp ) == 1)
++       {
++          if (buf.ut_type == BOOT_TIME)
++          {
++             boottime = buf.ut_time;
++             break;
++         }
++       }
++ 
++       fclose( utmp );
++    }
++ 
++    return( boottime );
++ }
++ 
++ 
++ 
++ static int
++ detect_and_verify_fcs_devices( void )
++ {
++    char  buf[MAX_BUF_SIZE];
++    FILE *f;
++    int   count,
++          i;
++ 
++ 
++ /* find out the number of Fibre Channel devices in state 'Available' */
++ 
++    count = 0;
++ 
++    f = popen( "/usr/sbin/lsdev -Cc adapter | /usr/bin/awk '{ print $1 \" \" $2 }' | /usr/bin/grep fcs | /usr/bin/grep Available | /usr/bin/wc -l", "r" );
++ 
++    if (f != NULL)
++    {
++       if ( fgets( buf, MAX_BUF_SIZE, f ) != NULL )
++          count = atoi( buf );
++ 
++       pclose( f );
++    }
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "Found Fibre Channel adapters = %d\n", count );  fflush( stderr );
++ #endif
++ 
++    if (count == 0)
++       return( 0 );
++ 
++ 
++ /* now read the device strings */
++ 
++    f = popen( "/usr/sbin/lsdev -Cc adapter | /usr/bin/awk '{ print $1 \" \" $2 }' | /usr/bin/grep fcs | /usr/bin/grep Available | /usr/bin/awk '{ print $1 }'", "r" );
++ 
++    if (f != NULL)
++    {
++ /* allocate the proper data structures */
++ 
++       fcs_devices = malloc( count * sizeof( fcs_devices_t ) );
++       if (! fcs_devices)
++       {
++          pclose( f );
++          return( -1 );
++       }
++ 
++       for (i = 0;  i < count;  i++)
++       {
++          fcs_devices[i].enabled = TRUE;
++          fcs_devices[i].threshold = MIN_THRESHOLD;
++ 
++          fgets( buf, MAX_BUF_SIZE, f );
++ 
++          /* truncate \n */
++          if (strlen( buf ) > 0)
++             buf[strlen( buf ) - 1] = '\0';
++ 
++          strcpy( fcs_devices[i].devName, buf );
++       }
++ 
++       pclose( f );
++    }
++    else
++       return( 0 );
++ 
++ #ifdef DEBUG
++ for (i = 0;  i < count;  i++)
++    fprintf( stderr, "name = >%s<\n", fcs_devices[i].devName );
++ fflush( stderr );
++ #endif
++ 
++ 
++ /* return the number of found Fibre Channel devices */
++    return( count );
++ }
++ 
++ 
++ 
++ static void
++ read_device( int devIndex, double delta_t, double now )
++ {
++    char  cmd[256],
++          buf[MAX_BUF_SIZE],
++         *p;
++    FILE *f;
++    long long input_requests,
++              output_requests,
++              input_bytes,
++              output_bytes,
++              delta;
++ 
++ 
++ #ifdef USE_SIGNALS
++ /* for the signal handler, remember the current questioned device */
++    Signal_devIndex = devIndex;
++ 
++    if( setjmp( my_jumpbuf ) != 0)
++       return;
++ 
++    signal( SIGALRM, my_sig_handler );
++    alarm( 5 );   /* allow a maximum of 5 seconds for running the fcstat command */
++ #endif
++ 
++    input_requests = output_requests = input_bytes = output_bytes = -1LL;
++ 
++    sprintf( cmd, "/usr/bin/fcstat %s | /usr/bin/grep -E 'Input Requests:|Output Requests:|Input Bytes:|Output Bytes:' | /usr/bin/tail -4 | /usr/bin/awk '{ print $3 }' 2>/dev/null", fcs_devices[devIndex].devName );
++ 
++    f = popen( cmd, "r" );
++ 
++    if (f != NULL)
++    {
++       if ( fgets( buf, MAX_BUF_SIZE, f ) != NULL )
++       {
++          /* truncate \n */
++          if (strlen( buf ) > 0)
++             buf[strlen( buf ) - 1] = '\0';
++ 
++          input_requests = strtoll( buf, (char **) NULL, 10 );
++ 
++          if ( fgets( buf, MAX_BUF_SIZE, f ) != NULL )
++          {
++             /* truncate \n */
++             if (strlen( buf ) > 0)
++                buf[strlen( buf ) - 1] = '\0';
++ 
++             output_requests = strtoll( buf, (char **) NULL, 10 );
++          }
++          
++          if ( fgets( buf, MAX_BUF_SIZE, f ) != NULL )
++          {
++             /* truncate \n */
++             if (strlen( buf ) > 0)
++                buf[strlen( buf ) - 1] = '\0';
++ 
++             input_bytes = strtoll( buf, (char **) NULL, 10 );
++          }
++ 
++          if ( fgets( buf, MAX_BUF_SIZE, f ) != NULL )
++          {
++             /* truncate \n */
++             if (strlen( buf ) > 0)
++                buf[strlen( buf ) - 1] = '\0';
++ 
++             output_bytes = strtoll( buf, (char **) NULL, 10 );
++          }
++       }
++ 
++       pclose( f );
++    }
++ 
++ #ifdef USE_SIGNALS
++    alarm( 0 );   /* disable the timeout again */
++ #endif
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "\n" );
++ fprintf( stderr, "now = %f, last_read = %f, delta_t = %f\n",
++                  now,
++                  fcs_devices[devIndex].last_read,
++                  delta_t );
++ #endif
++ 
++    if (input_requests != -1LL)
++    {
++       delta = input_requests - fcs_input_requests[devIndex].last_total_value;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "============== input_requests( %s ) ========================\n", 
++                  fcs_devices[devIndex].devName );
++ fprintf( stderr, "read_val = %lld, last_val = %lld, delta = %lld\n",
++                  input_requests,
++                  fcs_input_requests[devIndex].last_total_value,
++                  delta );
++ #endif
++ 
++       if (delta < 0)
++       {
++          fcs_input_requests[devIndex].curr_value = fcs_input_requests[devIndex].last_value;
++       }
++       else
++       {
++          fcs_input_requests[devIndex].curr_value = (double) delta / delta_t;
++       }
++       
++       fcs_input_requests[devIndex].last_value = fcs_input_requests[devIndex].curr_value;
++       fcs_input_requests[devIndex].last_total_value = input_requests;
++    }
++ 
++    if (output_requests != -1LL)
++    {
++       delta = output_requests - fcs_output_requests[devIndex].last_total_value;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "============== output_requests ( %s ) ========================\n", 
++                  fcs_devices[devIndex].devName );
++ fprintf( stderr, "read_val = %lld, last_val = %lld, delta = %lld\n",
++                  output_requests,
++                  fcs_output_requests[devIndex].last_total_value,
++                  delta );
++ #endif
++ 
++       if (delta < 0)
++       {
++          fcs_output_requests[devIndex].curr_value = fcs_output_requests[devIndex].last_value;
++       }
++       else
++       {
++          fcs_output_requests[devIndex].curr_value = (double) delta / delta_t;
++       }
++       
++       fcs_output_requests[devIndex].last_value = fcs_output_requests[devIndex].curr_value;
++       fcs_output_requests[devIndex].last_total_value = output_requests;
++    }
++ 
++    if (input_bytes != -1LL)
++    {
++       delta = input_bytes - fcs_input_bytes[devIndex].last_total_value;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "============== input_bytes( %s ) ========================\n", 
++                  fcs_devices[devIndex].devName );
++ fprintf( stderr, "read_val = %lld, last_val = %lld, delta = %lld\n",
++                  input_bytes,
++                  fcs_input_bytes[devIndex].last_total_value,
++                  delta );
++ #endif
++ 
++       if (delta < 0)
++       {
++          fcs_input_bytes[devIndex].curr_value = fcs_input_bytes[devIndex].last_value;
++       }
++       else
++       {
++          fcs_input_bytes[devIndex].curr_value = (double) delta / delta_t;
++       }
++       
++       fcs_input_bytes[devIndex].last_value = fcs_input_bytes[devIndex].curr_value;
++       fcs_input_bytes[devIndex].last_total_value = input_bytes;
++    }
++ 
++    if (output_bytes != -1LL)
++    {
++       delta = output_bytes - fcs_output_bytes[devIndex].last_total_value;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "============== output_bytes ( %s ) ========================\n", 
++                  fcs_devices[devIndex].devName );
++ fprintf( stderr, "read_val = %lld, last_val = %lld, delta = %lld\n",
++                  output_bytes,
++                  fcs_output_bytes[devIndex].last_total_value,
++                  delta );
++ #endif
++ 
++       if (delta < 0)
++       {
++          fcs_output_bytes[devIndex].curr_value = fcs_output_bytes[devIndex].last_value;
++       }
++       else
++       {
++          fcs_output_bytes[devIndex].curr_value = (double) delta / delta_t;
++       }
++       
++       fcs_output_bytes[devIndex].last_value = fcs_output_bytes[devIndex].curr_value;
++       fcs_output_bytes[devIndex].last_total_value = output_bytes;
++    }
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "\n" );
++ fflush( stderr );
++ #endif
++ 
++    fcs_devices[devIndex].last_read = now;
++ }
++ 
++ 
++ 
++ static double
++ get_current_time( void )
++ {
++    struct timeval timeValue;
++    struct timezone timeZone;
++ 
++ 
++    gettimeofday( &timeValue, &timeZone );
++ 
++    return( (double) (timeValue.tv_sec - boottime) + (timeValue.tv_usec / 1000000.0) );
++ }
++ 
++ 
++ 
++ static double
++ time_diff( int fcs_index, double *now )
++ {
++    *now = get_current_time();
++ 
++    return( *now - fcs_devices[fcs_index].last_read );
++ }
++ 
++ 
++ 
++ static g_val_t
++ fcs_input_requests_func( int fcs_index )
++ {
++    double delta_t,
++           now;
++    g_val_t val;
++ 
++ 
++    if (fcs_devices[fcs_index].enabled)
++    {
++       delta_t = time_diff( fcs_index, &now );
++ 
++       if (delta_t > fcs_devices[fcs_index].threshold)
++          read_device( fcs_index, delta_t, now );
++ 
++       val.d = fcs_input_requests[fcs_index].curr_value;
++    }
++    else
++       val.d = -1.0;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "fcs_input_requests_func = %f\n", val.d ); fflush( stderr );
++ #endif
++ 
++ 
++    return( val );
++ }
++ 
++ 
++ 
++ static g_val_t
++ fcs_output_requests_func( int fcs_index )
++ {
++    double delta_t,
++           now;
++    g_val_t val;
++ 
++ 
++    if (fcs_devices[fcs_index].enabled)
++    {
++       delta_t = time_diff( fcs_index, &now );
++ 
++       if (delta_t > fcs_devices[fcs_index].threshold)
++          read_device( fcs_index, delta_t, now );
++ 
++       val.d = fcs_output_requests[fcs_index].curr_value;
++    }
++    else
++       val.d = -1.0;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "fcs_output_requests_func = %f\n", val.d ); fflush( stderr );
++ #endif
++ 
++ 
++    return( val );
++ }
++ 
++ 
++ 
++ static g_val_t
++ fcs_input_bytes_func( int fcs_index )
++ {
++    double delta_t,
++           now;
++    g_val_t val;
++ 
++ 
++    if (fcs_devices[fcs_index].enabled)
++    {
++       delta_t = time_diff( fcs_index, &now );
++ 
++       if (delta_t > fcs_devices[fcs_index].threshold)
++          read_device( fcs_index, delta_t, now );
++ 
++       val.d = fcs_input_bytes[fcs_index].curr_value;
++    }
++    else
++       val.d = -1.0;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "fcs_input_bytes_func = %f\n", val.d ); fflush( stderr );
++ #endif
++ 
++ 
++    return( val );
++ }
++ 
++ 
++ 
++ static g_val_t
++ fcs_output_bytes_func( int fcs_index )
++ {
++    double delta_t,
++           now;
++    g_val_t val;
++ 
++ 
++    if (fcs_devices[fcs_index].enabled)
++    {
++       delta_t = time_diff( fcs_index, &now );
++ 
++       if (delta_t > fcs_devices[fcs_index].threshold)
++          read_device( fcs_index, delta_t, now );
++ 
++       val.d = fcs_output_bytes[fcs_index].curr_value;
++    }
++    else
++       val.d = -1.0;
++ 
++ #ifdef DEBUG
++ fprintf( stderr, "fcs_output_bytes_func = %f\n", val.d ); fflush( stderr );
++ #endif
++ 
++ 
++    return( val );
++ }
++ 
++ 
++ 
++ /* Initialize the given metric by allocating the per metric data
++    structure and inserting a metric definition for each Fibre Channel
++    interface found.
++ */
++ static fcs_perf_data_t *init_metric( apr_pool_t *p,
++                                      apr_array_header_t *ar,
++                                      int fcs_count,
++                                      char *name,
++                                      char *desc,
++                                      char *units,
++                                      char *format )
++ {
++    int i;
++    Ganglia_25metric *gmi;
++    fcs_perf_data_t *fcs;
++ 
++ 
++    fcs = apr_pcalloc( p, sizeof( fcs_perf_data_t ) * fcs_count );
++ 
++    for (i = 0;  i < fcs_count;  i++)
++    {
++       gmi = apr_array_push( ar );
++ 
++       /* gmi->key will be automatically assigned by gmond */
++       gmi->name = apr_psprintf( p, "%s_%s", fcs_devices[i].devName, name );
++       gmi->tmax = 60;
++       gmi->type = GANGLIA_VALUE_DOUBLE;
++       gmi->units = apr_pstrdup( p, units );
++       gmi->slope = apr_pstrdup( p, "both" );
++       gmi->fmt = apr_pstrdup( p, format );
++       gmi->msg_size = UDP_HEADER_SIZE + 16;
++       gmi->desc = apr_psprintf( p, "%s %s", fcs_devices[i].devName, desc );
++    }
++ 
++    return( fcs );
++ }
++ 
++ 
++ 
++ /*
++  * Declare ourselves so the configuration routines can find and know us.
++  * We'll fill it in at the end of the module.
++  */
++ extern mmodule ibmfc_module;
++ 
++ 
++ static int ibmfc_metric_init ( apr_pool_t *p )
++ {
++    int i;
++    double now;
++    Ganglia_25metric *gmi;
++ 
++ 
++ /* Initialize all required data and structures */
++ 
++    fcs_count = detect_and_verify_fcs_devices();
++ 
++ 
++ /* Allocate a pool that will be used by this module */
++    apr_pool_create( &pool, p );
++ 
++    metric_info = apr_array_make( pool, 2, sizeof( Ganglia_25metric ) );
++ 
++ 
++ /* Initialize each metric */
++    fcs_input_requests = init_metric( pool,
++                                      metric_info,
++                                      fcs_count,
++                                      "input_requests",
++                                      "Read IOs",
++                                      "IOs/sec",
++                                      "%.3f" );
++    fcs_output_requests = init_metric( pool,
++                                       metric_info,
++                                       fcs_count,
++                                       "output_requests",
++                                       "Write IOs",
++                                       "IOs/sec",
++                                       "%.3f" );
++    fcs_input_bytes = init_metric( pool,
++                                   metric_info,
++                                   fcs_count,
++                                   "input_bytes",
++                                   "Bytes Read",
++                                   "bytes/sec",
++                                   "%.1f" );
++    fcs_output_bytes = init_metric( pool,
++                                    metric_info,
++                                    fcs_count,
++                                    "output_bytes",
++                                    "Bytes Written",
++                                    "bytes/sec",
++                                    "%.1f" );
++ 
++ 
++ /* Add a terminator to the array and replace the empty static metric definition
++    array with the dynamic array that we just created
++ */
++    gmi = apr_array_push( metric_info );
++    memset( gmi, 0, sizeof( *gmi ));
++ 
++    ibmfc_module.metrics_info = (Ganglia_25metric *) metric_info->elts;
++ 
++ 
++    for (i = 0;  ibmfc_module.metrics_info[i].name != NULL;  i++)
++    {
++       /* Initialize the metadata storage for each of the metrics and then
++        *  store one or more key/value pairs.  The define MGROUPS defines
++        *  the key for the grouping attribute. */
++       MMETRIC_INIT_METADATA( &(ibmfc_module.metrics_info[i]), p );
++       MMETRIC_ADD_METADATA( &(ibmfc_module.metrics_info[i]), MGROUP, "ibmfc" );
++    }
++ 
++ 
++ /* initialize the routines which require a time interval */
++ 
++    boottime = boottime_func_CALLED_ONCE();
++    now = get_current_time();
++    for (i = 0;  i < fcs_count;  i++)
++    {
++       read_device( i, 1.0, now );
++ 
++       fcs_input_requests[i].curr_value = 0.0;
++       fcs_output_requests[i].curr_value = 0.0;
++       fcs_input_bytes[i].curr_value = 0.0;
++       fcs_output_bytes[i].curr_value = 0.0;
++    }
++ 
++ 
++ /* return OK */
++    return( 0 );
++ }
++ 
++ 
++ 
++ static void ibmfc_metric_cleanup ( void )
++ {
++ }
++ 
++ 
++ 
++ static g_val_t ibmfc_metric_handler ( int metric_index )
++ {
++    g_val_t val;
++    char *p,
++          name[256];
++    int i, devIndex; 
++ 
++ 
++ /* Get the metric name and device index from the combined name that was
++  * passed in
++  */
++    strcpy( name, ibmfc_module.metrics_info[metric_index].name );
++ 
++    p = index( name, '_' ) + 1;
++    name[p - name - 1] = '\0';
++ 
++ 
++ /* now we need to match the name with the name of all found Fibre Channel
++  * devices
++  */
++    devIndex = -1;
++ 
++    for (i = 0;  i < fcs_count;  i++)
++      if (strcmp( name, fcs_devices[i].devName ) == 0)
++      {
++         devIndex = i;
++         break;
++      }
++ 
++    if (devIndex == -1)
++    {
++       val.uint32 = 0; /* default fallback */
++       return( val );
++    }
++ 
++ 
++ /* jump into the right function */
++ 
++    if (strcmp( p, "input_requests" ) == 0)
++       return( fcs_input_requests_func( devIndex ) );
++ 
++    if (strcmp( p, "output_requests" ) == 0)
++       return( fcs_output_requests_func( devIndex ) );
++ 
++    if (strcmp( p, "input_bytes" ) == 0)
++       return( fcs_input_bytes_func( devIndex ) );
++ 
++    if (strcmp( p, "output_bytes" ) == 0)
++       return( fcs_output_bytes_func( devIndex ) );
++ 
++    val.uint32 = 0; /* default fallback */
++    return( val );
++ }
++ 
++ 
++ 
++ mmodule ibmfc_module =
++ {
++    STD_MMODULE_STUFF,
++    ibmfc_metric_init,
++    ibmfc_metric_cleanup,
++    NULL, /* defined dynamically */
++    ibmfc_metric_handler
++ };
++ 
+*** ./gmond/modules/Makefile.am.ORIG	Thu Sep  2 14:02:33 2010
+--- ./gmond/modules/Makefile.am	Thu Sep  2 14:03:38 2010
+***************
+*** 6,16 ****
+  STATUS_SUBDIR = status
+  endif
+  
+! DIST_SUBDIRS = example cpu disk memory network system status python
+  if STATIC_BUILD
+! SUBDIRS = cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR)
+  else
+! SUBDIRS = example cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR)
+  
+  install: install-recursive
+  	@rm -rf $(DESTDIR)$(pkglibdir)/*.a
+--- 6,16 ----
+  STATUS_SUBDIR = status
+  endif
+  
+! DIST_SUBDIRS = ibmfc example cpu disk memory network system status python
+  if STATIC_BUILD
+! SUBDIRS = ibmfc cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR)
+  else
+! SUBDIRS = ibmfc example cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR)
+  
+  install: install-recursive
+  	@rm -rf $(DESTDIR)$(pkglibdir)/*.a
+*** ./gmond/Makefile.am.ORIG	Thu Sep  2 14:05:05 2010
+--- ./gmond/Makefile.am	Thu Sep  2 14:07:30 2010
+***************
+*** 14,19 ****
+--- 14,20 ----
+           modules/memory/mod_mem.lo modules/network/mod_net.lo \
+           modules/system/mod_proc.lo modules/system/mod_sys.lo \
+           modules/cpu/mod_multicpu.lo \
++          modules/ibmrperf/mod_ibmfc.lo \
+           $(MOD_GSTATUS) @STATIC_USER_MODULES@
+  GLDFLAGS = -static @EXPORT_SYMBOLS@
+  if BUILD_PYTHON
+*** ./configure.in.ORIG	Thu Sep  2 14:07:48 2010
+--- ./configure.in	Thu Sep  2 14:10:23 2010
+***************
+*** 626,631 ****
+--- 626,632 ----
+  		AC_DEFINE(AIX, 1, AIX)
+  		LIBS="-lm $LIBS"
+  		EXPORT_SYMBOLS_DYNAMIC="-Wl,-bexpfull"
++ 		ln -sf mod_ibmfc-aix.c gmond/modules/ibmfc/mod_ibmfc.c	
+  		;;
+  *hpux*)		CFLAGS="$CFLAGS -D_HPUX_SOURCE" 
+  		LIBS="-lpthread $LIBS"
+***************
+*** 751,756 ****
+--- 752,758 ----
+            gstat/Makefile 
+            gmond/modules/Makefile
+            gmond/modules/example/Makefile
++           gmond/modules/ibmfc/Makefile
+            gmond/modules/cpu/Makefile
+            gmond/modules/disk/Makefile
+            gmond/modules/memory/Makefile

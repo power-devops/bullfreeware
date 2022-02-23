@@ -1,0 +1,17 @@
+*** ./gcc/config/rs6000/rs6000.c.ORIG	Thu Mar 22 13:38:15 2012
+--- ./gcc/config/rs6000/rs6000.c	Thu Mar 22 13:38:30 2012
+***************
+*** 11728,11739 ****
+  				    NULL_TREE);
+    def_builtin ("__builtin_bswap16", ftype, RS6000_BUILTIN_BSWAP_HI);
+  
+- #if TARGET_XCOFF
+-   /* AIX libm provides clog as __clog.  */
+-   if ((tdecl = builtin_decl_explicit (BUILT_IN_CLOG)) != NULL_TREE)
+-     set_user_assembler_name (tdecl, "__clog");
+- #endif
+- 
+  #ifdef SUBTARGET_INIT_BUILTINS
+    SUBTARGET_INIT_BUILTINS;
+  #endif
+--- 11728,11733 ----

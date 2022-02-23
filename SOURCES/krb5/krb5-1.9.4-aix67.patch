@@ -1,0 +1,38 @@
+*** ./src/config/config.guess.ORIG	Thu Sep 30 22:29:19 2010
+--- ./src/config/config.guess	Thu Sep 30 22:29:52 2010
+***************
+*** 531,537 ****
+  		echo rs6000-ibm-aix3.2
+  	fi
+  	exit ;;
+!     *:AIX:*:[45])
+  	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+  	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+  		IBM_ARCH=rs6000
+--- 531,537 ----
+  		echo rs6000-ibm-aix3.2
+  	fi
+  	exit ;;
+!     *:AIX:*:[4-9])
+  	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+  	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+  		IBM_ARCH=rs6000
+*** ./src/config/shlib.conf.ORIG	Thu Sep 30 23:55:48 2010
+--- ./src/config/shlib.conf	Thu Sep 30 23:56:53 2010
+***************
+*** 454,460 ****
+  	PROFFLAGS=-pg
+  	;;
+  
+! *-*-aix5*)
+  	SHLIBVEXT='.so.$(LIBMAJOR).$(LIBMINOR)'
+  	SHLIBEXT=.so
+  	# AIX doesn't need separate PIC objects
+--- 454,460 ----
+  	PROFFLAGS=-pg
+  	;;
+  
+! *-*-aix5*|*-*-aix6*|*-*-aix7*)
+  	SHLIBVEXT='.so.$(LIBMAJOR).$(LIBMINOR)'
+  	SHLIBEXT=.so
+  	# AIX doesn't need separate PIC objects

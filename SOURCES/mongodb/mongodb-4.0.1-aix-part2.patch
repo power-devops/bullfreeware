@@ -1,0 +1,54 @@
+--- ./src/mongo/bson/bsonmisc.cpp.ORIGIN	2019-05-17 15:32:48 -0500
++++ ./src/mongo/bson/bsonmisc.cpp	2019-05-17 15:24:23 -0500
+@@ -50,7 +50,11 @@
+ Labeler::Label LTE("$lte");
+ Labeler::Label NE("$ne");
+ Labeler::Label NIN("$nin");
++#ifdef _AIX
++Labeler::Label BYTESIZE("$size");
++#else
+ Labeler::Label BSIZE("$size");
++#endif
+ 
+ GENOIDLabeler GENOID;
+ DateNowLabeler DATENOW;
+--- ./src/mongo/bson/bsonmisc.h.ORIGIN	2019-05-17 15:32:59 -0500
++++ ./src/mongo/bson/bsonmisc.h	2019-05-17 15:24:59 -0500
+@@ -182,7 +182,11 @@
+ extern Labeler::Label LTE;
+ extern Labeler::Label NE;
+ extern Labeler::Label NIN;
++#ifdef _AIX
++extern Labeler::Label BYTESIZE;
++#else
+ extern Labeler::Label BSIZE;
++#endif
+ 
+ // definitions in bsonobjbuilder.h b/c of incomplete types
+ 
+--- ./src/mongo/bson/bsonobj.cpp.ORIGIN	2019-05-17 15:33:12 -0500
++++ ./src/mongo/bson/bsonobj.cpp	2019-05-17 15:28:25 -0500
+@@ -41,6 +41,10 @@
+ #include "mongo/util/mongoutils/str.h"
+ #include "mongo/util/stringutils.h"
+ 
++#ifdef _AIX
++extern "C" void mt__trce ( int  FileDescriptor, int Signal, void *Context, int Node );
++#endif
++
+ namespace mongo {
+ 
+ namespace {
+--- ./src/mongo/bson/util/builder.h.ORIGIN	2019-05-17 15:35:57 -0500
++++ ./src/mongo/bson/util/builder.h	2019-05-17 15:36:23 -0500
+@@ -76,6 +76,10 @@
+ template <typename Allocator>
+ class StringBuilderImpl;
+ 
++#ifdef Free
++#undef Free
++#endif
++
+ class SharedBufferAllocator {
+     MONGO_DISALLOW_COPYING(SharedBufferAllocator);
+ 

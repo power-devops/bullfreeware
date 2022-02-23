@@ -1,0 +1,22 @@
+--- ./test/fiddle/helper.rb.origine	2015-12-16 06:07:31 +0100
++++ ./test/fiddle/helper.rb	2016-10-27 11:11:56 +0200
+@@ -63,10 +63,19 @@
+   pwd=Dir.pwd
+   libc_so = libm_so = "#{pwd}/libaixdltest.so"
+   unless File.exist? libc_so
++    
+     cobjs=%w!strcpy.o!
+     mobjs=%w!floats.o sin.o!
+     funcs=%w!sin sinf strcpy strncpy!
+     expfile='dltest.exp'
++
++    case [0].pack('L!').size
++    when 8
++      # 64-bit ruby
++      cobjs=%w!strcpy_64.o!
++      mobjs=%w!floats_64.o sin_64.o!
++    end
++    
+     require 'tmpdir'
+     Dir.mktmpdir do |dir|
+       begin

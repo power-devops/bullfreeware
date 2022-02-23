@@ -1,0 +1,11 @@
+--- ./libgo/go/internal/testenv/testenv.go.ORIGIN	2017-06-23 16:23:35 -0500
++++ ./libgo/go/internal/testenv/testenv.go	2017-06-23 16:24:43 -0500
+@@ -34,6 +34,8 @@
+ // and then run them with os.StartProcess or exec.Command.
+ func HasGoBuild() bool {
+ 	switch runtime.GOOS {
++	case "aix":
++		return true
+ 	case "android", "nacl":
+ 		return false
+ 	case "darwin":

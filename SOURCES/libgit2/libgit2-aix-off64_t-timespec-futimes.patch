@@ -1,0 +1,42 @@
+--- ./src/posix.h.ORIG	2020-06-04 10:46:58 +0200
++++ ./src/posix.h	2020-10-27 10:21:19 +0100
+@@ -97,6 +97,8 @@
+ typedef __haiku_std_int64 off64_t;
+ #elif defined(__APPLE__)
+ typedef __int64_t off64_t;
++#elif defined(_AIX)
++typedef long long off64_t;
+ #else
+ typedef int64_t off64_t;
+ #endif
+--- ./src/unix/posix.h.ORIG	2020-06-04 10:46:58 +0200
++++ ./src/unix/posix.h	2020-10-27 11:56:48 +0100
+@@ -33,6 +33,10 @@
+ # define st_atime_nsec st_atim.tv_nsec
+ # define st_mtime_nsec st_mtim.tv_nsec
+ # define st_ctime_nsec st_ctim.tv_nsec
++#elif defined(_AIX) /* STAT_MTIM on AIX 7.2 & _XOPEN_SOURCE>=700 */
++# define st_atime_nsec st_atime_n
++# define st_mtime_nsec st_mtime_n
++# define st_ctime_nsec st_ctime_n
+ #elif !defined(GIT_USE_STAT_MTIME_NSEC) && defined(GIT_USE_NSEC)
+ # error GIT_USE_NSEC defined but unknown struct stat nanosecond type
+ #endif
+--- ./tests/core/posix.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./tests/core/posix.c	2020-10-27 17:15:28 +0100
+@@ -123,6 +123,7 @@
+ 	times[1].tv_sec = 1414141414;
+ 	times[1].tv_usec = 0;
+ 
++#if !defined(_AIX) /* futimes() is not supported on 6.1 _XOPEN_SOURCE >= 700 */
+ 	cl_must_pass(fd = p_open("foo", O_RDWR));
+ 	cl_must_pass(p_futimes(fd, times));
+ 	cl_must_pass(p_close(fd));
+@@ -130,6 +131,7 @@
+ 	cl_must_pass(p_stat("foo", &st));
+ 	cl_assert_equal_i(1414141414, st.st_atime);
+ 	cl_assert_equal_i(1414141414, st.st_mtime);
++#endif
+ 
+ 
+ 	/* test p_utimes with current time, assume that

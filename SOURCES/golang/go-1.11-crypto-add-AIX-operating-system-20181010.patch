@@ -1,0 +1,80 @@
+From 29907b13db0455eded50263b4e37445045c82e6e Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:42:19 +0200
+Subject: [PATCH] crypto: add AIX operating system
+
+This commit adds AIX operating system to crypto package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: I20047ff2fef0051b8b235ec15b064c4a95c2b9c3
+Reviewed-on: https://go-review.googlesource.com/c/138722
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/crypto/rand/eagain.go b/src/crypto/rand/eagain.go
+index 7ed2f47..045d037 100644
+--- a/src/crypto/rand/eagain.go
++++ b/src/crypto/rand/eagain.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+ 
+ package rand
+ 
+diff --git a/src/crypto/rand/rand_unix.go b/src/crypto/rand/rand_unix.go
+index d49f693..f3091f5 100644
+--- a/src/crypto/rand/rand_unix.go
++++ b/src/crypto/rand/rand_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris
++// +build aix darwin dragonfly freebsd linux nacl netbsd openbsd plan9 solaris
+ 
+ // Unix cryptographically secure pseudorandom number
+ // generator.
+diff --git a/src/crypto/x509/root_aix.go b/src/crypto/x509/root_aix.go
+new file mode 100644
+index 0000000..6d42773
+--- /dev/null
++++ b/src/crypto/x509/root_aix.go
+@@ -0,0 +1,10 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package x509
++
++// Possible certificate files; stop after finding one.
++var certFiles = []string{
++	"/var/ssl/certs/ca-bundle.crt",
++}
+diff --git a/src/crypto/x509/root_unix.go b/src/crypto/x509/root_unix.go
+index 8e70362..48de50b 100644
+--- a/src/crypto/x509/root_unix.go
++++ b/src/crypto/x509/root_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package x509
+ 
+@@ -19,6 +19,7 @@
+ 	"/usr/local/share/certs",       // FreeBSD
+ 	"/etc/pki/tls/certs",           // Fedora/RHEL
+ 	"/etc/openssl/certs",           // NetBSD
++	"/var/ssl/certs",               // AIX
+ }
+ 
+ const (

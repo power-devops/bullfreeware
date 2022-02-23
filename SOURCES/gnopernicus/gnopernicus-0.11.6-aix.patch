@@ -1,0 +1,505 @@
+diff -crN ./gnopernicus/braille/libbrl/sercomm.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/braille/libbrl/sercomm.c
+*** ./gnopernicus/braille/libbrl/sercomm.c	Mon Aug 22 11:42:12 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/braille/libbrl/sercomm.c	Wed Sep 28 07:40:23 2005
+***************
+*** 92,100 ****
+      /* set 1 stop bits */
+      options.c_cflag &= ~CSTOPB;
+  	
+!     /* disable flow controls */
+!     options.c_cflag &= ~CRTSCTS;	                /* disable CTS/RTS flow control	 */
+!     options.c_iflag &= ~(IXON | IXOFF | IXANY);	/* disable XON/XOFF flow control */
+  
+      /* choose raw input */
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+--- 92,103 ----
+      /* set 1 stop bits */
+      options.c_cflag &= ~CSTOPB;
+  	
+! 	
+! 	/* disable flow controls */
+! 	#ifdef CRTSCTS
+! 	options.c_cflag &= ~CRTSCTS;	                /* disable CTS/RTS flow control */
+! 	#endif
+! 	options.c_iflag &= ~(IXON | IXOFF | IXANY);	/* disable XON/XOFF flow control */
+  
+      /* choose raw input */
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+***************
+*** 129,135 ****
+--- 132,140 ----
+  
+      /* set control flags */
+      options.c_cflag = CS8|CLOCAL|CREAD;
++ #ifdef CRTSCTS
+      options.c_cflag &= ~CRTSCTS;  /* disable hardware flow control */
++ #endif
+  
+      /* set input flags */
+      options.c_iflag &= ~(IXON|IXOFF|IXANY);  /* disable software flow control */
+diff -crN ./gnopernicus/brlmon/brlmonui.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/brlmon/brlmonui.c
+*** ./gnopernicus/brlmon/brlmonui.c	Mon Jul 25 16:21:48 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/brlmon/brlmonui.c	Wed Sep 28 07:40:24 2005
+***************
+*** 693,701 ****
+   *
+   * return:
+  **/
+! static void 
+! brlmon_set_color (GtkWidget *widget)
+! {
+      if (brlmon_use_default_color)
+        {
+  	GtkStateType state;
+--- 693,701 ----
+   *
+   * return:
+  **/
+! static void
+! brlmon_set_color (GtkWidget *widget)
+! {
+      if (brlmon_use_default_color)
+        {
+  	GtkStateType state;
+diff -crN ./gnopernicus/gnopi/gnopernicus-mag-config /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/gnopi/gnopernicus-mag-config
+*** ./gnopernicus/gnopi/gnopernicus-mag-config	Tue Apr 26 11:16:41 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/gnopi/gnopernicus-mag-config	Wed Nov 16 13:13:24 2005
+***************
+*** 1,4 ****
+! #!/bin/bash
+  
+  GNOPI_RES_X=`gconftool-2 --get /apps/gnopernicus/magnifier/schema1/generic_zoomer/display_size_x`
+  GNOPI_RES_Y=`gconftool-2 --get /apps/gnopernicus/magnifier/schema1/generic_zoomer/display_size_y`
+--- 1,4 ----
+! #!/bin/sh
+  
+  GNOPI_RES_X=`gconftool-2 --get /apps/gnopernicus/magnifier/schema1/generic_zoomer/display_size_x`
+  GNOPI_RES_Y=`gconftool-2 --get /apps/gnopernicus/magnifier/schema1/generic_zoomer/display_size_y`
+diff -crN ./gnopernicus/po/Makefile.in.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/po/Makefile.in.in
+*** ./gnopernicus/po/Makefile.in.in	Mon Sep  5 15:21:55 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/po/Makefile.in.in	Mon Oct 24 08:46:16 2005
+***************
+*** 11,16 ****
+--- 11,18 ----
+  #
+  # - Modified by jacob berkman <jacob@ximian.com> to install
+  #   Makefile.in.in and po2tbl.sed.in for use with glib-gettextize
++ # We have the following line for use by intltoolize:
++ # INTLTOOL_MAKEFILE
+  
+  GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
+  PACKAGE = @PACKAGE@
+diff -crN ./gnopernicus/speech/libsrs/spviavoice.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/speech/libsrs/spviavoice.c
+*** ./gnopernicus/speech/libsrs/spviavoice.c	Thu Jan  1 01:00:00 1970
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/speech/libsrs/spviavoice.c	Thu Jul 17 09:28:56 2003
+***************
+*** 0 ****
+--- 1,236 ----
++ /* spviavoice.c
++  *
++  * Copyright 2001, 2002 Sun Microsystems, Inc.,
++  * Copyright 2001, 2002 BAUM Retec, A.G.
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public
++  * License along with this library; if not, write to the
++  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++  * Boston, MA 02111-1307, USA.
++  */
++ 
++ #include <stdio.h>
++ #include <stdlib.h>
++ #include <string.h>
++ #include <netdb.h>
++ #include <unistd.h>
++ 
++ #include "spviavoice.h"
++ 
++ 
++ /*#define VV_DEBUG*/
++ 
++ #define VERSION_LENGTH 20 
++ 
++ #define ERR_LENGTH    100
++ #define ERR_NO  	7
++ 
++ #define INITERROR       0
++ #define SYSTEMERROR     1
++ #define MEMORYERROR     2
++ #define MODULELOADERROR 3
++ #define DELTAERROR      4
++ #define SYNTHERROR      5 
++ #define DEVICEERROR     6
++ 
++ #define VV_ERR          0
++ #define VV_OK           1
++ 
++ /* __ GLOBALS ___*/
++ 
++ ECIHand hECI;
++ char eci_err_msg[ERR_LENGTH];
++ char *eci_errors[ERR_NO] =
++ {
++     "Could not create ECI handle. Check installation.\n \
++     Possible causes:\n \
++     \tIBM ViaVoice TTS RTK has not been installed on this machine.\n \
++     \tno exported ECIINI variable in /etc/profile.\n \
++     \teci.ini file not in path referenced by ECIINI, nor in current directory.\n \
++     \teci.ini corrupted.\n \
++     \tlibrary /usr/lib/libibmeci50.so corrupted or missing.\n\
++     \tlanguage files referenced in eci.ini file corrupted or missing.\n \
++     Re-install IBM ViaVoice TTS RTK.\n",
++ 
++     "Operating system returned an error.",
++     "System resources low.",
++     "Unable to load necessary program module.",
++     "Error in Delta program.",
++     "Error in synthesis engine.",
++     "Error using sound device."
++ }; 
++ 
++ typedef struct voice {
++     int gender    ;/* 0|1   - male | female              [`vgN] */
++     int headsize  ;/* 0-100 - 100 = very deep voice      [`vhN] */ 
++     int pitch_base;/* 0-100(40-422 RWU)                  [`vbN] */
++     int pitch_fluc;/* 0-100 - 100 =very exicited         [`vfN] */
++     int roughness ;/* 0-100 - smooth - rough             [`vrN] */
++     int speed     ;/* 0-250(70-1297 RWU)                        */
++ 		   /*  number of words spoken per minute [`vsN] */
++     int volume    ;/* 0-100(1-65535 RWU)                 [`vvN] */
++     int breathy   ;/* 0-100 -  100=whisper               [`vyN] */
++ }vv_voice;
++ 
++ typedef struct param {
++     int SynthMode         ;/* 0|1     - Sentence (default)| Manual 
++ 			      (the way input buffer is handled) 		   */
++     int InputType         ;/* 0|1     - Plain (default)| Annoteted 		   */
++     int TextMode          ;/* 0|1|2|3 - Default | AlphaSpell | AllSpell | IRCSpell */
++     int Dictionary        ;/* 0|1     - Abbreviation dictionaries used | unused    */
++     int SampleRate        ;/* 0|1|2   - 8000 | 11,025 (default) | 22,050 
++ 			                     samples per second                    */
++     int WantPhonemeIndices;/* 0|1     - Phoneme indeces are not (default) | 
++ 			      are genrated (used with callbacks) 		   */
++     int RealWorldUnits    ;/* 0|1     - ECI units(default) |RWU			   */
++     int LanguageDialect   ;/* eciGeneralAmericanEnglish | eciBritishEnglish        | 
++ 			      eciCastilianSpanish       | eciMexicanSpanich        | 
++ 			      eciStandardFrench         | eciStandardGerman        | 
++ 			      eciStandardItalian        | eciBrazilianPortuguese   */
++     int NumberMode        ;/* 0|1     - Pronounce 4 digit numbers as "nonyears" | 
++ 						"years"(default)                   */
++     int PhrasePrediction  ;
++     int NumParams         ;
++ }vv_param;
++ 
++ 
++ /*  __ API ___ */
++ 
++ void vv_error(char* source)
++ {
++     int err_flags;
++ 
++     eciErrorMessage(hECI,eci_err_msg);
++     fprintf(stderr,"%s : %s\n", source, eci_err_msg);
++ 
++     err_flags = eciProgStatus(hECI);
++     if ( err_flags & ECI_SYSTEMERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[SYSTEMERROR]);
++     if ( err_flags & ECI_MEMORYERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[MEMORYERROR]);    
++     if ( err_flags & ECI_MODULELOADERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[MODULELOADERROR]);
++     if ( err_flags & ECI_DELTAERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[DELTAERROR]);
++     if ( err_flags & ECI_SYNTHERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[SYNTHERROR]);
++     if ( err_flags & ECI_DEVICEERROR )
++ 	fprintf(stderr,"%s : %s\n", source, eci_errors[DEVICEERROR]);
++ 
++     eciClearErrors(hECI);
++ }
++ 
++ 
++ void vv_say (const char *voice, const char *string)
++ {
++ 
++ #ifdef VV_DEBUG	
++ 	fprintf (stderr, "vv_say: voice:\"%s\" text:\"%s\"\n", voice, string);
++ #endif	
++ 	if ( !eciAddText(hECI,string) )
++ 	{
++ 	    vv_error("vv_say [eciAddText]");
++ 	}
++ 	
++ 	if ( !eciSynthesize(hECI) )
++ 	{
++ 	    vv_error("vv_say [eciSynthesize]");
++ 	}
++ /*	
++ 	if ( eciSynchronize(hECI) == false )
++ 	{
++ 	    vv_error("vv_say");
++ 	}
++ */	
++ 	if ( !eciClearInput(hECI) )
++ 	{
++ 	    vv_error("vv_say [eciClearInput]");
++ 	}
++ 
++ }
++ 
++ void vv_speak (SRS_VOICE* voice, SRS_TEXT* text )
++ {
++ 	/* !!! TBI !!! map all voice parameter to the acutal voice here */
++ 	if (text)
++ 	{
++ 		if (voice)
++ 		{
++ 			vv_say (voice->TTSVoiceName, text->Text);
++ 		}
++ 		else
++ 		{
++ 			vv_say (voice->TTSVoiceName, text->Text);
++ 		}
++ 	}
++ }
++ 
++ void vv_shut_up()
++ {
++   if ( eciStop(hECI) == false)
++   {
++     vv_error("vv_shut_up");
++   }
++ }
++ /*
++ void vv_pause(Boolean pause_on)
++ {
++   if ( eciPause(hECI,pause_on) == false)
++   {
++     vv_error("vv_pause");
++   }
++ 
++ }
++ */
++ int vv_init (TTS_ENGINE* engine)
++ {	
++ 	char version[VERSION_LENGTH];
++ 	hECI = eciNew();	
++ 	
++ 	if ( hECI == NULL_ECI_HAND )
++ 	{
++ 		fprintf(stderr,"vv_init : %s\n", eci_errors[INITERROR]);
++ 		return -1;		
++ 	}
++ 	
++ 	eciVersion(version);
++ #ifdef VV_DEBUG
++ 	fprintf(stderr, "Welcome to Via Voice TTS Version %s.\n",version);			
++ #endif	
++ 	/* eciTestPhrase(hECI);this could be used to test the ViaVoice */
++ 	
++ 	/* parse annotated text */
++ 	eciSetParam(hECI,eciInputType,1);
++ 	
++ 	/* synthesis and input clearing is controlled by commands only */
++ 	eciSetParam(hECI,eciSynthMode,1);
++ 
++    	/* !!! TBI !!! store the callback address */
++    				
++    	/* fill the engine structure with the functions */ 
++    	engine->ShutUp    = vv_shut_up;
++ 	engine->Speak     = vv_speak;
++ 	engine->Terminate = vv_terminate;
++    			   			
++ 	return VV_OK;
++ 
++ }
++ 
++ void vv_terminate ()
++ {
++     if ( hECI == NULL_ECI_HAND ) return;
++     
++     eciDelete (hECI);
++     hECI = NULL_ECI_HAND;
++ }
++ 
+diff -crN ./gnopernicus/srconf/libsrconf/libsrconf.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srconf/libsrconf/libsrconf.h
+*** ./gnopernicus/srconf/libsrconf/libsrconf.h	Mon Aug 22 14:26:44 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srconf/libsrconf/libsrconf.h	Wed Sep 28 07:40:27 2005
+***************
+*** 104,111 ****
+  #define MIN_SPEECH_VOLUME 			0
+  
+  #define DEFAULT_SPEECH_PREEMPT 			TRUE
+! #define DEFAULT_SPEECH_RATE 			150
+! #define DEFAULT_SPEECH_PITCH 			100
+  #define DEFAULT_SPEECH_VOLUME 			100
+  #define DEFAULT_SPEECH_COUNT_TYPE		"NONE"
+  #define DEFAULT_SPEECH_VOICE_COUNT		0
+--- 104,111 ----
+  #define MIN_SPEECH_VOLUME 			0
+  
+  #define DEFAULT_SPEECH_PREEMPT 			TRUE
+! #define DEFAULT_SPEECH_RATE 			75
+! #define DEFAULT_SPEECH_PITCH 			50
+  #define DEFAULT_SPEECH_VOLUME 			100
+  #define DEFAULT_SPEECH_COUNT_TYPE		"NONE"
+  #define DEFAULT_SPEECH_VOICE_COUNT		0
+diff -crN ./gnopernicus/srcore/srspc.c /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srcore/srspc.c
+*** ./gnopernicus/srcore/srspc.c	Mon Aug 22 14:08:02 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srcore/srspc.c	Wed Sep 28 07:40:29 2005
+***************
+*** 1222,1228 ****
+  {
+      SRCSOut *out;
+      GSList *crt, *tmp;
+! 	
+      sru_assert (src_speech_initialized);
+      sru_assert (chunk && chunk[0]);
+  		
+--- 1222,1228 ----
+  {
+      SRCSOut *out;
+      GSList *crt, *tmp;
+! 
+      sru_assert (src_speech_initialized);
+      sru_assert (chunk && chunk[0]);
+  		
+***************
+*** 1247,1253 ****
+  	srcs_outs = g_slist_remove_link (srcs_outs, tmp);
+      }
+  										        
+!     if (last_out && srcs_out_can_shutup_out (last_out, out))
+      {
+  	src_speech_shutup ();
+      }
+--- 1247,1254 ----
+  	srcs_outs = g_slist_remove_link (srcs_outs, tmp);
+      }
+  										        
+! /*    if (last_out && srcs_out_can_shutup_out (last_out, out)) */
+!  if (last_out && srcs_out_can_shutup_out (last_out, out) || src_speech_callback) 
+      {
+  	src_speech_shutup ();
+      }
+***************
+*** 1664,1669 ****
+--- 1665,1671 ----
+      gchar *word_start;
+      gchar *rv = NULL;    
+      gchar *word_key = NULL;
++ 
+      gchar *word= NULL;
+      gchar *tmp = NULL;
+  
+diff -crN ./gnopernicus/srcore/srspc.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srcore/srspc.h
+*** ./gnopernicus/srcore/srspc.h	Mon Jul 25 16:21:54 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srcore/srspc.h	Wed Sep 28 07:40:29 2005
+***************
+*** 94,100 ****
+      SRC_SPEECH_PRIORITY_MESSAGE,
+      SRC_SPEECH_PRIORITY_SYSTEM,
+      SRC_SPEECH_PRIORITY_WARNING,
+!     SRC_SPEECH_PRIORITY_ERROR,
+  }SRCSpeechPriority;
+  
+  gboolean src_speech_init	  ();
+--- 94,100 ----
+      SRC_SPEECH_PRIORITY_MESSAGE,
+      SRC_SPEECH_PRIORITY_SYSTEM,
+      SRC_SPEECH_PRIORITY_WARNING,
+!     SRC_SPEECH_PRIORITY_ERROR
+  }SRCSpeechPriority;
+  
+  gboolean src_speech_init	  ();
+diff -crN ./gnopernicus/srlow/libsrlow/screen-review.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srlow/libsrlow/screen-review.h
+*** ./gnopernicus/srlow/libsrlow/screen-review.h	Mon Jul 25 16:21:56 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srlow/libsrlow/screen-review.h	Wed Sep 28 07:40:30 2005
+***************
+*** 66,72 ****
+  {
+      SRW_SCOPE_WINDOW		= 0x00000001,
+      SRW_SCOPE_APPLICATION	= 0x00000002,
+!     SRW_SCOPE_DESKTOP		= 0x00000004,
+  } SRWAccScopeFlags;
+  
+  int 		screen_review_init 	(SRRectangle 	*clip_rectangle,
+--- 66,72 ----
+  {
+      SRW_SCOPE_WINDOW		= 0x00000001,
+      SRW_SCOPE_APPLICATION	= 0x00000002,
+!     SRW_SCOPE_DESKTOP		= 0x00000004
+  } SRWAccScopeFlags;
+  
+  int 		screen_review_init 	(SRRectangle 	*clip_rectangle,
+diff -crN ./gnopernicus/srutil/SREvent.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srutil/SREvent.h
+*** ./gnopernicus/srutil/SREvent.h	Mon Jul 25 16:21:57 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srutil/SREvent.h	Wed Sep 28 07:40:32 2005
+***************
+*** 57,63 ****
+      SR_EVENT_COMMAND_LAYER,
+      SR_EVENT_HOTKEY,
+      SR_EVENT_KEY,
+!     SR_EVENT_CONFIG_CHANGED,
+  }SREventType;
+  
+  
+--- 57,63 ----
+      SR_EVENT_COMMAND_LAYER,
+      SR_EVENT_HOTKEY,
+      SR_EVENT_KEY,
+!     SR_EVENT_CONFIG_CHANGED
+  }SREventType;
+  
+  
+diff -crN ./gnopernicus/srutil/SRMessages.h /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srutil/SRMessages.h
+*** ./gnopernicus/srutil/SRMessages.h	Mon Jul 25 16:21:57 2005
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./gnopernicus/srutil/SRMessages.h	Wed Sep 28 07:40:33 2005
+***************
+*** 56,61 ****
+--- 56,62 ----
+  #define sru_check_log_stack_flag(flag)	sru_check_flag (sru_log_stack_flags, flag)
+  #define sru_prgname			g_get_prgname()
+  
++ #ifdef G_HAVE_ISO_VARARGS
+  #define sru_assert(X)						\
+  	{							\
+  	    gboolean rv_ = (X) ? TRUE : FALSE;			\
+***************
+*** 95,101 ****
+  	    if (!rv_)						\
+  		return val;					\
+  	}	
+- #ifdef G_HAVE_ISO_VARARGS
+  #define sru_error(...)						\
+  	{							\
+  	    if(sru_check_log_stack_flag(G_LOG_LEVEL_ERROR))	\
+--- 96,101 ----
+***************
+*** 201,208 ****
+  #define sru_info(format...)
+  #define sru_debug(format...)
+  #else
+! static void sru_info (...) {};
+! static void sru_debug(...) {};
+  #endif /* G_HAVE_ISO_VARARGS */
+  #define sru_log_init()
+  #define sru_log_terminate()
+--- 201,208 ----
+  #define sru_info(format...)
+  #define sru_debug(format...)
+  #else
+! static void sru_info (char *format, ...) {};
+! static void sru_debug(char *format, ...) {};
+  #endif /* G_HAVE_ISO_VARARGS */
+  #define sru_log_init()
+  #define sru_log_terminate()

@@ -1,0 +1,13 @@
+Index: binutils-2.22/binutils/bucomm.c
+===================================================================
+--- binutils-2.22.orig/binutils/bucomm.c	2011-03-25 18:51:10.000000000 +0100
++++ binutils-2.22/binutils/bucomm.c	2012-06-29 14:35:00.000000000 +0200
+@@ -40,6 +40,8 @@
+ #endif
+ #endif
+ 
++#undef HAVE_MKDTEMP
++
+ static const char * endian_string (enum bfd_endian);
+ static int display_target_list (void);
+ static int display_info_table (int, int);

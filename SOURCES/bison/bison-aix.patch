@@ -1,0 +1,12 @@
+--- configure.orig	2005-06-23 14:48:21.000000000 -0500
++++ configure	2005-06-23 14:49:05.000000000 -0500
+@@ -12504,7 +12504,8 @@
+                 fi
+               fi
+             else
+-              if test "X$found_a" != "X"; then
++              if test "X$found_a" != "X" -a `uname -o` != "AIX"; then
++                                #On AIX, libs ending in .a are still linked using -Ldir -llib.
+                                 LIBINTL="${LIBINTL}${LIBINTL:+ }$found_a"
+               else
+                                                 LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name"

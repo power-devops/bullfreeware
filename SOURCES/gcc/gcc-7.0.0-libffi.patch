@@ -1,0 +1,794 @@
+--- gcc/libffi/src/powerpc/aix.S	2016-11-16 22:25:34 -0600
++++ gcc/libffi/src/powerpc/aix.S	2017-04-24 13:58:19 -0500
+@@ -106,6 +106,10 @@
+ 	.llong .ffi_call_AIX, TOC[tc0], 0
+ 	.csect .text[PR]
+ .ffi_call_AIX:
++	.function .ffi_call_AIX,.ffi_call_AIX,16,044,LFE..0-LFB..0
++	.bf __LINE__
++	.line 1
++LFB..0:
+ 	/* Save registers we use.  */
+ 	mflr	r0
+ 
+@@ -115,8 +119,10 @@
+ 	std	r31, -8(r1)
+ 
+ 	std	r0, 16(r1)
++LCFI..0:
+ 	mr	r28, r1		/* our AP.  */
+ 	stdux	r1, r1, r4
++LCFI..1:
+ 
+ 	/* Save arguments over call...  */
+ 	mr	r31, r5	/* flags, */
+@@ -202,12 +208,16 @@
+ L(float_return_value):
+ 	stfs	f1, 0(r30)
+ 	b	L(done_return_value)
+-
++LFE..0:
+ #else /* ! __64BIT__ */
+ 	
+ 	.long .ffi_call_AIX, TOC[tc0], 0
+ 	.csect .text[PR]
+ .ffi_call_AIX:
++	.function .ffi_call_AIX,.ffi_call_AIX,16,044,LFE..0-LFB..0
++	.bf __LINE__
++	.line 1
++LFB..0:
+ 	/* Save registers we use.  */
+ 	mflr	r0
+ 
+@@ -217,8 +227,10 @@
+ 	stw	r31, -4(r1)
+ 
+ 	stw	r0, 8(r1)
++LCFI..0:
+ 	mr	r28, r1		/* out AP.  */
+ 	stwux	r1, r1, r4
++LCFI..1:
+ 
+ 	/* Save arguments over call...  */
+ 	mr	r31, r5	/* flags, */
+@@ -304,11 +316,144 @@
+ L(float_return_value):
+ 	stfs	f1, 0(r30)
+ 	b	L(done_return_value)
++LFE..0:
+ #endif
++	.ef __LINE__
+ 	.long 0
+ 	.byte 0,0,0,1,128,4,0,0
+ /* END(ffi_call_AIX) */
+ 
++	/* void ffi_call_go_AIX(extended_cif *ecif, unsigned long bytes,
++	 *		        unsigned int flags, unsigned int *rvalue,
++	 *		        void (*fn)(),
++	 *		        void (*prep_args)(extended_cif*, unsigned *const),
++	 *                      void *closure);
++	 * r3=ecif, r4=bytes, r5=flags, r6=rvalue, r7=fn, r8=prep_args, r9=closure
++	 */
++
++.csect .text[PR]
++	.align 2
++	.globl ffi_call_go_AIX
++	.globl .ffi_call_go_AIX
++.csect ffi_call_go_AIX[DS]
++ffi_call_go_AIX:
++#ifdef __64BIT__
++	.llong .ffi_call_go_AIX, TOC[tc0], 0
++	.csect .text[PR]
++.ffi_call_go_AIX:
++	.function .ffi_call_go_AIX,.ffi_call_go_AIX,16,044,LFE..1-LFB..1
++	.bf __LINE__
++	.line 1
++LFB..1:
++	/* Save registers we use.  */
++	mflr	r0
++
++	std	r28,-32(r1)
++	std	r29,-24(r1)
++	std	r30,-16(r1)
++	std	r31, -8(r1)
++
++	std	r9, 8(r1)	/* closure, saved in cr field. */
++	std	r0, 16(r1)
++LCFI..2:
++	mr	r28, r1		/* our AP.  */
++	stdux	r1, r1, r4
++LCFI..3:
++
++	/* Save arguments over call...  */
++	mr	r31, r5	/* flags, */
++	mr	r30, r6	/* rvalue, */
++	mr	r29, r7	/* function address,  */
++	std	r2, 40(r1)
++
++	/* Call ffi_prep_args.  */
++	mr	r4, r1
++	bl	.ffi_prep_args
++	nop
++
++	/* Now do the call.  */
++	ld	r0, 0(r29)
++	ld	r2, 8(r29)
++	ld      r11, 8(r28)	/* closure */
++	/* Set up cr1 with bits 4-7 of the flags.  */
++	mtcrf	0x40, r31
++	mtctr	r0
++	/* Load all those argument registers.  */
++	/* We have set up a nice stack frame, just load it into registers. */
++	ld	r3, 40+(1*8)(r1)
++	ld	r4, 40+(2*8)(r1)
++	ld	r5, 40+(3*8)(r1)
++	ld	r6, 40+(4*8)(r1)
++	nop
++	ld	r7, 40+(5*8)(r1)
++	ld	r8, 40+(6*8)(r1)
++	ld	r9, 40+(7*8)(r1)
++	ld	r10,40+(8*8)(r1)
++
++	b	L1
++LFE..1:
++#else /* ! __64BIT__ */
++	
++	.long .ffi_call_go_AIX, TOC[tc0], 0
++	.csect .text[PR]
++.ffi_call_go_AIX:
++	.function .ffi_call_go_AIX,.ffi_call_go_AIX,16,044,LFE..1-LFB..1
++	.bf __LINE__
++	.line 1
++	/* Save registers we use.  */
++LFB..1:
++	mflr	r0
++
++	stw	r28,-16(r1)
++	stw	r29,-12(r1)
++	stw	r30, -8(r1)
++	stw	r31, -4(r1)
++
++	stw	r9, 4(r1)	/* closure, saved in cr field.  */
++	stw	r0, 8(r1)
++LCFI..2:
++	mr	r28, r1		/* out AP.  */
++	stwux	r1, r1, r4
++LCFI..3:
++
++	/* Save arguments over call...  */
++	mr	r31, r5	/* flags, */
++	mr	r30, r6	/* rvalue, */
++	mr	r29, r7	/* function address, */
++	stw	r2, 20(r1)
++
++	/* Call ffi_prep_args.  */
++	mr	r4, r1
++	bl	.ffi_prep_args
++	nop
++
++	/* Now do the call.  */
++	lwz	r0, 0(r29)
++	lwz	r2, 4(r29)
++	lwz	r11, 4(r28)	/* closure */
++	/* Set up cr1 with bits 4-7 of the flags.  */
++	mtcrf	0x40, r31
++	mtctr	r0
++	/* Load all those argument registers.  */
++	/* We have set up a nice stack frame, just load it into registers. */
++	lwz	r3, 20+(1*4)(r1)
++	lwz	r4, 20+(2*4)(r1)
++	lwz	r5, 20+(3*4)(r1)
++	lwz	r6, 20+(4*4)(r1)
++	nop
++	lwz	r7, 20+(5*4)(r1)
++	lwz	r8, 20+(6*4)(r1)
++	lwz	r9, 20+(7*4)(r1)
++	lwz	r10,20+(8*4)(r1)
++
++	b	L1
++LFE..1:
++#endif
++	.ef __LINE__
++	.long 0
++	.byte 0,0,0,1,128,4,0,0
++/* END(ffi_call_go_AIX) */
++
+ .csect .text[PR]
+ 	.align 2
+ 	.globl ffi_call_DARWIN
+@@ -326,3 +471,96 @@
+ 	.long 0
+ 	.byte 0,0,0,0,0,0,0,0
+ /* END(ffi_call_DARWIN) */
++
++/* EH frame stuff.  */
++
++#define LR_REGNO		0x41		/* Link Register (65), see rs6000.md */
++#ifdef __64BIT__
++#define PTRSIZE			8
++#define LOG2_PTRSIZE		3
++#define FDE_ENCODING		0x1c		/* DW_EH_PE_pcrel|DW_EH_PE_sdata8 */
++#define EH_DATA_ALIGN_FACT	0x78		/* LEB128 -8 */
++#else
++#define PTRSIZE			4
++#define LOG2_PTRSIZE		2
++#define FDE_ENCODING		0x1b		/* DW_EH_PE_pcrel|DW_EH_PE_sdata4 */
++#define EH_DATA_ALIGN_FACT	0x7c		/* LEB128 -4 */
++#endif
++	.csect	_unwind.ro_[RO],4
++	.align	LOG2_PTRSIZE
++	.globl	_GLOBAL__F_libffi_src_powerpc_aix
++_GLOBAL__F_libffi_src_powerpc_aix:
++Lframe..1:
++	.vbyte	4,LECIE..1-LSCIE..1	/* CIE Length */
++LSCIE..1:
++	.vbyte	4,0			/* CIE Identifier Tag */
++	.byte	0x3			/* CIE Version */
++	.byte	"zR"			/* CIE Augmentation */
++	.byte	0
++	.byte	0x1			/* uleb128 0x1; CIE Code Alignment Factor */
++	.byte	EH_DATA_ALIGN_FACT	/* leb128 -4/-8; CIE Data Alignment Factor */
++	.byte	0x41			/* CIE RA Column */
++	.byte	0x1			/* uleb128 0x1; Augmentation size */
++	.byte	FDE_ENCODING		/* FDE Encoding (pcrel|sdata4/8) */
++	.byte	0xc			/* DW_CFA_def_cfa */
++	.byte	0x1			/*     uleb128 0x1; Register r1 */
++	.byte	0			/*     uleb128 0x0; Offset 0 */
++	.align	LOG2_PTRSIZE
++LECIE..1:
++LSFDE..1:
++	.vbyte	4,LEFDE..1-LASFDE..1	/* FDE Length */
++LASFDE..1:
++	.vbyte	4,LASFDE..1-Lframe..1	/* FDE CIE offset */
++	.vbyte	PTRSIZE,LFB..0-$	/* FDE initial location */
++	.vbyte	PTRSIZE,LFE..0-LFB..0	/* FDE address range */
++	.byte   0			/* uleb128 0x0; Augmentation size */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..0-LFB..0
++	.byte	0x11			/* DW_CFA_def_offset_extended_sf */
++	.byte	LR_REGNO		/*     uleb128 LR_REGNO; Register LR */
++	.byte	0x7e			/*     leb128 -2; Offset -2 (8/16) */
++	.byte	0x9f			/* DW_CFA_offset Register r31 */
++	.byte	0x1			/*     uleb128 0x1; Offset 1 (-4/-8) */
++	.byte	0x9e			/* DW_CFA_offset Register r30 */
++	.byte	0x2			/*     uleb128 0x2; Offset 2 (-8/-16) */
++	.byte	0x9d			/* DW_CFA_offset Register r29 */
++	.byte	0x3			/*     uleb128 0x3; Offset 3 (-12/-24) */
++	.byte	0x9c			/* DW_CFA_offset Register r28 */
++	.byte	0x4			/*     uleb128 0x4; Offset 4 (-16/-32) */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..1-LCFI..0
++	.byte	0xd			/* DW_CFA_def_cfa_register */
++	.byte	0x1c			/*     uleb128 28; Register r28 */
++	.align	LOG2_PTRSIZE
++LEFDE..1:
++LSFDE..2:
++	.vbyte	4,LEFDE..2-LASFDE..2	/* FDE Length */
++LASFDE..2:
++	.vbyte	4,LASFDE..2-Lframe..1	/* FDE CIE offset */
++	.vbyte	PTRSIZE,LFB..1-$	/* FDE initial location */
++	.vbyte	PTRSIZE,LFE..1-LFB..1	/* FDE address range */
++	.byte   0			/* uleb128 0x0; Augmentation size */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..2-LFB..1
++	.byte	0x11			/* DW_CFA_def_offset_extended_sf */
++	.byte	LR_REGNO		/*     uleb128 LR_REGNO; Register LR */
++	.byte	0x7e			/*     leb128 -2; Offset -2 (8/16) */
++	.byte	0x9f			/* DW_CFA_offset Register r31 */
++	.byte	0x1			/*     uleb128 0x1; Offset 1 (-4/-8) */
++	.byte	0x9e			/* DW_CFA_offset Register r30 */
++	.byte	0x2			/*     uleb128 0x2; Offset 2 (-8/-16) */
++	.byte	0x9d			/* DW_CFA_offset Register r29 */
++	.byte	0x3			/*     uleb128 0x3; Offset 3 (-12/-24) */
++	.byte	0x9c			/* DW_CFA_offset Register r28 */
++	.byte	0x4			/*     uleb128 0x4; Offset 4 (-16/-32) */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..3-LCFI..2
++	.byte	0xd			/* DW_CFA_def_cfa_register */
++	.byte	0x1c			/*     uleb128 28; Register r28 */
++	.align	LOG2_PTRSIZE
++LEFDE..2:
++	.vbyte	4,0			/* End of FDEs */
++
++	.csect	.text[PR]
++	.ref	_GLOBAL__F_libffi_src_powerpc_aix	/* Prevents garbage collection by AIX linker */
++
+--- gcc/libffi/src/powerpc/aix_closure.S	2016-11-16 22:25:37 -0600
++++ gcc/libffi/src/powerpc/aix_closure.S	2017-04-24 13:58:57 -0500
+@@ -80,6 +80,7 @@
+ 	.set f21,21
+ 
+ 	.extern .ffi_closure_helper_DARWIN
++	.extern .ffi_go_closure_helper_DARWIN
+ 
+ #define LIBFFI_ASM
+ #define JUMPTARGET(name) name
+@@ -101,6 +102,10 @@
+ 	.llong .ffi_closure_ASM, TOC[tc0], 0
+ 	.csect .text[PR]
+ .ffi_closure_ASM:
++	.function .ffi_closure_ASM,.ffi_closure_ASM,16,044,LFE..0-LFB..0
++	.bf __LINE__
++	.line 1
++LFB..0:
+ /* we want to build up an area for the parameters passed */
+ /* in registers (both floating point and integer) */
+ 
+@@ -117,8 +122,7 @@
+ 	std   r9, 48+(6*8)(r1)
+ 	std   r10, 48+(7*8)(r1)
+ 	std   r0, 16(r1)	/* save the return address */
+-
+-
++LCFI..0:
+ 	/* 48  Bytes (Linkage Area) */
+ 	/* 64  Bytes (params) */
+ 	/* 16  Bytes (result) */
+@@ -128,6 +132,7 @@
+ 
+ 	stdu  r1, -240(r1)	/* skip over caller save area
+ 				   keep stack aligned to 16  */
++LCFI..1:
+ 
+ 	/* next save fpr 1 to fpr 13 (aligned to 8) */
+ 	stfd  f1, 128+(0*8)(r1)
+@@ -161,6 +166,8 @@
+ 	bl .ffi_closure_helper_DARWIN
+ 	nop
+ 
++.Ldoneclosure:
++
+ 	/* now r3 contains the return type */
+ 	/* so use it to look up in a table */
+ 	/* so we know how to deal with each type */
+@@ -270,12 +277,17 @@
+ 	mtlr r0
+ 	addi r1, r1, 240
+ 	blr
++LFE..0:
+ 
+ #else /* ! __64BIT__ */
+ 	
+ 	.long .ffi_closure_ASM, TOC[tc0], 0
+ 	.csect .text[PR]
+ .ffi_closure_ASM:
++	.function .ffi_closure_ASM,.ffi_closure_ASM,16,044,LFE..0-LFB..0
++	.bf __LINE__
++	.line 1
++LFB..0:
+ /* we want to build up an area for the parameters passed */
+ /* in registers (both floating point and integer) */
+ 
+@@ -292,7 +304,7 @@
+ 	stw   r9, 24+(6*4)(r1)
+ 	stw   r10, 24+(7*4)(r1)
+ 	stw   r0, 8(r1)
+-
++LCFI..0:
+ 	/* 24 Bytes (Linkage Area) */
+ 	/* 32 Bytes (params) */
+ 	/* 16  Bytes (result) */
+@@ -301,6 +313,7 @@
+ 
+ 	stwu  r1, -176(r1)	/* skip over caller save area
+ 				   keep stack aligned to 16  */
++LCFI..1:
+ 
+ 	/* next save fpr 1 to fpr 13 (aligned to 8) */
+ 	stfd  f1, 72+(0*8)(r1)
+@@ -334,6 +347,8 @@
+ 	bl .ffi_closure_helper_DARWIN
+ 	nop
+ 
++.Ldoneclosure:
++
+ 	/* now r3 contains the return type */
+ 	/* so use it to look up in a table */
+ 	/* so we know how to deal with each type */
+@@ -443,5 +458,237 @@
+ L..finish:
+ 	addi r1, r1, 176
+ 	blr
++LFE..0:
+ #endif
++	.ef __LINE__
+ /* END(ffi_closure_ASM) */
++
++
++.csect .text[PR]
++	.align 2
++	.globl ffi_go_closure_ASM
++	.globl .ffi_go_closure_ASM
++.csect ffi_go_closure_ASM[DS]
++ffi_go_closure_ASM:
++#ifdef __64BIT__
++	.llong .ffi_go_closure_ASM, TOC[tc0], 0
++	.csect .text[PR]
++.ffi_go_closure_ASM:
++	.function .ffi_go_closure_ASM,.ffi_go_closure_ASM,16,044,LFE..1-LFB..1
++	.bf __LINE__
++	.line 1
++LFB..1:
++/* we want to build up an area for the parameters passed */
++/* in registers (both floating point and integer) */
++
++	/* we store gpr 3 to gpr 10 (aligned to 4)
++	in the parents outgoing area  */
++	std   r3, 48+(0*8)(r1)
++	std   r4, 48+(1*8)(r1)
++	std   r5, 48+(2*8)(r1)
++	std   r6, 48+(3*8)(r1)
++	mflr  r0
++
++	std   r7, 48+(4*8)(r1)
++	std   r8, 48+(5*8)(r1)
++	std   r9, 48+(6*8)(r1)
++	std   r10, 48+(7*8)(r1)
++	std   r0, 16(r1)	/* save the return address */
++LCFI..2:
++	/* 48  Bytes (Linkage Area) */
++	/* 64  Bytes (params) */
++	/* 16  Bytes (result) */
++	/* 104 Bytes (13*8 from FPR) */
++	/* 8   Bytes (alignment) */
++	/* 240 Bytes */
++
++	stdu  r1, -240(r1)	/* skip over caller save area
++				   keep stack aligned to 16  */
++LCFI..3:
++
++	/* next save fpr 1 to fpr 13 (aligned to 8) */
++	stfd  f1, 128+(0*8)(r1)
++	stfd  f2, 128+(1*8)(r1)
++	stfd  f3, 128+(2*8)(r1)
++	stfd  f4, 128+(3*8)(r1)
++	stfd  f5, 128+(4*8)(r1)
++	stfd  f6, 128+(5*8)(r1)
++	stfd  f7, 128+(6*8)(r1)
++	stfd  f8, 128+(7*8)(r1)
++	stfd  f9, 128+(8*8)(r1)
++	stfd  f10, 128+(9*8)(r1)
++	stfd  f11, 128+(10*8)(r1)
++	stfd  f12, 128+(11*8)(r1)
++	stfd  f13, 128+(12*8)(r1)
++
++	/* set up registers for the routine that actually does the work */
++	mr r3, r11	/* go closure */
++
++	/* now load up the pointer to the result storage */
++	addi r4, r1, 112
++
++	/* now load up the pointer to the saved gpr registers */
++	addi r5, r1, 288
++
++	/* now load up the pointer to the saved fpr registers */
++	addi r6, r1, 128
++
++	/* make the call */
++	bl .ffi_go_closure_helper_DARWIN
++	nop
++
++	b .Ldoneclosure
++LFE..1:
++
++#else /* ! __64BIT__ */
++	
++	.long .ffi_go_closure_ASM, TOC[tc0], 0
++	.csect .text[PR]
++.ffi_go_closure_ASM:
++	.function .ffi_go_closure_ASM,.ffi_go_closure_ASM,16,044,LFE..1-LFB..1
++	.bf __LINE__
++	.line 1
++LFB..1:
++/* we want to build up an area for the parameters passed */
++/* in registers (both floating point and integer) */
++
++	/* we store gpr 3 to gpr 10 (aligned to 4)
++	in the parents outgoing area  */
++	stw   r3, 24+(0*4)(r1)
++	stw   r4, 24+(1*4)(r1)
++	stw   r5, 24+(2*4)(r1)
++	stw   r6, 24+(3*4)(r1)
++	mflr  r0
++
++	stw   r7, 24+(4*4)(r1)
++	stw   r8, 24+(5*4)(r1)
++	stw   r9, 24+(6*4)(r1)
++	stw   r10, 24+(7*4)(r1)
++	stw   r0, 8(r1)
++LCFI..2:
++	/* 24 Bytes (Linkage Area) */
++	/* 32 Bytes (params) */
++	/* 16  Bytes (result) */
++	/* 104 Bytes (13*8 from FPR) */
++	/* 176 Bytes */
++
++	stwu  r1, -176(r1)	/* skip over caller save area
++				   keep stack aligned to 16  */
++LCFI..3:
++
++	/* next save fpr 1 to fpr 13 (aligned to 8) */
++	stfd  f1, 72+(0*8)(r1)
++	stfd  f2, 72+(1*8)(r1)
++	stfd  f3, 72+(2*8)(r1)
++	stfd  f4, 72+(3*8)(r1)
++	stfd  f5, 72+(4*8)(r1)
++	stfd  f6, 72+(5*8)(r1)
++	stfd  f7, 72+(6*8)(r1)
++	stfd  f8, 72+(7*8)(r1)
++	stfd  f9, 72+(8*8)(r1)
++	stfd  f10, 72+(9*8)(r1)
++	stfd  f11, 72+(10*8)(r1)
++	stfd  f12, 72+(11*8)(r1)
++	stfd  f13, 72+(12*8)(r1)
++
++	/* set up registers for the routine that actually does the work */
++	mr   r3, 11	/* go closure */
++
++	/* now load up the pointer to the result storage */
++	addi r4, r1, 56
++
++	/* now load up the pointer to the saved gpr registers */
++	addi r5, r1, 200
++
++	/* now load up the pointer to the saved fpr registers */
++	addi r6, r1, 72
++
++	/* make the call */
++	bl .ffi_go_closure_helper_DARWIN
++	nop
++
++	b    .Ldoneclosure
++LFE..1:
++#endif
++	.ef __LINE__
++/* END(ffi_go_closure_ASM) */
++
++/* EH frame stuff.  */
++
++#define LR_REGNO		0x41		/* Link Register (65), see rs6000.md */
++#ifdef __64BIT__
++#define PTRSIZE			8
++#define LOG2_PTRSIZE		3
++#define CFA_OFFSET		0xf0,0x01	/* LEB128 240 */
++#define FDE_ENCODING		0x1c		/* DW_EH_PE_pcrel|DW_EH_PE_sdata8 */
++#define EH_DATA_ALIGN_FACT	0x78		/* LEB128 -8 */
++#else
++#define PTRSIZE			4
++#define LOG2_PTRSIZE		2
++#define CFA_OFFSET		0xb0,0x01	/* LEB128 176 */
++#define FDE_ENCODING		0x1b		/* DW_EH_PE_pcrel|DW_EH_PE_sdata4 */
++#define EH_DATA_ALIGN_FACT	0x7c		/* LEB128 -4 */
++#endif
++
++	.csect	_unwind.ro_[RO],4
++	.align	LOG2_PTRSIZE
++	.globl	_GLOBAL__F_libffi_src_powerpc_aix_closure
++_GLOBAL__F_libffi_src_powerpc_aix_closure:
++Lframe..1:
++	.vbyte	4,LECIE..1-LSCIE..1	/* CIE Length */
++LSCIE..1:
++	.vbyte	4,0			/* CIE Identifier Tag */
++	.byte	0x3			/* CIE Version */
++	.byte	"zR"			/* CIE Augmentation */
++	.byte	0
++	.byte	0x1			/* uleb128 0x1; CIE Code Alignment Factor */
++	.byte	EH_DATA_ALIGN_FACT	/* leb128 -4/-8; CIE Data Alignment Factor */
++	.byte	LR_REGNO		/* CIE RA Column */
++	.byte	0x1			/* uleb128 0x1; Augmentation size */
++	.byte	FDE_ENCODING		/* FDE Encoding (pcrel|sdata4/8) */
++	.byte	0xc			/* DW_CFA_def_cfa */
++	.byte	0x1			/*     uleb128 0x1; Register r1 */
++	.byte	0			/*     uleb128 0x0; Offset 0 */
++	.align	LOG2_PTRSIZE
++LECIE..1:
++LSFDE..1:
++	.vbyte	4,LEFDE..1-LASFDE..1	/* FDE Length */
++LASFDE..1:
++	.vbyte	4,LASFDE..1-Lframe..1	/* FDE CIE offset */
++	.vbyte	PTRSIZE,LFB..0-$	/* FDE initial location */
++	.vbyte	PTRSIZE,LFE..0-LFB..0	/* FDE address range */
++	.byte	0			/* uleb128 0x0; Augmentation size */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..1-LCFI..0
++	.byte	0xe			/* DW_CFA_def_cfa_offset */
++	.byte	CFA_OFFSET		/*     uleb128 176/240 */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..0-LFB..0
++	.byte	0x11			/* DW_CFA_offset_extended_sf */
++	.byte	LR_REGNO		/*     uleb128 LR_REGNO; Register LR */
++	.byte	0x7e			/*     leb128 -2; Offset -2 (8/16) */
++	.align	LOG2_PTRSIZE
++LEFDE..1:
++LSFDE..2:
++	.vbyte	4,LEFDE..2-LASFDE..2	/* FDE Length */
++LASFDE..2:
++	.vbyte	4,LASFDE..2-Lframe..1	/* FDE CIE offset */
++	.vbyte	PTRSIZE,LFB..1-$	/* FDE initial location */
++	.vbyte	PTRSIZE,LFE..1-LFB..1	/* FDE address range */
++	.byte	0			/* uleb128 0x0; Augmentation size */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..3-LCFI..2
++	.byte	0xe			/* DW_CFA_def_cfa_offset */
++	.byte	CFA_OFFSET		/*     uleb128 176/240 */
++	.byte	0x4			/* DW_CFA_advance_loc4 */
++	.vbyte	4,LCFI..2-LFB..1
++	.byte	0x11			/* DW_CFA_offset_extended_sf */
++	.byte	LR_REGNO		/*     uleb128 LR_REGNO; Register LR */
++	.byte	0x7e			/*     leb128 -2; Offset -2 (8/16) */
++	.align	LOG2_PTRSIZE
++LEFDE..2:
++	.vbyte	4,0			/* End of FDEs */
++
++	.csect	.text[PR]
++	.ref	_GLOBAL__F_libffi_src_powerpc_aix_closure	/* Prevents garbage collection by AIX linker */
++
+--- gcc/libffi/src/powerpc/ffi_darwin.c	2016-11-16 22:25:37 -0600
++++ gcc/libffi/src/powerpc/ffi_darwin.c	2017-04-20 10:19:14 -0500
+@@ -33,6 +33,7 @@
+ #include <stdlib.h>
+ 
+ extern void ffi_closure_ASM (void);
++extern void ffi_go_closure_ASM (void);
+ 
+ enum {
+   /* The assembly depends on these exact flags.  
+@@ -908,6 +909,9 @@
+ extern void ffi_call_AIX(extended_cif *, long, unsigned, unsigned *,
+ 			 void (*fn)(void), void (*fn2)(void));
+ 
++extern void ffi_call_go_AIX(extended_cif *, long, unsigned, unsigned *,
++			    void (*fn)(void), void (*fn2)(void), void *closure);
++
+ extern void ffi_call_DARWIN(extended_cif *, long, unsigned, unsigned *,
+ 			    void (*fn)(void), void (*fn2)(void), ffi_type*);
+ 
+@@ -946,6 +950,38 @@
+     }
+ }
+ 
++void
++ffi_call_go (ffi_cif *cif, void (*fn) (void), void *rvalue, void **avalue,
++	     void *closure)
++{
++  extended_cif ecif;
++
++  ecif.cif = cif;
++  ecif.avalue = avalue;
++
++  /* If the return value is a struct and we don't have a return
++     value address then we need to make one.  */
++
++  if ((rvalue == NULL) &&
++      (cif->rtype->type == FFI_TYPE_STRUCT))
++    {
++      ecif.rvalue = alloca (cif->rtype->size);
++    }
++  else
++    ecif.rvalue = rvalue;
++
++  switch (cif->abi)
++    {
++    case FFI_AIX:
++      ffi_call_go_AIX(&ecif, -(long)cif->bytes, cif->flags, ecif.rvalue, fn,
++		      FFI_FN(ffi_prep_args), closure);
++      break;
++    default:
++      FFI_ASSERT(0);
++      break;
++    }
++}
++
+ static void flush_icache(char *);
+ static void flush_range(char *, int);
+ 
+@@ -1074,6 +1110,30 @@
+   return FFI_OK;
+ }
+ 
++ffi_status
++ffi_prep_go_closure (ffi_go_closure* closure,
++		     ffi_cif* cif,
++		     void (*fun)(ffi_cif*, void*, void**, void*))
++{
++  switch (cif->abi)
++    {
++      case FFI_AIX:
++
++        FFI_ASSERT (cif->abi == FFI_AIX);
++
++        closure->tramp = (void *)ffi_go_closure_ASM;
++        closure->cif = cif;
++        closure->fun = fun;
++        return FFI_OK;
++      
++      // For now, ffi_prep_go_closure is only implemented for AIX, not for Darwin
++      default:
++        return FFI_BAD_ABI;
++        break;
++    }
++  return FFI_OK;
++}
++
+ static void
+ flush_icache(char *addr)
+ {
+@@ -1108,6 +1168,10 @@
+ ffi_closure_helper_DARWIN (ffi_closure *, void *,
+ 			   unsigned long *, ffi_dblfl *);
+ 
++ffi_type *
++ffi_go_closure_helper_DARWIN (ffi_go_closure*, void *,
++			      unsigned long *, ffi_dblfl *);
++
+ /* Basically the trampoline invokes ffi_closure_ASM, and on
+    entry, r11 holds the address of the closure.
+    After storing the registers that could possibly contain
+@@ -1115,8 +1179,10 @@
+    up space for a return value, ffi_closure_ASM invokes the
+    following helper function to do most of the work.  */
+ 
+-ffi_type *
+-ffi_closure_helper_DARWIN (ffi_closure *closure, void *rvalue,
++static ffi_type *
++ffi_closure_helper_common (ffi_cif* cif,
++			   void (*fun)(ffi_cif*, void*, void**, void*),
++			   void *user_data, void *rvalue,
+ 			   unsigned long *pgr, ffi_dblfl *pfr)
+ {
+   /* rvalue is the pointer to space for return value in closure assembly
+@@ -1134,14 +1200,12 @@
+   void **          avalue;
+   ffi_type **      arg_types;
+   long             i, avn;
+-  ffi_cif *        cif;
+   ffi_dblfl *      end_pfr = pfr + NUM_FPR_ARG_REGISTERS;
+   unsigned         size_al;
+ #if defined(POWERPC_DARWIN64)
+   unsigned 	   fpsused = 0;
+ #endif
+ 
+-  cif = closure->cif;
+   avalue = alloca (cif->nargs * sizeof(void *));
+ 
+   if (cif->rtype->type == FFI_TYPE_STRUCT)
+@@ -1352,8 +1416,25 @@
+       i++;
+     }
+ 
+-  (closure->fun) (cif, rvalue, avalue, closure->user_data);
++  (fun) (cif, rvalue, avalue, user_data);
+ 
+   /* Tell ffi_closure_ASM to perform return type promotions.  */
+   return cif->rtype;
+ }
++
++ffi_type *
++ffi_closure_helper_DARWIN (ffi_closure *closure, void *rvalue,
++			   unsigned long *pgr, ffi_dblfl *pfr)
++{
++  return ffi_closure_helper_common (closure->cif, closure->fun,
++				    closure->user_data, rvalue, pgr, pfr);
++}
++
++ffi_type *
++ffi_go_closure_helper_DARWIN (ffi_go_closure *closure, void *rvalue,
++			      unsigned long *pgr, ffi_dblfl *pfr)
++{
++  return ffi_closure_helper_common (closure->cif, closure->fun,
++				    closure, rvalue, pgr, pfr);
++}
++
+diff -upN gcc-7-20170203.orig/libffi/src/powerpc/ffitarget.h gcc-7-20170203/libffi/src/powerpc/ffitarget.h
+--- gcc-7-20170203.orig/libffi/src/powerpc/ffitarget.h	2016-11-16 22:25:37 -0600
++++ gcc-7-20170203/libffi/src/powerpc/ffitarget.h	2017-02-23 09:49:41 -0600
+@@ -142,6 +142,9 @@ typedef enum ffi_abi {
+ # define FFI_TARGET_SPECIFIC_VARIADIC 1
+ # define FFI_EXTRA_CIF_FIELDS unsigned nfixedargs
+ #endif
++#if defined (POWERPC_AIX)
++# define FFI_GO_CLOSURES 1
++#endif
+ 
+ /* ppc_closure.S and linux64_closure.S expect this.  */
+ #define FFI_PPC_TYPE_LAST FFI_TYPE_POINTER

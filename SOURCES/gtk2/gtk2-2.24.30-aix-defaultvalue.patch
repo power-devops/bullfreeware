@@ -1,0 +1,46 @@
+--- gtk+-2.24.28-orig/gtk/tests/defaultvalue.c	2014-09-29 22:02:17 +0200
++++ gtk+-2.24.28-aix/gtk/tests/defaultvalue.c	2016-04-29 14:19:11 +0200
+@@ -24,6 +24,8 @@
+ #include <gtk/gtk.h>
+ #include <gtk/gtkunixprint.h>
+ 
++int OK=1;
++
+ static void
+ check_property (const char *output,
+ 	        GParamSpec *pspec,
+@@ -46,8 +48,10 @@
+ 			 g_type_name (pspec->owner_type),
+ 			 pspec->name,
+ 			 dv, v);
+-  g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__,
+-		       G_STRFUNC, msg);
++  g_printf(msg);
++  //g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__,
++  //		       G_STRFUNC, msg);
++  OK=0;
+   g_free (msg);
+   
+   g_free (v);
+@@ -359,7 +363,7 @@
+   for (i = 0; otypes[i]; i++)
+     {
+       gchar *testname;
+-      
++
+       testname = g_strdup_printf ("/Default Values/%s",
+ 				  g_type_name (otypes[i]));
+       g_test_add_data_func (testname,
+@@ -368,5 +372,11 @@
+       g_free (testname);
+     }
+   
+-  return g_test_run();
++  int res = g_test_run();
++  if (OK == 0)
++    {
++      g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__,
++        		       G_STRFUNC, "Some default values are wrong");
++    }
++  return res;
+ }

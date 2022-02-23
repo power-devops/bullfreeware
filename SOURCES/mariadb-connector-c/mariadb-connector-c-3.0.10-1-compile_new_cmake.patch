@@ -1,0 +1,20 @@
+--- ./include/ma_global.h.orig       2019-04-24 13:17:47.600000000 +0200
++++ ./include/ma_global.h    2019-05-06 11:47:45.087437237 +0200
+@@ -91,7 +91,7 @@
+ 
+ /* Go around some bugs in different OS and compilers */
+ #ifdef _AIX			/* By soren@t.dk */
+-#define _H_STRINGS
++/* #define _H_STRINGS
+ #define _SYS_STREAM_H
+ #define _AIX32_CURSES
+ #define ulonglong2double(A) my_ulonglong2double(A)
+@@ -102,7 +102,7 @@
+ double my_ulonglong2double(unsigned long long A);
+ #ifdef __cplusplus
+ }
+-#endif
++#endif */
+ #endif /* _AIX */
+
+ #ifdef HAVE_BROKEN_SNPRINTF    /* HPUX 10.20 don't have this defined */

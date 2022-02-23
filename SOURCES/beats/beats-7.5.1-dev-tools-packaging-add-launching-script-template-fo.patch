@@ -1,0 +1,53 @@
+From 40ecb279e34236848a9eedd20316f25d463a6511 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 21 Jan 2020 09:25:36 +0100
+Subject: [PATCH] dev-tools/packaging: add launching script template for AIX
+
+AIX default directories must be under /opt/freeware.
+Add a script which is launching beat software with the correct ones.
+---
+ dev-tools/packaging/packages.yml                   |  9 +++++++++
+ dev-tools/packaging/templates/aix/beatname.sh.tmpl | 11 +++++++++++
+ 2 files changed, 20 insertions(+)
+ create mode 100644 dev-tools/packaging/templates/aix/beatname.sh.tmpl
+
+diff --git a/dev-tools/packaging/packages.yml b/dev-tools/packaging/packages.yml
+index 9696c5cf0..5b8307899 100644
+--- a/dev-tools/packaging/packages.yml
++++ b/dev-tools/packaging/packages.yml
+@@ -157,6 +157,15 @@ shared:
+         template: '{{ elastic_beats_dir }}/dev-tools/packaging/templates/windows/uninstall-service.ps1.tmpl'
+         mode: 0755
+ 
++  # Binary package spec (tar.gz for aix) for community beats.
++  - &binary_spec
++    <<: *common
++    files:
++      <<: *binary_files
++      '{{.BeatName}}.sh':
++        template: '{{ elastic_beats_dir }}/dev-tools/packaging/templates/aix/beatname.sh.tmpl'
++        mode: 0755
++
+   - &docker_spec
+     <<: *binary_spec
+     extra_vars:
+diff --git a/dev-tools/packaging/templates/aix/beatname.sh.tmpl b/dev-tools/packaging/templates/aix/beatname.sh.tmpl
+new file mode 100644
+index 000000000..03d83d5ef
+--- /dev/null
++++ b/dev-tools/packaging/templates/aix/beatname.sh.tmpl
+@@ -0,0 +1,11 @@
++#!/usr/bin/env bash
++
++# Script to run {{.BeatName | title}} in foreground with the same path settings that
++# the init script / systemd unit file would do.
++
++exec /opt/freeware/share/{{.BeatName}}/bin/{{.BeatName}} \
++  -path.home /opt/freeware/share/{{.BeatName}} \
++  -path.config /opt/freeware/etc/{{.BeatName}} \
++  -path.data /opt/freeware/var/lib/{{.BeatName}} \
++  -path.logs /opt/freeware/var/log/{{.BeatName}} \
++  "$@"
+-- 
+2.22.0
+

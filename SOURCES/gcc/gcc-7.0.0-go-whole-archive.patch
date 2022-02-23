@@ -1,0 +1,92 @@
+--- gcc-7-20170203.orig/libgo/go/cmd/go/build.go	2017-01-16 01:01:03 -0600
++++ gcc-7-20170203.new/libgo/go/cmd/go/build.go	2017-04-27 15:31:04 -0500
+@@ -2917,9 +2917,15 @@
+ 		}
+ 	}
+ 
+-	ldflags = append(ldflags, "-Wl,--whole-archive")
++	if goos == "aix" {
++		ldflags = append(ldflags, "-Wl,-bexpall")
++	} else {
++		ldflags = append(ldflags, "-Wl,--whole-archive")
++	}
+ 	ldflags = append(ldflags, afiles...)
+-	ldflags = append(ldflags, "-Wl,--no-whole-archive")
++	if goos != "aix" {
++		ldflags = append(ldflags, "-Wl,--no-whole-archive")
++	}
+ 
+ 	ldflags = append(ldflags, cgoldflags...)
+ 	ldflags = append(ldflags, envList("CGO_LDFLAGS", "")...)
+@@ -2927,16 +2933,28 @@
+ 		ldflags = append(ldflags, root.p.CgoLDFLAGS...)
+ 	}
+ 
+-	ldflags = stringList("-Wl,-(", ldflags, "-Wl,-)")
++	if goos != "aix" {
++		ldflags = stringList("-Wl,-(", ldflags, "-Wl,-)")
++	}
+ 
+ 	for _, shlib := range shlibs {
+-		ldflags = append(
+-			ldflags,
+-			"-L"+filepath.Dir(shlib),
+-			"-Wl,-rpath="+filepath.Dir(shlib),
+-			"-l"+strings.TrimSuffix(
+-				strings.TrimPrefix(filepath.Base(shlib), "lib"),
+-				".so"))
++		if goos == "aix" {
++			ldflags = append(
++				ldflags,
++				"-L"+filepath.Dir(shlib),
++				"-Wl,-blibpath="+filepath.Dir(shlib),
++				"-l"+strings.TrimSuffix(
++					strings.TrimPrefix(filepath.Base(shlib), "lib"),
++					".so"))
++		} else {
++			ldflags = append(
++				ldflags,
++				"-L"+filepath.Dir(shlib),
++				"-Wl,-rpath="+filepath.Dir(shlib),
++				"-l"+strings.TrimSuffix(
++					strings.TrimPrefix(filepath.Base(shlib), "lib"),
++					".so"))
++		}
+ 	}
+ 
+ 	var realOut string
+@@ -2960,8 +2978,12 @@
+ 		// -r to pick them up because we can't combine
+ 		// split-stack and non-split-stack code in a single -r
+ 		// link, and libgo picks up non-split-stack code from
+-		// libffi.
+-		ldflags = append(ldflags, "-Wl,-r", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive")
++		// libffi
++		if goos == "aix" {
++			ldflags = append(ldflags, "-Wl,-r", "-Wl,-bexpall", "-lgolibbegin")
++		} else {
++			ldflags = append(ldflags, "-Wl,-r", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive")
++		}
+ 
+ 		if b.gccSupportsNoPie() {
+ 			ldflags = append(ldflags, "-no-pie")
+@@ -2974,9 +2996,17 @@
+ 		out = out + ".o"
+ 
+ 	case "c-shared":
+-		ldflags = append(ldflags, "-shared", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive", "-lgo", "-lgcc_s", "-lgcc", "-lc", "-lgcc")
++		if goos == "aix" {
++			ldflags = append(ldflags, "-Wl,-bexpall", "-lgolibbegin", "-lgo", "-lgcc_s", "-lgcc", "-lc", "-lgcc")
++		} else {
++			ldflags = append(ldflags, "-shared", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive", "-lgo", "-lgcc_s", "-lgcc", "-lc", "-lgcc")
++		}
+ 	case "shared":
+-		ldflags = append(ldflags, "-zdefs", "-shared", "-nostdlib", "-lgo", "-lgcc_s", "-lgcc", "-lc")
++		if goos == "aix" {
++			ldflags = append(ldflags, "-lgo", "-lgcc_s", "-lgcc", "-lc")
++		} else {
++			ldflags = append(ldflags, "-zdefs", "-shared", "-nostdlib", "-lgo", "-lgcc_s", "-lgcc", "-lc")
++		}
+ 
+ 	default:
+ 		fatalf("-buildmode=%s not supported for gccgo", buildmode)

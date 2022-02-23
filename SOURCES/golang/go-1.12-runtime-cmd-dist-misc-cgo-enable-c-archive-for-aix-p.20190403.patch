@@ -1,0 +1,296 @@
+From 3aacfce6cf7e5f0346906e5236433852f4075368 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 25 Mar 2019 10:34:57 +0100
+Subject: [PATCH] runtime, cmd/dist, misc/cgo: enable c-archive for aix/ppc64
+
+Change-Id: Ib9a40d5596f5735a00483e2d2db965402f05671b
+Reviewed-on: https://go-review.googlesource.com/c/go/+/169120
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/misc/cgo/testcarchive/carchive_test.go b/misc/cgo/testcarchive/carchive_test.go
+index 611a770..b7f0435 100644
+--- a/misc/cgo/testcarchive/carchive_test.go
++++ b/misc/cgo/testcarchive/carchive_test.go
+@@ -83,6 +83,11 @@
+ 		// TODO(crawshaw): can we do better?
+ 		cc = append(cc, []string{"-framework", "CoreFoundation", "-framework", "Foundation"}...)
+ 	}
++	if GOOS == "aix" {
++		// -Wl,-bnoobjreorder is mandatory to keep the same layout
++		// in .text section.
++		cc = append(cc, "-Wl,-bnoobjreorder")
++	}
+ 	libgodir = GOOS + "_" + GOARCH
+ 	if runtime.Compiler == "gccgo" {
+ 		libgodir = "gccgo_" + libgodir + "_fPIC"
+@@ -308,7 +313,7 @@
+ }
+ 
+ func TestSignalForwardingExternal(t *testing.T) {
+-	if GOOS == "freebsd" {
++	if GOOS == "freebsd" || GOOS == "aix" {
+ 		t.Skipf("skipping on %s/%s; signal always goes to the Go runtime", GOOS, GOARCH)
+ 	}
+ 	checkSignalForwardingTest(t)
+@@ -589,13 +594,15 @@
+ 		t.Fatal(err)
+ 	}
+ 
+-	f, err := elf.Open("testp" + exeSuffix)
+-	if err != nil {
+-		t.Fatal("elf.Open failed: ", err)
+-	}
+-	defer f.Close()
+-	if hasDynTag(t, f, elf.DT_TEXTREL) {
+-		t.Errorf("%s has DT_TEXTREL flag", "testp"+exeSuffix)
++	if GOOS != "aix" {
++		f, err := elf.Open("testp" + exeSuffix)
++		if err != nil {
++			t.Fatal("elf.Open failed: ", err)
++		}
++		defer f.Close()
++		if hasDynTag(t, f, elf.DT_TEXTREL) {
++			t.Errorf("%s has DT_TEXTREL flag", "testp"+exeSuffix)
++		}
+ 	}
+ }
+ 
+diff --git a/misc/cgo/testcarchive/main4.c b/misc/cgo/testcarchive/main4.c
+index a74763d..04f7740 100644
+--- a/misc/cgo/testcarchive/main4.c
++++ b/misc/cgo/testcarchive/main4.c
+@@ -14,6 +14,13 @@
+ 
+ #include "libgo4.h"
+ 
++#ifdef _AIX
++// On AIX, CSIGSTKSZ is too small to handle Go sighandler.
++#define CSIGSTKSZ 0x4000
++#else
++#define CSIGSTKSZ SIGSTKSZ
++#endif
++
+ static void die(const char* msg) {
+ 	perror(msg);
+ 	exit(EXIT_FAILURE);
+@@ -53,12 +60,12 @@
+ 
+ 	// Set up an alternate signal stack for this thread.
+ 	memset(&ss, 0, sizeof ss);
+-	ss.ss_sp = malloc(SIGSTKSZ);
++	ss.ss_sp = malloc(CSIGSTKSZ);
+ 	if (ss.ss_sp == NULL) {
+ 		die("malloc");
+ 	}
+ 	ss.ss_flags = 0;
+-	ss.ss_size = SIGSTKSZ;
++	ss.ss_size = CSIGSTKSZ;
+ 	if (sigaltstack(&ss, NULL) < 0) {
+ 		die("sigaltstack");
+ 	}
+@@ -112,12 +119,12 @@
+ 
+ 	// Set up an alternate signal stack for this thread.
+ 	memset(&ss, 0, sizeof ss);
+-	ss.ss_sp = malloc(SIGSTKSZ);
++	ss.ss_sp = malloc(CSIGSTKSZ);
+ 	if (ss.ss_sp == NULL) {
+ 		die("malloc");
+ 	}
+ 	ss.ss_flags = 0;
+-	ss.ss_size = SIGSTKSZ;
++	ss.ss_size = CSIGSTKSZ;
+ 	if (sigaltstack(&ss, NULL) < 0) {
+ 		die("sigaltstack");
+ 	}
+diff --git a/misc/cgo/testcarchive/main5.c b/misc/cgo/testcarchive/main5.c
+index 9d0da33..d431ce0 100644
+--- a/misc/cgo/testcarchive/main5.c
++++ b/misc/cgo/testcarchive/main5.c
+@@ -14,6 +14,8 @@
+ 
+ #include "libgo2.h"
+ 
++int *nilp;
++
+ int main(int argc, char** argv) {
+ 	int verbose;
+ 	int test;
+@@ -39,7 +41,7 @@
+ 				printf("attempting segfault\n");
+ 			}
+ 
+-			volatile int crash = *(int *) 0;
++			*nilp = 0;
+ 			break;
+ 		}
+ 
+diff --git a/src/cmd/dist/test.go b/src/cmd/dist/test.go
+index 3f8f12c..df86ae7 100644
+--- a/src/cmd/dist/test.go
++++ b/src/cmd/dist/test.go
+@@ -928,7 +928,8 @@
+ 			return false
+ 		}
+ 		switch pair {
+-		case "darwin-386", "darwin-amd64", "darwin-arm", "darwin-arm64",
++		case "aix-ppc64",
++			"darwin-386", "darwin-amd64", "darwin-arm", "darwin-arm64",
+ 			"linux-amd64", "linux-386", "linux-ppc64le", "linux-s390x",
+ 			"freebsd-amd64",
+ 			"windows-amd64", "windows-386":
+diff --git a/src/runtime/os3_solaris.go b/src/runtime/os3_solaris.go
+index 11d2c9b..b5f8a7c 100644
+--- a/src/runtime/os3_solaris.go
++++ b/src/runtime/os3_solaris.go
+@@ -273,6 +273,7 @@
+ 	mask.__sigbits[(i-1)/32] &^= 1 << ((uint32(i) - 1) & 31)
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/os_aix.go b/src/runtime/os_aix.go
+index faec9ac..197869f 100644
+--- a/src/runtime/os_aix.go
++++ b/src/runtime/os_aix.go
+@@ -296,7 +296,15 @@
+ 	*(*uintptr)(unsafe.Pointer(&s.ss_sp)) = sp
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
++	switch sig {
++	case _SIGPIPE:
++		// For SIGPIPE, c.sigcode() isn't set to _SI_USER as on Linux.
++		// Therefore, raisebadsignal won't raise SIGPIPE again if
++		// it was deliver in a non-Go thread.
++		c.set_sigcode(_SI_USER)
++	}
+ }
+ 
+ //go:nosplit
+diff --git a/src/runtime/os_dragonfly.go b/src/runtime/os_dragonfly.go
+index eb7e159..4fda7ea 100644
+--- a/src/runtime/os_dragonfly.go
++++ b/src/runtime/os_dragonfly.go
+@@ -252,6 +252,7 @@
+ 	mask.__bits[(i-1)/32] &^= 1 << ((uint32(i) - 1) & 31)
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/os_freebsd.go b/src/runtime/os_freebsd.go
+index ba0afa2..cbb72cf 100644
+--- a/src/runtime/os_freebsd.go
++++ b/src/runtime/os_freebsd.go
+@@ -365,6 +365,7 @@
+ 	mask.__bits[(i-1)/32] &^= 1 << ((uint32(i) - 1) & 31)
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/os_linux.go b/src/runtime/os_linux.go
+index 8f3afe0..a817020 100644
+--- a/src/runtime/os_linux.go
++++ b/src/runtime/os_linux.go
+@@ -395,6 +395,7 @@
+ 	*(*uintptr)(unsafe.Pointer(&s.ss_sp)) = sp
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/os_netbsd.go b/src/runtime/os_netbsd.go
+index fa3c9fa..da024cd 100644
+--- a/src/runtime/os_netbsd.go
++++ b/src/runtime/os_netbsd.go
+@@ -328,6 +328,7 @@
+ 	mask.__bits[(i-1)/32] &^= 1 << ((uint32(i) - 1) & 31)
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/os_openbsd.go b/src/runtime/os_openbsd.go
+index 42fe315..2d6334e 100644
+--- a/src/runtime/os_openbsd.go
++++ b/src/runtime/os_openbsd.go
+@@ -302,6 +302,7 @@
+ 	*mask &^= 1 << (uint32(i) - 1)
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
+diff --git a/src/runtime/signal_darwin_386.go b/src/runtime/signal_darwin_386.go
+index c162959..3dc5334 100644
+--- a/src/runtime/signal_darwin_386.go
++++ b/src/runtime/signal_darwin_386.go
+@@ -40,6 +40,7 @@
+ func (c *sigctxt) set_sigcode(x uint32) { c.info.si_code = int32(x) }
+ func (c *sigctxt) set_sigaddr(x uint32) { c.info.si_addr = x }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ 	switch sig {
+ 	case _SIGTRAP:
+diff --git a/src/runtime/signal_darwin_amd64.go b/src/runtime/signal_darwin_amd64.go
+index 40de481..abc212a 100644
+--- a/src/runtime/signal_darwin_amd64.go
++++ b/src/runtime/signal_darwin_amd64.go
+@@ -48,6 +48,7 @@
+ func (c *sigctxt) set_sigcode(x uint64) { c.info.si_code = int32(x) }
+ func (c *sigctxt) set_sigaddr(x uint64) { c.info.si_addr = x }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ 	switch sig {
+ 	case _SIGTRAP:
+diff --git a/src/runtime/signal_darwin_arm.go b/src/runtime/signal_darwin_arm.go
+index 9a5d3ac..9098b10 100644
+--- a/src/runtime/signal_darwin_arm.go
++++ b/src/runtime/signal_darwin_arm.go
+@@ -50,6 +50,7 @@
+ func (c *sigctxt) set_sigcode(x uint32) { c.info.si_code = int32(x) }
+ func (c *sigctxt) set_sigaddr(x uint32) { c.info.si_addr = x }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ 	switch sig {
+ 	case _SIGTRAP:
+diff --git a/src/runtime/signal_darwin_arm64.go b/src/runtime/signal_darwin_arm64.go
+index 41b8fca..690ffe4 100644
+--- a/src/runtime/signal_darwin_arm64.go
++++ b/src/runtime/signal_darwin_arm64.go
+@@ -67,6 +67,7 @@
+ 	c.info.si_addr = (*byte)(unsafe.Pointer(uintptr(x)))
+ }
+ 
++//go:nosplit
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ 	switch sig {
+ 	case _SIGTRAP:
+diff --git a/src/runtime/signal_unix.go b/src/runtime/signal_unix.go
+index 8814f78..1dd5698 100644
+--- a/src/runtime/signal_unix.go
++++ b/src/runtime/signal_unix.go
+@@ -296,6 +296,7 @@
+ 			sigprofNonGoPC(c.sigpc())
+ 			return
+ 		}
++		c.fixsigcode(sig)
+ 		badsignal(uintptr(sig), c)
+ 		return
+ 	}

@@ -1,0 +1,24 @@
+From d3159555c6254537d52bb77f2c318f71112d7511 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 12 Aug 2021 16:40:26 +0200
+Subject: [PATCH] lib: remove endian.h for AIX
+
+---
+ src/lib/index/index_read.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/lib/index/index_read.c b/src/lib/index/index_read.c
+index 875b569..01ad30d 100644
+--- a/src/lib/index/index_read.c
++++ b/src/lib/index/index_read.c
+@@ -32,6 +32,7 @@
+ #include <sys/endian.h>
+ #elif __APPLE__
+ #include <machine/endian.h>
++#elif _AIX
+ #else
+ #include <endian.h>
+ #endif
+-- 
+2.32.0
+

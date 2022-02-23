@@ -1,0 +1,36 @@
+*** ./configure.ORIG	Mon Mar 23 10:21:00 2015
+--- ./configure	Mon Mar 23 10:21:17 2015
+***************
+*** 8365,8371 ****
+  esac
+  
+  
+! $as_echo "#define malloc rpl_malloc" >>confdefs.h
+  
+  fi
+  
+--- 8365,8371 ----
+  esac
+  
+  
+! ###$as_echo "#define malloc rpl_malloc" >>confdefs.h
+  
+  fi
+  
+***************
+*** 8432,8438 ****
+  esac
+  
+  
+! $as_echo "#define realloc rpl_realloc" >>confdefs.h
+  
+  fi
+  
+--- 8432,8438 ----
+  esac
+  
+  
+! ###$as_echo "#define realloc rpl_realloc" >>confdefs.h
+  
+  fi
+  

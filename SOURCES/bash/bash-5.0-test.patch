@@ -1,0 +1,30 @@
+--- ./tests/vredir.right.orig	2020-07-29 14:16:28 -0500
++++ ./tests/vredir.right	2020-07-29 14:17:07 -0500
+@@ -84,8 +84,8 @@
+     exec {stdout}>&$fd1-
+ }
+ ok 1
+-./vredir6.sub: redirection error: cannot duplicate fd: Invalid argument
+-./vredir6.sub: line 13: /dev/null: Invalid argument
++./vredir6.sub: redirection error: cannot duplicate fd: Too many open files
++./vredir6.sub: line 13: /dev/null: Too many open files
+ unset
+ 12 10
+ a
+--- ./tests/glob2.sub.orig	2020-07-28 09:51:18 -0500
++++ ./tests/glob2.sub	2020-07-28 11:13:47 -0500
+@@ -20,7 +20,7 @@
+ [[ $var = $var ]] && echo ok 4
+ [[ $var = $'ab\134' ]] && echo ok 5
+ 
+-LC_ALL=zh_HK.big5hkscs
++LC_ALL=Zh_HK.BIG5-HKSCS
+ 
+ read a b c <<< $'\u3b1 b c\n'
+ echo $b
+@@ -41,4 +41,4 @@
+ a=$'\u3b1'
+ [[ $a = $a ]] && echo ok 6
+ 
+-LC_ALL=zh_HK.big5hkscs ${THIS_SH} -c $'[[ \u3b1 = \u3b1 ]]' && echo ok 7
++LC_ALL=Zh_HK.BIG5-HKSCS ${THIS_SH} -c $'[[ \u3b1 = \u3b1 ]]' && echo ok 7

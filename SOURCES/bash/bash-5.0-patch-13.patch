@@ -1,0 +1,62 @@
+From f747f9ff4c8aed2d51fa54db3cb10e8118034753 Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Fri, 7 Feb 2020 15:17:29 -0500
+Subject: [PATCH] Bash-5.0 patch 13: reading history entries with timestamps
+ can result in joined entries
+
+---
+ lib/readline/histfile.c | 15 ++++++++++++++-
+ patchlevel.h            |  2 +-
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/lib/readline/histfile.c b/lib/readline/histfile.c
+index a8a92aa3..6c3adc9b 100644
+--- a/lib/readline/histfile.c
++++ b/lib/readline/histfile.c
+@@ -369,9 +369,11 @@ read_history_range (const char *filename, int from, int to)
+     }
+ 
+   has_timestamps = HIST_TIMESTAMP_START (buffer);
+-  history_multiline_entries += has_timestamps && history_write_timestamps;  
++  history_multiline_entries += has_timestamps && history_write_timestamps;
+ 
+   /* Skip lines until we are at FROM. */
++  if (has_timestamps)
++    last_ts = buffer;
+   for (line_start = line_end = buffer; line_end < bufend && current_line < from; line_end++)
+     if (*line_end == '\n')
+       {
+@@ -380,7 +382,18 @@ read_history_range (const char *filename, int from, int to)
+ 	   line.  We should check more extensively here... */
+ 	if (HIST_TIMESTAMP_START(p) == 0)
+ 	  current_line++;
++	else
++	  last_ts = p;
+ 	line_start = p;
++	/* If we are at the last line (current_line == from) but we have
++	   timestamps (has_timestamps), then line_start points to the
++	   text of the last command, and we need to skip to its end. */
++	if (current_line >= from && has_timestamps)
++	  {
++	    for (line_end = p; line_end < bufend && *line_end != '\n'; line_end++)
++	      ;
++	    line_start = (*line_end == '\n') ? line_end + 1 : line_end;
++	  }
+       }
+ 
+   /* If there are lines left to gobble, then gobble them now. */
+diff --git a/patchlevel.h b/patchlevel.h
+index 93dbe0db..779671cd 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 12
++#define PATCHLEVEL 13
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.25.1
+

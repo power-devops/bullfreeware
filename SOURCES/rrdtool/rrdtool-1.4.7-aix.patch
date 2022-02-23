@@ -1,0 +1,103 @@
+*** ./src/Makefile.in.ORIG	Fri Jul  1 23:19:59 2011
+--- ./src/Makefile.in	Fri Jul  1 23:20:20 2011
+***************
+*** 448,454 ****
+  rrdcgi_SOURCES = rrd_cgi.c
+  rrdcgi_LDADD = librrd.la
+  rrdupdate_SOURCES = rrdupdate.c
+! rrdupdate_LDADD = librrdupd.la
+  rrdtool_SOURCES = rrd_tool.c
+  rrdtool_DEPENDENCIES = librrd.la
+  rrdtool_LDADD = librrd.la
+--- 448,454 ----
+  rrdcgi_SOURCES = rrd_cgi.c
+  rrdcgi_LDADD = librrd.la
+  rrdupdate_SOURCES = rrdupdate.c
+! rrdupdate_LDADD = librrdupd.la -lintl -lpthread
+  rrdtool_SOURCES = rrd_tool.c
+  rrdtool_DEPENDENCIES = librrd.la
+  rrdtool_LDADD = librrd.la
+*** ./src/pngsize.c.ORIG	Fri Jul  1 22:56:47 2011
+--- ./src/pngsize.c	Fri Jul  1 22:57:20 2011
+***************
+*** 27,41 ****
+  /* this is to make compile on aix work since they seem to define jmpbuf
+     to be _jmpbuf which breaks compilation */
+  
+- #ifndef png_jmpbuf
+- #ifdef PNG_SETJMP_SUPPORTED
+- #  define png_jmpbuf(png_ptr)   ((png_ptr)->PNG_jmpbuf)
+- #else
+  #ifdef jmpbuf
+  #undef jmpbuf
+  #endif
+  #  define png_jmpbuf(png_ptr)   ((png_ptr)->jmpbuf)
+- #endif
+  #endif
+  
+      if (setjmp(png_jmpbuf(png_read_ptr))) {
+--- 27,38 ----
+  /* this is to make compile on aix work since they seem to define jmpbuf
+     to be _jmpbuf which breaks compilation */
+  
+  #ifdef jmpbuf
+  #undef jmpbuf
+  #endif
++ 
++ #ifndef png_jmpbuf
+  #  define png_jmpbuf(png_ptr)   ((png_ptr)->jmpbuf)
+  #endif
+  
+      if (setjmp(png_jmpbuf(png_read_ptr))) {
+*** ./bindings/tcl/Makefile.in.ORIG	Sat Jul  2 21:56:31 2011
+--- ./bindings/tcl/Makefile.in	Sat Jul  2 21:56:42 2011
+***************
+*** 664,670 ****
+  all-local: $(TCL_RRD_LIB)
+  
+  $(TCL_RRD_LIB): tclrrd.o
+! 	$(TCL_SHLIB_LD) $(TCL_LD_SEARCH_FLAGS) $(LIBDIRS) $< -o $@ -lrrd_th -lm $(TCL_STUB_LIB_SPEC) $(LDFLAGS) $(LIBS)
+  
+  tclrrd.o: tclrrd.c
+  	$(CC) $(AM_CFLAGS) $(CFLAGS) $(TCL_SHLIB_CFLAGS) $(AM_CPPFLAGS) -c tclrrd.c -DVERSION=\"$(VERSION)\"
+--- 664,670 ----
+  all-local: $(TCL_RRD_LIB)
+  
+  $(TCL_RRD_LIB): tclrrd.o
+! 	$(TCL_SHLIB_LD) $(TCL_LD_SEARCH_FLAGS) $(LIBDIRS) $< -o $@ -lrrd_th -lm $(TCL_STUB_LIB_SPEC) $(LDFLAGS) $(LIBS) -lc
+  
+  tclrrd.o: tclrrd.c
+  	$(CC) $(AM_CFLAGS) $(CFLAGS) $(TCL_SHLIB_CFLAGS) $(AM_CPPFLAGS) -c tclrrd.c -DVERSION=\"$(VERSION)\"
+*** ./configure.ORIG	Mon Feb  6 22:07:49 2012
+--- ./configure	Mon Feb  6 22:08:05 2012
+***************
+*** 13943,13950 ****
+  
+  
+  
+! eval `./libtool --config | grep pic_flag=`
+! CFLAGS="$CFLAGS $pic_flag"
+  
+  
+  
+--- 13943,13950 ----
+  
+  
+  
+! ###eval `./libtool --config | grep pic_flag=`
+! ###CFLAGS="$CFLAGS $pic_flag"
+  
+  
+  
+*** ./bindings/perl-shared/Makefile.PL.ORIG	Mon Feb  6 22:10:19 2012
+--- ./bindings/perl-shared/Makefile.PL	Mon Feb  6 22:10:56 2012
+***************
+*** 54,59 ****
+--- 54,60 ----
+  		'INC'          => '-I../../src',
+  		# Perl will figure out which one is valid
+  		#'dynamic_lib'  => {'OTHERLDFLAGS' => "$librrd -lm"},
++ 		'dynamic_lib'  => {'OTHERLDFLAGS' => "-L/opt/freeware/lib -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib -Wl,-bmaxdata:0x80000000"},
+  		'depend'       => {'RRDs.c' => "../../src/librrd.la"},
+  		'LDFROM'       => '$(OBJECT) '.$librrd, 
+  		'realclean'    => {FILES => 't/demo?.rrd t/demo?.png' },

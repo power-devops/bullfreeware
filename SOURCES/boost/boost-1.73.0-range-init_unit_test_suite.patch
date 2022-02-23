@@ -1,0 +1,38 @@
+--- ./libs/range/test/Jamfile.v2.ORIGIN	2020-06-30 17:34:44 -0500
++++ ./libs/range/test/Jamfile.v2	2020-06-30 17:59:00 -0500
+@@ -26,7 +26,7 @@
+         run $(name).cpp /boost/test//boost_unit_test_framework /boost/regex//boost_regex/<link>static
+         :
+         :
+-        : <toolset>gcc:<cxxflags>"-Wall -Wunused "
++        : <toolset>gcc:<cxxflags>"-Wall -Wunused " $(includes)
+         ] ;
+ }
+ 
+@@ -60,7 +60,7 @@
+     [ range-test adaptor_test/indirected ]
+     [ range-test adaptor_test/map ]
+     [ range-test adaptor_test/ref_unwrapped ]
+-    [ range-test adaptor_test/ref_unwrapped_example ]
++    [ range-test adaptor_test/ref_unwrapped_example : <target-os>aix:<linkflags>-Wl,-berok ]
+     [ range-test adaptor_test/replaced ]
+     [ range-test adaptor_test/replaced_if ]
+     [ range-test adaptor_test/reversed ]
+@@ -166,7 +166,7 @@
+     [ range-test algorithm_ext_test/push_back ]
+     [ range-test algorithm_ext_test/push_front ]
+     [ range-test adl_conformance ]
+-    [ range-test adl_conformance_no_using ]
++    [ range-test adl_conformance_no_using : <target-os>aix:<linkflags>-Wl,-berok ]
+     [ range-test algorithm ]
+     [ range-test algorithm_example ]
+     [ range-test array ]
+@@ -192,7 +192,7 @@
+     [ range-test iterator_pair ]
+     [ range-test iterator_range ]
+     [ range-test iterator_range_drop ]
+-    [ range-test iterator_range_equality_bug ]
++    [ range-test iterator_range_equality_bug : <target-os>aix:<linkflags>-Wl,-berok ]
+     [ range-test iterator_range_hash ]
+     [ range-test iterator_range_variant ]
+ #       [ range-test mfc : <include>$(VC71_ROOT)/atlmfc/include ]

@@ -1,0 +1,22 @@
+--- ./32bit/bindings/tcl/Makefile.in.ORIG	2017-05-16 13:55
++++ ./32bit/bindings/tcl/Makefile.in	2018-02-14 14:00
+@@ -209,7 +209,7 @@
+ INTLLIBS = @INTLLIBS@
+ INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+ LD = @LD@
+-LDFLAGS = @LDFLAGS@
++LDFLAGS = -L/opt/freeware/lib -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib -Wl,-bmaxdata:0x80000000
+ LIBICONV = @LIBICONV@
+ LIBINTL = @LIBINTL@
+ LIBOBJS = @LIBOBJS@
+--- ./64bit/bindings/tcl/Makefile.in.ORIG	2017-05-16 13:55
++++ ./64bit/bindings/tcl/Makefile.in	2018-02-14 14:00
+@@ -209,7 +209,7 @@
+ INTLLIBS = @INTLLIBS@
+ INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
+ LD = @LD@
+-LDFLAGS = @LDFLAGS@
++LDFLAGS = -L/opt/freeware/lib64 -L/opt/freeware/lib -Wl,-blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib
+ LIBICONV = @LIBICONV@
+ LIBINTL = @LIBINTL@
+ LIBOBJS = @LIBOBJS@

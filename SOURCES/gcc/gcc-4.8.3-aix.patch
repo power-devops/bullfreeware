@@ -1,0 +1,19 @@
+*** ./gcc/Makefile.in.ORIG	Thu Nov  4 15:59:55 2010
+--- ./gcc/Makefile.in	Thu Nov  4 16:00:28 2010
+***************
+*** 133,139 ****
+  # T_CFLAGS is used for all compilations and is overridden by t-* files.
+  T_CFLAGS =
+  TCFLAGS =
+! CFLAGS = @CFLAGS@
+  CXXFLAGS = @CXXFLAGS@
+  LDFLAGS = @LDFLAGS@
+  
+--- 133,139 ----
+  # T_CFLAGS is used for all compilations and is overridden by t-* files.
+  T_CFLAGS =
+  TCFLAGS =
+! CFLAGS = -O2
+  CXXFLAGS = @CXXFLAGS@
+  LDFLAGS = @LDFLAGS@
+  

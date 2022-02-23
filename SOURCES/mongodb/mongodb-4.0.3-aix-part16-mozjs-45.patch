@@ -1,0 +1,100 @@
+--- ./src/third_party/mozjs-45/extract/js/src/gc/Memory.cpp.ORIGIN	2019-05-23 17:42:25 -0500
++++ ./src/third_party/mozjs-45/extract/js/src/gc/Memory.cpp	2019-05-23 17:47:06 -0500
+@@ -369,12 +369,22 @@
+     MOZ_ASSERT(size % pageSize == 0);
+     MOZ_ASSERT(alignment % allocGranularity == 0);
+ 
++#ifdef _AIX
++    caddr_t buf = (caddr_t)malloc(size + sizeof(uintptr_t) + alignment);
++    if (buf == NULL)
++        return nullptr;
++    size_t offset = OffsetFromAligned(buf, alignment);
++    void *p = buf + (alignment - offset);
++    *(void **)((caddr_t)p + size) = (void *)buf;
++#else
++
+     int prot = PROT_READ | PROT_WRITE;
+     int flags = MAP_PRIVATE | MAP_ANON | MAP_ALIGN | MAP_NOSYNC;
+ 
+     void* p = mmap((caddr_t)alignment, size, prot, flags, -1, 0);
+     if (p == MAP_FAILED)
+         return nullptr;
++#endif
+     return p;
+ }
+ 
+@@ -387,7 +397,11 @@
+ void
+ UnmapPages(void* p, size_t size)
+ {
++#ifdef _AIX
++    free(*((void **)((caddr_t)p + size)));
++#else
+     MOZ_ALWAYS_TRUE(0 == munmap((caddr_t)p, size));
++#endif
+ }
+ 
+ bool
+--- ./src/third_party/mozjs-45/extract/mfbt/Poison.cpp.ORIGIN	2015-12-02 20:01:34.000000000 +0100
++++ ./src/third_party/mozjs-45/extract/mfbt/Poison.cpp	2015-12-08 16:29:05.000000000 +0100
+@@ -129,7 +129,11 @@
+ static bool
+ ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
+ {
++#ifdef _AIX
++  if (madvise(reinterpret_cast<caddr_t>(aRegion), aSize, MADV_NORMAL)) {
++#else
+   if (madvise(reinterpret_cast<void*>(aRegion), aSize, MADV_NORMAL)) {
++#endif
+     return true;
+   } else {
+     return false;
+--- ./src/third_party/mozjs-45/mongo_sources/solaris_hacks.h.ORIGIN	2019-05-23 17:42:26 -0500
++++ ./src/third_party/mozjs-45/mongo_sources/solaris_hacks.h	2019-05-23 17:59:11 -0500
+@@ -29,7 +29,9 @@
+ 
+ #include <cstddef>
+ 
++#ifndef _AIX
+ /* Solaris doesn't expose madvise to c++ compilers, so just define in
+  * posix_madvise
+  */
+ #define madvise posix_madvise
++#endif
+--- ./src/third_party/mozjs-45/extract/js/src/jsnativestack.cpp.ORIGIN	2019-05-23 17:42:26 -0500
++++ ./src/third_party/mozjs-45/extract/js/src/jsnativestack.cpp	2019-05-27 19:37:44 -0500
+@@ -9,7 +9,7 @@
+ #ifdef XP_WIN
+ # include "jswin.h"
+ 
+-#elif defined(XP_DARWIN) || defined(DARWIN) || defined(XP_UNIX)
++#elif defined(XP_DARWIN) || defined(DARWIN) || defined(XP_UNIX) || defined(_AIX)
+ # include <pthread.h>
+ 
+ # if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+@@ -59,7 +59,7 @@
+ # endif
+ }
+ 
+-#elif defined(SOLARIS)
++#elif defined(_AIX)
+ 
+ #include <ucontext.h>
+ 
+@@ -68,9 +68,16 @@
+ void*
+ js::GetNativeStackBaseImpl()
+ {
++#ifdef _AIX
++    ucontext_t context;
++    getcontext(&context);
++    return static_cast<char*>(context.uc_stack.ss_sp) +
++        context.uc_stack.ss_size;
++#else
+     stack_t st;
+     stack_getbounds(&st);
+     return static_cast<char*>(st.ss_sp) + st.ss_size;
++#endif
+ }
+ 
+ #elif defined(AIX)

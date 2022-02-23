@@ -1,0 +1,95 @@
+*** ElectricFence-2.2.2/Makefile.org	Mon Jul  2 17:12:12 2001
+--- ElectricFence-2.2.2/Makefile	Mon Jul  2 17:13:55 2001
+***************
+*** 1,4 ****
+! PIC= -fPIC
+  CFLAGS= -g -DUSE_SEMAPHORE $(PIC)
+  LIBS= -lpthread
+  
+--- 1,4 ----
+! #PIC= -fPIC
+  CFLAGS= -g -DUSE_SEMAPHORE $(PIC)
+  LIBS= -lpthread
+  
+***************
+*** 16,22 ****
+  
+  OBJECTS= efence.o page.o print.o
+  
+! all:	libefence.a libefence.so.0.0 tstheap eftest
+  	@ echo
+  	@ echo "Testing Electric Fence."
+  	@ echo "After the last test, it should print that the test has PASSED."
+--- 16,22 ----
+  
+  OBJECTS= efence.o page.o print.o
+  
+! all:	libefence.a tstheap eftest
+  	@ echo
+  	@ echo "Testing Electric Fence."
+  	@ echo "After the last test, it should print that the test has PASSED."
+***************
+*** 26,39 ****
+  	@ echo "Electric Fence confidence test PASSED." 
+  	@ echo
+  
+! install: libefence.a efence.3 libefence.so.0.0
+  	$(INSTALL) -m 755 ef.sh $(BIN_INSTALL_DIR)/ef
+  	$(INSTALL) -m 644 libefence.a $(LIB_INSTALL_DIR)
+- 	$(INSTALL) -m 755 libefence.so.0.0 $(LIB_INSTALL_DIR)
+  	- rm -f $(LIB_INSTALL_DIR)/libefence.so.0
+- 	ln -s libefence.so.0.0 $(LIB_INSTALL_DIR)/libefence.so.0
+  	- rm -f $(LIB_INSTALL_DIR)/libefence.so
+- 	ln -s libefence.so.0.0 $(LIB_INSTALL_DIR)/libefence.so
+  	$(INSTALL) -m 644 efence.3 $(MAN_INSTALL_DIR)/efence.3
+  
+  clean:
+--- 26,36 ----
+  	@ echo "Electric Fence confidence test PASSED." 
+  	@ echo
+  
+! install: libefence.a efence.3
+  	$(INSTALL) -m 755 ef.sh $(BIN_INSTALL_DIR)/ef
+  	$(INSTALL) -m 644 libefence.a $(LIB_INSTALL_DIR)
+  	- rm -f $(LIB_INSTALL_DIR)/libefence.so.0
+  	- rm -f $(LIB_INSTALL_DIR)/libefence.so
+  	$(INSTALL) -m 644 efence.3 $(MAN_INSTALL_DIR)/efence.3
+  
+  clean:
+*** ElectricFence-2.2.2/efence.3.org	Mon Jul  2 18:25:51 2001
+--- ElectricFence-2.2.2/efence.3	Mon Jul  2 18:29:06 2001
+***************
+*** 117,133 ****
+  argument to the linker, otherwise you'll have to put the path-name for
+  .B libefence.a
+  in the linker's command line.
+- You can also use dynamic linking. If you're using a Bourne shell, the
+- statement 
+- .B export LD_PRELOAD=libefence.so.0.0
+- will cause Electric Fence to be loaded to run all dynamic executables.
+- The command
+- .B ef
+- .I command
+- runs a single command under Electric Fence.
+  .LP
+  Some systems will require special arguments to the linker to assure that
+  you are using the Electric Fence malloc() and not the one from your C library.
+  .LP
+  Run your program
+  .I using a debugger. 
+--- 117,131 ----
+  argument to the linker, otherwise you'll have to put the path-name for
+  .B libefence.a
+  in the linker's command line.
+  .LP
+  Some systems will require special arguments to the linker to assure that
+  you are using the Electric Fence malloc() and not the one from your C library.
++ .LP
++ On AIX, you will need to add 
++ .B -lpthreads
++ to the command line in addition to
++ .B -lefence
++ .
+  .LP
+  Run your program
+  .I using a debugger. 

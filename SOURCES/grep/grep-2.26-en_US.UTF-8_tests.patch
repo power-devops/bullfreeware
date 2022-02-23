@@ -1,0 +1,671 @@
+Index: grep-2.22/gnulib-tests/test-localename.c
+===================================================================
+--- grep-2.22.orig/gnulib-tests/test-localename.c	2015-10-24 05:48:09.000000000 +0200
++++ grep-2.22/gnulib-tests/test-localename.c	2016-01-08 11:49:23.000000000 +0100
+@@ -69,7 +69,7 @@
+   ASSERT (gl_locale_name (LC_MESSAGES, "LC_MESSAGES") != NULL);
+ 
+   /* Get into a defined state,  */
+-  setlocale (LC_ALL, "en_US.UTF-8");
++  setlocale (LC_ALL, "EN_US.UTF-8");
+ #if HAVE_NEWLOCALE
+   uselocale (LC_GLOBAL_LOCALE);
+ #endif
+@@ -224,7 +224,7 @@
+ test_locale_name_thread (void)
+ {
+   /* Get into a defined state,  */
+-  setlocale (LC_ALL, "en_US.UTF-8");
++  setlocale (LC_ALL, "EN_US.UTF-8");
+ 
+ #if HAVE_NEWLOCALE
+   /* Check that gl_locale_name_thread returns NULL when no thread locale is
+@@ -321,7 +321,7 @@
+         "en_NZ",
+         "en_NZ.UTF-8",
+         "en_US",
+-        "en_US.UTF-8",
++        "EN_US.UTF-8",
+         "es_ES",
+         "es_ES.UTF-8",
+         "et_EE",
+@@ -470,7 +470,7 @@
+   const char *name;
+ 
+   /* Get into a defined state,  */
+-  setlocale (LC_ALL, "en_US.UTF-8");
++  setlocale (LC_ALL, "EN_US.UTF-8");
+ #if HAVE_NEWLOCALE
+   uselocale (LC_GLOBAL_LOCALE);
+ #endif
+@@ -602,7 +602,7 @@
+   const char *name;
+ 
+   /* Get into a defined state,  */
+-  setlocale (LC_ALL, "en_US.UTF-8");
++  setlocale (LC_ALL, "EN_US.UTF-8");
+ #if HAVE_NEWLOCALE
+   uselocale (LC_GLOBAL_LOCALE);
+ #endif
+Index: grep-2.22/gnulib-tests/test-regex.c
+===================================================================
+--- grep-2.22.orig/gnulib-tests/test-regex.c	2015-10-24 05:48:09.000000000 +0200
++++ grep-2.22/gnulib-tests/test-regex.c	2016-01-08 11:49:23.000000000 +0100
+@@ -44,7 +44,7 @@
+   signal (SIGALRM, SIG_DFL);
+   alarm (alarm_value);
+ #endif
+-  if (setlocale (LC_ALL, "en_US.UTF-8"))
++  if (setlocale (LC_ALL, "EN_US.UTF-8"))
+     {
+       {
+         /* http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html
+Index: grep-2.22/tests/backref-multibyte-slow
+===================================================================
+--- grep-2.22.orig/tests/backref-multibyte-slow	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/backref-multibyte-slow	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ $AWK 'BEGIN {for (i=0; i<13000; i++) print "aba"}' /dev/null > in || fail=1
+ 
+ # Use 10 times the duration of running grep in the C locale as the timeout
+-# when running in en_US.UTF-8.  Round up to whole seconds, since timeout
++# when running in EN_US.UTF-8.  Round up to whole seconds, since timeout
+ # can't deal with fractional seconds.
+ max_seconds=$(LC_ALL=C perl -le 'use Time::HiRes qw(time); my $s = time();
+               system q,grep -E '\''^([a-z]).\1$'\'' in > /dev/null,;
+@@ -19,7 +19,7 @@
+   || { max_seconds=5;
+        warn_ "$ME_: warning: no perl? using default of 5s timeout"; }
+ 
+-for LOC in en_US.UTF-8; do
++for LOC in EN_US.UTF-8; do
+   out=out-$LOC
+   LC_ALL=$LOC timeout ${max_seconds}s grep -aE '^([a-z]).\1$' in > $out 2>&1
+   test $? = 0 || fail=1
+Index: grep-2.22/tests/backref-word
+===================================================================
+--- grep-2.22.orig/tests/backref-word	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/backref-word	2016-01-08 11:49:23.000000000 +0100
+@@ -5,7 +5,7 @@
+ printf 'foo foo bar\n'      > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   LC_ALL=$LOC grep -w '\(foo\) \1' exp1 > $out || fail=1
+   compare exp1 $out || fail=1
+Index: grep-2.22/tests/backslash-s-and-repetition-operators
+===================================================================
+--- grep-2.22.orig/tests/backslash-s-and-repetition-operators	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/backslash-s-and-repetition-operators	2016-01-08 11:49:23.000000000 +0100
+@@ -13,7 +13,7 @@
+ 
+ fail=0
+ 
+-for loc in en_US.UTF-8 C; do
++for loc in EN_US.UTF-8 C; do
+   echo locale=$loc
+   LC_ALL=$loc
+   export LC_ALL
+Index: grep-2.22/tests/backslash-s-vs-invalid-multitype
+===================================================================
+--- grep-2.22.orig/tests/backslash-s-vs-invalid-multitype	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/backslash-s-vs-invalid-multitype	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ 
+ require_en_utf8_locale_
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ printf '\202\n' > in || framework_failure_
+Index: grep-2.22/tests/bogus-wctob
+===================================================================
+--- grep-2.22.orig/tests/bogus-wctob	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/bogus-wctob	2016-01-08 11:49:23.000000000 +0100
+@@ -7,7 +7,7 @@
+ printf '\340'      > in || framework_failure_
+ fail=0
+ 
+-LC_ALL=en_US.UTF-8 grep '[à]' in
++LC_ALL=EN_US.UTF-8 grep '[à]' in
+ case $? in
+   0) fail=1 ;;
+   1) ;;
+Index: grep-2.22/tests/case-fold-backref
+===================================================================
+--- grep-2.22.orig/tests/case-fold-backref	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/case-fold-backref	2016-01-08 11:49:23.000000000 +0100
+@@ -5,7 +5,7 @@
+ printf '%s foo\n' foo fOo Foo FOO > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
++for LOC in EN_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
+   out=out1-$LOC
+   LC_ALL=$LOC grep -Ei '(foo) \1' exp1 > $out || fail=1
+   compare exp1 $out || fail=1
+Index: grep-2.22/tests/case-fold-backslash-w
+===================================================================
+--- grep-2.22.orig/tests/case-fold-backslash-w	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/case-fold-backslash-w	2016-01-08 11:49:23.000000000 +0100
+@@ -9,5 +9,5 @@
+   echo foo bar | LANG=C grep '^foo\W' || fail_ LANG=C sensitive
+   echo foo bar | LANG=C grep -i '^foo\W' || fail_ LANG=C insensitive
+ fi
+-echo foo bar | LANG=en_US.UTF-8 grep '^foo\W' || fail_ UTF-8 sensitive
+-echo foo bar | LANG=en_US.UTF-8 grep -i '^foo\W' || fail_ UTF-8 insensitive
++echo foo bar | LANG=EN_US.UTF-8 grep '^foo\W' || fail_ UTF-8 sensitive
++echo foo bar | LANG=EN_US.UTF-8 grep -i '^foo\W' || fail_ UTF-8 insensitive
+Index: grep-2.22/tests/case-fold-char-class
+===================================================================
+--- grep-2.22.orig/tests/case-fold-char-class	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/case-fold-char-class	2016-01-08 11:49:23.000000000 +0100
+@@ -5,7 +5,7 @@
+ printf 'Y\n'      > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   printf 'X\nY\nZ\n' | LC_ALL=$LOC grep -i '[y]' > $out || fail=1
+   compare exp1 $out || fail=1
+@@ -13,7 +13,7 @@
+ 
+ printf 'y\n'      > exp2 || framework_failure_
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out2-$LOC
+   printf 'x\ny\nz\n' | LC_ALL=$LOC grep -i '[Y]' > $out || fail=1
+   compare exp2 $out || fail=1
+Index: grep-2.22/tests/case-fold-char-range
+===================================================================
+--- grep-2.22.orig/tests/case-fold-char-range	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/case-fold-char-range	2016-01-08 11:49:23.000000000 +0100
+@@ -5,7 +5,7 @@
+ printf 'A\nZ\n'      > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   printf 'A\n1\nZ\n.\n' | LC_ALL=$LOC grep -i '[a-z]' > $out || fail=1
+   compare exp1 $out || fail=1
+@@ -14,7 +14,7 @@
+ # This actually passes also for grep-2.5.3
+ printf 'a\nz\n'      > exp2 || framework_failure_
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out2-$LOC
+   printf 'a\n1\nz\n.\n' | LC_ALL=$LOC grep -i '[A-Z]' > $out || fail=1
+   compare exp2 $out || fail=1
+Index: grep-2.22/tests/case-fold-char-type
+===================================================================
+--- grep-2.22.orig/tests/case-fold-char-type	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/case-fold-char-type	2016-01-08 11:49:23.000000000 +0100
+@@ -5,7 +5,7 @@
+ printf 'Y\n'      > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   printf '1\nY\n.\n' | LC_ALL=$LOC grep -i '[[:lower:]]' > $out || fail=1
+   compare exp1 $out || fail=1
+@@ -13,7 +13,7 @@
+ 
+ printf 'y\n'      > exp2 || framework_failure_
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out2-$LOC
+   printf '1\ny\n.\n' | LC_ALL=$LOC grep -i '[[:upper:]]' > $out || fail=1
+   compare exp2 $out || fail=1
+Index: grep-2.22/tests/case-fold-titlecase
+===================================================================
+--- grep-2.22.orig/tests/case-fold-titlecase	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/case-fold-titlecase	2016-01-08 11:49:23.000000000 +0100
+@@ -20,7 +20,7 @@
+ 
+ require_en_utf8_locale_
+ require_compiled_in_MB_support
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ fail=0
+Index: grep-2.22/tests/char-class-multibyte
+===================================================================
+--- grep-2.22.orig/tests/char-class-multibyte	2013-10-24 02:38:43.000000000 +0200
++++ grep-2.22/tests/char-class-multibyte	2016-01-08 11:49:23.000000000 +0100
+@@ -8,7 +8,7 @@
+ printf 'é\n'      > exp1 || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   printf 'á\nç\né\n' | LC_ALL=$LOC grep '[é]' > $out || fail=1
+   compare exp1 $out || fail=1
+@@ -16,13 +16,13 @@
+ 
+ printf 'É\n'      > exp2 || framework_failure_
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   out=out2-$LOC
+   printf 'Á\nÇ\nÉ\n' | LC_ALL=$LOC grep '[É]' > $out || fail=1
+   compare exp2 $out || fail=1
+ done
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   out=out3-$LOC
+   printf '\303\n' | LC_ALL=$LOC grep '[é]' > $out
+   test $? = 1 || fail=1
+Index: grep-2.22/tests/char-class-multibyte2
+===================================================================
+--- grep-2.22.orig/tests/char-class-multibyte2	2013-08-09 18:42:09.000000000 +0200
++++ grep-2.22/tests/char-class-multibyte2	2016-01-08 11:49:23.000000000 +0100
+@@ -9,7 +9,7 @@
+ printf "$e_acute\n" > exp || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   out=out-$LOC
+   printf "á\nç\n$e_acute\n" | LC_ALL=$LOC grep -E "([^.]*[$e_acute]){1,2}" \
+       > $out || fail=1
+Index: grep-2.22/tests/dfa-coverage
+===================================================================
+--- grep-2.22.orig/tests/dfa-coverage	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/dfa-coverage	2016-01-08 11:49:23.000000000 +0100
+@@ -25,7 +25,7 @@
+ 
+ echo a > in || framework_failure_
+ 
+-LC_ALL=en_US.UTF-8 grep -E '[^_]|$' in > out || fail=1
++LC_ALL=EN_US.UTF-8 grep -E '[^_]|$' in > out || fail=1
+ 
+ compare out in || fail=1
+ 
+Index: grep-2.22/tests/dfaexec-multibyte
+===================================================================
+--- grep-2.22.orig/tests/dfaexec-multibyte	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/dfaexec-multibyte	2016-01-08 11:49:23.000000000 +0100
+@@ -7,7 +7,7 @@
+ 
+ fail=0
+ 
+-for LOC in en_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 zh_CN $LOCALE_FR_UTF8; do
+   out=out1-ab-$LOC
+   LC_ALL=$LOC grep -E '([a]|[b]){2}' < exp1 > $out || fail=1
+   compare exp1 $out || fail=1
+Index: grep-2.22/tests/empty
+===================================================================
+--- grep-2.22.orig/tests/empty	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/empty	2016-01-08 11:49:23.000000000 +0100
+@@ -14,7 +14,7 @@
+ 
+ failures=0
+ 
+-for locale in C en_US.UTF-8; do
++for locale in C EN_US.UTF-8; do
+     for options in '-E' '-F'; do
+ 
+         # should return 0 found a match
+Index: grep-2.22/tests/empty-line-mb
+===================================================================
+--- grep-2.22.orig/tests/empty-line-mb	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/empty-line-mb	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ 
+ require_en_utf8_locale_
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ printf 'a\n\nb\n' > in || framework_failure_
+Index: grep-2.22/tests/equiv-classes
+===================================================================
+--- grep-2.22.orig/tests/equiv-classes	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/equiv-classes	2016-01-08 11:49:23.000000000 +0100
+@@ -6,7 +6,7 @@
+ require_en_utf8_locale_
+ require_compiled_in_MB_support
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ echo à | grep '[[=a=]]' > /dev/null
+Index: grep-2.22/tests/fgrep-infloop
+===================================================================
+--- grep-2.22.orig/tests/fgrep-infloop	2015-10-22 06:46:10.000000000 +0200
++++ grep-2.22/tests/fgrep-infloop	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ encode ABC > in || framework_failure_
+ fail=0
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   LC_ALL=$LOC timeout 10s grep -F "$(encode BC)" in > $out
+   status=$?
+Index: grep-2.22/tests/grep-dev-null
+===================================================================
+--- grep-2.22.orig/tests/grep-dev-null	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/grep-dev-null	2016-01-08 11:49:23.000000000 +0100
+@@ -4,7 +4,7 @@
+ 
+ require_en_utf8_locale_
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ echo x | grep -f /dev/null; test $? = 1 || fail=1
+Index: grep-2.22/tests/inconsistent-range
+===================================================================
+--- grep-2.22.orig/tests/inconsistent-range	2012-11-26 00:52:18.000000000 +0100
++++ grep-2.22/tests/inconsistent-range	2016-01-08 11:49:23.000000000 +0100
+@@ -6,7 +6,7 @@
+ 
+ fail=0
+ 
+-for LOC in en_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
++for LOC in EN_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
+   out1=out1-$LOC
+   LC_ALL=$LOC grep -E '(.)\1[A-Z]' in > $out1 || fail=1
+   out2=out2-$LOC
+Index: grep-2.22/tests/init.cfg
+===================================================================
+--- grep-2.22.orig/tests/init.cfg	2016-01-08 11:33:45.000000000 +0100
++++ grep-2.22/tests/init.cfg	2016-01-08 11:49:23.000000000 +0100
+@@ -59,9 +59,9 @@
+ require_en_utf8_locale_()
+ {
+   path_prepend_ .
+-  case $(get-mb-cur-max en_US.UTF-8) in
++  case $(get-mb-cur-max EN_US.UTF-8) in
+     [3456]) ;;
+-    *) skip_ 'en_US.UTF-8 locale not found' ;;
++    *) skip_ 'EN_US.UTF-8 locale not found' ;;
+   esac
+ }
+ 
+@@ -86,7 +86,7 @@
+ require_compiled_in_MB_support()
+ {
+   require_en_utf8_locale_
+-  printf 'é' | LC_ALL=en_US.UTF-8 grep '[[:lower:]]' \
++  printf 'é' | LC_ALL=EN_US.UTF-8 grep '[[:lower:]]' \
+     || skip_ this test requires MBS support
+ }
+ 
+Index: grep-2.22/tests/invalid-multibyte-infloop
+===================================================================
+--- grep-2.22.orig/tests/invalid-multibyte-infloop	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/invalid-multibyte-infloop	2016-01-08 11:49:23.000000000 +0100
+@@ -14,7 +14,7 @@
+ fail=0
+ 
+ # Before 2.15, this would infloop.
+-LC_ALL=en_US.UTF-8 timeout 10 grep -aF $(encode A) input > out
++LC_ALL=EN_US.UTF-8 timeout 10 grep -aF $(encode A) input > out
+ status=$?
+ if test $status -eq 0; then
+   compare input out
+@@ -26,7 +26,7 @@
+ 
+ echo 'Binary file input matches' >binary-file-matches
+ 
+-LC_ALL=en_US.UTF-8 timeout 10 grep -F $(encode A) input > out
++LC_ALL=EN_US.UTF-8 timeout 10 grep -F $(encode A) input > out
+ status=$?
+ if test $status -eq 0; then
+   compare binary-file-matches out
+Index: grep-2.22/tests/match-lines
+===================================================================
+--- grep-2.22.orig/tests/match-lines	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/match-lines	2016-01-08 11:49:23.000000000 +0100
+@@ -24,7 +24,7 @@
+ 
+ fail=0
+ 
+-for locale in C en_US.UTF-8; do
++for locale in C EN_US.UTF-8; do
+   for options in -x '-E -x' '-F -x'; do
+     for o in '' -o; do
+       LC_ALL=$locale grep $o $options a in > out || fail=1
+Index: grep-2.22/tests/mb-dot-newline
+===================================================================
+--- grep-2.22.orig/tests/mb-dot-newline	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/mb-dot-newline	2016-01-08 11:49:23.000000000 +0100
+@@ -24,7 +24,7 @@
+ 
+ fail=0
+ 
+-for LOC in en_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
++for LOC in EN_US.UTF-8 en_US zh_CN $LOCALE_FR_UTF8 C; do
+   out1=out1-$LOC
+   LC_ALL=$LOC grep '..' in > out || fail=1
+   compare exp out || fail=1
+Index: grep-2.22/tests/multibyte-white-space
+===================================================================
+--- grep-2.22.orig/tests/multibyte-white-space	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/multibyte-white-space	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ 
+ require_en_utf8_locale_
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ # It would have been nice to be able to use all UTF8 characters
+Index: grep-2.22/tests/null-byte
+===================================================================
+--- grep-2.22.orig/tests/null-byte	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/null-byte	2016-01-08 11:49:23.000000000 +0100
+@@ -22,8 +22,8 @@
+ path_prepend_ .
+ 
+ locales=C
+-for locale in en_US.iso885915 en_US.UTF-8; do
+-  get-mb-cur-max en_US.UTF-8 >/dev/null 2>&1 && locales="$locales $locale"
++for locale in en_US.iso885915 EN_US.UTF-8; do
++  get-mb-cur-max EN_US.UTF-8 >/dev/null 2>&1 && locales="$locales $locale"
+ done
+ 
+ fail=0
+Index: grep-2.22/tests/pcre-infloop
+===================================================================
+--- grep-2.22.orig/tests/pcre-infloop	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/pcre-infloop	2016-01-08 11:49:23.000000000 +0100
+@@ -21,13 +21,13 @@
+ require_timeout_
+ require_en_utf8_locale_
+ require_compiled_in_MB_support
+-LC_ALL=en_US.UTF-8 require_pcre_
++LC_ALL=EN_US.UTF-8 require_pcre_
+ 
+ printf 'a\201b\r' > in || framework_failure_
+ 
+ fail=0
+ 
+-LC_ALL=en_US.UTF-8 timeout 10 grep -P 'a.?..b' in
++LC_ALL=EN_US.UTF-8 timeout 10 grep -P 'a.?..b' in
+ test $? = 1 || fail_ "libpcre's match function appears to infloop"
+ 
+ Exit $fail
+Index: grep-2.22/tests/pcre-invalid-utf8-input
+===================================================================
+--- grep-2.22.orig/tests/pcre-invalid-utf8-input	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/pcre-invalid-utf8-input	2016-01-08 11:49:23.000000000 +0100
+@@ -11,21 +11,21 @@
+ require_timeout_
+ require_en_utf8_locale_
+ require_compiled_in_MB_support
+-LC_ALL=en_US.UTF-8 require_pcre_
++LC_ALL=EN_US.UTF-8 require_pcre_
+ 
+ fail=0
+ 
+ printf 'j\202j\nj\nk\202\n' > in || framework_failure_
+ 
+-LC_ALL=en_US.UTF-8 timeout 10 grep -P j in
++LC_ALL=EN_US.UTF-8 timeout 10 grep -P j in
+ test $? -eq 0 || fail=1
+ 
+-LC_ALL=en_US.UTF-8 timeout 10 grep -P 'k$' in
++LC_ALL=EN_US.UTF-8 timeout 10 grep -P 'k$' in
+ test $? -eq 1 || fail=1
+ 
+ echo k >exp
+ 
+-LC_ALL=en_US.UTF-8 timeout 10 grep -aoP 'k*' in >out || fail=1
++LC_ALL=EN_US.UTF-8 timeout 10 grep -aoP 'k*' in >out || fail=1
+ compare exp out || fail=1
+ 
+ Exit $fail
+Index: grep-2.22/tests/pcre-utf8
+===================================================================
+--- grep-2.22.orig/tests/pcre-utf8	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/pcre-utf8	2016-01-08 11:49:23.000000000 +0100
+@@ -9,18 +9,18 @@
+ 
+ . "${srcdir=.}/init.sh"; path_prepend_ ../src
+ require_en_utf8_locale_
+-LC_ALL=en_US.UTF-8 require_pcre_
++LC_ALL=EN_US.UTF-8 require_pcre_
+ 
+ fail=0
+ 
+-echo '$' | LC_ALL=en_US.UTF-8 grep -qP '\p{S}' \
++echo '$' | LC_ALL=EN_US.UTF-8 grep -qP '\p{S}' \
+   || skip_ 'PCRE support is compiled out, or it does not support properties'
+ 
+ euro='\342\202\254 euro'
+ printf "$euro\\n" > in || framework_failure_
+ 
+ # The euro sign has the unicode "Symbol" property, so this must match:
+-LC_ALL=en_US.UTF-8 grep -P '^\p{S}' in > out || fail=1
++LC_ALL=EN_US.UTF-8 grep -P '^\p{S}' in > out || fail=1
+ compare in out || fail=1
+ 
+ # This RE must *not* match in the C locale, because the first
+@@ -28,13 +28,13 @@
+ LC_ALL=C grep -P '^\p{S}' in > out && fail=1
+ compare /dev/null out || fail=1
+ 
+-LC_ALL=en_US.UTF-8 grep -P '^. euro$' in > out2 || fail=1
++LC_ALL=EN_US.UTF-8 grep -P '^. euro$' in > out2 || fail=1
+ compare in out2 || fail=1
+ 
+-LC_ALL=en_US.UTF-8 grep -oP '. euro' in > out3 || fail=1
++LC_ALL=EN_US.UTF-8 grep -oP '. euro' in > out3 || fail=1
+ compare in out3 || fail=1
+ 
+-LC_ALL=en_US.UTF-8 grep -P '^\P{S}' in > out4
++LC_ALL=EN_US.UTF-8 grep -P '^\P{S}' in > out4
+ compare /dev/null out4 || fail=1
+ 
+ Exit $fail
+Index: grep-2.22/tests/prefix-of-multibyte
+===================================================================
+--- grep-2.22.orig/tests/prefix-of-multibyte	2015-10-22 06:46:10.000000000 +0200
++++ grep-2.22/tests/prefix-of-multibyte	2016-01-08 11:49:23.000000000 +0100
+@@ -14,7 +14,7 @@
+ 
+ fail=0
+ 
+-for LOC in en_US.UTF-8 $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $LOCALE_FR_UTF8; do
+   for pat in A aA BCA; do
+     for file in exp1 exp2 exp3 exp4; do
+       for type in regex dfa fgrep; do
+Index: grep-2.22/tests/spencer1-locale.awk
+===================================================================
+--- grep-2.22.orig/tests/spencer1-locale.awk	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/spencer1-locale.awk	2016-01-08 11:49:23.000000000 +0100
+@@ -11,7 +11,7 @@
+ }
+ 
+ $0 !~ /^#/  && NF == 3 {
+-        test("en_US.UTF-8")
++        test("EN_US.UTF-8")
+         test("ru_RU.KOI8-R")
+         test("fr_FR.ISO-8859-1")
+         test("zh_CN")
+Index: grep-2.22/tests/surrogate-pair
+===================================================================
+--- grep-2.22.orig/tests/surrogate-pair	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/surrogate-pair	2016-01-08 11:49:23.000000000 +0100
+@@ -25,7 +25,7 @@
+ 
+ printf '\360\220\220\205\n' > in || framework_failure_
+ 
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ # On Cygwin, before grep-2.15, this would segfault.
+Index: grep-2.22/tests/turkish-I
+===================================================================
+--- grep-2.22.orig/tests/turkish-I	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/turkish-I	2016-01-08 11:49:23.000000000 +0100
+@@ -26,7 +26,7 @@
+ i='\304\260'
+ printf "$i$i$i$i$i$i$i\n" > in || framework_failure_
+ 
+-LC_ALL=en_US.UTF-8 grep -i .... in > out || fail=1
++LC_ALL=EN_US.UTF-8 grep -i .... in > out || fail=1
+ 
+ compare out in || fail=1
+ 
+Index: grep-2.22/tests/utf8-bracket
+===================================================================
+--- grep-2.22.orig/tests/utf8-bracket	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/utf8-bracket	2016-01-08 11:49:23.000000000 +0100
+@@ -23,7 +23,7 @@
+ 
+ fail=0
+ 
+-for locale in C en_US.UTF-8; do
++for locale in C EN_US.UTF-8; do
+   for options in -qz -qzE; do
+     case $options in
+       *E*) parens='()';;
+Index: grep-2.22/tests/word-delim-multibyte
+===================================================================
+--- grep-2.22.orig/tests/word-delim-multibyte	2015-10-22 06:50:38.000000000 +0200
++++ grep-2.22/tests/word-delim-multibyte	2016-01-08 11:49:23.000000000 +0100
+@@ -7,7 +7,7 @@
+ 
+ e_acute=$(printf '\303\251')
+ echo "$e_acute" > in || framework_failure_
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ export LC_ALL
+ 
+ fail=0
+Index: grep-2.22/tests/word-multibyte
+===================================================================
+--- grep-2.22.orig/tests/word-multibyte	2015-10-22 07:00:20.000000000 +0200
++++ grep-2.22/tests/word-multibyte	2016-01-08 11:49:23.000000000 +0100
+@@ -17,7 +17,7 @@
+ 
+ fail=0
+ 
+-for LOC in en_US.UTF-8 $zh $LOCALE_FR_UTF8; do
++for LOC in EN_US.UTF-8 $zh $LOCALE_FR_UTF8; do
+   out=out1-$LOC
+   LC_ALL=$LOC grep '\w' in >$out || fail=1
+   compare in $out || fail=1

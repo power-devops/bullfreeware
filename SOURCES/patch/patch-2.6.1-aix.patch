@@ -1,0 +1,19 @@
+*** ./Makefile.in.ORIG	Fri Jan  8 15:40:20 2010
+--- ./Makefile.in	Fri Jan  8 15:40:37 2010
+***************
+*** 65,71 ****
+  
+  #### End of system configuration section. ####
+  
+! SHELL = /bin/sh
+  
+  LIBSRCS = \
+  	gl/lib/argmatch.c \
+--- 65,71 ----
+  
+  #### End of system configuration section. ####
+  
+! SHELL = /usr/bin/sh
+  
+  LIBSRCS = \
+  	gl/lib/argmatch.c \

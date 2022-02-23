@@ -1,0 +1,106 @@
+*** ./httpd-ssl.conf_64.ORIG	Thu May 10 01:41:17 2012
+--- ./httpd-ssl.conf_64	Thu May 10 01:47:38 2012
+***************
+*** 12,17 ****
+--- 12,22 ----
+  #          socache_shmcb_module (for default value of SSLSessionCache)
+  
+  #
++ # Tell Apache to load the SSL module
++ #
++ LoadModule ssl_module /opt/freeware/lib64/httpd/modules/mod_ssl.so
++ 
++ #
+  # Pseudo Random Number Generator (PRNG):
+  # Configure one or more sources to seed the PRNG of the SSL library.
+  # The seed data should be of good random quality.
+***************
+*** 72,79 ****
+  #   Inter-Process Session Cache:
+  #   Configure the SSL Session Cache: First the mechanism 
+  #   to use and second the expiring timeout (in seconds).
+! #SSLSessionCache         "dbm:/var/logs/ssl_scache"
+! SSLSessionCache        "shmcb:/var/logs/ssl_scache(512000)"
+  SSLSessionCacheTimeout  300
+  
+  ##
+--- 77,84 ----
+  #   Inter-Process Session Cache:
+  #   Configure the SSL Session Cache: First the mechanism 
+  #   to use and second the expiring timeout (in seconds).
+! #SSLSessionCache         "dbm:/var/log/httpd/ssl_scache"
+! SSLSessionCache        "shmcb:/var/log/httpd/ssl_scache(512000)"
+  SSLSessionCacheTimeout  300
+  
+  ##
+***************
+*** 86,93 ****
+  DocumentRoot "/var/www/htdocs"
+  ServerName www.example.com:443
+  ServerAdmin you@example.com
+! ErrorLog "/var/logs/error_log"
+! TransferLog "/var/logs/access_log"
+  
+  #   SSL Engine Switch:
+  #   Enable/Disable SSL for this virtual host.
+--- 91,98 ----
+  DocumentRoot "/var/www/htdocs"
+  ServerName www.example.com:443
+  ServerAdmin you@example.com
+! ErrorLog "/var/log/httpd/error_log"
+! TransferLog "/var/log/httpd/access_log"
+  
+  #   SSL Engine Switch:
+  #   Enable/Disable SSL for this virtual host.
+***************
+*** 103,109 ****
+  #   Some ECC cipher suites (http://www.ietf.org/rfc/rfc4492.txt)
+  #   require an ECC certificate which can also be configured in
+  #   parallel.
+! SSLCertificateFile "/opt/freeware/etc/httpd/conf/server.crt"
+  #SSLCertificateFile "/opt/freeware/etc/httpd/conf/server-dsa.crt"
+  #SSLCertificateFile "/opt/freeware/etc/httpd/conf/server-ecc.crt"
+  
+--- 108,114 ----
+  #   Some ECC cipher suites (http://www.ietf.org/rfc/rfc4492.txt)
+  #   require an ECC certificate which can also be configured in
+  #   parallel.
+! SSLCertificateFile "/opt/freeware/etc/httpd/conf/ssl.crt/server.crt"
+  #SSLCertificateFile "/opt/freeware/etc/httpd/conf/server-dsa.crt"
+  #SSLCertificateFile "/opt/freeware/etc/httpd/conf/server-ecc.crt"
+  
+***************
+*** 113,119 ****
+  #   you've both a RSA and a DSA private key you can configure
+  #   both in parallel (to also allow the use of DSA ciphers, etc.)
+  #   ECC keys, when in use, can also be configured in parallel
+! SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/server.key"
+  #SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/server-dsa.key"
+  #SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/server-ecc.key"
+  
+--- 118,124 ----
+  #   you've both a RSA and a DSA private key you can configure
+  #   both in parallel (to also allow the use of DSA ciphers, etc.)
+  #   ECC keys, when in use, can also be configured in parallel
+! SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/ssl.key/server.key"
+  #SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/server-dsa.key"
+  #SSLCertificateKeyFile "/opt/freeware/etc/httpd/conf/server-ecc.key"
+  
+***************
+*** 238,244 ****
+  #   Per-Server Logging:
+  #   The home of a custom SSL log file. Use this when you want a
+  #   compact non-error SSL logfile on a virtual host basis.
+! CustomLog "/var/logs/ssl_request_log" \
+            "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+  
+  </VirtualHost>                                  
+--- 243,249 ----
+  #   Per-Server Logging:
+  #   The home of a custom SSL log file. Use this when you want a
+  #   compact non-error SSL logfile on a virtual host basis.
+! CustomLog "/var/log/httpd/ssl_request_log" \
+            "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+  
+  </VirtualHost>                                  
+

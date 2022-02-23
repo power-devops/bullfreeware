@@ -1,0 +1,16 @@
+Index: cpio-2.11/m4/stat.m4
+===================================================================
+--- cpio-2.11.orig/m4/stat.m4	2010-02-22 10:19:03.000000000 +0100
++++ cpio-2.11/m4/stat.m4	2010-05-04 17:47:17.000000000 +0200
+@@ -45,6 +45,11 @@
+          [gl_cv_func_stat_file_slash=yes], [gl_cv_func_stat_file_slash=no],
+          [gl_cv_func_stat_file_slash="guessing no"])
+        rm -f conftest.tmp conftest.lnk])
++  case $host_os in
++	*aix*) 
++	gl_cv_func_stat_file_slash=yes
++	REPLACE_STAT=0;;
++  esac
+   case $gl_cv_func_stat_dir_slash in
+     *no) REPLACE_STAT=1
+       AC_DEFINE([REPLACE_FUNC_STAT_DIR], [1], [Define to 1 if stat needs

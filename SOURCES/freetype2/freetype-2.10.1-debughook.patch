@@ -1,0 +1,13 @@
+diff --git a/include/freetype/ftmodapi.h b/include/freetype/ftmodapi.h
+index 8d039c4f3..88488bfe8 100644
+--- a/include/freetype/ftmodapi.h
++++ b/include/freetype/ftmodapi.h
+@@ -623,7 +623,7 @@ FT_BEGIN_HEADER
+    *     it is bytecode interpreter's execution context, `TT_ExecContext`,
+    *     which is declared in FreeType's internal header file `tttypes.h`.
+    */
+-  typedef FT_Error
++  typedef void
+   (*FT_DebugHook_Func)( void*  arg );
+ 
+ 

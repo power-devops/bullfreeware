@@ -1,0 +1,231 @@
+From b5cf035d1ca21ee4bf799c6d97b2759471b76483 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 25 Mar 2019 10:26:44 +0100
+Subject: [PATCH] runtime: improve sigtramp on aix/ppc64 to handle SIGPROF
+
+R14, R15 must be saved in sigtramp because they might be modified by Go
+code when a SIGPROF occurs.
+
+Fixes #28555
+
+Change-Id: I573541f108d7d6aac8e60d33c649e5db943f3ef5
+Reviewed-on: https://go-review.googlesource.com/c/go/+/169117
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/crash_cgo_test.go b/src/runtime/crash_cgo_test.go
+index 07eba78..af3c1f8 100644
+--- a/src/runtime/crash_cgo_test.go
++++ b/src/runtime/crash_cgo_test.go
+@@ -229,9 +229,6 @@
+ }
+ 
+ func TestCgoCCodeSIGPROF(t *testing.T) {
+-	if runtime.GOOS == "aix" {
+-		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
+-	}
+ 	t.Parallel()
+ 	got := runTestProg(t, "testprogcgo", "CgoCCodeSIGPROF")
+ 	want := "OK\n"
+diff --git a/src/runtime/crash_test.go b/src/runtime/crash_test.go
+index 03ebf02..c54bb57 100644
+--- a/src/runtime/crash_test.go
++++ b/src/runtime/crash_test.go
+@@ -623,9 +623,6 @@
+ }
+ 
+ func TestTimePprof(t *testing.T) {
+-	if runtime.GOOS == "aix" {
+-		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
+-	}
+ 	fn := runTestProg(t, "testprog", "TimeProf")
+ 	fn = strings.TrimSpace(fn)
+ 	defer os.Remove(fn)
+diff --git a/src/runtime/os_aix.go b/src/runtime/os_aix.go
+index 141ce3b..45c7174 100644
+--- a/src/runtime/os_aix.go
++++ b/src/runtime/os_aix.go
+@@ -233,6 +233,8 @@
+ func (c *sigctxt) fixsigcode(sig uint32) {
+ }
+ 
++//go:nosplit
++//go:nowritebarrierrec
+ func sigaddset(mask *sigset, i int) {
+ 	(*mask)[(i-1)/64] |= 1 << ((uint32(i) - 1) & 63)
+ }
+diff --git a/src/runtime/pprof/pprof_test.go b/src/runtime/pprof/pprof_test.go
+index 7c6043f..964e83a 100644
+--- a/src/runtime/pprof/pprof_test.go
++++ b/src/runtime/pprof/pprof_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build !aix,!nacl,!js
++// +build !nacl,!js
+ 
+ package pprof
+ 
+diff --git a/src/runtime/pprof/proto_test.go b/src/runtime/pprof/proto_test.go
+index cb38150..4452d51 100644
+--- a/src/runtime/pprof/proto_test.go
++++ b/src/runtime/pprof/proto_test.go
+@@ -312,10 +312,6 @@
+ 	testenv.MustHaveGoRun(t)
+ 	testenv.MustHaveCGO(t)
+ 
+-	if runtime.GOOS == "aix" {
+-		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
+-	}
+-
+ 	prog := "./testdata/mappingtest/main.go"
+ 
+ 	// GoOnly includes only Go symbols that runtime will symbolize.
+diff --git a/src/runtime/proc.go b/src/runtime/proc.go
+index a077a5d..9e993af 100644
+--- a/src/runtime/proc.go
++++ b/src/runtime/proc.go
+@@ -3758,7 +3758,7 @@
+ 		// Normal traceback is impossible or has failed.
+ 		// See if it falls into several common cases.
+ 		n = 0
+-		if (GOOS == "windows" || GOOS == "solaris" || GOOS == "darwin") && mp.libcallg != 0 && mp.libcallpc != 0 && mp.libcallsp != 0 {
++		if (GOOS == "windows" || GOOS == "solaris" || GOOS == "darwin" || GOOS == "aix") && mp.libcallg != 0 && mp.libcallpc != 0 && mp.libcallsp != 0 {
+ 			// Libcall, i.e. runtime syscall on windows.
+ 			// Collect Go stack that leads to the call.
+ 			n = gentraceback(mp.libcallpc, mp.libcallsp, 0, mp.libcallg.ptr(), 0, &stk[0], len(stk), nil, nil, 0)
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index ee572cb..65fcae0 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -97,6 +97,7 @@
+ 
+ // This funcion must not have any frame as we want to control how
+ // every registers are used.
++// TODO(aix): Implement SetCgoTraceback handler.
+ TEXT runtime·_sigtramp(SB),NOSPLIT|NOFRAME,$0
+ 	MOVD	LR, R0
+ 	MOVD	R0, 16(R1)
+@@ -107,39 +108,42 @@
+ 	// more stack available than NOSPLIT would have us believe.
+ 	// To defeat the linker, we make our own stack frame with
+ 	// more space.
+-	SUB	   $128+FIXED_FRAME, R1
++	SUB	$144+FIXED_FRAME, R1
+ 
+ 	// Save registers
+ 	MOVD	R31, 56(R1)
+ 	MOVD	g, 64(R1)
+ 	MOVD	R29, 72(R1)
++	MOVD	R14, 80(R1)
++	MOVD	R15, 88(R1)
+ 
+ 	BL	runtime·load_g(SB)
+ 
+ 	CMP	$0, g
+-	BEQ	sigtrampnog // g == nil
++	BEQ	sigtramp // g == nil
++	MOVD	g_m(g), R6
++	CMP	$0, R6
++	BEQ	sigtramp	// g.m == nil
+ 
+ 	// Save m->libcall. We need to do this because we
+ 	// might get interrupted by a signal in runtime·asmcgocall.
+-
+-	// save m->libcall
+-	MOVD	g_m(g), R6
+ 	MOVD	(m_libcall+libcall_fn)(R6), R7
+-	MOVD	R7, 80(R1)
+-	MOVD	(m_libcall+libcall_args)(R6), R7
+-	MOVD	R7, 88(R1)
+-	MOVD	(m_libcall+libcall_n)(R6), R7
+ 	MOVD	R7, 96(R1)
+-	MOVD	(m_libcall+libcall_r1)(R6), R7
++	MOVD	(m_libcall+libcall_args)(R6), R7
+ 	MOVD	R7, 104(R1)
+-	MOVD	(m_libcall+libcall_r2)(R6), R7
++	MOVD	(m_libcall+libcall_n)(R6), R7
+ 	MOVD	R7, 112(R1)
++	MOVD	(m_libcall+libcall_r1)(R6), R7
++	MOVD	R7, 120(R1)
++	MOVD	(m_libcall+libcall_r2)(R6), R7
++	MOVD	R7, 128(R1)
+ 
+ 	// save errno, it might be EINTR; stuff we do here might reset it.
+ 	MOVD	(m_mOS+mOS_perrno)(R6), R8
+ 	MOVD	0(R8), R8
+-	MOVD	R8, 120(R1)
++	MOVD	R8, 136(R1)
+ 
++sigtramp:
+ 	MOVW	R3, FIXED_FRAME+0(R1)
+ 	MOVD	R4, FIXED_FRAME+8(R1)
+ 	MOVD	R5, FIXED_FRAME+16(R1)
+@@ -147,22 +151,27 @@
+ 	MOVD	R12, CTR
+ 	BL	(CTR)
+ 
++	CMP	$0, g
++	BEQ	exit // g == nil
+ 	MOVD	g_m(g), R6
++	CMP	$0, R6
++	BEQ	exit	// g.m == nil
++
+ 	// restore libcall
+-	MOVD	80(R1), R7
+-	MOVD	R7, (m_libcall+libcall_fn)(R6)
+-	MOVD	88(R1), R7
+-	MOVD	R7, (m_libcall+libcall_args)(R6)
+ 	MOVD	96(R1), R7
+-	MOVD	R7, (m_libcall+libcall_n)(R6)
++	MOVD	R7, (m_libcall+libcall_fn)(R6)
+ 	MOVD	104(R1), R7
+-	MOVD	R7, (m_libcall+libcall_r1)(R6)
++	MOVD	R7, (m_libcall+libcall_args)(R6)
+ 	MOVD	112(R1), R7
++	MOVD	R7, (m_libcall+libcall_n)(R6)
++	MOVD	120(R1), R7
++	MOVD	R7, (m_libcall+libcall_r1)(R6)
++	MOVD	128(R1), R7
+ 	MOVD	R7, (m_libcall+libcall_r2)(R6)
+ 
+ 	// restore errno
+ 	MOVD	(m_mOS+mOS_perrno)(R6), R7
+-	MOVD	120(R1), R8
++	MOVD	136(R1), R8
+ 	MOVD	R8, 0(R7)
+ 
+ exit:
+@@ -170,26 +179,15 @@
+ 	MOVD	56(R1),R31
+ 	MOVD	64(R1),g
+ 	MOVD	72(R1),R29
++	MOVD	80(R1), R14
++	MOVD	88(R1), R15
+ 
+ 	// Don't use RET because we need to restore R31 !
+-	ADD $128+FIXED_FRAME, R1
++	ADD $144+FIXED_FRAME, R1
+ 	MOVD	16(R1), R0
+ 	MOVD	R0, LR
+ 	BR (LR)
+ 
+-sigtrampnog:
+-	// Signal arrived on a non-Go thread.
+-	// SIGPROF handler is not yet available so simply call badsignal,
+-	// after having created *sigctxt.
+-	MOVD	R4, 80(R1)
+-	MOVD	R5, 88(R1)
+-	MOVD	R1, R4
+-	ADD		$80, R4
+-	MOVD	R4, FIXED_FRAME+8(R1)
+-	MOVD	R3, FIXED_FRAME+0(R1)
+-	BL runtime·badsignal(SB)
+-	JMP	exit
+-
+ // runtime.tstart is a function descriptor to the real tstart.
+ DATA	runtime·tstart+0(SB)/8, $runtime·_tstart(SB)
+ DATA	runtime·tstart+8(SB)/8, $TOC(SB)

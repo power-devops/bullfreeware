@@ -1,0 +1,18 @@
+--- ltmain.sh.orig	2016-08-03 16:03:30 +0200
++++ ltmain.sh	2016-08-03 17:19:39 +0200
+@@ -3957,6 +3957,15 @@
+ 	      eval dep_rpath=\"$hardcode_libdir_flag_spec\"
+ 	    fi
+ 	  fi
++          # If dep_rpath is empty, set it to the hardcoded libdir
++          # to ensure the relink is performed even if the library has
++          # no dependencies to an uninstalled lib.
++          # This prevents keeping the build dir in the library rpath.
++          if test -z "$dep_rpath"; then
++              eval dep_rpath=\"$hardcode_libdir_flag_spec\"
++              # removes the empty path after blibpath
++              dep_rpath=`echo $dep_rpath | /usr/bin/sed -e "s/::/:/"`
++          fi
+ 	  if test -n "$runpath_var" && test -n "$perm_rpath"; then
+ 	    # We should set the runpath_var.
+ 	    rpath=

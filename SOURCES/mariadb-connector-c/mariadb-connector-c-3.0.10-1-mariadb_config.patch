@@ -1,0 +1,21 @@
+--- ./mariadb_config/CMakeLists.txt.orig	2019-06-04 11:43:21.345845160 +0200
++++ ./mariadb_config/CMakeLists.txt	2019-06-05 12:05:17.016666136 +0200
+@@ -5,6 +5,8 @@
+ FUNCTION(GET_LIB_NAME LIB_NAME LIB_OUT)
+   IF(APPLE)
+     STRING(FIND ${LIB_NAME} ".dylib" IS_SO)
++  ELSEIF(AIX)
++    STRING(FIND ${LIB_NAME} ".a" IS_SO)
+   ELSE()
+     STRING(FIND ${LIB_NAME} ".so" IS_SO)
+   ENDIF()
+@@ -51,6 +53,9 @@
+                ${CMAKE_CURRENT_BINARY_DIR}/libmariadb.pc @ONLY)
+ 
+ ADD_EXECUTABLE(mariadb_config ${CMAKE_CURRENT_BINARY_DIR}/mariadb_config.c)
++IF(AIX)
++        TARGET_LINK_LIBRARIES(mariadb_config getopt_long)
++ENDIF()
+ 
+ # Installation
+ #

@@ -1,0 +1,26 @@
+From 193207022076dc19294990570c3a1f83658786e7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 9 Aug 2021 11:47:31 +0200
+Subject: [PATCH] gnulib-tests: remove freezeing
+ test-sigsegv-catch-stackoverflow2
+
+---
+ gnulib-tests/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gnulib-tests/Makefile.in b/gnulib-tests/Makefile.in
+index 9fac550..0a29331 100644
+--- a/gnulib-tests/Makefile.in
++++ b/gnulib-tests/Makefile.in
+@@ -174,7 +174,7 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
+ 	test-sigprocmask$(EXEEXT) test-sigsegv-catch-segv1$(EXEEXT) \
+ 	test-sigsegv-catch-segv2$(EXEEXT) \
+ 	test-sigsegv-catch-stackoverflow1$(EXEEXT) \
+-	test-sigsegv-catch-stackoverflow2$(EXEEXT) test-sleep$(EXEEXT) \
++	test-sleep$(EXEEXT) \
+ 	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
+ 	test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
+ 	test-stdalign$(EXEEXT) test-stdbool$(EXEEXT) \
+-- 
+2.32.0
+

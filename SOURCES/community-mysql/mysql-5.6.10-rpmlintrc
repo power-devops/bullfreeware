@@ -1,0 +1,48 @@
+# Filtered out until upstream fixes them
+# Upstream bug: http://bugs.mysql.com/68518
+addFilter("incorrect-fsf-address")
+
+# Done to avoid _prefix/lib64/tmpfiles.d
+addFilter("E: hardcoded-library-path in %\{_prefix\}/lib/tmpfiles.d")
+
+# Keeping the old summary for now
+addFilter("W: name-repeated-in-summary C MySQL")
+
+# Spellchecked
+addFilter("W: spelling-error %description -l en_US multi -> mulch, mufti")
+addFilter("W: spelling-error %description -l en_US benchmarking -> bench marking, bench-marking, benchmark")
+addFilter("W: spelling-error Summary(en_US) embeddable -> embedded")
+addFilter("W: spelling-error.*embeddable -> embedded")
+
+# As long as the manual is part of the original tarball, we have do to
+# this
+addFilter("mysql.src: W: invalid-url Source0: mysql-5.6.[0-9]+-nodocs.tar.gz")
+
+# Leave the logfile where it is for now
+addFilter("E: non-root-user-log-file /var/log/mysqld.log mysql")
+addFilter("E: non-root-group-log-file /var/log/mysqld.log mysql")
+addFilter("E: non-ghost-file /var/log/mysqld.log")
+addFilter("E: zero-length /var/log/mysqld.log")
+
+addFilter("E: incoherent-logrotate-file /etc/logrotate.d/mysqld")
+
+# Hidden files and zero lenght files is normal for some tests
+addFilter("W: hidden-file-or-dir /usr/share/mysql-test/std_data/.mylogin.cnf")
+addFilter("E: zero-length /usr/share/mysql-test/suite/parts/t/disabled.def")
+addFilter("E: zero-length /usr/share/mysql-test/std_data/bug37631.MYD")
+addFilter("E: zero-length /usr/share/mysql-test/std_data/cluster_7022_table.MYD")
+addFilter("E: zero-length /usr/share/mysql-test/collections/disabled-weekly.list")
+addFilter("E: zero-length /usr/share/mysql-test/collections/disabled-daily.list")
+
+# debuginfo bug?
+addFilter("E: non-standard-dir-perm /usr/src/debug/tmp 01777")
+
+# mysql-config *script* in lib
+addFilter("W: only-non-binary-in-usr-lib")
+
+# missing
+addFilter("W: no-manual-page-for-binary my_safe_process")
+
+# cluster is gone
+addFilter("W: obsolete-not-provided mysql-cluster")
+

@@ -1,0 +1,188 @@
+From 1f1dc3a88a5581e55d010eda16d8ef896009b2d0 Mon Sep 17 00:00:00 2001
+From: Matt Rogers <mrogers@redhat.com>
+Date: Fri, 10 Feb 2017 12:53:42 -0500
+Subject: [PATCH] Use fallback realm for GSSAPI ccache selection
+
+In krb5_cc_select(), if the server principal has an empty realm, use
+krb5_get_fallback_host_realm() and set the server realm to the first
+fallback found.  This helps with the selection of a non-default ccache
+when there is no [domain_realms] configuration for the server domain.
+Modify t_ccselect.py tests to account for fallback behavior.
+
+ticket: 8549 (new)
+(cherry picked from commit 234b64bd6139d5b75dadd5abbd5bef5a162e298a)
+[rharwood@redhat.com conflicts t_ccselect.py]
+---
+ src/lib/krb5/ccache/ccselect.c | 37 +++++++++++++++++++++++++-----
+ src/tests/gssapi/t_ccselect.py | 51 +++++++++++++++++++++++++++++++++---------
+ 2 files changed, 73 insertions(+), 15 deletions(-)
+
+diff --git a/src/lib/krb5/ccache/ccselect.c b/src/lib/krb5/ccache/ccselect.c
+index 2f3071a27..ee4b83a9b 100644
+--- a/src/lib/krb5/ccache/ccselect.c
++++ b/src/lib/krb5/ccache/ccselect.c
+@@ -132,6 +132,8 @@ krb5_cc_select(krb5_context context, krb5_principal server,
+     struct ccselect_module_handle **hp, *h;
+     krb5_ccache cache;
+     krb5_principal princ;
++    krb5_principal srvcp = NULL;
++    char **fbrealms = NULL;
+ 
+     *cache_out = NULL;
+     *princ_out = NULL;
+@@ -139,7 +141,27 @@ krb5_cc_select(krb5_context context, krb5_principal server,
+     if (context->ccselect_handles == NULL) {
+         ret = load_modules(context);
+         if (ret)
+-            return ret;
++            goto cleanup;
++    }
++
++    /* Try to use the fallback host realm for the server if there is no
++     * authoritative realm. */
++    if (krb5_is_referral_realm(&server->realm) &&
++        server->type == KRB5_NT_SRV_HST && server->length == 2) {
++        ret = krb5_get_fallback_host_realm(context, &server->data[1],
++                                           &fbrealms);
++        if (ret)
++            goto cleanup;
++
++        /* Make a copy with the first fallback realm. */
++        ret = krb5_copy_principal(context, server, &srvcp);
++        if (ret)
++            goto cleanup;
++        ret = krb5_set_principal_realm(context, srvcp, fbrealms[0]);
++        if (ret)
++            goto cleanup;
++
++        server = srvcp;
+     }
+ 
+     /* Consult authoritative modules first, then heuristic ones. */
+@@ -155,20 +177,25 @@ krb5_cc_select(krb5_context context, krb5_principal server,
+                                          princ);
+                 *cache_out = cache;
+                 *princ_out = princ;
+-                return 0;
++                goto cleanup;
+             } else if (ret == KRB5_CC_NOTFOUND) {
+                 TRACE_CCSELECT_MODNOTFOUND(context, h->vt.name, server, princ);
+                 *princ_out = princ;
+-                return ret;
++                goto cleanup;
+             } else if (ret != KRB5_PLUGIN_NO_HANDLE) {
+                 TRACE_CCSELECT_MODFAIL(context, h->vt.name, ret, server);
+-                return ret;
++                goto cleanup;
+             }
+         }
+     }
+ 
+     TRACE_CCSELECT_NOTFOUND(context, server);
+-    return KRB5_CC_NOTFOUND;
++    ret = KRB5_CC_NOTFOUND;
++
++cleanup:
++    krb5_free_principal(context, srvcp);
++    krb5_free_host_realm(context, fbrealms);
++    return ret;
+ }
+ 
+ void
+diff --git a/src/tests/gssapi/t_ccselect.py b/src/tests/gssapi/t_ccselect.py
+index 6be6b4ec0..c6201ca41 100755
+--- a/src/tests/gssapi/t_ccselect.py
++++ b/src/tests/gssapi/t_ccselect.py
+@@ -31,12 +31,18 @@ r2 = K5Realm(create_user=False, realm='KRBTEST2.COM', portbase=62000,
+ 
+ host1 = 'p:' + r1.host_princ
+ host2 = 'p:' + r2.host_princ
++foo = 'foo.krbtest.com'
++foo2 = 'foo.krbtest2.com'
+ 
+-# gsserver specifies the target as a GSS name.  The resulting
+-# principal will have the host-based type, but the realm won't be
+-# known before the client cache is selected (since k5test realms have
+-# no domain-realm mapping by default).
+-gssserver = 'h:host@' + hostname
++# These strings specify the target as a GSS name.  The resulting
++# principal will have the host-based type, with the referral realm
++# (since k5test realms have no domain-realm mapping by default).
++# krb5_cc_select() will use the fallback realm, which is either the
++# uppercased parent domain, or the default realm if the hostname is a
++# single component.
++gssserver = 'h:host@' + foo
++gssserver2 = 'h:host@' + foo2
++gsslocal = 'h:host@localhost'
+ 
+ # refserver specifies the target as a principal in the referral realm.
+ # The principal won't be treated as a host principal by the
+@@ -67,6 +73,16 @@ r1.addprinc(alice, password('alice'))
+ r1.addprinc(bob, password('bob'))
+ r2.addprinc(zaphod, password('zaphod'))
+ 
++# Create host principals and keytabs for fallback realm tests.
++r1.addprinc('host/localhost')
++r2.addprinc('host/localhost')
++r1.addprinc('host/' + foo)
++r2.addprinc('host/' + foo2)
++r1.extract_keytab('host/localhost', r1.keytab)
++r2.extract_keytab('host/localhost', r2.keytab)
++r1.extract_keytab('host/' + foo, r1.keytab)
++r2.extract_keytab('host/' + foo2, r2.keytab)
++
+ # Get tickets for one user in each realm (zaphod will be primary).
+ r1.kinit(alice, password('alice'))
+ r2.kinit(zaphod, password('zaphod'))
+@@ -94,10 +110,24 @@ if output != (zaphod + '\n'):
+     fail('zaphod not chosen as default initiator name for server in r1')
+ 
+ # Check that primary cache is used if server realm is unknown.
+-output = r2.run(['./t_ccselect', gssserver])
++output = r2.run(['./t_ccselect', refserver])
+ if output != (zaphod + '\n'):
+     fail('zaphod not chosen via primary cache for unknown server realm')
+-r1.run(['./t_ccselect', gssserver], expected_code=1)
++r1.run(['./t_ccselect', gssserver2], expected_code=1)
++# Check ccache selection using a fallback realm.
++output = r1.run(['./t_ccselect', gssserver])
++if output != (alice + '\n'):
++    fail('alice not chosen via parent domain fallback')
++output = r2.run(['./t_ccselect', gssserver2])
++if output != (zaphod + '\n'):
++    fail('zaphod not chosen via parent domain fallback')
++# Check ccache selection using a fallback realm (default realm).
++output = r1.run(['./t_ccselect', gsslocal])
++if output != (alice + '\n'):
++    fail('alice not chosen via default realm fallback')
++output = r2.run(['./t_ccselect', gsslocal])
++if output != (zaphod + '\n'):
++    fail('zaphod not chosen via default realm fallback')
+ 
+ # Get a second cred in r1 (bob will be primary).
+ r1.kinit(bob, password('bob'))
+@@ -105,20 +135,21 @@ r1.kinit(bob, password('bob'))
+ # Try some cache selections using .k5identity.
+ k5id = open(os.path.join(r1.testdir, '.k5identity'), 'w')
+ k5id.write('%s realm=%s\n' % (alice, r1.realm))
+-k5id.write('%s service=ho*t host=%s\n' % (zaphod, hostname))
++k5id.write('%s service=ho*t host=localhost\n' % zaphod)
+ k5id.write('noprinc service=bogus')
+ k5id.close()
+ output = r1.run(['./t_ccselect', host1])
+ if output != (alice + '\n'):
+     fail('alice not chosen via .k5identity realm line.')
+-output = r2.run(['./t_ccselect', gssserver])
++output = r2.run(['./t_ccselect', gsslocal])
+ if output != (zaphod + '\n'):
+     fail('zaphod not chosen via .k5identity service/host line.')
+ output = r1.run(['./t_ccselect', refserver])
+ if output != (bob + '\n'):
+     fail('bob not chosen via primary cache when no .k5identity line matches.')
+-output = r1.run(['./t_ccselect', 'h:bogus@' + hostname], expected_code=1)
+ if 'Can\'t find client principal noprinc' not in output:
+     fail('Expected error not seen when k5identity selects bad principal.')
++r1.run(['./t_ccselect', 'h:bogus@' + foo2], expected_code=1,
++       expected_msg="Can't find client principal noprinc")
+ 
+ success('GSSAPI credential selection tests')

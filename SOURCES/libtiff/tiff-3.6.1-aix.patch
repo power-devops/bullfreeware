@@ -1,0 +1,2644 @@
+diff -crN ./OTHERS/tiff/configure /users3/olivap/sb/p64/src/./OTHERS/tiff/configure
+*** ./OTHERS/tiff/configure	Thu Jan  1 01:00:00 1970
+--- /users3/olivap/sb/p64/src/./OTHERS/tiff/configure	Thu Jan  6 14:10:39 2005
+***************
+*** 0 ****
+--- 1,1923 ----
++ #!/bin/sh
++ #	$Header: /cvsroot/osrs/libtiff/configure,v 1.31 2003/10/09 08:33:47 dron Exp $
++ #
++ # Tag Image File Format (TIFF) Software
++ #
++ # Copyright (c) 1988-1997 Sam Leffler
++ # Copyright (c) 1991-1997 Silicon Graphics, Inc.
++ # 
++ # Permission to use, copy, modify, distribute, and sell this software and 
++ # its documentation for any purpose is hereby granted without fee, provided
++ # that (i) the above copyright notices and this permission notice appear in
++ # all copies of the software and related documentation, and (ii) the names of
++ # Sam Leffler and Silicon Graphics may not be used in any advertising or
++ # publicity relating to the software without the specific, prior written
++ # permission of Sam Leffler and Silicon Graphics.
++ # 
++ # THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
++ # EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
++ # WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
++ # 
++ # IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
++ # ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
++ # OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
++ # WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
++ # LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
++ # OF THIS SOFTWARE.
++ #
++ 
++ # Configuration script for the TIFF Software
++ 
++ #
++ # Shell script to setup machine-dependent files in
++ # preparation for building TIFF source.
++ #
++ 
++ POSIXLY_CORRECT=1; export POSIXLY_CORRECT	# disable GNU extensions
++ 
++ QUIET=no				# suppress messages to tty
++ NONINTERACTIVE=no			# control prompting of config params
++ SITE=					# dir where config.site is located
++ TARGET=					# target system identity
++ SRCDIR=					# dir where source is located
++ 
++ #
++ # Setup general configuration parameters.
++ #
++ PREFIX=/usr/local                       # root of installation 
++ EPREFIX=${PREFIX}
++ DIRS_LIBINC=				# dirs to search for ancillary includes
++ DIR_JPEGLIB=				# dir for IJG -ljpeg
++ DIR_GZLIB=				# dir for zlib -lgz
++ DSO=auto				# auto-enable DSO support
++ LIBCOPTS=				# library-specific C-compiler options
++ JPEG=no					# configure JPEG support
++ ZIP=no					# configure ZIP/Deflate support
++ PORT=auto				# enable portability emulations
++ HTML=no					# install HTML documentation
++ LIBGL=auto				# auto-enable build of SGI -lgl apps
++ LIBIMAGE=auto				# auto-enable build of SGI -limage apps
++ : ${CC=}				# name of C compiler to use
++ : ${CCOMPILER=}				# full pathname of C compiler
++ : ${OPTIMIZER=-O}			# Optimization flag
++ : ${ENVOPTS=}				# CC opts for ANSI C compilation
++ : ${MAKE=make}				# make to use
++ 
++ # screws up the test of `-f -'
++ : ${MAKEFLAGS=}				# unset MAKEFLAGS
++ RM="rm -f"
++ 
++ #
++ # Error diagnostics that should go to the terminal are
++ # done with this interface (or cat).
++ #
++ bitch()
++ {
++     echo "configure: $@" 1>&2
++ }
++ 
++ #
++ # This is the preferred interface for
++ # configure to terminate abnormally.
++ #
++ boom()
++ {
++     bitch ""
++     bitch "Unrecoverable error!  Once you've corrected the problem rerun this script."
++     kill -1 $$				# use kill so trap handler is called
++ }
++ 
++ usage()
++ {
++     cat<<'EOF'
++ Usage: configure [options] [host]
++ Options: [defaults in brackets after descriptions]
++   --help                  print this message
++   --quiet                 do not print `Using ...' messages
++   --verbose		  opposite of --quiet
++   --noninteractive        don't ask any questions
++   --version               print the version of autoconf that created configure
++   --prefix=PREFIX         root of installation [PREFIX=/usr/local]
++   --exec-prefix=EPREFIX   root of installation [EPREFIX=PREFIX]
++   --target=TARGET         configure for TARGET [TARGET=HOST]
++   --srcdir=DIR            find the sources in DIR [configure dir or ..]
++   --with-PARAM[=ARG]      set configuration PARAM [ARG=yes]
++ EOF
++ }
++ 
++ #
++ # Crack command line arguments.  We purposely
++ # use syntax and options that are compatible
++ # with GNU autoconf.
++ #
++ ac_prev=
++ for ac_option
++ do
++     if [ -n "$ac_prev" ]; then		# assign the argument to previous option
++ 	eval "$ac_prev=\$ac_option"
++ 	ac_prev=
++ 	continue
++     fi
++     case "$ac_option" in		# collect optional argument
++     -*=*)	ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'`;;
++     *)		ac_optarg=;;
++     esac
++     case "$ac_option" in
++     -with-*|--with-*)
++ 	ac_with=`echo $ac_option|sed -e 's/-*with-//' -e 's/=.*//'`
++ 	# Reject names that are not valid shell variable names.
++ 	if [ -n "`echo $ac_with| sed 's/[-_a-zA-Z0-9]//g'`" ]; then
++ 	    bitch "configure: $ac_with: invalid parameter name."
++ 	    kill -1 $$
++ 	fi
++ 	ac_with=`echo $ac_with| sed 's/-/_/g'`
++ 	case "$ac_option" in
++ 	*=*)	;;
++ 	*)	ac_optarg=yes;;
++ 	esac
++ 	eval "${ac_with}='$ac_optarg'"
++ 	;;
++     -quiet|--quiet)		QUIET=yes;;
++     -verbose|--verbose)		QUIET=no;;
++     -noninteractive|--noninteractive) NONINTERACTIVE=yes;;
++     -site|--site)		ac_prev=SITE;;
++     -site=*|--site=*)		SITE="$ac_optarg";;
++     -srcdir|--srcdir)		ac_prev=SRCDIR;;
++     -srcdir=*|--srcdir=*)	SRCDIR="$ac_optarg";;
++     --exec-prefix)		ac_prev=EPREFIX;;
++     --exec-prefix=*)		EPREFIX="$ac_optarg" ;;
++     --prefix)			ac_prev=PREFIX;;
++     --prefix=*)			PREFIX="$ac_optarg";
++                                 EPREFIX=${PREFIX} ;;
++     -target|--target)		ac_prev=TARGET;;
++     -target=*|--target=*)	TARGET="$ac_optarg" ;;
++     -version|--version)
++ 	echo "This is TIFF configure $Revision: 1.31 $"
++ 	exit 0
++ 	;;
++     -help|--help)		usage; exit 0;;
++     -*)
++ 	bitch "configure: $ac_option: invalid option; use -help for usage."
++ 	kill -1 $$
++ 	;;
++     *)
++ 	if [ x"$TARGET" != x ]; then
++ 	    bitch "configure: Can only configure for one target at a time."
++ 	    kill -1 $$
++ 	fi
++ 	TARGET="$ac_option"
++ 	;;
++     esac
++ done
++ 
++ DIR_BIN=${EPREFIX}/bin		# destination for applications
++ DIR_LIB=${EPREFIX}/lib		# destination for library
++ DIR_INC=${PREFIX}/include		# destination for include files
++ DIR_HTML=${PREFIX}/doc/libtiff		# destination for HTML files
++ 
++ if [ -n "$ac_prev" ]; then
++     bitch "configure: missing argument to --`echo $ac_prev | sed 's/_/-/g'`"
++     kill -1 $$
++ fi
++ 
++ #
++ # Locate source directory by looking for the VERSION file.
++ # The directory must either be specified through the
++ # environment or be located in the current directory or a
++ # parent of the current directory.
++ #
++ test "$SRCDIR" || {
++     configure=$0
++     # NB: don't use dirname since it may not exist
++     SRCDIR=`echo $configure | sed 's;/[^/][^/]*$;;'`
++     if [ @"$SRCDIR" = @"$configure" ]; then
++         SRCDIR=.
++     fi
++     while [ ! -r $SRCDIR/VERSION ]; do
++ 	# strip last directory from pathname
++ 	newdir=`echo $SRCDIR | sed 's;/[^/]*$;;'`
++ 	if [ -z "$newdir" ] || [ "$newdir" = $SRCDIR ]; then
++ 	    break;
++ 	fi
++ 	SRCDIR=$newdir
++     done
++ }
++ if [ ! -r $SRCDIR/VERSION ]; then
++     bitch "Cannot locate sources in $SRCDIR."
++     kill -1 $$
++ fi
++ SRCDIR=`echo "$SRCDIR" | sed 's;\([^/]\)/*$;\1;'`
++ 
++ if [ -r ${SRCDIR}/tif_version.c ] ; then
++     SRCDIR_IS_LIBTIFF=yes
++     PORTDOTH=port.h
++ else
++     SRCDIR_IS_LIBTIFF=no
++     PORTDOTH=libtiff/port.h
++ fi
++ 
++ #
++ # Descriptor usage:
++ # 1: ???
++ # 2: errors that should be seen even if we're in the background.
++ # 3: [stdout from test runs]
++ # 4: verbose-style messages (Using ...)
++ # 5: compiler stderr when running tests
++ #
++ if [ $QUIET = yes ]; then
++     exec 4>/dev/null			# chuck messages
++ else
++     exec 4>&1				# messages got to stdout
++ fi
++ exec 5>./config.log			# compiler messages and the like
++ 
++ capture()
++ {
++     (eval "set -x; $*") >&5 2>&1
++     return
++ }
++ captureX()
++ {
++     (eval "set -x; $*") 2>&5
++     return
++ }
++ 
++ date >&5
++ echo Running "$0" with arguments: "$@" >&5
++ 
++ cat 1>&5 <<'EOF'
++ 
++ This file contains information that is captured from running the configure
++ script.  Lines that begin with a "+" are command lines echoed by the
++ shell.  Other lines are the output of commands; usually the contents of
++ test case files or the output from compilers.  If configure does the
++ wrong thing, you can use the information captured here to aid in debugging.
++ 
++ EOF
++ 
++ VERSIONFILE=$SRCDIR/VERSION
++ RELEASE_DATE_FILE=$SRCDIR/RELEASE-DATE
++ DATE=`date`
++ 
++ eval `cat $VERSIONFILE |  sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)\(.*\)/DIST_MAJOR=\1; DIST_MINOR=\2; DIST_POINT=\3/'`
++ VERSION="v${DIST_MAJOR}.${DIST_MINOR}.${DIST_POINT}"
++ 
++ RELEASE=`cat $VERSIONFILE |  sed -e 's/[0-9 \.]//g'`
++ Note()
++ {
++     echo "$@" 1>&4
++ }
++ 
++ Note ""
++ if [ $SRCDIR_IS_LIBTIFF = yes ] ; then
++   Note "Configuring TIFF Software (library only) $VERSION"
++ else
++   Note "Configuring TIFF Software $VERSION"
++ fi
++ 
++ Note ""
++ Note "If configure does the wrong thing, check the file config.log for"
++ Note "information that may help you understand what went wrong."
++ Note ""
++ 
++ #
++ # Read site and local configuration parameters.
++ #
++ if [ -f $SITE/config.site ]; then
++     Note "Reading site-wide parameters from $SITE/config.site."
++     . $SITE/config.site
++     capture . $SITE/config.site
++ elif [ -f $SRCDIR/config.site ]; then
++     Note "Reading site-wide parameters from $SRCDIR/config.site."
++     . $SRCDIR/config.site
++     capture . $SRCDIR/config.site
++ fi
++ if [ -f config.local ]; then
++     Note "Reading local parameters from config.local."
++     . ./config.local
++     capture . ./config.local
++ elif [ -f $SRCDIR/config.local ]; then
++     Note "Reading local parameters from $SRCDIR/config.local."
++     . $SRCDIR/config.local
++     capture . $SRCDIR/config.local
++ fi
++ 
++ #
++ # Emulate old-style settups...
++ #
++ test -z "${DIR_JPEG-}"  || {
++     DIRS_LIBINC="${DIRS_LIBINC} ${DIR_JPEG}"
++     DIR_JPEGLIB="${DIR_JPEG}"
++ }
++ test -z "${DIR_LIBGZ-}" || {
++     DIRS_LIBINC="${DIRS_LIBINC} ${DIR_LIBGZ}"
++     DIR_GZLIB="${DIR_LIBGZ}"
++ }
++ 
++ identifyTarget()
++ {
++     random=`date | awk '{print $4}' | sed -e 's/.*://'` 2>/dev/null
++     case "$random" in
++     *0) Note "Wow, you've got a $1 system!";;
++     *1) Note "Hmm, looks like a $1 system.";;
++     *2) Note "Oh no, not another $1 system...";;
++     *3) Note "Well I'll be, a $1 system.";;
++     *4) Note "Fee, fie, foe, this smells like a $1 system.";;
++     *5)	Note "Gosh, aren't you lucky to have a $1 system!";;
++     *6)	Note "YOW!!  Did something bad happen or am I on a $1 system?";;
++     *7)	Note "Do they really still make $1 systems?!";;
++     *8)	Note "I'm always happy to encounter another $1 system.";;
++     *9)	Note "Here we are again, this time on a $1 system.";;
++ esac
++ }
++ 
++ #
++ # If no target is specified, try to deduce the system.
++ # We use the GNU scripts for guessing and canonicalizing
++ # the system identification, if available.
++ #
++ if [ -z "$TARGET" ]; then
++     test -f $SRCDIR/config.guess && TARGET=`sh $SRCDIR/config.guess` 2>/dev/null
++     if [ -z "$TARGET" ]; then
++ 	bitch "Sorry, no target specified on the command line and I don't seem"
++ 	bitch "to have the GNU config.guess script that is used to deduce your"
++ 	bitch "system type."
++ 	kill -1 $$
++     fi
++     identifyTarget $TARGET
++ elif [ -f $SRCDIR/config.sub ]; then
++     TARGET=`sh $SRCDIR/config.sub "$TARGET"`
++ else
++     Note "Warning, I don't seem to have the GNU config.sub script to canonicalize"
++     Note "your target specification; this may cause problems later on..."
++ fi
++ if [ -z "${FILLORDER-}" ]; then
++     #
++     # Host bit order within a word.
++     #
++     case $TARGET in
++     mips-dec-*)	FILLORDER=LSB2MSB;;
++     i[345]86-*)	FILLORDER=LSB2MSB;;
++     *)		FILLORDER=MSB2LSB;;
++     esac
++ fi
++ 
++ #
++ # Find the full pathname of a file
++ # using the specified test operation.
++ #
++ findThing()
++ {
++     t="$1"; app="$2"; path="$3";
++     case "$app" in
++     /*) eval "$t" "$app" && { echo "$app"; return; };;
++     esac
++     (IFS=:
++     for i in $path; do
++ 	eval "$t" "$i/$app" && { echo "$i/$app"; return 0; }
++     done
++     return 1
++     )
++ }
++ 
++ #
++ # Find the full pathname of a plain file.
++ #
++ findFile()
++ {
++     findThing "test -f" "$1" "$2"
++ }
++ 
++ #
++ # Find the full pathname of an executable.
++ #
++ findApp()
++ {
++     findThing "test -x" $1 $2
++ }
++ 
++ #
++ # Find the full pathname of an executable;
++ # supply a default if nothing is found.
++ #
++ findAppDef()
++ {
++     app=$1; path=$2; def=$3
++     case $app in
++     /*) test -x $app && { echo $app; return; };;
++     esac
++     IFS=:
++     for i in $path; do
++ 	test -x $i/$app && { echo $i/$app; return; }
++     done
++     echo $def
++ }
++ 
++ #
++ # Find the full pathname of a header file; in search-path $DIRS_LIBINC
++ #
++ findHeader()
++ {
++     case "$1" in
++     /*) echo "$1"; return ;;
++     esac
++     for i in ${DIRS_LIBINC} /usr/include; do
++ 	test -r $i/$1 && {
++ 	    case "$i" in
++ 	    /*) echo "$i/$1"; return ;;
++ 	    esac
++ 	    if [ $SRCDIR_IS_LIBTIFF = yes ]; then
++ 		echo "$i/$1";
++ 	    else
++ 		echo "../$i/$1";
++ 	    fi
++ 	    return;
++ 	}
++     done
++ }
++ 
++ #
++ # Locate a C compiler that satisfies our needs (using assorted heuristics).
++ #
++ JUNK="
++     a.out
++     confsed
++     conftestmmap
++     confx confy
++     confMakefile
++     core
++     dummy
++     dummy.a
++     dummy.c
++     dummy.o
++     foo
++     so_locations
++     t.c
++     t.o
++     t
++     xMakedepend
++     xdefs
++     xgnu.c
++     xmakeinc
++     xport.h
++ "
++ trap "$RM \$JUNK; exit 1" 1 2 15
++ 
++ $RM $JUNK
++ 
++ cat>xgnu.c<<EOF
++ #ifdef __GNUC__
++ yes;
++ #endif
++ EOF
++ 
++ #
++ # Check if the specified compiler is from GNU 
++ #
++ isGNU()
++ {
++     capture "cat xgnu.c; ($1 -E xgnu.c 2>&5 | egrep yes)"
++ }
++ 
++ #
++ # NB: use ANSI C prototype to weed out non-ANSI compilers.
++ #
++ cat>dummy.c<<EOF
++ main(int argc, char* argv) { exit(0); }
++ EOF
++ 
++ checkCompiler()
++ {
++     compiler=$1
++     if isGNU $compiler; then
++ 	ISGCC=yes
++     else
++ 	ISGCC=no
++     fi
++     #
++     # Guess special options needed to get an
++     # ANSI C compiler and/or similar.  Must
++     # be combined with above checks so we only
++     # select an ANSI C compiler.
++     #
++     if [ -z "${ENVOPTS-}" ]; then
++ 	case $ISGCC-$TARGET in
++ 	no-*-irix*)	C_ANSI="-ansi";;
++ 	no-*-hp*)	C_ANSI="-D_HPUX_SOURCE";;
++ 	no-*-apollo-*)	C_ANSI="-A nansi";;
++ 	no-*-aix*)	C_ANSI="-Dunix -qlanglvl=ansi -qsrcmsg -qmaxmem=8192";;
++ 	*-sco*)		C_ANSI="-Dsco";;
++ 	esac
++     else
++ 	C_ANSI="$ENVOPTS"
++     fi
++     $RM dummy dummy.o
++     capture $compiler -o dummy ${C_ANSI} dummy.c && {
++ 	CC=$compiler;
++ 	test -z "${CCOMPILER-}" && CCOMPILER=`findApp $compiler $PATH`
++ 	test -z "${ENVOPTS-}"   && ENVOPTS="${C_ANSI-}"
++ 	return 0
++     }
++     return 1
++ }
++ 
++ CCtested=
++ capture cat dummy.c
++ if [ -z "${CC-}" ]; then
++     CCOMPILER=
++     for i in gcc cc ncc dcc xlc c89 gcc2; do
++ 	CCtested="$CCtested $i"
++ 	checkCompiler $i && break
++     done
++ else
++     CCtested="$CCtested $CC"
++     checkCompiler $CC
++ fi
++ if [ -z "$CCOMPILER" ]; then
++     cat<<EOF
++ 
++ Cannot locate a working ANSI C compiler.
++ 
++ We attempted to compile the following test program:
++ 
++ ----------------------------------------------------------
++ EOF
++     cat dummy.c
++     cat<<EOF
++ ----------------------------------------------------------
++ 
++ with these compilers:
++ 
++     $CCtested
++ 
++ but none of them were successful.
++ 
++ If your compiler is in a non-standard location, you can specify its
++ location in several ways:
++ 
++     o set the environment variable CC
++     o create a config.local or config.site file that includes a
++       definition for CC
++     o supply it on the command line using -with-CC=<pathname>
++ 
++ If command line options are required for ANSI C compilation, set the
++ ENVOPTS parameter to these options in a similar way (either through
++ an environment variable or config.local/config.site) and then rerun
++ this script.
++ EOF
++     boom
++ fi
++ Note "Using $CCOMPILER for a C compiler (use -with-CC=compilername to override)."
++ 
++ test "$ENVOPTS" && {
++     Note "Using $ENVOPTS to get the appropriate compilation environment."
++ }
++ 
++ if [ ${ISGCC} = yes ] ; then
++     GCCversion="`${CCOMPILER} -v 2>&1 | \
++ 	sed -n -e '/version/s/.* \([0-9]*\)\.\([0-9]*\).\([0-9]*\)/\1.\2.\3/p'`"
++ fi
++ 
++ 
++ CheckForGandO()
++ {
++    f=$1
++    if test -s $f; then
++ 	capture grep -i \(error\|warning\) $f || return 1
++     fi
++     return 0
++ }
++ 
++ if [ -z "${GCOPTS-}" ]; then
++     if capture $CCOMPILER $ENVOPTS -g -c dummy.c; then
++ 	Note "Looks like $CCOMPILER supports the -g option."
++ 	# NB: cannot use captureX here 'cuz we lose stderr
++ 	if $CCOMPILER $ENVOPTS -c -g $OPTIMIZER dummy.c >t 2>&1 && CheckForGandO t; then
++ 	    GCOPTS="-g"
++ 	else
++ 	    Note "... but not together with the $OPTIMIZER option, not using it."
++ 	    GCOPTS=
++ 	fi
++     else
++ 	GCOPTS=
++     fi
++ fi
++ if [ ! -z "${GCOPTS}" ]; then
++     Note "Using \"$GCOPTS\" for C compiler options."
++ fi
++ 
++ #
++ # Verify that $MAKE is accessible
++ #
++ PATHMAKE=`findApp ${MAKE} $PATH`
++ if [ "$PATHMAKE" ]; then
++     Note "Using $PATHMAKE to configure the software."
++     (echo 'all:') | ${MAKE} -f - all >/dev/null 2>&5 || {
++ 	cat<<EOF
++ 
++ Something is wrong with "$MAKE" or $MAKE does not accept Makefiles
++ from stdin with "-f -".  If you have MAKE set in your environment,
++ verify it points to the right program you want to" use to build this
++ software.  Otherwise, verify that you have the make program installed
++ somewhere on your system and set the MAKE environment variable to the
++ pathname of the program.
++ EOF
++ 	boom
++     }
++ else
++     cat<<EOF
++ No $MAKE located in the search path.
++ 
++ There was no $MAKE program in the restricted search used by this script
++ If $MAKE is in a non-standard location set the MAKE environment variable
++ to the pathname of the appropriate program.
++ EOF
++     boom
++ fi
++ 
++ # Find sh (likely /bin/sh or /usr/bin/sh), and put in SCRIPT_SH
++ 
++ test -z "${SCRIPT_SH-}" && SCRIPT_SH=`findAppDef sh $PATH sh`
++ 
++ #
++ # Check whether or not $MAKE automatically sets MAKE
++ # in the Makefiles.  If not, we add an explicit define
++ # for places where recursive calls are made.
++ #
++ if [ -z "${SETMAKE-}" ]; then
++     if (sed "s;@SHELL@;$SCRIPT_SH;" <<'EOF'
++ SHELL=@SHELL@
++ all:
++ 	@if [ -n "${MAKE}" ] ; then echo "make sets make"  ; fi
++ EOF
++ ) | $MAKE -f - | grep "make sets make" > /dev/null ; then
++ 	SETMAKE=
++     else
++ 	Note "Looks like $MAKE does not setup MAKE in Makefiles, will compensate."
++ 	SETMAKE="MAKE	= ${MAKE}"
++     fi
++ fi
++ 
++ test -z "${AR-}" && AR=`findApp ar $PATH`
++ if [ -z "$AR" ]; then
++     Note "*** Warning, could not locate a suitable ar command; using a default."
++     AR=ar
++ fi
++ test -z "${AROPTS-}" && AROPTS=rc
++ test -z "${RANLIB-}" && RANLIB=`findApp ranlib $PATH`
++ if [ -z "$RANLIB" ]; then
++     Note "Warning, no ranlib, assuming it's not needed."
++     RANLIB=":"
++     $RM dummy.a
++     if $AR rcs dummy.a >/dev/null 2>&1; then
++        AROPTS=crs
++        Note "Looks like ar has an s option to build symbol tables."
++     fi
++ fi
++ 
++ #
++ # runMake target rules ...
++ #
++ runMakeX()
++ {
++     target="$1"; shift
++     $RM $target
++     (echo SRCDIR=.
++        for i in "$@"; do
++ 	  echo "$i";
++        done
++     )>confMakefile
++     captureX ${MAKE} -f confMakefile $target
++     return
++ }
++ runMake()
++ {
++     runMakeX "$@" >&5
++     return
++ }
++ 
++ #
++ # Look for a library using a known (unique) function.
++ #
++ CheckForLibrary()
++ {
++     f=$1; shift
++     libs="$@";
++     cat>t.c<<EOF
++ int t() { $f(); return 0; }
++ int main(){ t(); return 0; }
++ EOF
++     runMake t "t:; ${CCOMPILER} ${ENVOPTS} t.c $libs"
++ }
++ 
++ #
++ # Look for an include file.
++ #
++ CheckForIncludeFile()
++ {
++     (for i do
++ 	echo "#include \"$i\""
++      done)>t.c
++     runMake t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c"
++ }
++ 
++ #
++ # Figure out if certain system-specific interfaces are
++ # supported.  We craft a port.h file that has external
++ # declarations for missing routines that are required by
++ # the system and modify defs to reflect which optional
++ # interfaces are supported.
++ #
++ 
++ EmitCPlusPlusPrologue()
++ {
++     echo '/*'
++     echo ' * Warning, this file was automatically created by the TIFF configure script'
++     echo ' * VERSION:	' $VERSION
++     echo ' * RELEASE:   ' $RELEASE
++     echo ' * DATE:	' $DATE
++     echo ' * TARGET:	' $TARGET
++     if [ $ISGCC = yes ]; then
++ 	echo ' * CCOMPILER:	' ${CCOMPILER}-${GCCversion}
++     else
++ 	echo ' * CCOMPILER:	' $CCOMPILER
++     fi
++     echo ' */'
++     echo "#ifndef $1"
++     echo "#define $1 1"
++     echo '#ifdef __cplusplus'
++     echo 'extern "C" {'
++     echo '#endif'
++ }
++ 
++ EmitCPlusPlusEpilogue()
++ {
++     echo '#ifdef __cplusplus'
++     echo '}'
++     echo '#endif'
++     echo '#endif'
++ }
++ 
++ #
++ # Look for a function in one of the standard libraries
++ # or one of the machine-dependent libraries selected above.
++ #
++ CheckForFunc()
++ {
++     echo "extern int $1(); main(){$1();exit(0);}" >t.c
++     runMake t "t:; ${CCOMPILER} ${ENVOPTS} t.c ${MACHDEPLIBS}"
++ }
++ 
++ # 
++ # Verify that we have -lm.  Darwin (for instance) does not.  Add to 
++ # MACHDEPLIBS if required.
++ #
++ 
++ if [ -z "${MACHDEPLIBS-}" ]; then
++     MACHDEPLIBS=""
++     if CheckForFunc cos ; then
++         echo "Leaving MACHDEPLIBS empty, apparently you don't need -lm."
++     else
++         MACHDEPLIBS="-lm"
++         echo "Defaulting MACHDEPLIBS to -lm."
++     fi
++ fi
++ 
++ #
++ # Look for a function declaration in system include files.
++ #
++ AddFuncDecl()
++ {
++     echo "$2";
++     Note "... add function prototype for $1"
++ }
++ CheckForFuncDecl()
++ {
++     f=$1; shift
++     (for i do
++ 	echo "#include \"$i\""
++      done)>t.c
++     capture cat t.c
++     runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" |\
++      awk '{while($0~/[,(][ \t]*$/){printf"%s",$0;getline}print}' |\
++      grep "$f[ ]*(.*)" >&5
++     return
++ }
++ CheckFuncDecl()
++ {
++     f=$1; shift
++     decl=$1; shift
++     CheckForFuncDecl "$f" "$@" || AddFuncDecl "$f" "$decl"
++ }
++ 
++ #
++ # Look for a variable declaration in system include files.
++ #
++ CheckForVarDecl()
++ {
++     v="$1"; shift
++     (for i do
++ 	echo "#include \"$i\""
++      done)>t.c
++     capture cat t.c
++     runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep "$v" >&5
++     return
++ }
++ CheckVarDecl()
++ {
++     v="$1"; shift
++     decl="$1"; shift
++     CheckForVarDecl "$v" "$@" || \
++ 	(echo "$decl"; Note "... add declaration $decl")
++ }
++ 
++ #
++ # Look for a #define in system include files.
++ #
++ AddDefine()
++ {
++    echo '#ifndef' $1
++    echo '#define' "$2"
++    echo '#endif'
++    Note '... add #define for' "$1"
++ }
++ CheckForDefine()
++ {
++     def=$1; shift
++     (for i do
++ 	echo "#include \"$i\""
++      done
++      echo "#ifdef $def"
++      echo "FOUND();"
++      echo "#endif"
++     )>t.c
++     capture cat t.c
++     runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep FOUND >&5
++ }
++ CheckDefine()
++ {
++     def=$1; shift
++     decl=$1; shift
++     CheckForDefine "$def" "$@" || AddDefine "$def" "$decl"
++ }
++ 
++ CheckForMMAP()
++ {
++     if CheckForFunc getpagesize; then
++ 	cat>t.c<<'EOF'
++ /* this was lifted from GNU autoconf */
++ /* Thanks to Mike Haertel and Jim Avera for this test. */
++ #include <sys/types.h>
++ #include <fcntl.h>
++ #include <sys/mman.h>
++ EOF
++     else
++ 	cat>t.c<<'EOF'
++ /* this was lifted from GNU autoconf */
++ /* Thanks to Mike Haertel and Jim Avera for this test. */
++ #include <sys/types.h>
++ #include <fcntl.h>
++ #include <sys/mman.h>
++ 
++ #ifdef BSD
++ # ifndef BSD4_1
++ #  define HAVE_GETPAGESIZE
++ # endif
++ #endif
++ 
++ #ifndef HAVE_GETPAGESIZE
++ # include <sys/param.h>
++ # ifdef EXEC_PAGESIZE
++ #  define getpagesize() EXEC_PAGESIZE
++ # else
++ #  ifdef NBPG
++ #   define getpagesize() NBPG * CLSIZE
++ #   ifndef CLSIZE
++ #    define CLSIZE 1
++ #   endif
++ #  else
++ #   ifdef NBPC
++ #    define getpagesize() NBPC
++ #   else
++ #    define getpagesize() PAGESIZE /* SVR4 */
++ #   endif
++ #  endif
++ # endif
++ #endif
++ EOF
++     fi
++ cat>>t.c<<'EOF'
++ #if defined(__osf__) || defined(_AIX)
++ # define valloc malloc
++ #endif
++ char *valloc(), *malloc();
++ 
++ int
++ main()
++ {
++   char *buf1, *buf2, *buf3;
++   int i = getpagesize(), j;
++   int i2 = getpagesize()*2;
++   int fd;
++ 
++   buf1 = (char *)valloc(i2);
++   buf3 = (char *)malloc(i2);
++   for (j = 0; j < i2; ++j)
++     *(buf1 + j) = rand();
++   fd = open("conftestmmap", O_CREAT | O_RDWR, 0666);
++   write(fd, buf1, i2);
++   buf2 = mmap(0, i, PROT_READ|PROT_WRITE, MAP_VARIABLE|MAP_PRIVATE, fd, 0);
++   for (j = 0; j < i; ++j)
++     if (*(buf1 + j) != *(buf2 + j))
++       exit(1);
++   lseek(fd, (long)i, 0);
++   read(fd, buf2, i); /* read into mapped memory -- file should not change */
++   /* (it does in i386 SVR4.0 - Jim Avera, jima@netcom.com) */
++   lseek(fd, (long)0, 0);
++   read(fd, buf3, i2);
++   for (j = 0; j < i2; ++j)
++     if (*(buf1 + j) != *(buf3 + j))
++       exit(1);
++   exit(0);
++ }
++ EOF
++     capture cat t.c
++     runMake t "t:; ${CCOMPILER} ${ENVOPTS} t.c ${MACHDEPLIBS}" && ./a.out
++ }
++ 
++ CheckForBigEndian()
++ {
++     cat>t.c<<EOF
++ #include <endian.h>
++ #ifdef __BYTE_ORDER
++ #if __BYTE_ORDER == __LITTLE_ENDIAN
++ little;
++ #elif __BYTE_ORDER == __BIG_ENDIAN
++ big;
++ #endif
++ #endif
++ EOF
++     capture cat t.c
++     runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep little >&5 && \
++        return 1
++     runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep big >&5 && \
++        return 0
++     echo 'main() { int one = 1; char* cp = (char*)&one; exit(*cp!=0); }'>t.c
++     capture cat t.c
++     runMake t "t:; ${CCOMPILER} ${ENVOPTS} t.c" && ./a.out
++ }
++ 
++ #
++ # Check an existing port.h to see if it was created
++ # for the target and compiler we are using.
++ #
++ CheckPortDotH()
++ {
++     getConfigTag()
++     {
++ 	param=`grep "$1:" $2 | sed -e 's/.*:[ 	]*\([^ 	]*\).*/\1/'`
++     }
++     getConfigTag TARGET $PORTDOTH; target="$param"
++     getConfigTag CCOMPILER $PORTDOTH; ccompiler="$param"
++     CCOMP=$CCOMPILER
++     if [ $ISGCC = yes ]; then
++ 	CCOMP="${CCOMP}-${GCCversion}"
++     fi
++     test "$target" = "$TARGET" && test "$ccompiler" = "$CCOMP"
++ }
++ 
++ #
++ # Built port.h based on the system and compiler setup.
++ #
++ BuildPortDotH()
++ {
++     Note ""
++     Note "Creating $PORTDOTH with necessary definitions."
++ 
++     (EmitCPlusPlusPrologue _PORT_
++ 
++     CheckForIncludeFile sys/types.h && echo '#include <sys/types.h>'
++     CheckVarDecl off_t 'typedef long off_t;' sys/types.h stdlib.h
++     CheckVarDecl size_t 'typedef unsigned size_t;' sys/types.h stdlib.h
++     CheckVarDecl u_char 'typedef unsigned char u_char;' sys/types.h
++     CheckVarDecl u_short 'typedef unsigned short u_short;' sys/types.h
++     CheckVarDecl u_int 'typedef unsigned int u_int;' sys/types.h
++     CheckVarDecl u_long 'typedef unsigned long u_long;' sys/types.h
++ 
++     echo "#define HOST_FILLORDER FILLORDER_${FILLORDER}"
++     CPU=`echo $TARGET | sed 's/-.*//'`
++     Note "... using $FILLORDER bit order for your $CPU cpu"
++     if CheckForBigEndian; then
++ 	echo "#define HOST_BIGENDIAN	1"
++ 	Note "... using big-endian byte order for your $CPU cpu"
++     else
++ 	echo "#define HOST_BIGENDIAN	0"
++ 	Note "... using little-endian byte order for your $CPU cpu"
++     fi
++ 
++     CheckForMMAP && {
++ 	echo '#define HAVE_MMAP 1'
++ 	Note "... configure use of mmap for memory-mapped files"
++ 	CheckFuncDecl mmap \
++ 	    'extern void* mmap(void*, size_t, int, int, int, off_t);' sys/mman.h
++     }
++ 
++     CheckForIncludeFile stdio.h		&& echo '#include <stdio.h>'
++     CheckForIncludeFile unistd.h	&& echo '#include <unistd.h>'
++     CheckForIncludeFile string.h	&& echo '#include <string.h>'
++     CheckForIncludeFile stdlib.h	&& echo '#include <stdlib.h>'
++     if CheckForDefine O_RDONLY fcntl.h; then
++ 	echo '#include <fcntl.h>'
++ 	Note "... O_RDONLY is in <fcntl.h>"
++     elif CheckForDefine O_RDONLY sys/file.h; then
++ 	echo '#include <sys/file.h>'
++ 	Note "... O_RDONLY is in <sys/file.h>"
++     else
++ 	AddDefine O_RDONLY "O_RDONLY	0"
++ 	AddDefine O_WRONLY "O_WRONLY	1"
++ 	AddDefine O_RDWR   "O_RDWR	2"
++     fi
++ 
++     echo 'typedef double dblparam_t;'
++ 	Note "... using double for promoted floating point parameters"
++ 
++     if [ -z "${INLINE-}" ]; then
++ 	if [ $ISGCC = yes ]; then
++ 	    echo '#ifdef __STRICT_ANSI__'
++ 	    echo '#define	INLINE	__inline__'
++ 	    echo '#else'
++ 	    echo '#define	INLINE	inline'
++ 	    echo '#endif'
++ 	    Note "... enabling use of inline functions"
++ 	else
++ 	    echo '#define	INLINE'
++ 	    Note "... disabling use of inline functions"
++ 	fi
++     else
++ 	echo "#define INLINE $INLINE"
++ 	Note "... using \"$INLINE\" to control inline function usage"
++     fi
++ 
++     echo '#define GLOBALDATA(TYPE,NAME)	extern TYPE NAME'
++ 
++     CheckFuncDecl memset 'extern void* memset(void*, int, size_t);' string.h
++     CheckFuncDecl floor 'extern double floor(double);' math.h
++     CheckFuncDecl ceil 'extern double ceil(double);' math.h
++     CheckFuncDecl exp 'extern double exp(double);' math.h
++     CheckFuncDecl pow 'extern double pow(double, double);' math.h
++     CheckFuncDecl read 'extern int read(int, const void*, unsigned int);' unistd.h
++     CheckFuncDecl malloc 'extern void* malloc(size_t);' stdlib.h
++     CheckFuncDecl realloc 'extern void* realloc(void*, size_t);' stdlib.h
++     CheckFuncDecl free 'extern void free(void*);' stdlib.h
++     EmitCPlusPlusEpilogue
++     )>xport.h
++     if [ $SRCDIR_IS_LIBTIFF = no -a ! -d libtiff ]; then
++ 	Note "Creating libtiff directory"
++ 	mkdir libtiff
++     fi
++     mv xport.h $PORTDOTH; chmod 444 $PORTDOTH
++     Note "Done creating $PORTDOTH."
++ }
++ 
++ if [ "$PORT" != no ] && test -f $PORTDOTH && CheckPortDotH; then
++     Note ""
++     Note "Using previously created $PORTDOTH."
++ else
++     $RM xport.h t.c a.out $PORTDOTH
++     BuildPortDotH
++ fi
++ 
++ if [ "$PORT" = auto ]; then
++     Note ""
++     Note "Checking system libraries for functionality to emulate."
++ 
++     FUNCS="
++         strcasecmp
++         strtoul
++         getopt
++     "
++ 
++     for i in $FUNCS; do
++         CheckForFunc $i || {
++             Note "... emulate $i"
++             PORTFUNCS="${PORTFUNCS-} $i.c"
++         }
++     done
++     if [ "${PORTFUNCS-}" ]; then
++         LIBPORT='../port/libport.a'
++         PORT=yes
++     else
++         PORT=no
++     fi
++ fi
++ if [ $PORT != yes ] ; then
++    LIBPORT=
++    PORTFUNCS=
++ fi
++ Note "Done checking system libraries."
++ 
++ Note ""
++ Note "Checking for Dynamic Shared Object (DSO) support."
++ if [ "$DSO" = auto ]; then
++     DSO=no
++     DSOSUF_VERSION=
++     DSOLD='${LD}'
++     TIFFLIBREF=
++     case $TARGET-$CC-$ISGCC in
++     *-irix5.2*)
++ 	if (findApp rld /lib:/usr/lib:$PATH) >/dev/null 2>&1; then
++ 	    DSOSUF=so
++ 	    DSOOPTS='-elf -shared -no_unresolved -all'
++ 	    DSO=IRIX52
++ 	    TIFFLIBREF='-L${DEPTH}/libtiff -rpath '${DIR_LIB}' -ltiff'
++ 	fi
++ 	;;
++     *-irix*)
++ 	if (findApp rld /lib:/usr/lib:$PATH) >/dev/null 2>&1; then
++ 	    DSOSUF=so
++ 	    DSOLD="${CCOMPILER} ${ENVOPTS}"
++             if [ $ISGCC = yes ]; then
++                LIBCOPTS="-fpic"
++                DSOOPTS='-shared -rdata_shared'
++             else
++                LIBCOPTS="-KPIC"
++                DSOOPTS='-shared -rdata_shared -check_registry ${SRCDIR}/port/irix/so_locations -quickstart_info'
++             fi
++ 	    DSO=IRIX
++ 	    TIFFLIBREF='-L${DEPTH}/libtiff -rpath '${DIR_LIB}' -ltiff'
++ 	fi
++ 	;;
++     *-aix*)
++ 	DSOSUF=a
++ 	DSOOPTS='-r'
++ 	LIBCOPTS="-bM\:SRE"
++ 	DSO=AIX
++ 	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
++ 	;;
++     *-hpux*yes)
++         DSOSUF=sl
++         DSOLD=gcc
++         DSOOPTS='-fpic -shared'
++         LIBCOPTS=-fpic
++         DSO=HPUX
++ 	TIFFLIBREF="-Wl,+s,+b${DIR_LIB}"' -L${DEPTH}/libtiff -ltiff'
++         ;;		 
++     *-hpux*)
++ 	DSOSUF=sl
++ 	DSOSUF_VERSION=${DIST_MAJOR}.${DIST_MINOR}${DIST_POINT}
++ 	DSOOPTS='-b'
++ 	LIBCOPTS="+z"
++ 	DSO=HPUX
++ 	TIFFLIBREF='-L$(DEPTH)/libtiff -ltiff'
++ 	;;
++     *-solaris*)
++ 	DSOSUF=so
++ 	DSOOPTS='-G'
++ 	if [ $ISGCC = yes ]; then
++ 	    LIBCOPTS="-fpic"
++ 	else
++ 	    LIBCOPTS="-K PIC"
++ 	fi
++ 	DSO=SOLARIS
++ 	TIFFLIBREF='-L${DEPTH}/libtiff -R'${DIR_LIB}' -ltiff'
++ 	;;
++     *-netbsd*)
++ 	DSOSUF=so.${DIST_MAJOR}.0
++ 	LIBCOPTS='-fPIC'
++ 	DSO=NETBSD
++ 	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
++ 	;;
++     *-freebsd*)
++ 	DSOSUF=so.${DIST_MAJOR}
++ 	DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
++ 	LIBCOPTS='-fPIC'
++ 	DSOOPTS='-shared'
++ 	DSO=GNULD
++ 	;;
++     *-openbsd*)
++ 	DSOSUF=so.${DIST_MAJOR}.${DIST_MINOR}
++ 	LIBCOPTS='-fpic'
++ 	DSOSUF=so.${DIST_MAJOR}${DIST_MINOR}.${DIST_POINT}
++ 	if [ "`uname -m`" = "sparc64" ]; then
++ 	  LIBCOPTS='-fPIC'
++ 	else
++ 	  LIBCOPTS='-fpic'
++ 	fi
++ 	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
++ 	case "$TARGET" in
++ 	   *-openbsd[01].* | *-openbsd2.[0-7] | *-openbsd2.[0-7].*)
++ 	      DSO=oldOPENBSD
++ 	   ;;
++ 	   *)
++ 	      DSO=OPENBSD
++ 	      DSOLD="${CCOMPILER} ${ENVOPTS}"
++ 	      DSOOPTS='-shared ${LIBCOPTS}'
++ 	   ;;
++ 	esac
++ 	;;
++     *-darwin*)
++         DSOSUF=dylib
++         DSOSUF_VERSION=${DIST_MAJOR}.${DIST_MINOR}.${DIST_POINT}.dylib
++         LIBCOPTS='-fno-common'
++         DSOLD="${CCOMPILER} ${ENVOPTS}"
++         DSOOPTS='-dynamiclib -undefined error'
++         DSO=DARWIN
++         ;;
++     *-linux*)
++ 	DSOSUF=so.${DIST_MAJOR}
++ 	DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
++ 	LIBCOPTS='-fPIC'
++ 	DSOOPTS='-shared'
++ 	DSO=GNULD
++ 	;;
++     *-osf3*|*-osf4*)
++ 	DSOSUF=so
++ 	DSOOPTS='-shared'
++ 	DSO=OSF
++ 	;;
++     *-sco3.2*)
++         DSOSUF=so.${DIST_MAJOR}
++         DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
++         LIBCOPTS='-fPIC'
++         DSOOPTS='-shared'
++         DSO=OPENSERVER
++         ;;
++ 
++     esac
++ fi
++ if [ "$DSO" != no ]; then
++     JUNK="$JUNK t.${DSOSUF}"
++     #
++     # Check to make sure the compilers process
++     # the DSO options in the expected way.
++     #
++     CheckCCDSO()
++     {
++     $RM t.c t.o t.${DSOSUF}
++     cat>t.c<<EOF
++ int f() { return 0; }
++ EOF
++     capture cat t.c
++     runMake t \
++ 	"t.o:; ${CCOMPILER} ${ENVOPTS} ${LIBCOPTS} -c t.c" \
++ 	"t: t.o; ${DSOLD} ${DSOOPTS} -o t.${DSOSUF} t.o"
++     }
++     if CheckCCDSO; then
++ 	Note "Looks like your system supports $DSO-style DSOs."
++     else
++ 	cat 1>&4 <<EOF
++ Looks like your system supports $DSO-style DSOs...
++ ... sigh, but $CCOMPILER does not support DSOs in the expected way.
++ EOF
++ 	DSO=no
++     fi
++ fi
++ if [ "$DSO" = no ]; then
++     DSOSUF=a DSOOPTS= LIBCOPTS= 
++     DSOSUF_VERSION=$DSOSUF
++ fi
++ test -z "$TIFFLIBREF" && TIFFLIBREF="\${DEPTH}/libtiff/libtiff.${DSOSUF}"
++ test -z "$DSOSUF_VERSION" && DSOSUF_VERSION=${DSOSUF}
++ Note "Done checking for DSO support."
++ 
++ Note ""
++ if [ "$LIBIMAGE" = auto ]; then
++     if CheckForLibrary iopen -limage && CheckForIncludeFile gl/image.h; then
++ 	Note "Looks like there is support for SGI RGB images."
++ 	LIBIMAGE=yes
++     else
++ 	LIBIMAGE=no
++     fi
++ fi
++ if [ "$LIBGL" = auto ]; then
++     if CheckForLibrary winopen -lgl && CheckForIncludeFile gl.h; then
++ 	Note "Looks like there is support for IRIS GL."
++ 	LIBGL=yes
++     else
++ 	LIBGL=no
++     fi
++ fi
++ 
++ test $LIBGL = no -a $LIBIMAGE = no || Note ""
++ Note "Selecting programs used during installation."
++ 
++ 
++ #
++ # Miscellaneous ``little'' programs.
++ #
++ test -z "${CHMOD-}"	&& CHMOD=`findAppDef chmod $PATH chmod`
++ test -z "${LN-}"	&& LN=`findAppDef ln $PATH ln`
++ test -z "${SED-}"	&& SED=`findAppDef sed $PATH sed`
++ test -z "${STRIP-}"	&& STRIP=`findAppDef strip $PATH strip`
++ 
++ #
++ # Check if mv -f is supported
++ #
++ if [ -z "${MV_F-}" ]; then
++     $RM t.c; echo "">t.c
++     if mv -f t.c t.o; then
++ 	Note "Looks like mv supports the -f option to force a move."
++ 	MV_F=-f
++     else
++ 	Note "Warning, looks like mv has no -f option to force move operations;"
++ 	Note "... this may cause problems during installation."
++ 	MV_F=
++     fi
++ fi
++ 
++ #
++ # Check if ln -s creates a symbolic link.
++ #
++ if [ -z "${LN_S-}" ]; then
++     $RM t.c; $LN -s foo t.c && LN_S=-s
++ fi
++ if [ -n "$LN_S" ]; then
++     Note "Looks like $LN supports the -s option to create a symbolic link."
++ else
++     Note "Warning, looks like $LN has no -s option to create symbolic links;"
++     Note "... this may cause problems during installation."
++ fi
++ 
++ #
++ # Pick install mechanism.
++ #
++ if [ -z "${INSTALL-}" ]; then
++     case $TARGET in
++     *-irix*)	INSTALL=`findApp install /sbin:$PATH`;;
++     *)		INSTALL='${SCRIPT_SH} ../port/install.sh';;
++     esac
++ fi
++ 
++ Note "Done selecting programs."
++ 
++ #
++ # User-changable configuration parameters section.
++ # Anything selected here is presented to the user
++ # and may be interactively changed.
++ #
++ 
++ Note ""
++ Note "Selecting default TIFF configuration parameters."
++ Note ""
++ 
++ #
++ # Fill in any other configuration parameters not
++ # setup in the site and local files.
++ #
++ 
++ bitchExecutable()
++ {
++     echo ""
++     echo "Warning, $1 does not seem to be an executable program;"
++     echo "you'll need to correct this before starting up the fax server."
++     echo ""
++ }
++ 
++ #
++ # Setup manual page-related stuff.
++ #
++ # Manual pages are processed according to:
++ # 1. Section organization (BSD or System V)
++ # 2. Pre-formatted (w/ nroff) or source.
++ # 3. Compressed (compress, gzip, pack) or uncompressed.
++ # 4. Whether or not the FlexFAX ``F'' suffix must be
++ #    stripped for pages to be found (only for 4F pages).
++ #
++ if [ -z "${DIR_MAN-}" ]; then
++     MANPATH="
++ 	$MANPATH
++ 	/usr/local/man
++ 	/usr/contrib/man
++ 	/usr/catman/local
++     "
++     DIR_MAN=
++     for i in $MANPATH; do
++ 	test -d $i && { DIR_MAN=$i; break; }
++     done
++     test -z "$DIR_MAN" && DIR_MAN=${PREFIX}/man
++ fi
++ Note "Looks like manual pages go in $DIR_MAN."
++ if [ -z "${MANSCHEME-}" ]; then
++     case $TARGET in
++     *-bsdi*|*-netbsd*)		MANSCHEME=bsd-nroff-gzip-0.gz;;
++     *-freebsd*)			MANSCHEME=bsd-source-cat;;
++     *-linux*)			MANSCHEME=bsd-source-cat;;
++     *-ultrix*)			MANSCHEME=bsd-source-cat;;
++     *-sunos*)			MANSCHEME=bsd-source-cat-strip;;
++     *-sysv[234]*)		MANSCHEME=sysv-source-cat-strip;;
++     *-hpux*)			MANSCHEME=sysv-source-cat;;
++     *-solaris*)			MANSCHEME=sysv-source-cat-strip;;
++     *-aix*)			MANSCHEME=sysv-source-strip;;
++     *-isc*|*-sco*)		MANSCHEME=sysv-source-cat;;
++     *-irix*)			MANSCHEME=sysv-nroff-compress-Z;;
++     *)
++ 	#
++ 	# Try to deduce the setup from existing manual pages.
++ 	# XXX needs more work XXX
++ 	#
++ 	MANSCHEME=sysv-source-cat
++ 	if [ -d /usr/share/man ]; then
++ 	    if [ -d /usr/share/man/u_man ]; then
++ 	       MANSCHEME=sysv-source-cat
++ 	    elif [ -d /usr/share/man/man8 ]; then
++ 	       MANSCHEME=bsd-source-cat
++ 	    fi
++ 	elif [ -d /usr/share/catman ]; then
++ 	    if [ -d /usr/share/catman/u_man ]; then
++ 	       MANSCHEME=sysv-nroff-cat
++ 	    elif [ -d /usr/share/catman/man8 ]; then
++ 	       MANSCHEME=bsd-nroff-cat
++ 	    fi
++ 	fi
++ 	;;
++     esac
++ fi
++ Note "Looks like manual pages should be installed with $MANSCHEME."
++ 
++ #
++ # Figure out which brand of echo we have and define
++ # prompt and print shell functions accordingly.
++ #
++ if [ `echo foo\\\c`@ = "foo@" ]; then
++     prompt()
++     {
++ 	echo "$* \\c"
++     }
++ elif [ "`echo -n foo`@" = "foo@" ]; then
++     prompt()
++     {
++ 	echo -n "$* "
++     }
++ else
++     prompt()
++     {
++ 	echo "$*"
++     }
++ fi
++ 
++ #
++ # Prompt the user for a string that can not be null.
++ #
++ promptForNonNullStringParameter()
++ {
++     x="" val="$1" desc="$2"
++     while [ -z "$x" ]; do
++ 	prompt "$desc [$val]?"; read x
++ 	if [ "$x" ]; then
++ 	    # strip leading and trailing white space
++ 	    x=`echo "$x" | sed -e 's/^[ 	]*//' -e 's/[ 	]*$//'`
++ 	else
++ 	    x="$val"
++ 	fi
++     done
++     param="$x"
++ }
++ 
++ promptForManPageScheme()
++ {
++     x=""
++     while [ -z "$x" ]; do
++ 	prompt "Manual page installation scheme [$MANSCHEME]?"; read x
++ 	if [ "$x" ]; then
++ 	    # strip leading and trailing white space
++ 	    x=`echo "$x" | sed -e 's/^[ 	]*//' -e 's/[ 	]*$//'`
++ 	    # XXX do a better job of validating...
++ 	    case "$x" in
++ 	    bsd-nroff-cat*|sysv-nroff-cat*)	;;
++ 	    bsd-nroff-gzip*|sysv-nroff-gzip*)	;;
++ 	    bsd-nroff-comp*|sysv-nroff-comp*)	;;
++ 	    bsd-nroff-pack*|sysv-nroff-pack*)	;;
++ 	    bsd-source-cat*|sysv-source-cat*)	;;
++ 	    bsd-source-gzip*|sysv-source-gzip*)	;;
++ 	    bsd-source-comp*|sysv-source-comp*)	;;
++ 	    bsd-source-pack*|sysv-source-pack*)	;;
++ 	    *)
++ cat <<EOF
++ 
++ "$x" is not a valid manual page installation scheme.  Schemes are
++ constructed according to:
++ 
++     <organization>-<formatting>-<compression>[-<suffix>]
++ 
++ where:
++ 
++ <organization>  is either "bsd" for BSD-style section organization (e.g.
++ 		file formats in section 5) or "sysv" for System V-style
++ 		organization (e.g. file formats in section 4).
++ 
++ <formatting>    is either "nroff" to force installation of formatted
++                 materials (using nroff) or "source" to get the nroff
++ 		source installed.
++ 
++ <compression>   is either the name of a program to compress the manual
++                 pages (gipz, compress, pack) or "cat" for uncompressed data.
++ 
++ <suffix>        is either the file suffix to convert installed pages to
++                 (e.g. 0.gz for gzip-compressed pages under BSD) or "strip"
++ 		to force the normal ".4f" suffix to be converted to ".4"
++ 		(or ".5" if using the BSD organization).  If no -<suffix>
++ 		is specified then filenames are not converted when they
++ 		are installed.
++ 
++ Common schemes are:
++ 
++ bsd-nroff-gzip-0.gz	compressed formatted pages for BSD 
++ bsd-source-cat		nroff source w/ BSD organization
++ sysv-source-cat-strip	nroff source for SysV w/o .4f suffix
++ sysv-source-cat		nroff source for SysV as-is
++ 
++ EOF
++ 		x="";;
++ 	    esac
++ 	else
++ 	    x="$MANSCHEME"
++ 	fi
++     done
++     MANSCHEME="$x"
++ }
++ 
++ printConfig()
++ {
++     cat<<EOF
++ 
++ TIFF configuration parameters are:
++ 
++ [ 1] Directory for tools:        	$DIR_BIN
++ [ 2] Directory for libraries:           $DIR_LIB
++ [ 3] Directory for include files:       $DIR_INC
++ [ 4] Directory for manual pages:        $DIR_MAN
++ [ 5] Directory for HTML documents:      $DIR_HTML
++ [ 6] Manual page installation scheme:   $MANSCHEME
++ 
++ EOF
++ }
++ 
++ promptForParameter()
++ {
++     case $1 in
++     1)	promptForNonNullStringParameter "$DIR_BIN" \
++ 	    "Directory to install tools";		DIR_BIN="$param"
++ 	;;
++     2)	promptForNonNullStringParameter "$DIR_LIB" \
++ 	    "Directory to install libraries";		DIR_LIB="$param"
++ 	;;
++     3)	promptForNonNullStringParameter "$DIR_INC" \
++ 	    "Directory to install include files";	DIR_INC="$param"
++ 	;;
++     4)	promptForNonNullStringParameter "$DIR_MAN" \
++ 	    "Directory to install manual pages";	DIR_MAN="$param"
++ 	;;
++     5)	promptForNonNullStringParameter "$DIR_HTML" \
++ 	    "Directory to install HTML documents";	DIR_HTML="$param"
++ 	;;
++     6)	promptForManPageScheme;;
++     esac
++ }
++ 
++ checkJPEG()
++ {
++     if [ "${JPEG}" = yes ]; then
++ 	test "`findHeader jpeglib.h`" || {
++ 	    cat<<EOF
++ 
++ The set of libtiff include directories,
++ 
++     DIRS_LIBINC=${DIRS_LIBINC}
++ 
++ does not seem to be setup correctly; "jpeglib.h" was not found.
++ This must be corrected if the JPEG support is to be enabled.
++ Either fix the pathname or disable the JPEG support.
++ 
++ EOF
++ 	}
++         test $SRCDIR_IS_LIBTIFF = yes || \
++ 	  test -d "${DIR_JPEGLIB:-/dev/null/no-such-file}" || {
++ 	    cat<<EOF
++ 
++ The JPEG library directory, "${DIR_JPEGLIB}", does not seem to exist.
++ This must be corrected if the JPEG support is to be enabled.
++ Either fix the pathname or disable the JPEG support.
++ 
++ EOF
++         }
++     fi
++ }
++ 
++ checkZIP()
++ {
++     if [ "${ZIP}" = yes ]; then
++ 	test "`findHeader zlib.h`" || {
++             cat<<EOF
++ 
++ The set of libtiff include directories,
++ 
++     DIRS_LIBINC=${DIRS_LIBINC}
++ 
++ does not seem to be setup correctly; "zlib.h" was not found.
++ This must be corrected if the (G)ZIP support is to be enabled.
++ Either fix the pathname or disable the (G)ZIP support.
++ 
++ EOF
++         }
++         test $SRCDIR_IS_LIBTIFF = yes \
++           || test -d "${DIR_GZLIB:-/dev/null/no-such-file}" || {
++ 	    cat<<EOF
++ 
++ The libgz library directory, "${DIR_GZLIB}", does not seem to exist.
++ This must be corrected if the ZIP support is to be enabled.
++ Either fix the pathname or disable the ZIP support.
++ 
++ EOF
++         }
++     fi
++ }
++ 
++ if [ $NONINTERACTIVE = no ] ; then
++     ok=skip
++     while [ "$ok" != y ] && [ "$ok" != yes ]; do
++ 	if [ "$ok" != skip ]; then
++ 	    for i in 1 2 3 4 5 6; do
++ 		promptForParameter $i;
++ 	    done
++ 	fi
++ 	printConfig; prompt "Are these ok [yes]?"; read ok
++ 	test -z "$ok" && ok=yes
++ 	case "$ok" in
++ 	[1-9]|1[0-7])	promptForParameter $ok;;
++ 	[yY]*|[nN]*)	continue;;
++ 	?*)
++ 	    echo ""
++ 	    echo "\"y\", \"yes\", or <RETURN> accepts the displayed parameters."
++ 	    echo "A number lets you change the numbered parameter."
++ 	    echo ""
++ 	    ;;
++ 	esac
++ 	ok=skip
++     done
++     checkJPEG
++     checkZIP
++ else
++     checkJPEG
++     checkZIP
++ fi
++ 
++ case $MANSCHEME in
++ *-source-*)	MANAPPS=man1 MANLIB=man3;;
++ *-nroff-*)	MANAPPS=cat1 MANLIB=cat3;;
++ esac
++ case $MANSCHEME in
++ *-strip)	MANSEDLOCAL="-e s/3T/3/g";;
++ *)		MANSEDLOCAL="";;
++ esac
++ case $MANSCHEME in
++ *-source-*)	MANCVT='${MANSED} $? >$@';;
++ *-nroff-gzip-*)	MANCVT='${MANSED} $? | nroff -man | gzip > $@';;
++ *-nroff-pack-*)	MANCVT='${MANSED} $? | nroff -man | pack > $@';;
++ *-nroff-com*-*)	MANCVT='${MANSED} $? | nroff -man | compress > $@';;
++ *-nroff-cat-*)	MANCVT='${MANSED} $? | nroff -man > $@';;
++ esac
++ case $MANSCHEME in
++ *-0|*-0.gz|*-0.Z|*-gz|*-Z|*-z)
++     suf=`echo $MANSCHEME | sed 's/.*-/./'`
++     A='`echo $$i | sed' B='`'		# workaround shell bugs
++     MANAPPNAME="$A s/\\\\.1\$\$/$suf/$B"
++     MANLIBNAME="$A s/\\\\.3t\$\$/$suf/$B"
++     ;;
++ *-strip)
++     MANAPPNAME='$$i'
++     MANLIBNAME='`echo $$i | sed s/\\.3t$$/.3/`'
++     ;;
++ *)
++     MANAPPNAME='$$i' MANLIBNAME='$$i'
++     ;;
++ esac
++ 
++ if [ "${JPEG}" = yes ]; then
++     test -z "${CONF_JPEG-}"	&& CONF_JPEG="-DJPEG_SUPPORT"
++     if test -z "${LIBJPEG-}" ; then
++       LIBJPEG="-ljpeg"
++       test -z "${DIR_JPEGLIB-}" || LIBJPEG="-L${DIR_JPEGLIB} ${LIBJPEG}"
++     fi
++     if [ "${OJPEG}" = yes ]; then
++       CONF_JPEG="$CONF_JPEG -DOJPEG_SUPPORT"
++     fi
++ else
++     CONF_JPEG=
++     LIBJPEG=
++ fi
++ if [ "${ZIP}" = yes ]; then
++     test -z "${CONF_ZIP-}"	&& CONF_ZIP="-DZIP_SUPPORT -DPIXARLOG_SUPPORT"
++     if test -z "${LIBGZ-}" ; then
++       LIBGZ="-lz"
++       test -z "${DIR_GZLIB-}" || LIBGZ="-L${DIR_GZLIB} ${LIBGZ}"
++     fi
++ else
++     CONF_ZIP=
++     LIBGZ=
++ fi
++ 
++ if [ "${LARGEFILE}" = yes ]; then
++     LFSOPTS="-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -DUSE_64BIT_API=1"
++ else
++     LFSOPTS=
++ fi
++ 
++ Note ""
++ 
++ #
++ # Fixup a list of potentially relative pathnames so
++ # that they work when used in a subdirectory.  The
++ # string sent to stdout has no extraneous spaces so
++ # it can be used, for example, in building pathnames.
++ #
++ # NB: There's an extra echo done here so we get a
++ #     \n-terminated string passed to sed.
++ #
++ relativize()
++ {
++     echo `if [ $SRCDIR_IS_LIBTIFF = no ]; then
++ 	(for i do
++ 	    case "$i" in
++ 	    /*|-l*)	echo "$i" ;;
++ 	    -[LR])	;;				# XXX???
++ 	    -[LR]/*)	echo "$i" ;;
++ 	    -L*)	echo "$i" | sed 's;^-L;-L../;' ;;
++ 	    -R*)	echo "$i" | sed 's;^-R;-R../;' ;;
++ 	    *)		echo "../$i" ;;
++ 	    esac
++ 	done) | tr '\012' ' '
++     else
++ 	echo "$@"
++     fi` | sed -e 's;[ ][ ]*$;;' -e 's;/[.]$;;'
++ }
++ #
++ # Generate a list of compiler include options,
++ # prepending ``../'' to any relative pathnames.
++ #
++ makeIncArgs()
++ {
++     (for i do
++         case "$i" in
++ 	/*)  echo "-I$i" ;;
++ 	*)
++ 	    if [ $SRCDIR_IS_LIBTIFF = yes ]; then
++ 		echo "-I$i" 
++ 	    else
++ 		echo "-I../$i" 
++ 	    fi ;;
++         esac
++     done) | tr '\012' ' '
++ }
++ 
++ #
++ # Setup parameters needed below.
++ #
++ if [ $SRCDIR_IS_LIBTIFF = yes ]; then
++     CONFIGDIR="."
++     LIBSRCDIR="${SRCDIR}"
++ else
++     CONFIGDIR=".."
++     LIBSRCDIR=`relativize ${SRCDIR}`/libtiff
++ fi
++ 
++ # NB: these should be sorted alphabetically
++ cat>>confsed<<EOF
++ s;@AR@;${AR};g
++ s;@AROPTS@;${AROPTS};g
++ s;@CONFIGDIR@;${CONFIGDIR};g
++ s;@CCOMPILER@;${CCOMPILER};g
++ s;@CHMOD@;${CHMOD};g
++ s;@CONF_JPEG@;${CONF_JPEG};g
++ s;@CONF_ZIP@;${CONF_ZIP};g
++ s;@COPT_LIBINC@;`makeIncArgs ${DIRS_LIBINC}`;g
++ s;@DATE@;${DATE};g
++ s;@DEPEND_JPEGLIB@;${CONF_JPEG:+`findHeader jpeglib.h` `findHeader jerror.h`};g
++ s;@DEPEND_ZLIB@;${CONF_ZIP:+`findHeader zlib.h`};g
++ s;@DIR_BIN@;${DIR_BIN};g
++ s;@DIR_JPEGLIB@;`relativize ${DIR_JPEGLIB}`;g
++ s;@DIR_GZLIB@;`relativize ${DIR_GZLIB}`;g
++ s;@DIR_HTML@;${DIR_HTML};g
++ s;@DIR_INC@;${DIR_INC};g
++ s;@DIR_LIB@;${DIR_LIB};g
++ s;@DIR_MAN@;${DIR_MAN};g
++ s;@DIRS_LIBINC@;`relativize ${DIRS_LIBINC}`;g
++ s;@DIST_POINT@;${DIST_POINT};g
++ s;@DIST_MAJOR@;${DIST_MAJOR};g
++ s;@DIST_MINOR@;${DIST_MINOR};g
++ s;@DSO@;${DSO};g
++ s;@DSOSUF@;${DSOSUF};g
++ s;@DSOSUF_VERSION@;${DSOSUF_VERSION};g
++ s;@ENVOPTS@;${ENVOPTS};g
++ s;@FILLORDER@;${FILLORDER};g
++ s;@GCOPTS@;${GCOPTS};g
++ s;@HTML@;${HTML};g
++ s;@INSTALL@;${INSTALL};g
++ s;@LIBJPEG@;`relativize ${LIBJPEG}`;g
++ s;@LIBGL@;${LIBGL};g
++ s;@LIBGZ@;`relativize ${LIBGZ}`;g
++ s;@LIBSRCDIR@;${LIBSRCDIR};g
++ s;@LIBIMAGE@;${LIBIMAGE};g
++ s;@LIBCOPTS@;${LIBCOPTS};g
++ s;@LIBPORT@;${LIBPORT};g
++ s;@LN@;${LN};g
++ s;@LN_S@;${LN_S};g
++ s;@LFSOPTS@;${LFSOPTS};g
++ s;@MACHDEPLIBS@;${MACHDEPLIBS};g
++ s;@MANAPPS@;${MANAPPS};g
++ s;@MANAPPNAME@;${MANAPPNAME};g
++ s;@MANLIBNAME@;${MANLIBNAME};g
++ s;@MANCVT@;${MANCVT};g
++ s;@MANSEDLOCAL@;${MANSEDLOCAL};g
++ s;@MANLIB@;${MANLIB};g
++ s;@MV_F@;${MV_F};g
++ s;@OPTIMIZER@;${OPTIMIZER};g
++ s;@PORT@;${PORT};g
++ s;@PORTFUNCS@;${PORTFUNCS};g
++ s;@RANLIB@;${RANLIB};g
++ s;@SCRIPT_SH@;${SCRIPT_SH};g
++ s;@SED@;${SED};g
++ s;@SETMAKE@;${SETMAKE};g
++ s;@SRCDIR@;${SRCDIR};g
++ s;@RELSRCDIR@;`relativize ${SRCDIR}`;g
++ s;@STRIP@;${STRIP};g
++ s;@TARGET@;${TARGET};g
++ s;@TIFFLIBREF@;${TIFFLIBREF};g
++ s;@VERSION@;${VERSION};g
++ s;@RELEASE@;${RELEASE};g
++ s;@VERSIONFILE@;`relativize ${VERSIONFILE}`;g
++ s;@RELEASE_DATE_FILE@;`relativize ${RELEASE_DATE_FILE}`;g
++ s;@WARNING@;Warning, this file was automatically created by the TIFF configure script;g
++ s;@CFLAGS@;${CFLAGS};g
++ s;@CPPFLAGS@;${CPPFLAGS};g
++ EOF
++ 
++ SedConfigFiles()
++ {
++     for F do
++ 	test -f $SRCDIR/$F.in || {
++ 	    bitch "$SRCDIR/$F.in is missing; this should be part of the distribution."
++ 	    boom
++ 	}
++ 	dir=`echo $F | $SED 's;/[^/]*$;;'`
++ 	if [ $dir != $F ] && [ ! -d $dir ]; then
++ 	    Note "Creating $dir directory"
++ 	    mkdir $dir
++ 	fi
++ 	suffix=`echo $F | $SED 's/.*\.//'`
++ 	if [ "$suffix" = h ]; then
++ 	    #
++ 	    # Compare old and new versions so that include files
++ 	    # are only updated when something has changed--this
++ 	    # saves time for subsequent makes.  Note we screen
++ 	    # out use of @DATE@ 'cuz otherwise that'll mess up
++ 	    # the comparison (this assumes dates are used in lines
++ 	    # of the form DATE: @DATE@).
++ 	    #
++ 	    $RM $F.new; $SED -f confsed $SRCDIR/$F.in > $F.new
++ 	    $RM confx; $SED '/DATE:/d' $F.new >confx
++ 	    $RM confy; $SED '/DATE:/d' $F >confy 2>/dev/null
++ 	    if cmp -s confx confy >/dev/null 2>&1; then
++ 		$RM $F.new
++ 	    else
++ 		Note "Creating $F from $SRCDIR/$F.in"
++ 		$RM $F; mv $F.new $F; $CHMOD 444 $F
++ 	    fi
++ 	else
++ 	    Note "Creating $F from $SRCDIR/$F.in"
++ 	    if $SED -f confsed $SRCDIR/$F.in >$F.new; then
++ 		$RM $F; mv $F.new $F; $CHMOD 444 $F
++ 	    else
++ 		cat 1>&2 <<EOF
++ Help, there was a problem crafting $F from $F.in.
++ The command:
++ 
++     $SED -f confsed $SRCDIR/$F.in >$F.new
++ 
++ failed.  Aborting without cleaning up files so you can take a look...
++ EOF
++ 		exit 1
++ 	    fi
++ 	fi
++     done
++ }
++ 
++ #
++ # port/install.sh is the SGI install program emulator script.
++ #
++ CONF_FILES="Makefile"
++ if [ $SRCDIR_IS_LIBTIFF != yes ] ; then
++     CONF_FILES="$CONF_FILES
++         libtiff/Makefile
++         man/Makefile
++         tools/Makefile
++         port/install.sh
++         "
++     test $HTML = yes &&		CONF_FILES="$CONF_FILES html/Makefile"
++     test $PORT = yes &&		CONF_FILES="$CONF_FILES port/Makefile"
++ fi
++ SedConfigFiles $CONF_FILES
++ 
++ Note "Done."
++ 
++ $RM $JUNK
++ exit 0
+diff -crN ./OTHERS/tiff/libtiff/Makefile.in /users3/olivap/sb/p64/src/./OTHERS/tiff/libtiff/Makefile.in
+*** ./OTHERS/tiff/libtiff/Makefile.in	Thu Jan  1 01:00:00 1970
+--- /users3/olivap/sb/p64/src/./OTHERS/tiff/libtiff/Makefile.in	Thu Jan  6 14:11:09 2005
+***************
+*** 0 ****
+--- 1,415 ----
++ #	$Header: /cvsroot/osrs/libtiff/libtiff/Makefile.in,v 1.25 2003/11/13 19:46:39 dron Exp $
++ #
++ # Tag Image File Format Library
++ #
++ # Copyright (c) 1988-1997 Sam Leffler
++ # Copyright (c) 1991-1997 Silicon Graphics, Inc.
++ # 
++ # Permission to use, copy, modify, distribute, and sell this software and 
++ # its documentation for any purpose is hereby granted without fee, provided
++ # that (i) the above copyright notices and this permission notice appear in
++ # all copies of the software and related documentation, and (ii) the names of
++ # Sam Leffler and Silicon Graphics may not be used in any advertising or
++ # publicity relating to the software without the specific, prior written
++ # permission of Sam Leffler and Silicon Graphics.
++ # 
++ # THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
++ # EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
++ # WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
++ # 
++ # IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
++ # ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
++ # OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
++ # WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
++ # LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
++ # OF THIS SOFTWARE.
++ #
++ 
++ SRCDIR	= @LIBSRCDIR@
++ 
++ #
++ # VERSION:	@VERSION@
++ # DATE:		@DATE@
++ # TARGET:	@TARGET@
++ # CCOMPILER:	@CCOMPILER@
++ #
++ SHELL	= @SCRIPT_SH@
++ SCRIPT_SH = @SCRIPT_SH@
++ NULL	=
++ CC	= @CCOMPILER@
++ AR	= @AR@
++ AROPTS	= @AROPTS@
++ RANLIB	= @RANLIB@
++ INSTALL	= @INSTALL@
++ CPPFLAGS = @CPPFLAGS@
++ 
++ #
++ # If JPEG support is to be included and the Independent JPEG
++ # Software distribution is not installed then DIR_JPEG must
++ # refer to the directory where the include files reside.
++ #
++ # Similarly, if the libgz distribution is not installed, then
++ # DIR_LIBGZ must refer to the directory where the include files
++ # are located.  Note that recent versions 
++ #
++ IPATH	= -I. -I${SRCDIR} @COPT_LIBINC@
++ #
++ # To enable JPEG support include -DJPEG_SUPPORT here.
++ # To enable Deflate support add a -DZIP_SUPPORT here.
++ # Note that where the configure script is used these defines
++ # are automatically setup when JPEG/ZIP is set to "yes".
++ #
++ # Otherwise, consult tiffconf.h for information on controlling
++ # the configuration of optional library support.
++ #
++ CONF_LIBRARY=@CONF_JPEG@ @CONF_ZIP@
++ COPTS	= @GCOPTS@
++ OPTIMIZER=@OPTIMIZER@
++ LFSOPTS=@LFSOPTS@
++ CFLAGS	= @CFLAGS@ @ENVOPTS@ @LIBCOPTS@ ${COPTS} ${OPTIMIZER} ${LFSOPTS} ${IPATH} ${CONF_LIBRARY} ${CPPFLAGS}
++ #
++ SRCS	= \
++ 	tif_aux.c \
++ 	tif_close.c \
++ 	tif_codec.c \
++ 	tif_compress.c \
++ 	tif_color.c \
++ 	tif_dir.c \
++ 	tif_dirinfo.c \
++ 	tif_dirread.c \
++ 	tif_dirwrite.c \
++ 	tif_dumpmode.c \
++ 	tif_error.c \
++ 	tif_extension.c \
++ 	tif_fax3.c \
++ 	tif_fax3sm.c \
++ 	tif_getimage.c \
++ 	tif_jpeg.c \
++ 	tif_flush.c \
++ 	tif_luv.c \
++ 	tif_lzw.c \
++ 	tif_next.c \
++ 	nnnntif_ojpeg.c \
++ 	tif_open.c \
++ 	tif_packbits.c \
++ 	tif_pixarlog.c \
++ 	tif_predict.c \
++ 	tif_print.c \
++ 	tif_read.c \
++ 	tif_swab.c \
++ 	tif_strip.c \
++ 	tif_thunder.c \
++ 	tif_tile.c \
++ 	tif_unix.c \
++ 	tif_version.c \
++ 	tif_warning.c \
++ 	tif_write.c \
++ 	tif_zip.c \
++ 	${NULL}
++ OBJS	= \
++ 	tif_aux.o \
++ 	tif_close.o \
++ 	tif_codec.o \
++ 	tif_compress.o \
++ 	tif_color.o\
++ 	tif_dir.o \
++ 	tif_dirinfo.o \
++ 	tif_dirread.o \
++ 	tif_dirwrite.o \
++ 	tif_dumpmode.o \
++ 	tif_error.o \
++ 	tif_extension.o \
++ 	tif_fax3.o \
++ 	tif_fax3sm.o \
++ 	tif_getimage.o \
++ 	tif_jpeg.o \
++ 	tif_flush.o \
++ 	tif_luv.o \
++ 	tif_lzw.o \
++ 	tif_next.o \
++ 	tif_ojpeg.o \
++ 	tif_open.o \
++ 	tif_packbits.o \
++ 	tif_pixarlog.o \
++ 	tif_predict.o \
++ 	tif_print.o \
++ 	tif_read.o \
++ 	tif_swab.o \
++ 	tif_strip.o \
++ 	tif_thunder.o \
++ 	tif_tile.o \
++ 	tif_unix.o \
++ 	tif_version.o \
++ 	tif_warning.o \
++ 	tif_write.o \
++ 	tif_zip.o \
++ 	${NULL}
++ TARGETS	= libtiff.a
++ 
++ all:	${TARGETS}
++ 	if [ @DSO@dso != nodso ]; then \
++ 	    ${MAKE} -${MAKEFLAGS} @DSO@dso; \
++ 	else \
++ 	    true; \
++ 	fi
++ 
++ libtiff.a: ${OBJS}
++ 	${AR} ${AROPTS} libtiff.a $?
++ 	${RANLIB} libtiff.a
++ 
++ #
++ # NB: The configure script verifies that the configured
++ # tools are capable of producing a DSO before enabling
++ # their creation/use.  The following rules are effectively
++ # duplicated in the configure script to do this verification.
++ # This means that if you want to add support for building a
++ # DSO on another system you'll need to modify this file *and*
++ # configure if you want the right thing to happen automatically
++ # (should probably be fixed up).
++ #
++ 
++ # default IRIX DSO building rule
++ IRIXdso: ${OBJS}
++ 	@if [ "`basename ${CC}`" = "gcc" ]; then \
++ 	   ${LD} -n32 @ENVOPTS@ -o libtiff.@DSOSUF@ -shared -rdata_shared \
++ 	   ${OBJS}; \
++ 	else \
++ 	    ${CC} @ENVOPTS@ -o libtiff.@DSOSUF@ -shared -rdata_shared \
++ 	        -check_registry ${SRCDIR}/../port/irix/so_locations \
++ 	        -quickstart_info \
++ 	        ${OBJS} @LIBJPEG@ @LIBGZ@; \
++ 	fi
++ 	touch $@
++ # special rule for IRIX 5.2
++ IRIX52dso: ${OBJS}
++ 	${LD} -elf -o libtiff.@DSOSUF@ -shared -no_unresolved -all ${OBJS} \
++ 	    @LIBJPEG@ @LIBGZ@ -lc -lm
++ 	touch $@
++ # Solaris 2.x
++ SOLARISdso: ${OBJS}
++ 	${LD} -L@DIR_LIB@ -G -h libtiff.@DSOSUF@ -o libtiff.@DSOSUF@ ${OBJS}
++ 	touch $@
++ # HP-UX 10.x+
++ HPUXdso: ${OBJS}
++ 	${LD} -b -o libtiff.@DSOSUF_VERSION@ +h libtiff.@DSOSUF_VERSION@ ${OBJS}
++ 	touch $@
++ # AIX 2.3.5 and 4.1.1
++ AIXdso: ${OBJS}
++ 	rm -f libtiff.syms shr.o
++ 	echo "#!" > libtiff.syms
++ 	/bin/dump -g libtiff.a | sed -n -e \
++ 	      's/^[ 	]*[0-9][0-9]*[	 ]*\([^	 .][^ 	]*\)$$/\1/p' \
++ 	      >> libtiff.syms
++ 	${LD} -o shr.o libtiff.a -H512 -T512 -bM\:SRE \
++ 	    -bE\:libtiff.syms @LIBJPEG@ @LIBGZ@ -lc -lm -L@DIR_LIB@
++ 	rm -f libtiff.syms libtiff.@DSOSUF@
++ 	${AR} ${AROPTS} libtiff.@DSOSUF@ shr.o
++ 	rm -f shr.o
++ 	touch $@
++ # GNU linker shared libraries
++ GNULDdso: ${OBJS}
++ 	${CC} -shared -Wl,-soname,libtiff.@DSOSUF@ \
++ 	    -o libtiff.@DSOSUF_VERSION@  ${OBJS} \
++ 		@LIBJPEG@ @LIBGZ@ @MACHDEPLIBS@
++ 	rm -f libtiff.@DSOSUF@
++ 	if [ @DSOSUF_VERSION@ != @DSOSUF@ ] ; then \
++ 	  @LN@ @LN_S@ libtiff.@DSOSUF_VERSION@ libtiff.@DSOSUF@; \
++ 	fi
++ 	touch $@
++ DARWINdso: ${OBJS}
++ 	${CC} -dynamiclib -undefined error \
++ 	  -install_name libtiff.@DSOSUF@ \
++ 	  -o libtiff.@DSOSUF_VERSION@  ${OBJS} \
++ 	  @LIBJPEG@ @LIBGZ@ @MACHDEPLIBS@
++ 	rm -f libtiff.@DSOSUF@
++ 	if [ @DSOSUF_VERSION@ != @DSOSUF@ ] ; then \
++ 	  @LN@ @LN_S@ libtiff.@DSOSUF_VERSION@ libtiff.@DSOSUF@; \
++ 	fi
++ 	touch $@
++ # NetBSD 1.1 or FreeBSD (old style)
++ NETBSDdso FREEBSDdso oldOPENBSDdso: ${OBJS}
++ 	@rm -f libtiff_pic.a
++ 	@${AR} cq libtiff_pic.a `lorder ${OBJS} | tsort -q`
++ 	${RANLIB} libtiff_pic.a
++ 	${LD} -x -Bshareable -Bforcearchive -o libtiff.@DSOSUF@ libtiff_pic.a
++ 	rm -f libtiff_pic.a
++ 	touch $@
++ # linux ELF shared lib rule
++ LINUXdso:  ${OBJS}
++ 	${CC} -shared -Wl,-soname,libtiff.@DSOSUF@ \
++ 	    -o libtiff.@DSOSUF_VERSION@  ${OBJS} \
++ 		@LIBJPEG@ @LIBGZ@ @MACHLIBDEPS@
++ 	rm -f libtiff.@DSOSUF@
++ 	@LN@ @LN_S@ libtiff.@DSOSUF_VERSION@ libtiff.@DSOSUF@
++ 	touch $@
++ # OSF/1 3.2 shared lib rule
++ OSFdso: ${OBJS}
++ 	${LD} -o libtiff.@DSOSUF@ -shared -error_unresolved ${OBJS} @LIBJPEG@ @LIBGZ@ -lc -lm
++ 
++ OPENBSDdso: ${OBJS}
++ 	${CC} -shared @LIBCOPTS@ -o libtiff.@DSOSUF_VERSION@ ${OBJS} @LIBJPEG@ @LIBGZ@ -lm
++ 	touch $@
++ 
++ OPENSERVERdso:  ${OBJS}
++ 	${CC} -shared -fPIC \
++ 	  -o libtiff.@DSOSUF_VERSION@  ${OBJS} \
++ 		@LIBJPEG@ @LIBGZ@
++ 	rm -f libtiff.@DSOSUF@
++ 	@LN@ @LN_S@ libtiff.@DSOSUF_VERSION@ libtiff.@DSOSUF@
++ 	touch $@
++ 
++ ${OBJS}: ${SRCDIR}/tiffio.h ${SRCDIR}/tiff.h ${SRCDIR}/tif_dir.h
++ ${OBJS}: ${SRCDIR}/tiffcomp.h ${SRCDIR}/tiffiop.h ${SRCDIR}/tiffconf.h
++ ${OBJS}: ${SRCDIR}/tiffvers.h
++ 
++ VERSION	= @VERSIONFILE@
++ RELEASE_DATE = @RELEASE_DATE_FILE@
++ 
++ ${SRCDIR}/tiffvers.h: ${VERSION} ${SRCDIR}/mkversion.c
++ 	${CC} -o mkversion ${CFLAGS} ${SRCDIR}/mkversion.c
++ 	rm -f ${SRCDIR}/tiffvers.h
++ 	./mkversion -v ${VERSION} -r ${RELEASE_DATE} ${SRCDIR}/tiffvers.h
++ 
++ tiffvers.h:	${SRCDIR}/tiffvers.h
++ 
++ #
++ # The finite state machine tables used by the G3/G4 decoders
++ # are generated by the mkg3states program.  On systems without
++ # make these rules have to be manually carried out.
++ #
++ tif_fax3sm.c: ${SRCDIR}/mkg3states.c ${SRCDIR}/tif_fax3.h
++ 	${CC} -o mkg3states ${CFLAGS} ${SRCDIR}/mkg3states.c
++ 	rm -f tif_fax3sm.c; ./mkg3states -c const tif_fax3sm.c
++ 
++ tif_aux.o: ${SRCDIR}/tif_aux.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_aux.c
++ tif_close.o: ${SRCDIR}/tif_close.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_close.c
++ tif_codec.o: ${SRCDIR}/tif_codec.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_codec.c
++ tif_compress.o: ${SRCDIR}/tif_compress.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_compress.c
++ tif_color.o: ${SRCDIR}/tif_color.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_color.c
++ tif_dir.o: ${SRCDIR}/tif_dir.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_dir.c
++ tif_dirinfo.o: ${SRCDIR}/tif_dirinfo.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_dirinfo.c
++ tif_dirread.o: ${SRCDIR}/tif_dirread.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_dirread.c
++ tif_dirwrite.o: ${SRCDIR}/tif_dirwrite.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_dirwrite.c
++ tif_dumpmode.o: ${SRCDIR}/tif_dumpmode.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_dumpmode.c
++ tif_error.o: ${SRCDIR}/tif_error.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_error.c
++ tif_extension.o: ${SRCDIR}/tif_extension.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_extension.c
++ tif_fax3.o: ${SRCDIR}/tif_fax3.c ${SRCDIR}/t4.h ${SRCDIR}/tif_fax3.h
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_fax3.c
++ tif_getimage.o: ${SRCDIR}/tif_getimage.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_getimage.c
++ tif_jpeg.o: ${SRCDIR}/tif_jpeg.c @DEPEND_JPEGLIB@
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_jpeg.c
++ tif_flush.o: ${SRCDIR}/tif_flush.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_flush.c
++ tif_luv.o: ${SRCDIR}/tif_luv.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_luv.c
++ tif_lzw.o: ${SRCDIR}/tif_lzw.c ${SRCDIR}/tif_predict.h
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_lzw.c
++ tif_next.o: ${SRCDIR}/tif_next.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_next.c
++ tif_ojpeg.o: ${SRCDIR}/tif_ojpeg.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_ojpeg.c
++ tif_open.o: ${SRCDIR}/tif_open.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_open.c
++ tif_packbits.o: ${SRCDIR}/tif_packbits.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_packbits.c
++ tif_pixarlog.o: ${SRCDIR}/tif_pixarlog.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_pixarlog.c
++ tif_predict.o: ${SRCDIR}/tif_predict.c ${SRCDIR}/tif_predict.h
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_predict.c
++ tif_print.o: ${SRCDIR}/tif_print.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_print.c
++ tif_read.o: ${SRCDIR}/tif_read.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_read.c
++ tif_swab.o: ${SRCDIR}/tif_swab.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_swab.c
++ tif_strip.o: ${SRCDIR}/tif_strip.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_strip.c
++ tif_thunder.o: ${SRCDIR}/tif_thunder.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_thunder.c
++ tif_tile.o: ${SRCDIR}/tif_tile.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_tile.c
++ tif_unix.o: ${SRCDIR}/tif_unix.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_unix.c
++ tif_version.o: ${SRCDIR}/tif_version.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_version.c
++ tif_warning.o: ${SRCDIR}/tif_warning.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_warning.c
++ tif_write.o: ${SRCDIR}/tif_write.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_write.c
++ tif_zip.o: ${SRCDIR}/tif_zip.c ${SRCDIR}/tif_predict.h @DEPEND_ZLIB@
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_zip.c
++ 
++ tif_apple.o: ${SRCDIR}/tif_apple.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_apple.c
++ tif_atari.o: ${SRCDIR}/tif_atari.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_atari.c
++ tif_msdos.o: ${SRCDIR}/tif_msdos.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_msdos.c
++ tif_vms.o: ${SRCDIR}/tif_vms.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_vms.c
++ tif_win3.o: ${SRCDIR}/tif_win3.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tif_win3.c
++ 
++ INCS	= ${SRCDIR}/tiff.h ${SRCDIR}/tiffio.h ${SRCDIR}/tiffconf.h \
++ 	${SRCDIR}/tiffvers.h
++ 
++ INCS_PRIVATE = ${SRCDIR}/tiffiop.h ${SRCDIR}/tif_dir.h ${SRCDIR}/port.h
++ 
++ installHdrs: ${INCS}
++ 	${INSTALL} -idb tiff.sw.dev -m 755 -dir ${DESTDIR}@DIR_INC@
++ 	for i in ${INCS}; do						\
++ 	    f=`basename $$i`;						\
++ 	    ${INSTALL} -idb tiff.sw.dev -m 444 -F ${DESTDIR}@DIR_INC@	\
++ 		-src $$i -O $$f;					\
++ 	done
++ 
++ installPrivateHdrs: ${INCS_PRIVATE}
++ 	${INSTALL} -idb tiff.sw.dev -m 755 -dir ${DESTDIR}@DIR_INC@
++ 	for i in ${INCS_PRIVATE}; do					\
++ 	    f=`basename $$i`;						\
++ 	    ${INSTALL} -idb tiff.sw.dev -m 444 -F ${DESTDIR}@DIR_INC@	\
++ 		-src $$i -O $$f;					\
++ 	done
++ 
++ installDSO: @DSO@dso
++ 	if [ @DSOSUF_VERSION@ != @DSOSUF@ ]; then			\
++ 	    ${INSTALL} -idb tiff.sw.tools.nostrip -m 555		\
++ 		-F ${DESTDIR}@DIR_LIB@ -O libtiff.@DSOSUF_VERSION@;	\
++ 	    ${INSTALL} -idb tiff.sw.tools -F ${DESTDIR}@DIR_LIB@	\
++ 		-lns libtiff.@DSOSUF_VERSION@ -O libtiff.@DSOSUF@;	\
++ 	    ${INSTALL} -idb tiff.sw.tools -F ${DESTDIR}@DIR_LIB@	\
++ 		-lns libtiff.@DSOSUF@ -O libtiff.so;			\
++ 	else								\
++ 	    ${INSTALL} -idb tiff.sw.tools.nostrip -m 555		\
++ 		-F ${DESTDIR}@DIR_LIB@ -O libtiff.@DSOSUF@;		\
++ 	fi
++ 
++ install: all installHdrs
++ 	${INSTALL} -idb tiff.sw.dev -m 755 -dir ${DESTDIR}@DIR_LIB@
++ 	${INSTALL} -idb tiff.sw.dev -m 444 -F ${DESTDIR}@DIR_LIB@ -O libtiff.a
++ 	if [ @DSO@dso != nodso ]; then					\
++ 	    ${MAKE} -${MAKEFLAGS} installDSO;				\
++ 	else								\
++ 	    true;							\
++ 	fi
++ 
++ install-private: install installPrivateHdrs
++ 
++ clean:
++ 	rm -f ${TARGETS} ${OBJS} core a.out \
++ 	    mkg3states tif_fax3sm.c \
++ 	    mkversion ${SRCDIR}/tiffvers.h \
++ 	    libtiff.a libtiff.@DSOSUF@ libtiff.@DSOSUF_VERSION@ *dso
+diff -crN ./OTHERS/tiff/tools/Makefile.in /users3/olivap/sb/p64/src/./OTHERS/tiff/tools/Makefile.in
+*** ./OTHERS/tiff/tools/Makefile.in	Thu Jan  1 01:00:00 1970
+--- /users3/olivap/sb/p64/src/./OTHERS/tiff/tools/Makefile.in	Thu Jan  6 14:11:42 2005
+***************
+*** 0 ****
+--- 1,288 ----
++ #	$Header: /cvsroot/osrs/libtiff/tools/Makefile.in,v 1.14 2003/11/26 07:41:42 dron Exp $
++ #
++ # @WARNING@
++ #
++ # TIFF Library Tools
++ #
++ # Copyright (c) 1988-1997 Sam Leffler
++ # Copyright (c) 1991-1997 Silicon Graphics, Inc.
++ # 
++ # Permission to use, copy, modify, distribute, and sell this software and 
++ # its documentation for any purpose is hereby granted without fee, provided
++ # that (i) the above copyright notices and this permission notice appear in
++ # all copies of the software and related documentation, and (ii) the names of
++ # Sam Leffler and Silicon Graphics may not be used in any advertising or
++ # publicity relating to the software without the specific, prior written
++ # permission of Stanford and Silicon Graphics.
++ # 
++ # THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
++ # EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
++ # WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
++ # 
++ # IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
++ # ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
++ # OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
++ # WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
++ # LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
++ # OF THIS SOFTWARE.
++ #
++ DEPTH	= ..
++ 
++ SRCDIR	= @RELSRCDIR@/tools
++ LIBDIR	= @RELSRCDIR@/libtiff
++ 
++ #
++ # VERSION:	@VERSION@
++ # DATE:		@DATE@
++ # TARGET:	@TARGET@
++ # CCOMPILER:	@CCOMPILER@
++ #
++ SHELL	= @SCRIPT_SH@
++ SCRIPT_SH = @SCRIPT_SH@
++ NULL	=
++ CC	= @CCOMPILER@
++ INSTALL	= @INSTALL@
++ #
++ COPTS	= @GCOPTS@
++ OPTIMIZER=@OPTIMIZER@
++ IPATH	= -I. -I${SRCDIR} -I${LIBDIR}
++ CPPFLAGS = @CPPFLAGS@
++ CFLAGS	= @CFLAGS@ @ENVOPTS@ ${COPTS} ${OPTIMIZER} ${IPATH} ${CPPFLAGS}
++ #
++ TIFFLIB	= ${DEPTH}/libtiff/libtiff.@DSOSUF@
++ LIBJPEG	= @LIBJPEG@
++ LIBGZ	= @LIBGZ@
++ LIBTIFF	= @TIFFLIBREF@
++ LIBPORT	= @LIBPORT@
++ MACHLIBS= @MACHDEPLIBS@
++ LIBS	= ${LIBTIFF} ${LIBJPEG} ${LIBGZ} ${LIBPORT} ${MACHLIBS}
++ #
++ OBJS=	\
++ 	fax2tiff.o \
++ 	fax2ps.o \
++ 	gif2tiff.o \
++ 	pal2rgb.o \
++ 	ppm2tiff.o \
++ 	rgb2ycbcr.o \
++ 	ras2tiff.o \
++ 	raw2tiff.o \
++ 	thumbnail.o \
++ 	tiff2bw.o \
++ 	tiff2rgba.o \
++ 	tiff2pdf.o \
++ 	tiff2ps.o \
++ 	tiffcmp.o \
++ 	tiffcp.o \
++ 	tiffdither.o \
++ 	tiffdump.o \
++ 	tiffinfo.o \
++ 	tiffmedian.o \
++ 	tiffsplit.o \
++ 	tiffset.o \
++ 	${NULL}
++ TARGETS	=\
++ 	fax2tiff \
++ 	fax2ps \
++ 	gif2tiff \
++ 	pal2rgb \
++ 	ppm2tiff \
++ 	rgb2ycbcr \
++ 	thumbnail \
++ 	ras2tiff \
++ 	raw2tiff \
++ 	tiff2bw \
++ 	tiff2rgba \
++ 	tiff2pdf \
++ 	tiff2ps \
++ 	tiffcmp \
++ 	tiffcp \
++ 	tiffdither \
++ 	tiffdump \
++ 	tiffinfo \
++ 	tiffmedian \
++ 	tiffsplit \
++ 	tiffset \
++ 	${NULL}
++ 
++ all:	${TARGETS}
++ 	@if [ "@LIBIMAGE@" = yes ]; then \
++ 	    ${MAKE} -${MAKEFLAGS} sgi2tiff; \
++ 	else \
++ 	    true; \
++ 	fi
++ 	@if [ "@LIBGL@" = yes ]; then \
++ 	    ${MAKE} -${MAKEFLAGS} tiffgt tiffsv; \
++ 	else \
++ 	    true; \
++ 	fi
++ install: all
++ 	${INSTALL} -idb tiff.sw.tools -m 755 				\
++ 		-dir ${DESTDIR}@DIR_BIN@
++ 	${INSTALL} -idb tiff.sw.tools -m 755 				\
++ 		-F ${DESTDIR}@DIR_BIN@ -O ${TARGETS}
++ 	@if [ "@LIBIMAGE@" = yes ]; then 				\
++ 	    ${INSTALL} -idb tiff.sw.tools -m 755 			\
++ 		-F ${DESTDIR}@DIR_BIN@ -O sgi2tiff; 			\
++ 	else 								\
++ 	    true;							\
++ 	fi
++ 	@if [ "@LIBGL@" = yes ]; then 					\
++ 	    ${INSTALL} -idb tiff.sw.tools -m 755 -F ${DESTDIR}@DIR_BIN@ \
++ 		-O tiffgt tiffsv;					\
++ 	else 								\
++ 	    true; 							\
++ 	fi
++ clean:
++ 	rm -f ${TARGETS} ${OBJS} tiffgt.o tiffgt sgisv.o tiffsv 	\
++ 	    sgi2tiff.o sgi2tiff core a.out ycbcr 
++ 
++ #
++ # System-independent tools
++ #
++ 
++ tiffinfo: tiffinfo.o ${TIFFLIB}
++ 	${CC} -o tiffinfo ${CFLAGS} tiffinfo.o ${LIBS}
++ tiffinfo.o: ${SRCDIR}/tiffinfo.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffinfo.c
++ 
++ tiffcmp:tiffcmp.o ${TIFFLIB}
++ 	${CC} -o tiffcmp ${CFLAGS} tiffcmp.o ${LIBS}
++ tiffcmp.o: ${SRCDIR}/tiffcmp.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffcmp.c
++ 
++ tiffcp:	tiffcp.o ${TIFFLIB}
++ 	${CC} -o tiffcp ${CFLAGS} tiffcp.o ${LIBS}
++ tiffcp.o: ${SRCDIR}/tiffcp.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffcp.c
++ 
++ tiffdump: tiffdump.o
++ 	${CC} -o tiffdump ${CFLAGS} tiffdump.o ${LIBS}
++ tiffdump.o: ${SRCDIR}/tiffdump.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffdump.c
++ 
++ tiffmedian: tiffmedian.o ${TIFFLIB}
++ 	${CC} -o tiffmedian ${CFLAGS} tiffmedian.o ${LIBS}
++ tiffmedian.o: ${SRCDIR}/tiffmedian.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffmedian.c
++ 
++ tiffsplit: tiffsplit.o ${TIFFLIB}
++ 	${CC} -o tiffsplit ${CFLAGS} tiffsplit.o ${LIBS}
++ tiffsplit.o: ${SRCDIR}/tiffsplit.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffsplit.c
++ 
++ tiff2pdf: tiff2pdf.o ${TIFFLIB}
++ 	${CC} -o tiff2pdf ${CFLAGS} tiff2pdf.o ${LIBS}
++ tiff2pdf.o: ${SRCDIR}/tiff2pdf.c
++ 	${CC} -c ${CFLAGS} -I../libtiff ${SRCDIR}/tiff2pdf.c
++ 
++ tiff2ps: tiff2ps.o ${TIFFLIB}
++ 	${CC} -o tiff2ps ${CFLAGS} tiff2ps.o ${LIBS}
++ tiff2ps.o: ${SRCDIR}/tiff2ps.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiff2ps.c
++ 
++ tiffset: tiffset.o ${TIFFLIB}
++ 	${CC} -o tiffset ${CFLAGS} tiffset.o ${LIBS}
++ tiffset.o: ${SRCDIR}/tiffset.c
++ 	${CC} -c ${CFLAGS} -I../libtiff ${SRCDIR}/tiffset.c
++ 
++ #
++ # Junky stuff... programs that are more examples of how
++ # to use the library than full-blown useful tools.
++ #
++ 
++ # convert RGB image to B&W
++ tiff2bw: tiff2bw.o ${TIFFLIB}
++ 	${CC} -o tiff2bw ${CFLAGS} tiff2bw.o ${LIBS}
++ tiff2bw.o: ${SRCDIR}/tiff2bw.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiff2bw.c
++ 
++ # convert anything to RGBA.
++ tiff2rgba: tiff2rgba.o ${TIFFLIB}
++ 	${CC} -o tiff2rgba ${CFLAGS} tiff2rgba.o ${LIBS}
++ tiff2rgba.o: ${SRCDIR}/tiff2rgba.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiff2rgba.c
++ 
++ # convert B&W image to bilevel w/ FS dithering
++ tiffdither: tiffdither.o ${TIFFLIB}
++ 	${CC} -o tiffdither ${CFLAGS} tiffdither.o ${LIBS}
++ tiffdither.o: ${SRCDIR}/tiffdither.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffdither.c
++ 
++ # simple Sun rasterfile converter
++ ras2tiff: ras2tiff.o ${TIFFLIB}
++ 	${CC} -o ras2tiff ${CFLAGS} ras2tiff.o ${LIBS}
++ ras2tiff.o: ${SRCDIR}/ras2tiff.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/ras2tiff.c
++ 
++ # convert raw images to TIFFs
++ raw2tiff: raw2tiff.o ${TIFFLIB}
++ 	${CC} -o raw2tiff ${CFLAGS} raw2tiff.o ${LIBS}
++ raw2tiff.o: ${SRCDIR}/raw2tiff.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/raw2tiff.c
++ 
++ # simple GIF converter
++ gif2tiff: gif2tiff.o ${TIFFLIB}
++ 	${CC} -o gif2tiff ${CFLAGS} gif2tiff.o ${LIBS}
++ gif2tiff.o: ${SRCDIR}/gif2tiff.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/gif2tiff.c
++ 
++ # very limited PBM converter
++ ppm2tiff: ppm2tiff.o ${TIFFLIB}
++ 	${CC} -o ppm2tiff ${CFLAGS} ppm2tiff.o ${LIBS}
++ ppm2tiff.o: ${SRCDIR}/ppm2tiff.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/ppm2tiff.c
++ 
++ # Group 3/4 FAX file converter
++ fax2tiff: fax2tiff.o ${TIFFLIB}
++ 	${CC} -o fax2tiff ${CFLAGS} fax2tiff.o ${LIBS}
++ fax2tiff.o: ${SRCDIR}/fax2tiff.c
++ 	${CC} -c -I${LIBDIR} -I${DEPTH}/libtiff ${CFLAGS} ${SRCDIR}/fax2tiff.c
++ 
++ # Group 3/4 FAX to encoded PS converter
++ fax2ps: fax2ps.o ${TIFFLIB}
++ 	${CC} -o fax2ps ${CFLAGS} fax2ps.o ${LIBS}
++ fax2ps.o: ${SRCDIR}/fax2ps.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/fax2ps.c
++ 
++ # convert Palette image to RGB
++ pal2rgb: pal2rgb.o ${TIFFLIB}
++ 	${CC} -o pal2rgb ${CFLAGS} pal2rgb.o ${LIBS}
++ pal2rgb.o: ${SRCDIR}/pal2rgb.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/pal2rgb.c
++ 
++ # convert RGB image to YCbCr
++ rgb2ycbcr: rgb2ycbcr.o ${TIFFLIB}
++ 	${CC} -o rgb2ycbcr ${CFLAGS} rgb2ycbcr.o ${LIBS}
++ rgb2ycbcr.o: ${SRCDIR}/rgb2ycbcr.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/rgb2ycbcr.c
++ 
++ # generate thumbnail images from fax (example of SubIFD usage)
++ thumbnail: thumbnail.o ${TIFFLIB}
++ 	${CC} -o thumbnail ${CFLAGS} thumbnail.o ${LIBS}
++ thumbnail.o: ${SRCDIR}/thumbnail.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/thumbnail.c
++ 
++ #
++ # System-specific tools.
++ #
++ 
++ #
++ # sgi2tiff converts SGI RGB images to TIFF; it requires
++ # the SGI image library -limage.
++ #
++ sgi2tiff: sgi2tiff.o ${TIFFLIB}
++ 	${CC} -o sgi2tiff ${CFLAGS} sgi2tiff.o -limage ${LIBS}
++ sgi2tiff.o: ${SRCDIR}/sgi2tiff.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/sgi2tiff.c
++ 
++ # SGI versions of tiffgt & tiffsv that require -lgl
++ tiffgt:	tiffgt.o ${TIFFLIB}
++ 	${CC} -o tiffgt ${CFLAGS} tiffgt.o -lGL -lglut ${LIBS}
++ tiffgt.o: ${SRCDIR}/tiffgt.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/tiffgt.c
++ 
++ tiffsv:	sgisv.o ${TIFFLIB}
++ 	${CC} -o tiffsv ${CFLAGS} sgisv.o -lgutil -lgl ${LIBS}
++ sgisv.o: ${SRCDIR}/sgisv.c
++ 	${CC} -c ${CFLAGS} ${SRCDIR}/sgisv.c
++ 

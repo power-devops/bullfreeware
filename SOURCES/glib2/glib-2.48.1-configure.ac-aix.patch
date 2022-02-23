@@ -1,0 +1,13 @@
+Index: glib-2.48.0/configure.ac
+===================================================================
+--- glib-2.48.0.orig/configure.ac	2016-04-19 16:21:59.000000000 +0200
++++ glib-2.48.0/configure.ac	2016-04-19 16:22:34.000000000 +0200
+@@ -2819,6 +2819,8 @@
+ #define G_GNUC_INTERNAL __hidden
+ #elif defined (__GNUC__) && defined (G_HAVE_GNUC_VISIBILITY)
+ #define G_GNUC_INTERNAL __attribute__((visibility("hidden")))
++#elif defined (_AIX)
++#define G_GNUC_INTERNAL __attribute__((visibility("hidden")))
+ #else
+ #define G_GNUC_INTERNAL
+ #endif 

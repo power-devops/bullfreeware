@@ -1,0 +1,27 @@
+From 177cb167cfc151a1f58fb3e771cd29d0598f462f Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sat, 17 Mar 2018 22:47:34 -0400
+Subject: [PATCH] Report extended errors in kinit -k -t KDB:
+
+In kinit, if we recreate the context using kinit_kdb_init(), also
+reset the global errctx so that we use the new context to retrieve
+extended error messages.
+
+ticket: 8652 (new)
+(cherry picked from commit d4d902d317a2acc46ee71094a33a9203b6135275)
+---
+ src/clients/kinit/kinit.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/clients/kinit/kinit.c b/src/clients/kinit/kinit.c
+index a518284ea..3fdae2878 100644
+--- a/src/clients/kinit/kinit.c
++++ b/src/clients/kinit/kinit.c
+@@ -718,6 +718,7 @@ k5_kinit(struct k_opts *opts, struct k5_data *k5)
+ #ifndef _WIN32
+         if (strncmp(opts->keytab_name, "KDB:", 4) == 0) {
+             ret = kinit_kdb_init(&k5->ctx, k5->me->realm.data);
++            errctx = k5->ctx;
+             if (ret) {
+                 com_err(progname, ret,
+                         _("while setting up KDB keytab for realm %s"),

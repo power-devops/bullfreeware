@@ -1,0 +1,13 @@
+Index: gettext-0.17/gettext-runtime/intl/Makefile.in
+===================================================================
+--- gettext-0.17.orig/gettext-runtime/intl/Makefile.in	2007-11-04 22:21:12.000000000 +0100
++++ gettext-0.17/gettext-runtime/intl/Makefile.in	2009-03-26 16:33:25.000000000 +0100
+@@ -204,7 +204,7 @@
+ # according to the libtool documentation, section "Library interface versions".
+ # Maintainers of other packages that include the intl directory must *not*
+ # change these values.
+-LTV_CURRENT=8
++LTV_CURRENT=1
+ LTV_REVISION=2
+ LTV_AGE=0
+ 

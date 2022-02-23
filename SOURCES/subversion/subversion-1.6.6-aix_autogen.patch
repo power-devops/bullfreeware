@@ -1,0 +1,13 @@
+Index: subversion-1.6.6/autogen.sh
+===================================================================
+--- subversion-1.6.6.orig/autogen.sh	2009-02-04 20:22:02.000000000 +0100
++++ subversion-1.6.6/autogen.sh	2010-02-19 16:46:12.000000000 +0100
+@@ -51,7 +51,7 @@
+ $libtoolize --copy --automake --force
+ 
+ ltpath="`dirname $libtoolize`"
+-ltfile=${LIBTOOL_M4-`cd $ltpath/../share/aclocal ; pwd`/libtool.m4}
++ltfile=${LIBTOOL_M4-`cd /opt/freeware/share/aclocal ; pwd`/libtool.m4}
+ 
+ if [ ! -f $ltfile ]; then
+     echo "$ltfile not found (try setting the LIBTOOL_M4 environment variable)"

@@ -1,0 +1,11 @@
+--- ./src/unix/Makefile.in_orig	2018-07-20 12:34:54 +0530
++++ ./src/unix/Makefile.in	2018-07-20 12:35:42 +0530
+@@ -78,7 +78,7 @@
+ 	  -e "s:@rincludedir:$(rincludedir):" \
+ 	  -e "s:@rarch:$(R_ARCH):" \
+ 	  -e 's:@libsprivate:$(STATIC_LIBR_PC):' \
+-	  -e 's:@others:$(MAIN_LDFLAGS) $(LDFLAGS):' \
++	  -e 's#@others#$(MAIN_LDFLAGS) $(LDFLAGS)#' \
+ 	  -e 's/@VERSION/$(VERSION)/' $(srcdir)/libR.pc.in \
+ 	  > "$(DESTDIR)$(libdir)/pkgconfig/libR.pc"
+ 

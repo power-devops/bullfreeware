@@ -1,0 +1,147 @@
+From d3631955d454a8cfc0b63065ef1cc4c8db64ae46 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 20 Feb 2019 15:54:11 +0100
+Subject: [PATCH] cmd/link: set correct sizes for XCOFF outer symbols
+
+This commit fixes the size of outer symbols like type.*.
+Outer symbols cannot have a nil size on AIX or they will be
+removed by ld as long as all their sub-symbols.
+
+Change-Id: I68ff3ce5a3a034e3c3eb23431aba31245073cf20
+Reviewed-on: https://go-review.googlesource.com/c/163999
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/data.go b/src/cmd/link/internal/ld/data.go
+index e72ad40..46d85f0 100644
+--- a/src/cmd/link/internal/ld/data.go
++++ b/src/cmd/link/internal/ld/data.go
+@@ -1475,6 +1475,7 @@
+ 	}
+ 	datsize = Rnd(datsize, int64(sect.Align))
+ 	for _, symn := range sym.ReadOnly {
++		symnStartValue := datsize
+ 		for _, s := range data[symn] {
+ 			datsize = aligndatsize(datsize, s)
+ 			s.Sect = sect
+@@ -1483,6 +1484,13 @@
+ 			datsize += s.Size
+ 		}
+ 		checkdatsize(ctxt, datsize, symn)
++		if ctxt.HeadType == objabi.Haix {
++			// Read-only symbols might be wrapped inside their outer
++			// symbol.
++			// XCOFF symbol table needs to know the size of
++			// these outer symbols.
++			xcoffUpdateOuterSize(ctxt, datsize-symnStartValue, symn)
++		}
+ 	}
+ 	sect.Length = uint64(datsize) - sect.Vaddr
+ 
+@@ -1557,6 +1565,7 @@
+ 		datsize = Rnd(datsize, int64(sect.Align))
+ 		for _, symnro := range sym.ReadOnly {
+ 			symn := sym.RelROMap[symnro]
++			symnStartValue := datsize
+ 			for _, s := range data[symn] {
+ 				datsize = aligndatsize(datsize, s)
+ 				if s.Outer != nil && s.Outer.Sect != nil && s.Outer.Sect != sect {
+@@ -1568,6 +1577,13 @@
+ 				datsize += s.Size
+ 			}
+ 			checkdatsize(ctxt, datsize, symn)
++			if ctxt.HeadType == objabi.Haix {
++				// Read-only symbols might be wrapped inside their outer
++				// symbol.
++				// XCOFF symbol table needs to know the size of
++				// these outer symbols.
++				xcoffUpdateOuterSize(ctxt, datsize-symnStartValue, symn)
++			}
+ 		}
+ 
+ 		sect.Length = uint64(datsize) - sect.Vaddr
+@@ -1601,6 +1617,11 @@
+ 	}
+ 	checkdatsize(ctxt, datsize, sym.SITABLINK)
+ 	sect.Length = uint64(datsize) - sect.Vaddr
++	if ctxt.HeadType == objabi.Haix {
++		// Store .itablink size because its symbols are wrapped
++		// under an outer symbol: runtime.itablink.
++		xcoffUpdateOuterSize(ctxt, int64(sect.Length), sym.SITABLINK)
++	}
+ 
+ 	/* gosymtab */
+ 	sect = addrelrosection(".gosymtab")
+diff --git a/src/cmd/link/internal/ld/xcoff.go b/src/cmd/link/internal/ld/xcoff.go
+index e565a35..188c7a5 100644
+--- a/src/cmd/link/internal/ld/xcoff.go
++++ b/src/cmd/link/internal/ld/xcoff.go
+@@ -529,8 +529,48 @@
+ var (
+ 	currDwscnoff   = make(map[string]uint64) // Needed to create C_DWARF symbols
+ 	currSymSrcFile xcoffSymSrcFile
++	outerSymSize   = make(map[string]int64)
+ )
+ 
++// xcoffUpdateOuterSize stores the size of outer symbols in order to have it
++// in the symbol table.
++func xcoffUpdateOuterSize(ctxt *Link, size int64, stype sym.SymKind) {
++	if size == 0 {
++		return
++	}
++
++	switch stype {
++	default:
++		Errorf(nil, "unknown XCOFF outer symbol for type %s", stype.String())
++	case sym.SRODATA, sym.SRODATARELRO, sym.SFUNCTAB, sym.SSTRING:
++		// Nothing to do
++	case sym.STYPERELRO:
++		if ctxt.UseRelro() && (ctxt.BuildMode == BuildModeCArchive || ctxt.BuildMode == BuildModeCShared || ctxt.BuildMode == BuildModePIE) {
++			outerSymSize["typerel.*"] = size
++			return
++		}
++		fallthrough
++	case sym.STYPE:
++		if !ctxt.DynlinkingGo() {
++			outerSymSize["type.*"] = size
++		}
++	case sym.SGOSTRING:
++		outerSymSize["go.string.*"] = size
++	case sym.SGOFUNC:
++		if !ctxt.DynlinkingGo() {
++			outerSymSize["go.func.*"] = size
++		}
++	case sym.SGOFUNCRELRO:
++		outerSymSize["go.funcrel.*"] = size
++	case sym.SGCBITS:
++		outerSymSize["runtime.gcbits.*"] = size
++	case sym.SITABLINK:
++		outerSymSize["runtime.itablink"] = size
++
++	}
++
++}
++
+ // addSymbol writes a symbol or an auxiliary symbol entry on ctxt.out.
+ func (f *xcoffFile) addSymbol(sym xcoffSym) {
+ 	f.symtabSym = append(f.symtabSym, sym)
+@@ -888,6 +928,17 @@
+ // It will be written in out file in Asmbxcoff, because it must be
+ // at the very end, especially after relocation sections which needs symbols' index.
+ func (f *xcoffFile) asmaixsym(ctxt *Link) {
++	// Get correct size for symbols wrapping others symbols like go.string.*
++	// sym.Size can be used directly as the symbols have already been written.
++	for name, size := range outerSymSize {
++		sym := ctxt.Syms.ROLookup(name, 0)
++		if sym == nil {
++			Errorf(nil, "unknown outer symbol with name %s", name)
++		} else {
++			sym.Size = size
++		}
++	}
++
+ 	genasmsym(ctxt, putaixsym)
+ 	xfile.updatePreviousFile(ctxt, true)
+ }

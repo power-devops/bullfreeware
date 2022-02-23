@@ -1,0 +1,79 @@
+--- ./storage/heap/CMakeLists.txt.orig	2019-10-08 16:31:05.000000000 +0200
++++ ./storage/heap/CMakeLists.txt	2019-10-08 16:31:05.000000000 +0200
+@@ -27,4 +27,8 @@
+ 
+   ADD_EXECUTABLE(hp_test2 hp_test2.c)
+   TARGET_LINK_LIBRARIES(hp_test2 heap mysys dbug strings)
+-ENDIF()
+\ Pas de fin de ligne à la fin du fichier
++  IF(AIX)
++    TARGET_LINK_OPTIONS(hp_test1  PRIVATE "-Wl,-berok")
++    TARGET_LINK_OPTIONS(hp_test2  PRIVATE "-Wl,-berok")
++  ENDIF()
++ENDIF()
+--- ./storage/maria/CMakeLists.txt.orig	2019-10-08 16:31:05.000000000 +0200
++++ ./storage/maria/CMakeLists.txt	2019-10-08 16:31:05.000000000 +0200
+@@ -83,6 +83,12 @@
+ MYSQL_ADD_EXECUTABLE(aria_pack maria_pack.c COMPONENT Server)
+ TARGET_LINK_LIBRARIES(aria_pack aria)
+ 
++IF(AIX)
++  FOREACH(target aria_ftdump aria_chk aria_read_log aria_dump_log aria_pack)
++    TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-berok")
++  ENDFOREACH()
++ENDIF()
++
+ IF(WITH_UNIT_TESTS)
+   ADD_EXECUTABLE(ma_test1 ma_test1.c)
+   TARGET_LINK_LIBRARIES(ma_test1 aria)
+@@ -104,6 +110,11 @@
+ 
+   ADD_SUBDIRECTORY(unittest)
+ 
++  IF(AIX)
++    FOREACH(target ma_test1 ma_test2 ma_test3 ma_rt_test ma_sp_test test_ma_backup)
++      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-berok")
++    ENDFOREACH()
++  ENDIF()
+ ENDIF()
+   
+ IF (MSVC)
+--- ./storage/maria/unittest/CMakeLists.txt.orig	2019-10-08 16:31:05.000000000 +0200
++++ ./storage/maria/unittest/CMakeLists.txt	2019-10-08 16:31:05.000000000 +0200
+@@ -134,3 +134,8 @@
+ SET_TARGET_PROPERTIES(ma_pagecache_rwconsist2_1k-t PROPERTIES COMPILE_FLAGS "-DTEST_PAGE_SIZE=1024")
+ MY_ADD_TEST(ma_pagecache_rwconsist2_1k)
+ 
++IF(AIX)
++  FOREACH(target trnman-t ma_test_loghandler-t ma_test_loghandler_multigroup-t ma_test_loghandler_multithread-t ma_test_loghandler_pagecache-t ma_test_loghandler_long-t ma_test_loghandler_noflush-t ma_test_loghandler_first_lsn-t ma_test_loghandler_max_lsn-t ma_test_loghandler_purge-t ma_test_loghandler_readonly-t ma_test_loghandler_nologs-t ma_pagecache_single_1k-t ma_pagecache_single_8k-t ma_pagecache_single_64k-t ma_pagecache_consist_1k-t ma_pagecache_consist_64k-t ma_pagecache_consist_1kHC-t ma_pagecache_consist_64kHC-t ma_pagecache_consist_1kRD-t ma_pagecache_consist_64kRD-t ma_pagecache_consist_1kWR-t ma_pagecache_consist_64kWR-t ma_pagecache_rwconsist_1k-t ma_pagecache_rwconsist2_1k-t)
++    TARGET_LINK_OPTIONS(${target}  PRIVATE "-Wl,-berok")
++  ENDFOREACH()
++ENDIF()
+--- ./storage/myisam/CMakeLists.txt.orig	2019-10-08 16:31:05.000000000 +0200
++++ ./storage/myisam/CMakeLists.txt	2019-10-08 16:31:05.000000000 +0200
+@@ -46,6 +46,12 @@
+ MYSQL_ADD_EXECUTABLE(myisampack myisampack.c COMPONENT Server)
+ TARGET_LINK_LIBRARIES(myisampack myisam)
+ 
++IF(AIX)
++  FOREACH(target myisam_ftdump myisamchk myisamlog myisampack)
++    TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-berok")
++  ENDFOREACH()
++ENDIF()
++
+ IF(WITH_UNIT_TESTS)
+   ADD_EXECUTABLE(mi_test1 mi_test1.c)
+   TARGET_LINK_LIBRARIES(mi_test1 myisam)
+@@ -61,6 +67,12 @@
+ 
+   ADD_EXECUTABLE(rt_test rt_test.c)
+   TARGET_LINK_LIBRARIES(rt_test myisam)
++
++  IF(AIX)
++    FOREACH(target mi_test1 mi_test2 mi_test3 sp_test rt_test)
++      TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-berok")
++    ENDFOREACH()
++  ENDIF()
+ ENDIF()
+   
+ IF (MSVC)

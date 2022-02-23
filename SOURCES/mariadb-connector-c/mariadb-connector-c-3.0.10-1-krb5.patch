@@ -1,0 +1,30 @@
+--- ./cmake/FindGSSAPI.cmake.orig    2019-04-29 14:37:16.972000000 +0200
++++ ./cmake/FindGSSAPI.cmake 2019-05-06 10:07:24.163437237 +0200
+@@ -45,8 +45,15 @@
+   set(GSSAPI_FOUND TRUE)
+
+ else(GSSAPI_LIBS AND GSSAPI_FLAVOR)
+-
+-  find_program(KRB5_CONFIG NAMES krb5-config PATHS
++  if(OBJECT_MODE STREQUAL "64")
++    set(KRB5_CONFIG_COMMAND "krb5-config_64")
++  elseif(OBJECT_MODE STREQUAL "32")
++    set(KRB5_CONFIG_COMMAND "krb5-config")
++  else()
++    message("OBJECT_MODE not passed to CMake. 32 bits version will be used.")
++    set(KRB5_CONFIG_COMMAND "krb5-config")
++  endif()
++  find_program(KRB5_CONFIG NAMES ${KRB5_CONFIG_COMMAND} heimdal-krb5-config PATHS
+      /opt/local/bin
+      /usr/lib/mit/bin/
+      ONLY_CMAKE_FIND_ROOT_PATH               # this is required when cross compiling with cmake 2.6 and ignored with cmake 2.4, Alex
+@@ -62,6 +69,9 @@
+
+     set(HAVE_KRB5_GSSAPI TRUE)
+     exec_program(${KRB5_CONFIG} ARGS --libs gssapi RETURN_VALUE _return_VALUE OUTPUT_VARIABLE GSSAPI_LIBS)
++    string(REGEX REPLACE "-Wl[A-Za-z0-9_/,:-]*[ $]?" "" GSSAPI_LIBS "${GSSAPI_LIBS}")
++    string(REGEX REPLACE  "-L[A-Za-z0-9_/,:-]*[ $]?" "" GSSAPI_LIBS "${GSSAPI_LIBS}")
++
+     if(_return_VALUE)
+       message(STATUS "GSSAPI configure check failed.")
+       set(HAVE_KRB5_GSSAPI FALSE)

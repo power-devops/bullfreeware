@@ -1,0 +1,31 @@
+From f91a82f18c0a031a5eb9b9efa68a463317f7b37f Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Thu, 31 Jan 2019 14:27:31 -0600
+Subject: [PATCH 20/24] runtime: fix sigfwd for aix/ppc64
+
+---
+ src/runtime/sys_aix_ppc64.s | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index d9e97ac8b7..69c533d3ed 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -77,8 +77,13 @@ TEXT runtime·sigfwd(SB),NOSPLIT,$0-32
+ 	MOVD	info+16(FP), R4
+ 	MOVD	ctx+24(FP), R5
+ 	MOVD	fn+0(FP), R12
+-	MOVD	R12, CTR
++	MOVD	0(R12), R0
++	MOVD	R2, 40(R1)
++	MOVD	8(R12), R2
++	MOVD	R0, CTR
+ 	BL	(CTR)
++	MOVD	40(R1), R2
++	BL	runtime·reginit(SB)
+ 	RET
+ 
+ 
+-- 
+2.15.1
+

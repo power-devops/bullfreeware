@@ -1,0 +1,106 @@
+--- nss-3.56.0.orig/nss/Makefile	2020-08-21 17:10:57 +0200
++++ nss-3.56.0/nss/Makefile	2020-10-01 14:42:33 +0200
+@@ -89,7 +89,7 @@
+ NSPR_CONFIGURE_OPTS += --enable-static-rtl
+ endif
+ ifdef NS_USE_GCC
+-NSPR_CONFIGURE_ENV = CC=gcc CXX=g++
++NSPR_CONFIGURE_ENV = CC="$(CC)" CXX="$(CXX)"
+ endif
+ # Make sure to remove -arch arguments. NSPR can't handle that.
+ remove_arch = $(filter-out __REMOVEME%,$(subst $(NULL) -arch , __REMOVEME,$(1)))
+--- nss-3.56.0.orig/nss/cmd/platlibs.mk	2020-08-21 17:10:57 +0200
++++ nss-3.56.0/nss/cmd/platlibs.mk	2020-10-01 14:31:01 +0200
+@@ -171,7 +171,11 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), AIX) 
++ifeq ($(NS_AIX_XLC), 1)
+ EXTRA_SHARED_LIBS += -brtl 
++else
++EXTRA_SHARED_LIBS += -Wl,-brtl 
++endif
+ endif
+ 
+ # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+@@ -217,7 +221,11 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), AIX) 
++ifeq ($(NS_AIX_XLC), 1)
+ EXTRA_SHARED_LIBS += -brtl 
++else
++EXTRA_SHARED_LIBS += -Wl,-brtl 
++endif
+ endif
+ 
+ # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+--- ./nss/coreconf/AIX.mk.ORIGIN	2021-04-26 17:28:54 +0200
++++ ./nss/coreconf/AIX.mk	2021-04-26 17:38:01 +0200
+@@ -28,20 +28,47 @@
+ 	PTHREADS_USER = 1
+ endif
+ 
+-DEFAULT_COMPILER = xlc_r
++DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+ 
+-CC		= xlc_r
+-CCC		= xlC_r
++ifeq ($(NS_AIX_XLC), 1)
++	DEFAULT_COMPILER = xlc_r
++	ifeq ($(USE_64), 1)
++		CC	= /usr/vac/bin/xlc_r -q64
++		CCC	= /usr/vacpp/bin/xlC_r -q64
++		OS_LIBS	+= -blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm -L/usr/lib64 -lnspr4
++	   else
++		CC	= /usr/vac/bin/xlc_r
++		CCC	= /usr/vacpp/bin/xlC_r
++		OS_LIBS += -blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib:/usr/lib:/lib -lc -lm -lnspr4
++	   endif
++	MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm -lnspr4
++else
++	DEFAULT_COMPILER = gcc
++	ifeq ($(USE_64), 1)
++		CC	= /opt/freeware/bin/gcc -maix64
++		CCC	= /opt/freeware/bin/g++ -maix64
++		#CFLAGS	= -Wl,-blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib $(NSS_INCLUDES) -DMOZILLA_CLIENT -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++		CFLAGS	+= -Wl,-blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++		OS_LIBS += -lc -lm -L/opt/freeware/lib64 -lgcc_s -lpthread
++		#MKSHLIB = $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib64/nspr4:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm -L/opt/freeware/lib64 -lgcc_s -lpthread
++		MKSHLIB  = $(LD) $(DSO_LDOPTS) -blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib
++	else
++		CC	= /opt/freeware/bin/gcc
++		CCC	= /opt/freeware/bin/g++
++		#CFLAGS	= -Wl,-blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib:/usr/lib:/lib $(NSS_INCLUDES) -DMOZILLA_CLIENT -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++		CFLAGS	+= -Wl,-blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib:/usr/lib:/lib -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++		OS_LIBS += -lc -lm -L/opt/freeware/lib -lgcc_s -lpthread
++		#MKSHLIB = $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib/nspr4:/opt/freeware/lib:/usr/lib:/lib -lc -lm -L/opt/freeware/lib -lgcc_s -lpthread
++		MKSHLIB  = $(LD) $(DSO_LDOPTS) -blibpath:$(NSPR_LIB_DIR):/opt/freeware/lib:/usr/lib:/lib
++	endif
++	WARNING_CFLAGS	= 
++endif
+ 
+ CPU_ARCH	= rs6000
+ 
+ RANLIB		= ranlib
+ 
+-OS_CFLAGS	= -DAIX -DSYSV
+-OS_LIBS 	+= -blibpath:/usr/lib:/lib -lc -lm
+-
+-DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+-MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
++OS_CFLAGS	= -DAIX -DSYSV -D__BYTE_ORDER__=__ORDER_BIG_ENDIAN__
+ 
+ AIX_WRAP	= $(DIST)/lib/aixwrap.o
+ AIX_TMP		= $(OBJDIR)/_aix_tmp.o
+@@ -56,8 +83,10 @@
+                 sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' > $@
+ 
+ ifdef BUILD_OPT
++ifeq ($(NS_AIX_XLC), 1)
+ 	OPTIMIZER += -qmaxmem=-1
+ endif
++endif
+ 
+ ifeq ($(USE_64), 1)
+ 	OS_CFLAGS	+= -DAIX_64BIT

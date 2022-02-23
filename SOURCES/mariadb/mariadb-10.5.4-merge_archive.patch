@@ -1,0 +1,22 @@
+--- ./cmake/libutils.cmake.orig	2020-07-03 14:19:46 +0200
++++ ./cmake/libutils.cmake	2020-07-03 15:49:03 +0200
+@@ -204,7 +204,18 @@
+         COMMAND rm $<TARGET_FILE:${TARGET}>
+         COMMAND libtool -static -o $<TARGET_FILE:${TARGET}>
+         ${STATIC_LIBS}
+-      )  
++      )
++    ELSEIF(CMAKE_SYSTEM_NAME MATCHES AIX)
++      SET(TO_AR "echo")
++      FOREACH(LIB ${STATIC_LIBS})
++        SET(TO_AR "ar -x ${LIB} && ${TO_AR}")
++      ENDFOREACH()
++      ADD_CUSTOM_COMMAND(TARGET ${TARGET} POST_BUILD
++	COMMAND rm $<TARGET_FILE:${TARGET}>
++	COMMAND rm -rf MERGE && mkdir MERGE && cd MERGE && sh -c ${TO_AR}
++	COMMAND cd MERGE && sh -c "ar -qc $<TARGET_FILE:${TARGET}> *.o"
++	VERBATIM
++    )
+     ELSE()
+       # Generic Unix, Cygwin or MinGW. In post-build step, call
+       # script, that uses a MRI script to append static archives.

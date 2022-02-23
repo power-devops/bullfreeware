@@ -1,0 +1,8 @@
+--- ./contrib/gen_xml_dictionary_orig	2021-02-16 01:07:22 +0000
++++ ./contrib/gen_xml_dictionary	2021-02-16 01:07:38 +0000
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python3
++#!/usr/bin/env python3
+ 
+ import re
+ import sys, os, os.path, subprocess

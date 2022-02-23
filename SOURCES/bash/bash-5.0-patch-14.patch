@@ -1,0 +1,44 @@
+From 8b6524c482573ea12eb20be756cdb8ca31d945f3 Mon Sep 17 00:00:00 2001
+From: Chet Ramey <chet.ramey@case.edu>
+Date: Fri, 7 Feb 2020 15:18:41 -0500
+Subject: [PATCH] Bash-5.0 patch 14: edit-and-execute-command does not handle
+ empty command lines
+
+---
+ bashline.c   | 7 ++-----
+ patchlevel.h | 2 +-
+ 2 files changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/bashline.c b/bashline.c
+index 824ea9d9..97adaa0f 100644
+--- a/bashline.c
++++ b/bashline.c
+@@ -961,11 +961,8 @@ edit_and_execute_command (count, c, editing_mode, edit_command)
+       /* This breaks down when using command-oriented history and are not
+ 	 finished with the command, so we should not ignore the last command */
+       using_history ();
+-      if (rl_line_buffer[0])
+-	{
+-	  current_command_line_count++;	/* for rl_newline above */
+-	  bash_add_history (rl_line_buffer);
+-	}
++      current_command_line_count++;	/* for rl_newline above */
++      bash_add_history (rl_line_buffer);
+       current_command_line_count = 0;	/* for dummy history entry */
+       bash_add_history ("");
+       history_lines_this_session++;
+diff --git a/patchlevel.h b/patchlevel.h
+index 779671cd..09a3cc84 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -25,6 +25,6 @@
+    regexp `^#define[ 	]*PATCHLEVEL', since that's what support/mkversion.sh
+    looks for to find the patch level (for the sccs version string). */
+ 
+-#define PATCHLEVEL 13
++#define PATCHLEVEL 14
+ 
+ #endif /* _PATCHLEVEL_H_ */
+-- 
+2.25.1
+

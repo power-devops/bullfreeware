@@ -1,0 +1,27 @@
+--- a/lib/Makefile.in	2019-10-11 10:21:34 +0200
++++ b/lib/Makefile.in	2019-10-11 10:27:52 +0200
+@@ -44,6 +44,7 @@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_DATA = @INSTALL_DATA@
+ mkinstalldirs = $(SHELL) @top_srcdir@/build-aux/mkinstalldirs
++STRIP = @STRIP@
+ 
+ #### End of system configuration section. ####
+ 
+@@ -107,11 +108,11 @@
+ 	$(LIBTOOL_INSTALL) $(INSTALL) libiconv.la $(DESTDIR)$(libdir)/libiconv.la
+ 	case "@host_os@" in \
+ 	  aix*) (cd $(DESTDIR)$(libdir) && \
+-	         objects=`$(AR) t libiconv.a`" "`$(AR) t /lib/libiconv.a` && \
+-	         $(AR) x libiconv.a && $(AR) x /lib/libiconv.a && \
+-	         $(AR) q libiconv.new.a $$objects && \
+-	         rm -f $$objects && \
+-	         mv -f libiconv.new.a libiconv.a) ;; \
++	         objects=`$(AR) t /lib/libiconv.a` && \
++	         $(AR) x /lib/libiconv.a && \
++	         $(STRIP) -e $$objects && \
++	         $(AR) q libiconv.a $$objects && \
++	         rm -f $$objects );; \
+ 	esac
+ 
+ install-strip : install

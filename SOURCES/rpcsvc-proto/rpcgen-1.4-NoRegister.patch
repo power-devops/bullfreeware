@@ -1,0 +1,65 @@
+--- ./rpcgen/rpc_svcout.c.ORIGIN	2019-06-27 16:39:04 +0200
++++ ./rpcgen/rpc_svcout.c	2019-06-27 16:39:53 +0200
+@@ -148,7 +148,7 @@
+ 	{
+ 	  if (netflag)
+ 	    {
+-	      f_print (fout, "\tregister SVCXPRT *%s;\n", TRANSP);
++	      f_print (fout, "\tSVCXPRT *%s;\n", TRANSP);
+ 	      f_print (fout, "\tstruct netconfig *nconf = NULL;\n");
+ 	    }
+ 	  f_print (fout, "\tpid_t pid;\n");
+@@ -166,7 +166,7 @@
+ 	}
+       else
+ 	{
+-	  f_print (fout, "\tregister SVCXPRT *%s;\n", TRANSP);
++	  f_print (fout, "\tSVCXPRT *%s;\n", TRANSP);
+ 	  f_print (fout, "\n");
+ 	  print_pmapunset ("\t");
+ 	}
+@@ -429,13 +429,13 @@
+       if (Cflag)
+ 	{
+ 	  f_print (fout, "(struct svc_req *%s, ", RQSTP);
+-	  f_print (fout, "register SVCXPRT *%s)\n", TRANSP);
++	  f_print (fout, "SVCXPRT *%s)\n", TRANSP);
+ 	}
+       else
+ 	{
+ 	  f_print (fout, "(%s, %s)\n", RQSTP, TRANSP);
+ 	  f_print (fout, "	struct svc_req *%s;\n", RQSTP);
+-	  f_print (fout, "	register SVCXPRT *%s;\n", TRANSP);
++	  f_print (fout, "	SVCXPRT *%s;\n", TRANSP);
+ 	}
+ 
+       f_print (fout, "{\n");
+@@ -664,7 +664,7 @@
+ static void
+ write_inetmost (const char *infile)
+ {
+-  f_print (fout, "\tregister SVCXPRT *%s;\n", TRANSP);
++  f_print (fout, "\tSVCXPRT *%s;\n", TRANSP);
+   f_print (fout, "\tint sock;\n");
+   f_print (fout, "\tint proto;\n");
+   f_print (fout, "\tstruct sockaddr_in saddr;\n");
+--- ./rpcgen/rpc_cout.c.ORIGIN	2019-06-27 16:51:44 +0200
++++ ./rpcgen/rpc_cout.c	2019-06-27 16:51:59 +0200
+@@ -171,7 +171,7 @@
+   if (inlineflag == 0)
+     return;
+   /*May cause lint to complain. but  ... */
+-  f_print (fout, "\tregister int32_t *buf;\n\n");
++  f_print (fout, "\tint32_t *buf;\n\n");
+ }
+ 
+ static void
+@@ -721,7 +721,7 @@
+       tabify (fout, indent);
+       f_print (fout, "{\n");
+       tabify (fout, indent + 1);
+-      f_print (fout, "register %s *genp;\n\n", decl->type);
++      f_print (fout, "%s *genp;\n\n", decl->type);
+       tabify (fout, indent + 1);
+       f_print (fout,
+ 	       "for (i = 0, genp = objp->%s;\n", decl->name);

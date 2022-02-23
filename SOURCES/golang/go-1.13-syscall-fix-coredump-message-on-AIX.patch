@@ -1,0 +1,25 @@
+From 8dfd14e67c28f8c76eb49e8f68c93931f61b6a0c Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Fri, 30 Aug 2019 10:21:15 -0500
+Subject: [PATCH] syscall: fix coredump message on AIX
+
+---
+ src/syscall/syscall_aix.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/syscall/syscall_aix.go b/src/syscall/syscall_aix.go
+index ade2a9d367..d8010d35ce 100644
+--- a/src/syscall/syscall_aix.go
++++ b/src/syscall/syscall_aix.go
+@@ -494,7 +494,7 @@ func (w WaitStatus) Signal() Signal {
+ 
+ func (w WaitStatus) Continued() bool { return w&0x01000000 != 0 }
+ 
+-func (w WaitStatus) CoreDump() bool { return w&0x200 == 0 }
++func (w WaitStatus) CoreDump() bool { return w&0x80 == 0x80 }
+ 
+ func (w WaitStatus) TrapCause() int { return -1 }
+ 
+-- 
+2.21.0
+

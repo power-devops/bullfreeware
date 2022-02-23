@@ -1,0 +1,87 @@
+Index: bash-4.3.30/configure
+===================================================================
+--- bash-4.3.30.orig/configure	2015-08-05 10:30:28.000000000 +0200
++++ bash-4.3.30/configure	2015-08-05 11:27:48.000000000 +0200
+@@ -11270,7 +11270,7 @@
+ {
+         int     w;
+ 
+-        setlocale(LC_ALL, "en_US.UTF-8");
++        setlocale(LC_ALL, "EN_US.UTF-8");
+         w = wcwidth (0x0301);
+         exit (w == 0);  /* exit 0 if wcwidth broken */
+ }
+Index: bash-4.3.30/tests/intl.tests
+===================================================================
+--- bash-4.3.30.orig/tests/intl.tests	2015-08-05 10:31:33.000000000 +0200
++++ bash-4.3.30/tests/intl.tests	2015-08-05 11:28:25.000000000 +0200
+@@ -1,4 +1,4 @@
+-export LC_ALL=en_US.UTF-8
++export LC_ALL=EN_US.UTF-8
+ 
+ a=$'\303\251'
+ 
+Index: bash-4.3.30/tests/intl1.sub
+===================================================================
+--- bash-4.3.30.orig/tests/intl1.sub	2015-08-05 10:33:34.000000000 +0200
++++ bash-4.3.30/tests/intl1.sub	2015-08-05 11:28:42.000000000 +0200
+@@ -1,5 +1,5 @@
+-LC_ALL=en_US.UTF-8
+-LANG=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
++LANG=EN_US.UTF-8
+ 
+ var='абвгдежзиклмноп '
+ echo -"$var"- ${#var}
+Index: bash-4.3.30/tests/printf2.sub
+===================================================================
+--- bash-4.3.30.orig/tests/printf2.sub	2015-08-05 10:34:28.000000000 +0200
++++ bash-4.3.30/tests/printf2.sub	2015-08-05 11:29:13.000000000 +0200
+@@ -1,5 +1,5 @@
+ unset LC_ALL LC_CTYPE
+-export LANG=en_US.UTF-8
++export LANG=EN_US.UTF-8
+ 
+ case $(printf %d\\n \'À) in
+ 192)	exit 0;;
+Index: bash-4.3.30/tests/source5.sub
+===================================================================
+--- bash-4.3.30.orig/tests/source5.sub	2015-08-05 10:35:30.000000000 +0200
++++ bash-4.3.30/tests/source5.sub	2015-08-05 11:29:28.000000000 +0200
+@@ -1,4 +1,4 @@
+-LC_ALL=en_US.UTF-8
++LC_ALL=EN_US.UTF-8
+ unset LC_ALL
+ unset LANG
+ export LC_ALL=C
+Index: bash-4.3.30/tests/unicode1.sub
+===================================================================
+--- bash-4.3.30.orig/tests/unicode1.sub	2015-08-05 10:36:50.000000000 +0200
++++ bash-4.3.30/tests/unicode1.sub	2015-08-05 11:29:55.000000000 +0200
+@@ -574,7 +574,7 @@
+ 
+ 
+  )
+-TestCodePage en_US.UTF-8 C_UTF_8
++TestCodePage EN_US.UTF-8 C_UTF_8
+ 
+ if [ ${ErrorCnt} -gt 0 ]; then
+   echo "Failed ${ErrorCnt} of ${TestCnt} Unicode tests"
+Index: bash-4.3.30/tests/unicode2.sub
+===================================================================
+--- bash-4.3.30.orig/tests/unicode2.sub	2015-08-05 10:37:19.000000000 +0200
++++ bash-4.3.30/tests/unicode2.sub	2015-08-05 11:30:10.000000000 +0200
+@@ -1,4 +1,4 @@
+-export LANG=en_US.UTF-8
++export LANG=EN_US.UTF-8
+ 
+ printf '%s\n' "$(printf '\uff')" | od -b
+ printf '%s\n' $'\uff' | od -b
+@@ -17,6 +17,6 @@
+ 
+ LC_CTYPE=C printf '\uff'\\n | od -b
+ LC_CTYPE=ru_RU.CP1251 printf '\uff'\\n | od -b
+-LC_CTYPE=en_US.UTF-8 printf '\uff'\\n | od -b
++LC_CTYPE=EN_US.UTF-8 printf '\uff'\\n | od -b
+ 
+ echo -e '\u0041 \u00a3 \u0152' | od -b

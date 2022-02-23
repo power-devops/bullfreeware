@@ -1,0 +1,11 @@
+--- ./libtool.ORIGIN	2019-05-20 18:53:18 +0200
++++ ./libtool	2019-05-20 18:53:43 +0200
+@@ -4392,7 +4392,7 @@
+ 			;;
+ 		esac
+ 	done
+-	deplibs="$tmp_deplibs"
++	deplibs=`echo "$tmp_deplibs" | sed "s|/opt/freeware/lib/liblber.a|-llber|"`
+ 
+ 	if test -n "$convenience"; then
+ 	  if test -n "$whole_archive_flag_spec"; then

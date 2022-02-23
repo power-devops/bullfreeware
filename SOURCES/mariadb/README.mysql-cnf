@@ -1,0 +1,13 @@
+This directory contains prepared configuration files with .cnf extension,
+which provide a configuration for some common MariaDB deployment scenarios.
+These configuration files do not include the default configuration of datadir,
+log-file and pid-file locations, as specified in the default my.cnf file,
+provided in this distribution.
+
+Thus, it is recommended to use these configuration files as an addition to the
+default my.cnf configuration file.
+
+Since default my.cnf contains `!includedir @INSTALL_SYSCONF2DIR@` directive, it is
+recommended to copy required configuration under @INSTALL_SYSCONF2DIR@ directory,
+so the default my.cnf specifications will be extended.
+

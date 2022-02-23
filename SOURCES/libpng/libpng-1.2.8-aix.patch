@@ -1,0 +1,404 @@
+diff -crN ./libpng/Makefile.am /users3/olivap/sb/p64/src/./libpng/Makefile.am
+*** ./libpng/Makefile.am	Fri Dec  3 01:14:33 2004
+--- /users3/olivap/sb/p64/src/./libpng/Makefile.am	Thu Nov 10 17:23:31 2005
+***************
+*** 21,26 ****
+--- 21,29 ----
+  #distribute headers in /usr/include/libpng/*
+  pkginclude_HEADERS= png.h pngconf.h
+  
++ pkgconfigdir = $(libdir)/pkgconfig
++ pkgconfig_DATA = libpng.pc libpng12.pc
++ 
+  #extra source distribution files.
+  EXTRA_DIST= ANNOUNCE CHANGES INSTALL KNOWNBUG LICENSE README TODO Y2KINFO \
+  	pngtest.png pngbar.png pngnow.png pngbar.jpg autogen.sh \
+diff -crN ./libpng/png.h /users3/olivap/sb/p64/src/./libpng/png.h
+*** ./libpng/png.h	Fri Dec  3 01:14:24 2004
+--- /users3/olivap/sb/p64/src/./libpng/png.h	Thu Nov 10 17:28:42 2005
+***************
+*** 1073,1079 ****
+  struct png_struct_def
+  {
+  #ifdef PNG_SETJMP_SUPPORTED
+!    jmp_buf jmpbuf;            /* used in png_error */
+  #endif
+     png_error_ptr error_fn;    /* function for printing errors and aborting */
+     png_error_ptr warning_fn;  /* function for printing warnings */
+--- 1073,1079 ----
+  struct png_struct_def
+  {
+  #ifdef PNG_SETJMP_SUPPORTED
+!    jmp_buf PNG_jmpbuf;            /* used in png_error */
+  #endif
+     png_error_ptr error_fn;    /* function for printing errors and aborting */
+     png_error_ptr warning_fn;  /* function for printing warnings */
+diff -crN ./libpng/pngconf.h /users3/olivap/sb/p64/src/./libpng/pngconf.h
+*** ./libpng/pngconf.h	Fri Dec  3 01:14:24 2004
+--- /users3/olivap/sb/p64/src/./libpng/pngconf.h	Thu Nov 10 17:29:54 2005
+***************
+*** 1352,1358 ****
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+! #  define png_jmpbuf(png_ptr) ((png_ptr)->jmpbuf)
+  #else
+  #  define png_jmpbuf(png_ptr) \
+     (LIBPNG_WAS_COMPILED_WITH__PNG_SETJMP_NOT_SUPPORTED)
+--- 1352,1358 ----
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+! #  define png_jmpbuf(png_ptr) ((png_ptr)->PNG_jmpbuf)
+  #else
+  #  define png_jmpbuf(png_ptr) \
+     (LIBPNG_WAS_COMPILED_WITH__PNG_SETJMP_NOT_SUPPORTED)
+diff -crN ./libpng/pngerror.c /users3/olivap/sb/p64/src/./libpng/pngerror.c
+*** ./libpng/pngerror.c	Fri Dec  3 01:14:25 2004
+--- /users3/olivap/sb/p64/src/./libpng/pngerror.c	Mon Nov 14 10:21:32 2005
+***************
+*** 195,206 ****
+  #ifdef PNG_SETJMP_SUPPORTED
+  #  ifdef USE_FAR_KEYWORD
+     {
+!       jmp_buf jmpbuf;
+!       png_memcpy(jmpbuf,png_ptr->jmpbuf,png_sizeof(jmp_buf));
+!       longjmp(jmpbuf, 1);
+     }
+  #  else
+!    longjmp(png_ptr->jmpbuf, 1);
+  # endif
+  #else
+     /* make compiler happy */ ;
+--- 195,206 ----
+  #ifdef PNG_SETJMP_SUPPORTED
+  #  ifdef USE_FAR_KEYWORD
+     {
+!       jmp_buf PNG_jmpbuf;
+!       png_memcpy(PNG_jmpbuf,png_ptr->PNG_jmpbuf,png_sizeof(jmp_buf));
+!       longjmp(PNG_jmpbuf, 1);
+     }
+  #  else
+!    longjmp(png_ptr->PNG_jmpbuf, 1);
+  # endif
+  #else
+     /* make compiler happy */ ;
+***************
+*** 259,265 ****
+  /* This function is called when the application wants to use another method
+   * of handling errors and warnings.  Note that the error function MUST NOT
+   * return to the calling routine or serious problems will occur.  The return
+!  * method used in the default routine calls longjmp(png_ptr->jmpbuf, 1)
+   */
+  void PNGAPI
+  png_set_error_fn(png_structp png_ptr, png_voidp error_ptr,
+--- 259,265 ----
+  /* This function is called when the application wants to use another method
+   * of handling errors and warnings.  Note that the error function MUST NOT
+   * return to the calling routine or serious problems will occur.  The return
+!  * method used in the default routine calls longjmp(png_ptr->PNG_jmpbuf, 1)
+   */
+  void PNGAPI
+  png_set_error_fn(png_structp png_ptr, png_voidp error_ptr,
+diff -crN ./libpng/pngread.c /users3/olivap/sb/p64/src/./libpng/pngread.c
+*** ./libpng/pngread.c	Fri Dec  3 01:14:25 2004
+--- /users3/olivap/sb/p64/src/./libpng/pngread.c	Mon Nov 14 10:19:51 2005
+***************
+*** 37,43 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    jmp_buf jmpbuf;
+  #endif
+  #endif
+  
+--- 37,43 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    jmp_buf PNG_jmpbuf;
+  #endif
+  #endif
+  
+***************
+*** 67,75 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(jmpbuf))
+  #else
+!    if (setjmp(png_ptr->jmpbuf))
+  #endif
+     {
+        png_free(png_ptr, png_ptr->zbuf);
+--- 67,75 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(PNG_jmpbuf))
+  #else
+!    if (setjmp(png_ptr->PNG_jmpbuf))
+  #endif
+     {
+        png_free(png_ptr, png_ptr->zbuf);
+***************
+*** 83,89 ****
+        return (NULL);
+     }
+  #ifdef USE_FAR_KEYWORD
+!    png_memcpy(png_ptr->jmpbuf,jmpbuf,png_sizeof(jmp_buf));
+  #endif
+  #endif
+  
+--- 83,89 ----
+        return (NULL);
+     }
+  #ifdef USE_FAR_KEYWORD
+!    png_memcpy(png_ptr->PNG_jmpbuf,PNG_jmpbuf,png_sizeof(jmp_buf));
+  #endif
+  #endif
+  
+***************
+*** 158,168 ****
+     a png_error() will longjmp here.  Since the jmpbuf is then meaningless we
+     abort instead of returning. */
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(jmpbuf))
+        PNG_ABORT();
+!    png_memcpy(png_ptr->jmpbuf,jmpbuf,png_sizeof(jmp_buf));
+  #else
+!    if (setjmp(png_ptr->jmpbuf))
+        PNG_ABORT();
+  #endif
+  #endif
+--- 158,168 ----
+     a png_error() will longjmp here.  Since the jmpbuf is then meaningless we
+     abort instead of returning. */
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(PNG_jmpbuf))
+        PNG_ABORT();
+!    png_memcpy(png_ptr->PNG_jmpbuf,PNG_jmpbuf,png_sizeof(jmp_buf));
+  #else
+!    if (setjmp(png_ptr->PNG_jmpbuf))
+        PNG_ABORT();
+  #endif
+  #endif
+***************
+*** 256,262 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* save jump buffer and error functions */
+!    png_memcpy(tmp_jmp, png_ptr->jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     if(png_sizeof(png_struct) > png_struct_size)
+--- 256,262 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* save jump buffer and error functions */
+!    png_memcpy(tmp_jmp, png_ptr->PNG_jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     if(png_sizeof(png_struct) > png_struct_size)
+***************
+*** 271,277 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* restore jump buffer */
+!    png_memcpy(png_ptr->jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+     /* added at libpng-1.2.6 */
+--- 271,277 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* restore jump buffer */
+!    png_memcpy(png_ptr->PNG_jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+     /* added at libpng-1.2.6 */
+***************
+*** 1268,1274 ****
+      * being used again.
+      */
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(tmp_jmp, png_ptr->jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     error_fn = png_ptr->error_fn;
+--- 1268,1274 ----
+      * being used again.
+      */
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(tmp_jmp, png_ptr->PNG_jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     error_fn = png_ptr->error_fn;
+***************
+*** 1288,1294 ****
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(png_ptr->jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+  }
+--- 1288,1294 ----
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(png_ptr->PNG_jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+  }
+diff -crN ./libpng/pngwrite.c /users3/olivap/sb/p64/src/./libpng/pngwrite.c
+*** ./libpng/pngwrite.c	Fri Dec  3 01:14:26 2004
+--- /users3/olivap/sb/p64/src/./libpng/pngwrite.c	Mon Nov 14 10:22:43 2005
+***************
+*** 438,444 ****
+     png_structp png_ptr;
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    jmp_buf jmpbuf;
+  #endif
+  #endif
+     int i;
+--- 438,444 ----
+     png_structp png_ptr;
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    jmp_buf PNG_jmpbuf;
+  #endif
+  #endif
+     int i;
+***************
+*** 466,474 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(jmpbuf))
+  #else
+!    if (setjmp(png_ptr->jmpbuf))
+  #endif
+     {
+        png_free(png_ptr, png_ptr->zbuf);
+--- 466,474 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(PNG_jmpbuf))
+  #else
+!    if (setjmp(png_ptr->PNG_jmpbuf))
+  #endif
+     {
+        png_free(png_ptr, png_ptr->zbuf);
+***************
+*** 477,483 ****
+        return (NULL);
+     }
+  #ifdef USE_FAR_KEYWORD
+!    png_memcpy(png_ptr->jmpbuf,jmpbuf,png_sizeof(jmp_buf));
+  #endif
+  #endif
+  
+--- 477,483 ----
+        return (NULL);
+     }
+  #ifdef USE_FAR_KEYWORD
+!    png_memcpy(png_ptr->PNG_jmpbuf,PNG_jmpbuf,png_sizeof(jmp_buf));
+  #endif
+  #endif
+  
+***************
+*** 542,552 ****
+     a png_error() will longjmp here.  Since the jmpbuf is then meaningless we
+     abort instead of returning. */
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(jmpbuf))
+        PNG_ABORT();
+!    png_memcpy(png_ptr->jmpbuf,jmpbuf,png_sizeof(jmp_buf));
+  #else
+!    if (setjmp(png_ptr->jmpbuf))
+        PNG_ABORT();
+  #endif
+  #endif
+--- 542,552 ----
+     a png_error() will longjmp here.  Since the jmpbuf is then meaningless we
+     abort instead of returning. */
+  #ifdef USE_FAR_KEYWORD
+!    if (setjmp(PNG_jmpbuf))
+        PNG_ABORT();
+!    png_memcpy(png_ptr->PNG_jmpbuf,PNG_jmpbuf,png_sizeof(jmp_buf));
+  #else
+!    if (setjmp(png_ptr->PNG_jmpbuf))
+        PNG_ABORT();
+  #endif
+  #endif
+***************
+*** 634,640 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* save jump buffer and error functions */
+!    png_memcpy(tmp_jmp, png_ptr->jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     if (png_sizeof(png_struct) > png_struct_size)
+--- 634,640 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* save jump buffer and error functions */
+!    png_memcpy(tmp_jmp, png_ptr->PNG_jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     if (png_sizeof(png_struct) > png_struct_size)
+***************
+*** 661,667 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* restore jump buffer */
+!    png_memcpy(png_ptr->jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+     png_set_write_fn(png_ptr, png_voidp_NULL, png_rw_ptr_NULL,
+--- 661,667 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* restore jump buffer */
+!    png_memcpy(png_ptr->PNG_jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  
+     png_set_write_fn(png_ptr, png_voidp_NULL, png_rw_ptr_NULL,
+***************
+*** 1063,1069 ****
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* reset structure */
+!    png_memcpy(tmp_jmp, png_ptr->jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     error_fn = png_ptr->error_fn;
+--- 1063,1069 ----
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+     /* reset structure */
+!    png_memcpy(tmp_jmp, png_ptr->PNG_jmpbuf, png_sizeof (jmp_buf));
+  #endif
+  
+     error_fn = png_ptr->error_fn;
+***************
+*** 1083,1089 ****
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(png_ptr->jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  }
+  
+--- 1083,1089 ----
+  #endif
+  
+  #ifdef PNG_SETJMP_SUPPORTED
+!    png_memcpy(png_ptr->PNG_jmpbuf, tmp_jmp, png_sizeof (jmp_buf));
+  #endif
+  }
+  

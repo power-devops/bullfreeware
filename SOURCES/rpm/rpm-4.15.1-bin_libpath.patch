@@ -1,0 +1,17 @@
+--- ./config.rpath_orig	2021-06-24 03:57:40 +0000
++++ ./config.rpath	2021-06-24 03:58:36 +0000
+@@ -306,12 +306,12 @@
+       rm -f conftest.c conftest
+       # End _LT_AC_SYS_LIBPATH_AIX.
+       if test "$aix_use_runtimelinking" = yes; then
+-        hardcode_libdir_flag_spec='${wl}-blibpath:$libdir:'"$aix_libpath"
++        hardcode_libdir_flag_spec='${wl}-blibpath:'"$aix_libpath"
+       else
+         if test "$host_cpu" = ia64; then
+           hardcode_libdir_flag_spec='${wl}-R $libdir:/usr/lib:/lib'
+         else
+-          hardcode_libdir_flag_spec='${wl}-blibpath:$libdir:'"$aix_libpath"
++          hardcode_libdir_flag_spec='${wl}-blibpath:'"$aix_libpath"
+         fi
+       fi
+       ;;

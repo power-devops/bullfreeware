@@ -1,0 +1,47 @@
+diff -crN ./hicolor-icon-theme/Makefile.in /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./hicolor-icon-theme/Makefile.in
+*** ./hicolor-icon-theme/Makefile.in	Tue Apr  6 15:21:24 2004
+--- /gestconf/project/GNOME_ACL/GNOME/build/sh_build_GNOME/src/./hicolor-icon-theme/Makefile.in	Thu May 27 17:13:10 2004
+***************
+*** 2,7 ****
+--- 2,8 ----
+  VERSION = @PACKAGE_VERSION@
+  prefix = @prefix@
+  datadir = @datadir@
++ srcdir = @srcdir@
+  INSTALL = @INSTALL@
+  INSTALL_DATA = @INSTALL_DATA@
+  
+***************
+*** 18,24 ****
+  
+  install:
+  	mkdir -p $(DESTDIR)$(datadir)/icons/hicolor
+! 	$(INSTALL_DATA) index.theme $(DESTDIR)$(datadir)/icons/hicolor
+  	for dir in $(ICON_SIZES); do \
+  	  for ctxt in $(ICON_CONTEXTS); do \
+  	    mkdir -p $(DESTDIR)$(datadir)/icons/hicolor/$$dir/$$ctxt; \
+--- 19,25 ----
+  
+  install:
+  	mkdir -p $(DESTDIR)$(datadir)/icons/hicolor
+! 	$(INSTALL_DATA) $(srcdir)/index.theme $(DESTDIR)$(datadir)/icons/hicolor
+  	for dir in $(ICON_SIZES); do \
+  	  for ctxt in $(ICON_CONTEXTS); do \
+  	    mkdir -p $(DESTDIR)$(datadir)/icons/hicolor/$$dir/$$ctxt; \
+***************
+*** 43,49 ****
+  # cause rebuilds
+  Makefile: Makefile.in config.status
+  	./config.status Makefile
+! configure: configure.ac
+  	autoconf
+  config.status: configure
+  	./config.status --recheck
+--- 44,50 ----
+  # cause rebuilds
+  Makefile: Makefile.in config.status
+  	./config.status Makefile
+! $(srcdir)/configure: $(srcdir)/configure.ac
+  	autoconf
+  config.status: configure
+  	./config.status --recheck

@@ -1,0 +1,91 @@
+--- ./gotools/Makefile.am.ORIGIN	2017-10-06 10:04:54 -0500
++++ ./gotools/Makefile.am	2017-10-06 10:09:24 -0500
+@@ -42,7 +42,7 @@
+ 
+ AM_GOCFLAGS = -I $(libgodir)
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+-GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
++GOLINK = LIBRARY_PATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ 
+ libgosrcdir = $(srcdir)/../libgo/go
+ cmdsrcdir = $(libgosrcdir)/cmd
+--- ./gcc/gcc.c.ORIGIN	2017-10-06 10:07:29 -0500
++++ ./gcc/gcc.c	2017-10-06 10:09:24 -0500
+@@ -303,6 +303,14 @@
+    now.  */
+ static int greatest_status = 1;
+ 
++/* Used for managing the addition of -lgo first when linking Go on AIX */
++/*   except when -static-lgo is used when building libgo tests ! */
++#ifdef  TARGET_AIX_OS
++static int linkertimeforgo = 0;
++static int libgo_static = 0;
++static int current_static = 0;
++#endif
++
+ /* This is the obstack which we use to allocate many strings.  */
+ 
+ static struct obstack obstack;
+@@ -4288,6 +4296,28 @@
+   lang_specific_driver (&decoded_options, &decoded_options_count,
+ 			&added_libraries);
+ 
++#ifdef  TARGET_AIX_OS
++#define	LGO "go"
++  for (unsigned int j = 1; j < decoded_options_count; j++)
++    {
++      if ( decoded_options[j].opt_index==OPT_Wl_ && strcmp(decoded_options[j].arg, LD_STATIC_OPTION)==0 )
++	{
++      		current_static = 1;
++	}
++      if ( decoded_options[j].opt_index==OPT_Wl_ && strcmp(decoded_options[j].arg, LD_DYNAMIC_OPTION)==0 )
++	{
++      		current_static = 0;
++	}
++      if ( decoded_options[j].opt_index==OPT_l && strcmp(decoded_options[j].arg, LGO)==0 )
++	{
++		/* We need to add -lgo first on AIX */
++      		linkertimeforgo = 1;
++		libgo_static    = current_static;
++		break;
++	}
++    }
++#endif
++
+   if (gcc_exec_prefix)
+     {
+       int len = strlen (gcc_exec_prefix);
+@@ -8317,6 +8347,22 @@
+ 		linker_name_spec = "ld";
+ 	    }
+ 
++#ifdef  TARGET_AIX_OS
++#define LLGO_FORMAT " -L%s%s%c -L%s.. -lgo"
++	  if ( !libgo_static && linkertimeforgo && strcmp(progname, "gccgo")>=0 )
++	    {
++			char * llgo = (char *) xmalloc(strlen(standard_exec_prefix)*2
++			                               + strlen(just_machine_suffix)
++			                               + sizeof(LLGO_FORMAT)-10);
++			sprintf(llgo, LLGO_FORMAT, standard_exec_prefix,
++			        just_machine_suffix, spec_version[0],
++			        standard_exec_prefix);
++			char * tmp = (char *) xmalloc(strlen(linker_name_spec)
++			                              + strlen(llgo)+1);
++			strcpy(tmp, linker_name_spec);
++			linker_name_spec = strcat(tmp, llgo);
++	    }
++#endif
+ #if HAVE_LTO_PLUGIN > 0
+ #if HAVE_LTO_PLUGIN == 2
+ 	  if (!switch_matches (fno_use_linker_plugin,
+--- ./gotools/Makefile.in.ORIGIN	2017-10-06 10:05:00 -0500
++++ ./gotools/Makefile.in	2017-10-06 10:13:31 -0500
+@@ -263,7 +263,7 @@
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ AM_GOCFLAGS = -I $(libgodir)
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+-GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
++GOLINK = LIBRARY_PATH=$(libgodir)/.libs $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ libgosrcdir = $(srcdir)/../libgo/go
+ cmdsrcdir = $(libgosrcdir)/cmd
+ libgomiscdir = $(srcdir)/../libgo/misc

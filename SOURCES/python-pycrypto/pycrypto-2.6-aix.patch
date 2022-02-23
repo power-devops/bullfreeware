@@ -1,0 +1,17 @@
+Index: pycrypto-2.6/setup.py
+===================================================================
+--- pycrypto-2.6.orig/setup.py	2012-05-24 14:55:30.000000000 +0200
++++ pycrypto-2.6/setup.py	2013-08-02 15:42:57.000000000 +0200
+@@ -121,6 +121,12 @@
+             if self.compiler.compiler_so[0] == 'cc' and sys.platform.startswith('hp-ux'):
+                 self.__remove_compiler_option("-std=c99")
+ 
++            if 'xlc' in self.compiler.compiler_so[0] and sys.platform.startswith('aix'):
++                self.__remove_compiler_option("-std=c99")
++                self.__add_compiler_option("-qlanglvl=stdc99")
++                self.__add_compiler_option("-D_LARGE_FILES")
++                self.__add_compiler_option("-D_LINUX_SOURCE_COMPAT")
++
+             # Make assert() statements always work
+             self.__remove_compiler_option("-DNDEBUG")
+ 

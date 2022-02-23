@@ -1,0 +1,169 @@
+From 83cc5e2b2f887d4bb2305658da382a65fdcaab29 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 16 Jul 2020 11:29:49 +0200
+Subject: [PATCH] libgo: add AIX FAT libraries support
+
+AIX-style libraries contains both 32 and 64 bit shared objects.
+This patch follows the adding of FAT libraries support in other gcc
+libraries (libgcc, listdc++, etc).
+
+Reviewed-on: https://go-review.googlesource.com/c/gofrontend/+/242957
+---
+ gcc/go/gofrontend/MERGE     |  2 +-
+ libgo/Makefile.am           | 14 ++++++++++++++
+ libgo/Makefile.in           | 10 ++++++++++
+ libgo/configure             | 13 +++++++++++--
+ libgo/configure.ac          |  8 ++++++++
+ libgo/testsuite/Makefile.in |  1 +
+ 6 files changed, 45 insertions(+), 3 deletions(-)
+
+diff --git a/libgo/Makefile.am b/libgo/Makefile.am
+index 5b1807228ad..52a8330ed2a 100644
+--- a/libgo/Makefile.am
++++ b/libgo/Makefile.am
+@@ -1228,3 +1228,24 @@ distclean-local:
+ 	find . -name '*.lo.dep' -print | xargs rm -f
+ 
+ include $(top_srcdir)/../multilib.am
++
++if LIBGO_IS_AIX
++ALL_LOCAL_DEPS = add-aix-fat-library
++else
++ALL_LOCAL_DEPS =
++endif
++all-local: $(ALL_LOCAL_DEPS)
++
++MAJOR=$(firstword $(subst :, ,$(libtool_VERSION)))
++
++# If we want to use "AR -r" when creating AIX FAT archives,
++# AR must be stripped of all its -X flags.
++# Otherwize, if AR was defined with -X32_64, the replace option would
++# erase the default .so when adding the extra one. There is no
++# order priority within -X flags.
++add-aix-fat-library: all-multi
++	@if test "$(MULTIBUILDTOP)" = ""; then \
++	  arx=`echo $(AR) | sed -e 's/-X[^ ]*//g'`; \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc .libs/$(PACKAGE).a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	fi
+diff --git a/libgo/Makefile.in b/libgo/Makefile.in
+index b2712eba971..5cb44841c78 100644
+--- a/libgo/Makefile.in
++++ b/libgo/Makefile.in
+@@ -377,6 +377,7 @@ CTAGS = ctags
+ CSCOPE = cscope
+ DIST_SUBDIRS = testsuite
+ ACLOCAL = @ACLOCAL@
++AIX_EXTRA_ARCH = @AIX_EXTRA_ARCH@
+ ALLGOARCH = @ALLGOARCH@
+ ALLGOARCHFAMILY = @ALLGOARCHFAMILY@
+ ALLGOOS = @ALLGOOS@
+@@ -1160,6 +1161,9 @@ MULTIDIRS =
+ MULTISUBDIR = 
+ MULTIDO = true
+ MULTICLEAN = true
++@LIBGO_IS_AIX_FALSE@ALL_LOCAL_DEPS = 
++@LIBGO_IS_AIX_TRUE@ALL_LOCAL_DEPS = add-aix-fat-library
++MAJOR = $(firstword $(subst :, ,$(libtool_VERSION)))
+ all: config.h
+ 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
+ 
+@@ -3080,6 +3084,19 @@ mostlyclean-local: mostlyclean-multi
+ clean-local: clean-multi
+ distclean-local: distclean-multi
+ maintainer-clean-local: maintainer-clean-multi
++all-local: $(ALL_LOCAL_DEPS)
++
++# if we want to use "ar -r" when creating aix fat archives,
++# ar must be stripped of all its -x flags.
++# otherwize, if ar was defined with -x32_64, the replace option would
++# erase the default .so when adding the extra one. there is no
++# order priority within -x flags.
++add-aix-fat-library: all-multi
++	@if test "$(MULTIBUILDTOP)" = ""; then \
++	  arx=`echo $(AR) | sed -e 's/-X[^ ]*//g'`; \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc .libs/$(PACKAGE).a ../ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	  $${arx} -X$(AIX_EXTRA_ARCH) rc ../pthread/$(PACKAGE)/.libs/$(PACKAGE).a ../pthread/ppc$(AIX_EXTRA_ARCH)/$(PACKAGE)/.libs/$(PACKAGE).so.$(MAJOR); \
++	fi
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+diff --git a/libgo/configure b/libgo/configure
+index 2a9c7e61f63..67470acbadb 100755
+--- a/libgo/configure
++++ b/libgo/configure
+@@ -733,6 +733,7 @@ SED
+ MAINT
+ MAINTAINER_MODE_FALSE
+ MAINTAINER_MODE_TRUE
++AIX_EXTRA_ARCH
+ am__fastdepCCAS_FALSE
+ am__fastdepCCAS_TRUE
+ CCASDEPMODE
+@@ -4713,6 +4714,14 @@ case ${host} in
+     # static hash tables crashes on AIX when libgo is built with O2
+     CFLAGS="$CFLAGS -fno-section-anchors"
+     GOCFLAGS="$GOCFLAGS -fno-section-anchors"
++
++    # Check default architecture for FAT library creation
++    if test -z "`$CC -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
++        AIX_EXTRA_ARCH='64'
++    else
++        AIX_EXTRA_ARCH='32'
++    fi
++
+     ;;
+ esac
+ 
+@@ -11492,7 +11501,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11493 "configure"
++#line 11600 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -11598,7 +11607,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 11599 "configure"
++#line 11706 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+diff --git a/libgo/configure.ac b/libgo/configure.ac
+index 235d867ccda..841cba1768e 100644
+--- a/libgo/configure.ac
++++ b/libgo/configure.ac
+@@ -36,6 +36,14 @@ case ${host} in
+     # static hash tables crashes on AIX when libgo is built with O2
+     CFLAGS="$CFLAGS -fno-section-anchors"
+     GOCFLAGS="$GOCFLAGS -fno-section-anchors"
++
++    # Check default architecture for FAT library creation
++    if test -z "`$CC -x c -E /dev/null -g3 -o - | grep 64BIT`" ; then
++        AIX_EXTRA_ARCH='64'
++    else
++        AIX_EXTRA_ARCH='32'
++    fi
++    AC_SUBST(AIX_EXTRA_ARCH)
+     ;;
+ esac
+ 
+diff --git a/libgo/testsuite/Makefile.in b/libgo/testsuite/Makefile.in
+index 3d55e2649d3..ae42fad38e5 100644
+--- a/libgo/testsuite/Makefile.in
++++ b/libgo/testsuite/Makefile.in
+@@ -131,6 +131,7 @@ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+ DEJATOOL = $(PACKAGE)
+ RUNTESTDEFAULTFLAGS = --tool $$tool --srcdir $$srcdir
+ ACLOCAL = @ACLOCAL@
++AIX_EXTRA_ARCH = @AIX_EXTRA_ARCH@
+ ALLGOARCH = @ALLGOARCH@
+ ALLGOARCHFAMILY = @ALLGOARCHFAMILY@
+ ALLGOOS = @ALLGOOS@
+-- 
+2.25.0
+

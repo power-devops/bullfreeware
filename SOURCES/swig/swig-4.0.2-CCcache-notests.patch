@@ -1,0 +1,9 @@
+--- ./CCache/test.sh.ORIGIN     2021-01-08 21:52:55 +0100
++++ ./CCache/test.sh    2021-01-08 21:27:36 +0100
+@@ -1,5 +1,5 @@
+ #!/bin/sh
+-
++exit 0
+ # a simple test suite for ccache
+ # tridge@samba.org
+

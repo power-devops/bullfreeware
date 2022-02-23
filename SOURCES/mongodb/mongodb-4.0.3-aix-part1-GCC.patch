@@ -1,0 +1,109 @@
+--- ./SConstruct.ORIGIN	2019-05-17 16:14:03 -0500
++++ ./SConstruct	2019-05-17 16:14:28 -0500
+@@ -588,7 +588,7 @@
+     if mongo_platform.is_running_os('windows'):
+         # we only support MS toolchain on windows
+         return ['msvc', 'mslink', 'mslib', 'masm']
+-    elif mongo_platform.is_running_os('linux', 'solaris'):
++    elif mongo_platform.is_running_os('linux', 'solaris', 'aix'):
+         return ['gcc', 'g++', 'gnulink', 'ar', 'gas']
+     elif mongo_platform.is_running_os('darwin'):
+         return ['gcc', 'g++', 'applelink', 'ar', 'libtool', 'as', 'xcode']
+@@ -1050,6 +1050,8 @@
+ elif endian == "big":
+     env.SetConfigHeaderDefine("MONGO_CONFIG_BYTE_ORDER", "4321")
+ 
++Export("endian")
++
+ # These preprocessor macros came from
+ # http://nadeausoftware.com/articles/2012/02/c_c_tip_how_detect_processor_type_using_compiler_predefined_macros
+ #
+@@ -1172,6 +1174,13 @@
+         "C++ compiler {0} can't link C++ programs",
+         detectEnv['CXX'])
+ 
++# CB temp hack to have scons use a different gcc while version 5 is in a non standard place
++if mongo_platform.is_running_os("aix"):
++    #env["CC"]= "/opt/IBM/xlc/13.1.3/bin/xlc"
++    #env["CXX"]="/opt/IBM/xlC/13.1.3/bin/xlC"
++    env["CC"]="gcc"
++    env["CXX"]="g++"
++
+ toolchain_search_sequence = [ "GCC", "clang" ]
+ if mongo_platform.is_running_os('windows'):
+     toolchain_search_sequence = [ 'MSVC', 'clang', 'GCC' ]
+@@ -1523,6 +1532,11 @@
+     # NOTE: The leading and trailing spaces here are important. Do not remove them.
+     env['LINK_WHOLE_ARCHIVE_LIB_START'] = '-Wl,-z,allextract '
+     env['LINK_WHOLE_ARCHIVE_LIB_END'] = ' -Wl,-z,defaultextract'
++elif env.TargetOSIs('aix'):
++    env['LINK_LIBGROUP_START'] = ''
++    env['LINK_LIBGROUP_END'] = ''
++    env['LINK_WHOLE_ARCHIVE_START'] = ''
++    env['LINK_WHOLE_ARCHIVE_END'] = ''
+ elif env.TargetOSIs('windows'):
+     env['LINK_WHOLE_ARCHIVE_LIB_START'] = '/WHOLEARCHIVE:'
+     env['LINK_WHOLE_ARCHIVE_LIB_END'] = ''
+@@ -1541,6 +1555,24 @@
+ elif env.TargetOSIs('solaris'):
+      env.Append( LIBS=["socket","resolv","lgrp"] )
+ 
++elif env.TargetOSIs('aix'):
++    env.Append( LIBS=['m'] )
++    # GCC
++    env.Append( CCFLAGS=[ "-maix64", "-DASIO_HAS_PTHREADS", "-DASIO_HAS_THREADS" ] )
++    env.Append( LINKFLAGS=[ "-maix64", "-Wl,-bbigtoc", "-ftls-model=global-dynamic" ] ) #, "-Wl,-bnoquiet", "-Wl,-v", "-Wl,-brtl" ] ) #, "-lptools_ptr", "-g", "-Wl,-bst
++    # XL CLANG
++    #env.Append( CCFLAGS=[ "-q64", "-DASIO_HAS_PTHREADS", "-DASIO_HAS_THREADS" ] )
++    #env.Append( LINKFLAGS=[ "-q64", "-Wl,-bbigtoc", "-ftls-model=global-dynamic" ] ) #, "-Wl,-bnoquiet", "-Wl,-v", "-Wl,-brtl" ] ) #, "-lptools_ptr", "-g", "-Wl,-bstatic" ] )
++    env.Append( ARFLAGS=[ "-X32_64" ] )
++    # XLC
++    #env.Append( CPPPATH=[ "/opt/freeware/include", "/opt/IBM/xlC/13.1.0/include" ] )
++    # GCC 8.2.0
++    env.Append( CPPPATH=[ "/opt/freeware/include", "/opt/freeware/lib/gcc/powerpc-ibm-aix7.2.0.0/8.2.0/include/c++" ] )
++    env.Append( LIBPATH=[ "/opt/freeware/lib/gcc/powerpc-ibm-aix7.2.0.0/8.2.0/pthread/ppc64", "/opt/freeware/lib64" ] )
++    # XL CLANG
++    #env.Append( CPPPATH=[ "/opt/freeware/include" ] )
++    #env.Append( LIBPATH=[ "/opt/freeware/lib64" ] )
++
+ elif env.TargetOSIs('freebsd'):
+     env.Append( LIBS=[ "kvm" ] )
+     env.Append( CCFLAGS=[ "-fno-omit-frame-pointer" ] )
+@@ -1794,7 +1826,7 @@
+     if env.TargetOSIs('darwin'):
+         if env.TargetOSIs('macOS'):
+             env.Append( LINKFLAGS=["-Wl,-bind_at_load"] )
+-    else:
++    elif not env.TargetOSIs('aix'):
+         env.Append( LINKFLAGS=["-Wl,-z,now"] )
+         env.Append( LINKFLAGS=["-rdynamic"] )
+ 
+@@ -3360,6 +3392,8 @@
+     moduleconfig.configure_modules(mongo_modules, conf)
+ 
+     if env['TARGET_ARCH'] == "ppc64le" or env['TARGET_ARCH'] == "ppc64":
++#    if env['TARGET_ARCH'] == "ppc64le" or env['TARGET_ARCH'] == "ppc64":
++#    if env['TARGET_ARCH'] == "ppc64le":
+         # This checks for an altivec optimization we use in full text search.
+         # Different versions of gcc appear to put output bytes in different
+         # parts of the output vector produced by vec_vbpermq.  This configure
+--- ./site_scons/mongo/platform.py.ORIGIN	2019-05-17 14:57:00 -0500
++++ ./site_scons/mongo/platform.py	2019-05-17 14:59:18 -0500
+@@ -30,6 +30,8 @@
+         running_os = 'windows'
+     elif running_os == 'darwin':
+         running_os = 'macOS'
++    elif "aix" in running_os:
++        running_os = "aix"
+     else:
+         running_os = 'unknown'
+     return running_os
+@@ -40,7 +42,7 @@
+ def is_os_raw(target_os, os_list_to_check):
+     darwin_os_list = [ 'macOS', 'tvOS', 'tvOS-sim', 'iOS', 'iOS-sim', 'watchOS', 'watchOS-sim' ]
+     linux_os_list = [ 'android', 'linux' ]
+-    posix_os_list = [ 'openbsd', 'freebsd', 'solaris' ] + darwin_os_list + linux_os_list
++    posix_os_list = [ 'openbsd', 'freebsd', 'solaris', 'aix' ] + darwin_os_list + linux_os_list
+ 
+     os_families = {
+             "darwin": darwin_os_list,

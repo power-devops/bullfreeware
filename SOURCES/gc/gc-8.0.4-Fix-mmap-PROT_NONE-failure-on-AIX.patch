@@ -1,0 +1,46 @@
+From 2bf444da16ce70d1eb794b061448d4b89f77bc2c Mon Sep 17 00:00:00 2001
+From: Peter Wang <novalazy@gmail.com>
+Date: Thu, 6 Jun 2019 17:36:54 +1000
+Subject: [PATCH] Fix mmap(PROT_NONE) failure on AIX
+
+Issue #285 (bdwgc).
+
+Unmap memory using mprotect(PROT_NONE) instead of mmap(PROT_NONE) on AIX.
+
+* os_dep [USE_MUNMAP && AIX] (GC_unmap, GC_unmap_gap): Call mprotect()
+instead of mmap(); update comment.
+---
+ os_dep.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/os_dep.c b/os_dep.c
+index 0e6226d2..d86fa6b2 100644
+--- a/os_dep.c
++++ b/os_dep.c
+@@ -2560,9 +2560,11 @@ GC_INNER void GC_unmap(ptr_t start, size_t bytes)
+       /* We immediately remap it to prevent an intervening mmap from    */
+       /* accidentally grabbing the same address space.                  */
+       {
+-#       ifdef CYGWIN32
+-          /* Calling mmap() with the new protection flags on an         */
+-          /* existing memory map with MAP_FIXED is broken on Cygwin.    */
++#       if defined(AIX) || defined(CYGWIN32)
++          /* On AIX, mmap(PROT_NONE) fails with ENOMEM unless the       */
++          /* environment variable XPG_SUS_ENV is set to ON.             */
++          /* On Cygwin, calling mmap() with the new protection flags on */
++          /* an existing memory map with MAP_FIXED is broken.           */
+           /* However, calling mprotect() on the given address range     */
+           /* with PROT_NONE seems to work fine.                         */
+           if (mprotect(start_addr, len, PROT_NONE))
+@@ -2688,7 +2690,7 @@ GC_INNER void GC_unmap_gap(ptr_t start1, size_t bytes1, ptr_t start2,
+ #   else
+       if (len != 0) {
+         /* Immediately remap as above. */
+-#       ifdef CYGWIN32
++#       if defined(AIX) || defined(CYGWIN32)
+           if (mprotect(start_addr, len, PROT_NONE))
+             ABORT("mprotect(PROT_NONE) failed");
+ #       else
+-- 
+2.25.1
+

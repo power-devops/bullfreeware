@@ -1,0 +1,11 @@
+--- ./gcc/collect2.c.ORIGIN	2017-09-27 15:53:31 -0500
++++ ./gcc/collect2.c	2017-09-27 15:54:08 -0500
+@@ -1465,7 +1465,7 @@
+ 	    }
+ 	}
+       else if ((p = strrchr (arg, '.')) != (char *) 0
+-	       && (strcmp (p, ".o") == 0 || strcmp (p, ".a") == 0
++	       && (strcmp (p, ".o") == 0 || strncmp (p, ".a", 2) == 0 // cgo
+ 		   || strcmp (p, ".so") == 0 || strcmp (p, ".lo") == 0
+ 		   || strcmp (p, ".obj") == 0))
+ 	{

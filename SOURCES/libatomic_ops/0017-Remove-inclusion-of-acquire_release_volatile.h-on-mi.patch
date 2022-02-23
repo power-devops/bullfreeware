@@ -1,0 +1,29 @@
+From 0f838defa3e466aff725213638f90e850430f2f9 Mon Sep 17 00:00:00 2001
+From: James Cowgill <james410@cowgill.org.uk>
+Date: Thu, 8 Jan 2015 16:05:57 +0000
+Subject: [PATCH 17/36] Remove inclusion of acquire_release_volatile.h on mips
+
+I'm not entirely sure how this ended up here. It might have been the case
+that MIPS processors used to do this, but the ISA manuals don't say anything
+about volatile loads / stores having aquire / release semnatics, so just
+remove it to be safe.
+---
+ src/atomic_ops/sysdeps/gcc/mips.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/src/atomic_ops/sysdeps/gcc/mips.h b/src/atomic_ops/sysdeps/gcc/mips.h
+index 83a6bd3..f3796ea 100644
+--- a/src/atomic_ops/sysdeps/gcc/mips.h
++++ b/src/atomic_ops/sysdeps/gcc/mips.h
+@@ -19,8 +19,6 @@
+ 
+ #include "../all_aligned_atomic_load_store.h"
+ 
+-#include "../loadstore/acquire_release_volatile.h"
+-
+ #include "../test_and_set_t_is_ao_t.h"
+ 
+ /* Data dependence does not imply read ordering.  */
+-- 
+1.9.3
+

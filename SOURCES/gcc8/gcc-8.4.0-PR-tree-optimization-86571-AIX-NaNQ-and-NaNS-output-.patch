@@ -1,0 +1,42 @@
+From bd1f3566b12eb1e86d17b0c8c84c91ea5e9844b3 Mon Sep 17 00:00:00 2001
+From: Martin Sebor <msebor@redhat.com>
+Date: Sat, 4 Aug 2018 22:14:41 +0000
+Subject: [PATCH] PR tree-optimization/86571 - AIX NaNQ and NaNS output format
+ conflicts with __builtin_sprintf
+
+gcc/ChangeLog:
+
+	PR tree-optimization/86571
+	* gimple-ssa-sprintf.c (format_floating): Extend upper bound of
+	NaN output to 4.
+
+From-SVN: r263312
+---
+ gcc/gimple-ssa-sprintf.c | 11 +++++++++--
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/gcc/gimple-ssa-sprintf.c b/gcc/gimple-ssa-sprintf.c
+index bda738de937..c652c556f97 100644
+--- a/gcc/gimple-ssa-sprintf.c
++++ b/gcc/gimple-ssa-sprintf.c
+@@ -2014,8 +2014,15 @@ format_floating (const directive &dir, tree arg, vr_values *)
+ 
+       res.range.likely = res.range.min;
+       res.range.max = res.range.min;
+-      /* The inlikely maximum is "[-/+]infinity" or "[-/+]nan".  */
+-      res.range.unlikely = sign + (real_isinf (rvp) ? 8 : 3);
++      /* The unlikely maximum is "[-/+]infinity" or "[-/+][qs]nan".
++	 For NaN, the C/POSIX standards specify two formats:
++	   "[-/+]nan"
++	 and
++	   "[-/+]nan(n-char-sequence)"
++	 No known printf implementation outputs the latter format but AIX
++	 outputs QNaN and SNaN for quiet and signalling NaN, respectively,
++	 so the unlikely maximum reflects that.  */
++      res.range.unlikely = sign + (real_isinf (rvp) ? 8 : 4);
+ 
+       /* The range for infinity and NaN is known unless either width
+ 	 or precision is unknown.  Width has the same effect regardless
+-- 
+2.25.0
+

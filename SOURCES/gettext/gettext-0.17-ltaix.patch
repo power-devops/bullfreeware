@@ -1,0 +1,13 @@
+Index: gettext-0.17/build-aux/ltmain.sh
+===================================================================
+--- gettext-0.17.orig/build-aux/ltmain.sh	2007-10-27 02:29:11.000000000 +0200
++++ gettext-0.17/build-aux/ltmain.sh	2009-03-25 14:17:40.000000000 +0100
+@@ -2824,7 +2824,7 @@
+ 	      test -n "$add" && finalize_deplibs="$add $finalize_deplibs"
+ 	    else
+ 	      test -n "$add_dir" && deplibs="$add_dir $deplibs"
+-	      test -n "$add" && deplibs="$add $deplibs"
++	      test -e "$add" && deplibs="$add $deplibs"
+ 	    fi
+ 	  fi
+ 	elif test "$linkmode" = prog; then

@@ -1,0 +1,45 @@
+--- ./rpmrc.in_orig	2019-11-13 03:19:29 +0000
++++ ./rpmrc.in	2020-08-27 05:45:09 +0000
+@@ -325,6 +325,7 @@
+ buildarchtranslate: osfmach3_ppc: ppc
+ buildarchtranslate: powerpc: ppc
+ buildarchtranslate: powerppc: ppc
++buildarchtranslate: rs6000: ppc
+ buildarchtranslate: ppc8260: ppc
+ buildarchtranslate: ppc8560: ppc
+ buildarchtranslate: ppc32dy4: ppc
+@@ -421,7 +422,7 @@
+ arch_compat: ppciseries: ppc
+ arch_compat: ppcpseries: ppc
+ arch_compat: ppc64: ppc
+-arch_compat: ppc: rs6000
++arch_compat: ppc: rs6000 noarch
+ arch_compat: rs6000: noarch fat
+ arch_compat: ppc64pseries: ppc64
+ arch_compat: ppc64iseries: ppc64
+@@ -523,6 +524,17 @@
+ os_compat: mint: FreeMiNT MiNT TOS
+ os_compat: TOS: FreeMiNT MiNT mint
+ 
++#Some of these may not even exist (yet).
++os_compat: aix7.3: aix7.2 aix7.1 aix6.1 aix6.0 aix5.3 aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix7.2: aix7.1 aix6.1 aix6.0 aix5.3 aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix7.1: aix6.1 aix6.0 aix5.3 aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix6.1: aix6.0 aix5.3 aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix6.0: aix5.3 aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix5.3: aix5.2 aix5.1 aix5.0 aix4.3
++os_compat: aix5.2: aix5.1 aix5.0 aix4.3
++os_compat: aix5.1: aix5.0 aix4.3
++os_compat: aix5.0: aix4.3
++
+ os_compat: BSD_OS: bsdi
+ os_compat: bsdi4.0: bsdi
+ 
+@@ -570,6 +582,7 @@
+ buildarch_compat: ppciseries: noarch
+ buildarch_compat: ppcpseries: noarch
+ buildarch_compat: ppc: noarch fat
++buildarch_compat: rs6000: noarch fat
+ buildarch_compat: ppc64: noarch fat
+ buildarch_compat: ppc64le: noarch fat
+ buildarch_compat: ppc64pseries: ppc64

@@ -1,0 +1,418 @@
+--- ./plugin/sql_errlog/CMakeLists.txt.orig	2019-07-24 09:51:12.000000000 +0200
++++ ./plugin/sql_errlog/CMakeLists.txt	2019-07-30 10:59:18.000000000 +0200
+@@ -14,3 +14,4 @@
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1335 USA
+ 
+ MYSQL_ADD_PLUGIN(sql_errlog sql_errlog.c MODULE_ONLY)
++ TARGET_LINK_OPTIONS(sql_errlog  PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
+--- ./plugin/simple_password_check/CMakeLists.txt.orig	2019-07-30 10:58:41.000000000 +0200
++++ ./plugin/simple_password_check/CMakeLists.txt	2019-07-30 10:57:49.000000000 +0200
+@@ -1 +1,3 @@
+ MYSQL_ADD_PLUGIN(simple_password_check simple_password_check.c MODULE_ONLY)
++TARGET_LINK_OPTIONS(simple_password_check PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
++
+--- ./plugin/example_key_management/CMakeLists.txt.orig	2019-07-05 12:25:26.000000000 +0200
++++ ./plugin/example_key_management/CMakeLists.txt	2019-07-30 11:02:35.000000000 +0200
+@@ -1,2 +1,3 @@
+ MYSQL_ADD_PLUGIN(EXAMPLE_KEY_MANAGEMENT example_key_management_plugin.cc
+                  MODULE_ONLY COMPONENT Test)
++TARGET_LINK_OPTIONS(example_key_management  PRIVATE "-Wl,-bE:../../extra/AIX/export.exp")
+--- ./plugin/auth_ed25519/CMakeLists.txt.orig	2019-07-05 12:12:45.000000000 +0200
++++ ./plugin/auth_ed25519/CMakeLists.txt	2019-07-30 11:45:51.000000000 +0200
+@@ -30,3 +30,4 @@
+ IF(WITH_UNIT_TESTS)
+   MY_ADD_TESTS(ed25519 LINK_LIBRARIES ref10 mysys_ssl)
+ ENDIF()
++TARGET_LINK_OPTIONS(auth_ed25519 PRIVATE "-Wl,-bE:../../extra/AIX/ed25519.exp")
+--- ./libmariadb/plugins/auth/CMakeLists.txt.orig	2019-09-04 16:46:12.762388990 +0200
++++ ./libmariadb/plugins/auth/CMakeLists.txt	2019-09-04 16:45:58.458390016 +0200
+@@ -55,6 +55,9 @@
+      # Silence conversion (integer truncantion) warnings from reference code
+      SET_SOURCE_FILES_PROPERTIES(${REF10_SOURCES} PROPERTY COMPILE_FLAGS "-DMYSQL_CLIENT=1 /wd4244 /wd4146")
+   ENDIF()
++  IF(AIX)
++    TARGET_LINK_LIBRARIES(client_ed25519 crypto)
++  ENDIF()
+ ENDIF()
+ 
+ #GSSAPI client authentication plugin
+--- ./plugin/file_key_management/CMakeLists.txt.orig	2019-09-05 15:34:16.000000000 +0200
++++ ./plugin/file_key_management/CMakeLists.txt	2019-09-13 14:56:53.414063775 +0200
+@@ -2,3 +2,6 @@
+ 
+ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/sql)
+ MYSQL_ADD_PLUGIN(FILE_KEY_MANAGEMENT ${FILE_KEY_MANAGEMENT_PLUGIN_SOURCES})
++IF(AIX AND NOT PLUGIN_FILE_KEY_MANAGEMENT STREQUAL "NO")
++  TARGET_LINK_OPTIONS(file_key_management PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/fkm.exp")
++ENDIF()
+--- ./storage/spider/CMakeLists.txt.orig	2019-09-13 14:46:33.008108262 +0200
++++ ./storage/spider/CMakeLists.txt	2019-09-16 10:17:57.711954764 +0200
+@@ -75,3 +75,7 @@
+                        COMMAND copy Debug\\ha_spider.dll ..\\..\\sql\\lib\\plugin\\ha_spider.dll)
+   ENDIF()
+ ENDIF()
++
++IF(AIX AND NOT PLUGIN_SPIDER STREQUAL "NO")
++  TARGET_LINK_OPTIONS(spider PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/extra/AIX/spider.exp")
++ENDIF()
+--- /dev/null	2019-09-16 09:13:33.422999776 +0200
++++ ./extra/AIX/export.exp	2019-07-30 11:00:08.000000000 +0200
+@@ -0,0 +1,25 @@
++#!
++_maria_plugin_interface_version_
++_maria_plugin_declarations_
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service
+--- /dev/null	2019-09-16 09:13:33.422999776 +0200
++++ ./extra/AIX/ed25519.exp	2019-07-30 11:36:52.000000000 +0200
+@@ -0,0 +1,27 @@
++#!
++_maria_plugin_interface_version_
++_maria_plugin_declarations_
++ed25519_password
++ed25519_password_init
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service
+--- /dev/null	2019-09-16 09:13:33.422999776 +0200
++++ ./extra/AIX/fkm.exp	2019-09-05 15:34:09.111406698 +0200
+@@ -0,0 +1,135 @@
++#!
++_maria_plugin_interface_version_
++_maria_plugin_declarations_
++_GLOBAL__F__opt_freeware_src_packages_BUILD_mariadb_10.4.7_plugin_file_key_management_parser.cc_DFF67DD7_0x9fc969bd35d698b0
++_ZN6Parser10parse_fileEPSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS1_EEEPKc
++_ZN6Parser10parse_lineEPPcP8keyentry
++_ZN6Parser12bytes_to_keyEPKhPKcPhS4_
++_ZN6Parser12read_filekeyEPKcPc
++_ZN6Parser12report_errorEPKcm
++_ZN6Parser21read_and_decrypt_fileEPKc
++_ZN6Parser5parseEPSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS1_EEE
++_ZN6Parser8from_hexEc
++_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE10deallocateEPS6_m
++_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE7destroyIS5_EEvPT_
++_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE8allocateEmPKv
++_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE9constructIS5_JRKSt21piecewise_construct_tSt5tupleIJOjEESC_IJEEEEEvPT_DpOT0_
++_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE9constructIS5_JRKSt21piecewise_construct_tSt5tupleIJRS3_EESC_IJEEEEEvPT_DpOT0_
++_ZN9__gnu_cxx16__aligned_membufISt4pairIKj8keyentryEE6_M_ptrEv
++_ZN9__gnu_cxx16__aligned_membufISt4pairIKj8keyentryEE7_M_addrEv
++_ZNK9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj8keyentryEEE8max_sizeEv
++_ZNK9__gnu_cxx16__aligned_membufISt4pairIKj8keyentryEE6_M_ptrEv
++_ZNK9__gnu_cxx16__aligned_membufISt4pairIKj8keyentryEE7_M_addrEv
++_ZNKSt10_Select1stISt4pairIKj8keyentryEEclERKS3_
++_ZNKSt13_Rb_tree_nodeISt4pairIKj8keyentryEE9_M_valptrEv
++_ZNKSt17_Rb_tree_iteratorISt4pairIKj8keyentryEEdeEv
++_ZNKSt23_Rb_tree_const_iteratorISt4pairIKj8keyentryEE13_M_const_castEv
++_ZNKSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEE4sizeEv
++_ZNKSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEE8key_compEv
++_ZNKSt4lessIjEclERKjS2_
++_ZNKSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE4sizeEv
++_ZNKSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE8key_compEv
++_ZNSt10_Head_baseILm0EOjLb0EE7_M_headERS1_
++_ZNSt10_Head_baseILm0EOjLb0EEC2IjEEOT_
++_ZNSt10_Head_baseILm0ERKjLb0EE7_M_headERS2_
++_ZNSt10_Head_baseILm0ERKjLb0EEC2ES1_
++_ZNSt11_Tuple_implILm0EJOjEE7_M_headERS1_
++_ZNSt11_Tuple_implILm0EJOjEEC2EOS1_
++_ZNSt11_Tuple_implILm0EJOjEEC2IjEEOT_
++_ZNSt11_Tuple_implILm0EJRKjEE7_M_headERS2_
++_ZNSt11_Tuple_implILm0EJRKjEEC2EOS2_
++_ZNSt11_Tuple_implILm0EJRKjEEC2ES1_
++_ZNSt13_Rb_tree_nodeISt4pairIKj8keyentryEE9_M_valptrEv
++_ZNSt16allocator_traitsISaISt13_Rb_tree_nodeISt4pairIKj8keyentryEEEE10deallocateERS6_PS5_m
++_ZNSt16allocator_traitsISaISt13_Rb_tree_nodeISt4pairIKj8keyentryEEEE7destroyIS4_EEvRS6_PT_
++_ZNSt16allocator_traitsISaISt13_Rb_tree_nodeISt4pairIKj8keyentryEEEE8allocateERS6_m
++_ZNSt16allocator_traitsISaISt13_Rb_tree_nodeISt4pairIKj8keyentryEEEE9constructIS4_JRKSt21piecewise_construct_tSt5tupleIJOjEESC_IJEEEEEvRS6_PT_DpOT0_
++_ZNSt16allocator_traitsISaISt13_Rb_tree_nodeISt4pairIKj8keyentryEEEE9constructIS4_JRKSt21piecewise_construct_tSt5tupleIJRS2_EESC_IJEEEEEvRS6_PT_DpOT0_
++_ZNSt17_Rb_tree_iteratorISt4pairIKj8keyentryEEC1EPSt18_Rb_tree_node_base
++_ZNSt17_Rb_tree_iteratorISt4pairIKj8keyentryEEmmEv
++_ZNSt17_Rb_tree_iteratorISt4pairIKj8keyentryEEppEv
++_ZNSt23_Rb_tree_const_iteratorISt4pairIKj8keyentryEEC1ERKSt17_Rb_tree_iteratorIS3_E
++_ZNSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEE11lower_boundERS4_
++_ZNSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEE3endEv
++_ZNSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEEixEOj
++_ZNSt3mapIj8keyentrySt4lessIjESaISt4pairIKjS0_EEEixERS4_
++_ZNSt4pairIKj8keyentryEC1IJOjEJEEESt21piecewise_construct_tSt5tupleIJDpT_EES6_IJDpT0_EE
++_ZNSt4pairIKj8keyentryEC1IJOjEJLm0EEJEJEEERSt5tupleIJDpT_EERS5_IJDpT1_EESt12_Index_tupleIJXspT0_EEESE_IJXspT2_EEE
++_ZNSt4pairIKj8keyentryEC1IJRS0_EJEEESt21piecewise_construct_tSt5tupleIJDpT_EES6_IJDpT0_EE
++_ZNSt4pairIKj8keyentryEC1IJRS0_EJLm0EEJEJEEERSt5tupleIJDpT_EERS5_IJDpT1_EESt12_Index_tupleIJXspT0_EEESE_IJXspT2_EEE
++_ZNSt4pairIPSt18_Rb_tree_node_baseS1_EC1IRPSt13_Rb_tree_nodeIS_IKj8keyentryEERS1_Lb1EEEOT_OT0_
++_ZNSt4pairIPSt18_Rb_tree_node_baseS1_EC1IRS1_Lb1EEEOT_RKS1_
++_ZNSt4pairIPSt18_Rb_tree_node_baseS1_EC1IRS1_Lb1EEERKS1_OT_
++_ZNSt4pairIPSt18_Rb_tree_node_baseS1_EC1IRS1_S4_Lb1EEEOT_OT0_
++_ZNSt5tupleIJOjEEC1EOS1_
++_ZNSt5tupleIJOjEEC1IJjELb1EEEDpOT_
++_ZNSt5tupleIJRKjEEC1EOS2_
++_ZNSt5tupleIJRKjEEC1IvLb1EEES1_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_get_nodeEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_leftmostEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_put_nodeEPSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE11lower_boundERS1_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE12_M_drop_nodeEPSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE12_M_rightmostEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_create_nodeIJRKSt21piecewise_construct_tSt5tupleIJOjEESE_IJEEEEEPSt13_Rb_tree_nodeIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_create_nodeIJRKSt21piecewise_construct_tSt5tupleIJRS1_EESE_IJEEEEEPSt13_Rb_tree_nodeIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_insert_nodeEPSt18_Rb_tree_node_baseSB_PSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_lower_boundEPSt13_Rb_tree_nodeIS3_EPSt18_Rb_tree_node_baseRS1_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE15_M_destroy_nodeEPSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE17_M_construct_nodeIJRKSt21piecewise_construct_tSt5tupleIJOjEESE_IJEEEEEvPSt13_Rb_tree_nodeIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE17_M_construct_nodeIJRKSt21piecewise_construct_tSt5tupleIJRS1_EESE_IJEEEEEvPSt13_Rb_tree_nodeIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE21_M_get_Node_allocatorEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE22_M_emplace_hint_uniqueIJRKSt21piecewise_construct_tSt5tupleIJOjEESE_IJEEEEESt17_Rb_tree_iteratorIS3_ESt23_Rb_tree_const_iteratorIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE22_M_emplace_hint_uniqueIJRKSt21piecewise_construct_tSt5tupleIJRS1_EESE_IJEEEEESt17_Rb_tree_iteratorIS3_ESt23_Rb_tree_const_iteratorIS3_EDpOT_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE24_M_get_insert_unique_posERS1_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE29_M_get_insert_hint_unique_posESt23_Rb_tree_const_iteratorIS3_ERS1_
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE3endEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE5beginEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_M_endEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_S_keyEPKSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_S_keyEPKSt18_Rb_tree_node_base
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE7_S_leftEPSt18_Rb_tree_node_base
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_M_beginEv
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_rightEPSt18_Rb_tree_node_base
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_valueEPKSt13_Rb_tree_nodeIS3_E
++_ZNSt8_Rb_treeIjSt4pairIKj8keyentryESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_valueEPKSt18_Rb_tree_node_base
++_ZSt12__get_helperILm0EOjJEERT0_RSt11_Tuple_implIXT_EJS1_DpT1_EE
++_ZSt12__get_helperILm0ERKjJEERT0_RSt11_Tuple_implIXT_EJS2_DpT1_EE
++_ZSt16forward_as_tupleIJjEESt5tupleIJDpOT_EES3_
++_ZSt3getILm0EJOjEERNSt13tuple_elementIXT_ESt5tupleIJDpT0_EEE4typeERS5_
++_ZSt3getILm0EJRKjEERNSt13tuple_elementIXT_ESt5tupleIJDpT0_EEE4typeERS6_
++_ZSt4moveIRjEONSt16remove_referenceIT_E4typeEOS2_
++_ZSt7forwardIOjEOT_RNSt16remove_referenceIS1_E4typeE
++_ZSt7forwardIRKSt21piecewise_construct_tEOT_RNSt16remove_referenceIS3_E4typeE
++_ZSt7forwardIRKjEOT_RNSt16remove_referenceIS2_E4typeE
++_ZSt7forwardIRPSt13_Rb_tree_nodeISt4pairIKj8keyentryEEEOT_RNSt16remove_referenceIS8_E4typeE
++_ZSt7forwardIRPSt18_Rb_tree_node_baseEOT_RNSt16remove_referenceIS3_E4typeE
++_ZSt7forwardISt5tupleIJEEEOT_RNSt16remove_referenceIS2_E4typeE
++_ZSt7forwardISt5tupleIJOjEEEOT_RNSt16remove_referenceIS3_E4typeE
++_ZSt7forwardISt5tupleIJRKjEEEOT_RNSt16remove_referenceIS4_E4typeE
++_ZSt7forwardIjEOT_RNSt16remove_referenceIS0_E4typeE
++_ZSteqRKSt17_Rb_tree_iteratorISt4pairIKj8keyentryEES6_
++_ZdlPvS_
++_ZnwmPv
++base64_service
++debug_sync_service
++encryption_scheme_service
++encryption_service
++json_service
++logger_service
++my_crypt_service
++my_md5_service
++my_print_error_service
++my_sha1_service
++my_sha2_service
++my_snprintf_service
++progress_report_service
++thd_alloc_service
++thd_autoinc_service
++thd_error_context_service
++thd_kill_statement_service
++thd_rnd_service
++thd_specifics_service
++thd_timezone_service
++thd_wait_service
++wsrep_service
+--- /dev/null	2019-09-16 09:13:33.422999776 +0200
++++ ./extra/AIX/spider.exp	2019-09-13 14:55:14.048070900 +0200
+@@ -0,0 +1,162 @@
++#!
++pushdown_sql_mode
++spd_abort_loop
++spd_charset_utf8_bin
++spd_defaults_extra_file
++spd_defaults_file
++spd_key_cond_bg_conn
++spd_key_cond_bg_conn_sync
++spd_key_cond_bg_crd
++spd_key_cond_bg_crd_sync
++spd_key_cond_bg_crd_syncs
++spd_key_cond_bg_crds
++spd_key_cond_bg_direct_sql
++spd_key_cond_bg_mon
++spd_key_cond_bg_mon_sleep
++spd_key_cond_bg_sts
++spd_key_cond_bg_sts_sync
++spd_key_cond_bg_sts_syncs
++spd_key_cond_bg_stss
++spd_key_cond_conn_i
++spd_key_cond_udf_table_mon
++spd_key_conn_id
++spd_key_mutex_allocated_thds
++spd_key_mutex_bg_conn
++spd_key_mutex_bg_conn_chain
++spd_key_mutex_bg_conn_sync
++spd_key_mutex_bg_crds
++spd_key_mutex_bg_direct_sql
++spd_key_mutex_bg_job_stack
++spd_key_mutex_bg_mon
++spd_key_mutex_bg_stss
++spd_key_mutex_conn
++spd_key_mutex_conn_i
++spd_key_mutex_init_error_tbl
++spd_key_mutex_ipport_count
++spd_key_mutex_lgtm_tblhnd_share
++spd_key_mutex_mem_calc
++spd_key_mutex_mon_list_caller
++spd_key_mutex_mon_list_monitor
++spd_key_mutex_mon_list_receptor
++spd_key_mutex_mon_list_update_status
++spd_key_mutex_mon_table_cache
++spd_key_mutex_mta_conn
++spd_key_mutex_open_conn
++spd_key_mutex_pt_handler
++spd_key_mutex_pt_share
++spd_key_mutex_pt_share_crd
++spd_key_mutex_pt_share_sts
++spd_key_mutex_share
++spd_key_mutex_share_auto_increment
++spd_key_mutex_share_crd
++spd_key_mutex_share_sts
++spd_key_mutex_tbl
++spd_key_mutex_udf_table
++spd_key_mutex_udf_table_mon
++spd_key_thd_bg
++spd_key_thd_bg_crd
++spd_key_thd_bg_crds
++spd_key_thd_bg_mon
++spd_key_thd_bg_sts
++spd_key_thd_bg_stss
++spd_key_thread_id
++spd_mysqld_port
++spd_mysqld_unix_port
++spd_tz_system
++spider_alloc_file_name
++spider_alloc_func_name
++spider_alloc_line_no
++spider_alloc_mem_count
++spider_allocated_thds
++spider_allocated_thds_file_name
++spider_allocated_thds_func_name
++spider_allocated_thds_id
++spider_allocated_thds_line_no
++spider_allocated_thds_mutex
++spider_bg_direct_sql
++spider_bg_direct_sql_add
++spider_bg_direct_sql_clear
++spider_bg_direct_sql_deinit
++spider_bg_direct_sql_init
++spider_conn_id
++spider_conn_id_mutex
++spider_conn_mutex
++spider_conn_mutex_id
++spider_copy_tables
++spider_copy_tables_deinit
++spider_copy_tables_init
++spider_current_alloc_mem
++spider_db_mariadb_utility
++spider_db_mysql_utility
++spider_dbton
++spider_dbton_mariadb
++spider_dbton_mysql
++spider_direct_sql
++spider_direct_sql_deinit
++spider_direct_sql_init
++spider_flush_table_mon_cache
++spider_flush_table_mon_cache_deinit
++spider_flush_table_mon_cache_init
++spider_free_mem_count
++spider_ft_vft
++spider_hton_ptr
++spider_i_s_alloc_mem
++spider_i_s_alloc_mem_maria
++spider_init_error_tables
++spider_init_error_tables_file_name
++spider_init_error_tables_func_name
++spider_init_error_tables_id
++spider_init_error_tables_line_no
++spider_init_error_tbl_mutex
++spider_ipport_conn_mutex
++spider_ipport_conns
++spider_lgtm_tblhnd_share_hash
++spider_lgtm_tblhnd_share_hash_file_name
++spider_lgtm_tblhnd_share_hash_func_name
++spider_lgtm_tblhnd_share_hash_id
++spider_lgtm_tblhnd_share_hash_line_no
++spider_lgtm_tblhnd_share_mutex
++spider_mem_calc_mutex
++spider_mon_table_cache
++spider_mon_table_cache_file_name
++spider_mon_table_cache_func_name
++spider_mon_table_cache_id
++spider_mon_table_cache_line_no
++spider_mon_table_cache_mutex
++spider_mon_table_cache_version
++spider_mon_table_cache_version_req
++spider_open_conn_mutex
++spider_open_connections
++spider_open_connections_file_name
++spider_open_connections_func_name
++spider_open_connections_id
++spider_open_connections_line_no
++spider_open_pt_share
++spider_open_pt_share_file_name
++spider_open_pt_share_func_name
++spider_open_pt_share_id
++spider_open_pt_share_line_no
++spider_open_tables
++spider_open_tables_file_name
++spider_open_tables_func_name
++spider_open_tables_id
++spider_open_tables_line_no
++spider_ping_table
++spider_ping_table_deinit
++spider_ping_table_init
++spider_pt_attr
++spider_pt_share_mutex
++spider_status_variables
++spider_table_crd_threads
++spider_table_sts_threads
++spider_tbl_mutex
++spider_thread_id
++spider_thread_id_mutex
++spider_total_alloc_mem
++spider_udf_table_mon_conds
++spider_udf_table_mon_list_hash
++spider_udf_table_mon_list_hash_file_name
++spider_udf_table_mon_list_hash_func_name
++spider_udf_table_mon_list_hash_id
++spider_udf_table_mon_list_hash_line_no
++spider_udf_table_mon_mutexes

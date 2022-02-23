@@ -1,0 +1,26 @@
+From 1e0e0fa3e01d71c909807b9b481d726cea451113 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:58:19 +0200
+Subject: [PATCH] path: add AIX operating system
+
+This commit adds AIX operating system to path package for ppc64
+architecture.
+
+Updates: #25893
+
+Change-Id: Iea551236d334705a58a446c8992b20adcfe4159b
+---
+
+diff --git a/src/path/filepath/path_unix.go b/src/path/filepath/path_unix.go
+index 349dea7..c10b328 100644
+--- a/src/path/filepath/path_unix.go
++++ b/src/path/filepath/path_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package filepath
+ 

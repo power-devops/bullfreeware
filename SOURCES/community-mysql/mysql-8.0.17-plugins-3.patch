@@ -1,0 +1,78 @@
+--- ./sql/CMakeLists.txt.orig   2019-11-20 15:50:03.000000000 +0100
++++ ./sql/CMakeLists.txt        2019-11-20 16:13:09.000000000 +0100
+@@ -859,6 +874,30 @@
+ MYSQL_ADD_EXECUTABLE(mysqld
+   ${MYSQLD_SOURCE} DESTINATION ${INSTALL_SBINDIR} COMPONENT Server)
+
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  SET(SYMBOL_LIB ../archive_output_directory/libdbug.a ../archive_output_directory/libmysys.a ../archive_output_directory/libmytime.a ../archive_output_directory/libstrings.a ../archive_output_directory/libvio.a ../components/mysql_server/component_mysql_server.a ../libbinlogevents/lib/libbinlogevents.a ../plugin/fulltext/libngram_parser.a ../plugin/x/libmysqlx.a ../plugin/x/protocol/libmysqlxmessages_lite.a ../sql/libbinlog.a ../sql/libmaster.a ../sql/librpl.a ../sql/libslave.a ../sql/libsql_dd.a ../sql/libsql_gis.a ../sql/libsql_main.a ../storage/archive/libarchive.a ../storage/blackhole/libblackhole.a ../storage/csv/libcsv.a ../storage/federated/libfederated.a ../storage/heap/libheap.a ../storage/innobase/libinnobase.a ../storage/myisam/libmyisam.a ../storage/myisam/libmyisam_library.a ../storage/myisammrg/libmyisammrg.a ../storage/temptable/libtemptable.a)
++  add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++    COMMAND printf "#! .\\n" > ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++    COMMAND nm -X32_64 -B -e ${SYMBOL_LIB} > dump.txt
++    COMMAND grep " T " dump.txt | grep -v "\\." > T.exp
++    COMMAND grep " D " dump.txt | grep -v "\\." > D.exp
++    COMMAND printf "{print $3}" > awk.txt
++    COMMAND awk -f awk.txt T.exp > T2.exp
++    COMMAND awk -f awk.txt D.exp > D2.exp
++    COMMAND cat T2.exp D2.exp | grep -v THR_MALLOC | grep -v ut_rnd_ulint_counter | grep -v keycache_tls | grep -v THR_PFS | grep -v -e "temptable.*shared_block" | sort | uniq > ./libmysqld.exp.2
++    COMMAND printf "current_th\\n"  >> ./libmysqld.exp.2
++    COMMAND printf "current_thd\\n" >> ./libmysqld.exp.2
++    COMMAND sort -u                    ./libmysqld.exp.2 >> ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++    COMMAND rm                         ./libmysqld.exp.2  T.exp D.exp T2.exp D2.exp awk.txt dump.txt
++    VERBATIM
++  )
++  add_custom_target(mysqld_symbols
++          DEPENDS ${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp
++  )
++  ADD_DEPENDENCIES(mysqld_symbols archive binlog blackhole component_mysql_server csv dbug federated heap innobase master myisam myisam_library myisammrg mysqlx mysqlxmessages_lite mysys mytime ngram_parser rpl slave sql_dd sql_gis sql_main strings temptable vio)
++  ADD_DEPENDENCIES(mysqld mysqld_symbols)
++  TARGET_LINK_OPTIONS(mysqld PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
++ENDIF()
+ OPTION(DEBUG_EXTNAME "Build server as mysqld-debug (debug builds only)" OFF)
+ MARK_AS_ADVANCED(DEBUG_EXTNAME)
+ 
+--- ./libservices/CMakeLists.txt.orig   2019-11-25 17:11:57 +0100
++++ ./libservices/CMakeLists.txt        2019-11-25 17:16:33 +0100
+@@ -49,3 +49,18 @@
+   INSTALL(TARGETS mysqlservices
+     DESTINATION ${INSTALL_LIBDIR} COMPONENT Development)
+ ENDIF()
++
++IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++  ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/build/libservices/libservices.exp
++    COMMAND nm -X32_64 -B -e ${CMAKE_SOURCE_DIR}/build/libservices/libmysqlservices.a > dump.txt
++    COMMAND grep " D " dump.txt | grep -v "\\." > D.exp
++    COMMAND printf "{print $3}" > awk.txt
++    COMMAND awk -f awk.txt D.exp | sort > ${CMAKE_SOURCE_DIR}/build/libservices/libservices.exp
++    COMMAND rm  D.exp awk.txt dump.txt
++    VERBATIM
++  )
++  ADD_CUSTOM_TARGET(libservices_symbols
++          DEPENDS ${CMAKE_SOURCE_DIR}/build/libservices/libservices.exp
++  )
++  ADD_DEPENDENCIES(libservices_symbols mysqlservices)
++ENDIF()
+--- ./cmake/plugin.cmake.orig   2019-11-25 15:59:00 +0100
++++ ./cmake/plugin.cmake        2019-11-25 17:19:37 +0100
+@@ -208,6 +208,21 @@
+     ENDIF()
+     ADD_DEPENDENCIES(${target} GenError ${ARG_DEPENDENCIES})
+
++    IF(CMAKE_SYSTEM_NAME MATCHES AIX)
++      ADD_DEPENDENCIES(${target} libservices_symbols)
++      TARGET_LINK_OPTIONS(${target}   PRIVATE "-Wl,-bE:${CMAKE_SOURCE_DIR}/build/libservices/libservices.exp")
++      message("  * server.exp          : target: ${target}")
++      IF(NOT "${target}" STREQUAL auth_test_plugin)
++        ADD_DEPENDENCIES(${target} mysqld_symbols)
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/build/sql/libmysqld.exp")
++        message("  * mysqld_symbols      : target: ${target}")
++      ENDIF()
++      IF(ARG_TEST_ONLY)
++        message("  * TEST_ONLY, add berok: target: ${target}")
++        TARGET_LINK_OPTIONS(${target} PRIVATE "-Wl,-berok")
++      ENDIF()
++    ENDIF()
++
+      IF(NOT ARG_MODULE_ONLY)
+       # set cached variable, e.g with checkbox in GUI
+       SET(${with_var} OFF CACHE BOOL "Link ${plugin} statically to the server"

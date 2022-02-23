@@ -1,0 +1,13 @@
+--- 64bit/Makefile.ORIGIN	2019-02-27 17:25:44 +0100
++++ 64bit/Makefile	2019-02-27 17:26:50 +0100
+@@ -508,8 +508,8 @@
+ 
+ # CFLAGS and LDFLAGS are for the users to override from the command line.
+ 
+-CFLAGS = -g -O2 -Wall -std=gnu99
+-LDFLAGS =
++CFLAGS = -g -O2 -Wall -std=gnu99 -maix64
++LDFLAGS = -L/opt/freeware/lib64 -L/opt/freeware/lib -Wl,-bbigtoc
+ ALL_CFLAGS = $(CPPFLAGS) $(CFLAGS)
+ ALL_LDFLAGS = $(LDFLAGS)
+ STRIP ?= strip

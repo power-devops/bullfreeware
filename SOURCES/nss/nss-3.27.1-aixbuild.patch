@@ -1,0 +1,93 @@
+diff -Nur nss-3.27.1.orig/nss/Makefile nss-3.27.1/nss/Makefile
+--- nss-3.27.1.orig/nss/Makefile	2016-10-03 16:55:58 +0200
++++ nss-3.27.1/nss/Makefile	2016-10-18 15:20:42 +0200
+@@ -83,7 +83,7 @@
+ NSPR_CONFIGURE_OPTS += --enable-static-rtl
+ endif
+ ifdef NS_USE_GCC
+-NSPR_CONFIGURE_ENV = CC=gcc CXX=g++
++NSPR_CONFIGURE_ENV = CC="$(CC)" CXX="$(CXX)"
+ endif
+ 
+ ifdef SANITIZER_CFLAGS
+diff -Nur nss-3.27.1.orig/nss/cmd/platlibs.mk nss-3.27.1/nss/cmd/platlibs.mk
+--- nss-3.27.1.orig/nss/cmd/platlibs.mk	2016-10-03 16:55:58 +0200
++++ nss-3.27.1/nss/cmd/platlibs.mk	2016-10-19 15:47:24 +0200
+@@ -178,7 +178,11 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), AIX) 
++ifeq ($(NS_AIX_XLC), 1)
+ EXTRA_SHARED_LIBS += -brtl 
++else
++EXTRA_SHARED_LIBS += -Wl,-brtl 
++endif
+ endif
+ 
+ # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+@@ -224,7 +228,11 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), AIX) 
++ifeq ($(NS_AIX_XLC), 1)
+ EXTRA_SHARED_LIBS += -brtl 
++else
++EXTRA_SHARED_LIBS += -Wl,-brtl 
++endif
+ endif
+ 
+ # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+diff -Nur nss-3.27.1.orig/nss/coreconf/AIX.mk nss-3.27.1/nss/coreconf/AIX.mk
+--- nss-3.27.1.orig/nss/coreconf/AIX.mk	2016-10-03 16:55:58 +0200
++++ nss-3.27.1/nss/coreconf/AIX.mk	2016-10-19 15:46:25 +0200
+@@ -28,20 +28,43 @@
+ 	PTHREADS_USER = 1
+ endif
+ 
+-DEFAULT_COMPILER = xlc_r
++DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+ 
+-CC		= xlc_r
+-CCC		= xlC_r
++ifeq ($(NS_AIX_XLC), 1)
++	DEFAULT_COMPILER = xlc_r
++	CC		= /usr/vac/bin/xlc_r
++	CCC		= /usr/vacpp/bin/xlC_r
++	OS_LIBS 	+= -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm
++    ifeq ($(USE_64), 1)
++		CC	= /usr/vac/bin/xlc_r -q64
++		CCC	= /usr/vacpp/bin/xlC_r -q64
++		OS_LIBS	+= -blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm
++    endif
++	MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
++else
++	DEFAULT_COMPILER = gcc
++	CC		= /opt/freeware/bin/gcc
++	CCC		= /opt/freeware/bin/g++
++	CFLAGS	= -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib $(NSS_INCLUDES) -DMOZILLA_CLIENT -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++	OS_LIBS 	+= -lc -lm -L/opt/freeware/lib -lgcc_s -lpthread
++	ifeq ($(USE_64), 1)
++		CC	= /opt/freeware/bin/gcc -maix64
++		CCC	= /opt/freeware/bin/g++ -maix64
++		CFLAGS	= -Wl,-blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib $(NSS_INCLUDES) -DMOZILLA_CLIENT -DSHLIB_PREFIX=\"lib\" -DSHLIB_SUFFIX=\"so\" -DDLL_PREFIX=\"lib\" -DDLL_SUFFIX=\"so\"
++		OS_LIBS 	+= -lc -lm -L/opt/freeware/lib64 -lgcc_s -lpthread
++	endif
++	WARNING_CFLAGS	= 
++	MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm -L/opt/freeware/lib -lgcc_s -lpthread
++	ifeq ($(USE_64), 1)
++		MKSHLIB         = $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib -lc -lm -L/opt/freeware/lib64 -lgcc_s -lpthread
++	endif
++endif
+ 
+ CPU_ARCH	= rs6000
+ 
+ RANLIB		= ranlib
+ 
+ OS_CFLAGS	= -DAIX -DSYSV
+-OS_LIBS 	+= -blibpath:/usr/lib:/lib -lc -lm
+-
+-DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+-MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
+ 
+ AIX_WRAP	= $(DIST)/lib/aixwrap.o
+ AIX_TMP		= $(OBJDIR)/_aix_tmp.o

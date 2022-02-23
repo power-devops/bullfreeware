@@ -1,0 +1,20 @@
+--- ./Makefile.ORIG	2019-02-27 17:00:00 +0100
++++ ./Makefile	2019-02-27 17:01:59 +0100
+@@ -508,7 +508,7 @@
+ 
+ # CFLAGS and LDFLAGS are for the users to override from the command line.
+ 
+-CFLAGS = -g -O2 -Wall
++CFLAGS = -g -O2 -Wall -std=gnu99
+ LDFLAGS =
+ ALL_CFLAGS = $(CPPFLAGS) $(CFLAGS)
+ ALL_LDFLAGS = $(LDFLAGS)
+@@ -533,7 +533,7 @@
+ #   perllibdir
+ # This can help installing the suite in a relocatable way.
+ 
+-prefix = $(HOME)
++prefix = /opt/freeware
+ bindir = $(prefix)/bin
+ mandir = $(prefix)/share/man
+ infodir = $(prefix)/share/info

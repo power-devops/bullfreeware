@@ -1,0 +1,13 @@
+Index: lua-5.1.5/src/Makefile
+===================================================================
+--- lua-5.1.5.orig/src/Makefile	2012-02-13 21:41:22.000000000 +0100
++++ lua-5.1.5/src/Makefile	2012-03-27 14:34:45.000000000 +0200
+@@ -81,7 +81,7 @@
+ 	@echo "   $(PLATS)"
+ 
+ aix:
+-	$(MAKE) all CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl" MYLDFLAGS="-brtl -bexpall"
++	$(MAKE) all CC="/usr/vac/bin/xlc_r" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl" MYLDFLAGS="-brtl -bexpall"
+ 
+ ansi:
+ 	$(MAKE) all MYCFLAGS=-DLUA_ANSI

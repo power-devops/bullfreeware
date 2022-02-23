@@ -1,0 +1,57 @@
+--- ./extra/perror.c.orig	2019-07-19 13:52:09.000000000 +0200
++++ ./extra/perror.c	2019-07-19 13:53:34.000000000 +0200
+@@ -315,7 +315,6 @@
+       found=0;
+       code=atoi(*argv);
+       msg = strerror(code);
+-
+       /*
+         We don't print the OS error message if it is the same as the
+         unknown_error message we retrieved above, or it starts with
+@@ -326,11 +325,21 @@
+                        (const uchar*) "Unknown Error", 13) &&
+           (!unknown_error || strcmp(msg, unknown_error)))
+       {
+-	found= 1;
+-	if (verbose)
+-	  printf("OS error code %3d:  %s\n", code, msg);
+-	else
+-	  puts(msg);
++#ifdef _AIX
++    // On AIX, unknow error return " Error <CODE> occurred."
++    char AIX_buffer [250];
++    sprintf(AIX_buffer, " Error %3d occurred.", code);
++    if (!strcmp(msg, AIX_buffer))
++    {
++#endif
++    found= 1;
++    if (verbose)
++      printf("OS error code %3d:  %s\n", code, msg);
++    else
++      puts(msg);
++#ifdef _AIX
++    }
++#endif
+       }
+       if ((msg= get_ha_error_msg(code)))
+       {
+--- ./mysql-test/main/symlink-myisam-11902.test.orig	2019-09-05 14:39:31.924641696 +0200
++++ ./mysql-test/main/symlink-myisam-11902.test	2019-09-03 16:57:16.352569687 +0200
+@@ -25,7 +25,7 @@
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL go';
+ connection default;
+-replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/tmp\// 'MYSQLTEST_VARDIR\/tmp\// /31/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error 29;
+ reap;
+ flush tables;
+@@ -49,7 +49,7 @@
+ exec ln -s $datadir/mysql $MYSQLTEST_VARDIR/tmp/foo;
+ set debug_sync='now SIGNAL run';
+ connection default;
+-replace_regex / '.*\/test\// '.\/test\// /31/20/ /40/20/ /20.*/20 <errmsg>)/;
++replace_regex / '.*\/test\// '.\/test\// /31/20/ /85/20/ /20.*/20 <errmsg>)/;
+ error ER_FILE_NOT_FOUND;
+ reap;
+ flush tables;

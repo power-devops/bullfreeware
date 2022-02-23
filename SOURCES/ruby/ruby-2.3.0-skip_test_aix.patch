@@ -1,0 +1,46 @@
+--- ./test/ruby/test_time.rb.origine	2015-12-16 06:07:31 +0100
++++ ./test/ruby/test_time.rb	2016-10-27 15:04:37 +0200
+@@ -145,6 +145,7 @@
+   end
+ 
+   def test_at
++    skip "TestTime#test_at : skip on 32 bit AIX 64 bits" if /aix/ =~ RUBY_PLATFORM && [0].pack('L!').size == 8
+     assert_equal(100000, Time.at("0.1".to_r).usec)
+     assert_equal(10000, Time.at("0.01".to_r).usec)
+     assert_equal(1000, Time.at("0.001".to_r).usec)
+--- ./test/test_pty.rb.origine	2015-12-16 06:07:31 +0100
++++ ./test/test_pty.rb	2016-10-27 15:07:07 +0200
+@@ -38,6 +38,7 @@
+   end
+ 
+   def test_commandline
++    skip "TestPTY#test_commandline skip on 32 bit AIX" if /aix/ =~ RUBY_PLATFORM && [0].pack('L!').size == 4
+     commandline = Shellwords.join([RUBY, '-e', 'puts "foo"'])
+     PTY.spawn(commandline) {|r,w,pid|
+       begin
+@@ -53,6 +54,7 @@
+   end
+ 
+   def test_argv0
++    skip "TestPTY#ttest_argv0 skip on 32 bit AIX" if /aix/ =~ RUBY_PLATFORM && [0].pack('L!').size == 4
+     PTY.spawn([RUBY, "argv0"], '-e', 'puts "bar"') {|r,w,pid|
+       begin
+         assert_equal("bar\r\n", r.gets)
+--- ./test/io/console/test_io_console.rb.origine	2015-12-16 06:07:31 +0100
++++ ./test/io/console/test_io_console.rb	2016-10-28 08:33:42 +0200
+@@ -239,6 +239,7 @@
+ 
+   if IO.console
+     def test_close
++      skip "skip on 32 bit AIX" if /aix/ =~ RUBY_PLATFORM && [0].pack('L!').size == 4
+       IO.console.close
+       assert_kind_of(IO, IO.console)
+       assert_nothing_raised(IOError) {IO.console.fileno}
+@@ -256,6 +257,7 @@
+     end
+   else
+     def test_close
++      skip "skip on 32 bit AIX" if /aix/ =~ RUBY_PLATFORM && [0].pack('L!').size == 4
+       assert_equal(["true"], run_pty("IO.console.close; p IO.console.fileno >= 0"))
+       assert_equal(["true"], run_pty("IO.console(:close); p IO.console(:tty?)"))
+     end

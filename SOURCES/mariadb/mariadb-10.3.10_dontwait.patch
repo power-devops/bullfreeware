@@ -1,0 +1,10 @@
+--- ./libmariadb/include/ma_sys.h.orig	2018-10-18 09:59:12 -0500
++++ ./libmariadb/include/ma_sys.h	2018-10-18 10:00:47 -0500
+@@ -34,6 +34,7 @@
+ #endif
+ 
+ #include <stdarg.h>  
++#define MSG_DONTWAIT 0
+ 
+ #define MYSYS_PROGRAM_USES_CURSES()  { ma_error_handler_hook = ma_message_curses;	mysys_uses_curses=1; }
+ #define MYSYS_PROGRAM_DONT_USE_CURSES()  { ma_error_handler_hook = ma_message_no_curses; mysys_uses_curses=0;}

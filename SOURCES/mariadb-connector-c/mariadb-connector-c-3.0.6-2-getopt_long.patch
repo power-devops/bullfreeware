@@ -1,0 +1,8 @@
+--- ./mariadb_config/mariadb_config.c.in.ORIGIN	2018-09-14 16:36:04 -0500
++++ ./mariadb_config/mariadb_config.c.in	2018-09-14 16:36:24 -0500
+@@ -1,4 +1,4 @@
+-#include <getopt.h>
++#include "getopt_long.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <mariadb_version.h>

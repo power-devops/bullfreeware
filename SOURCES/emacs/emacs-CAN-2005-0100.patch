@@ -1,0 +1,11 @@
+--- ./lib-src/movemail.c.orig	2005-02-22 15:23:46.000000000 -0600
++++ ./lib-src/movemail.c	2005-02-22 15:24:29.000000000 -0600
+@@ -787,7 +787,7 @@
+       mbx_delimit_begin (mbf);
+       if (pop_retr (server, i, mbf) != OK)
+ 	{
+-	  error (Errmsg, 0, 0);
++	  error ("%s", Errmsg, 0);
+ 	  close (mbfi);
+ 	  return (1);
+ 	}

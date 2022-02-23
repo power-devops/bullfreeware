@@ -1,0 +1,38 @@
+--- ./nss/lib/freebl/stubs.c.ORIGIN	2019-03-16 01:25:08.000000000 +0100
++++ ./nss/lib/freebl/stubs.c	2019-06-05 11:37:13.000000000 +0200
+@@ -39,6 +39,16 @@
+ #include <assert.h>
+ #include <private/pprio.h>
+ 
++typedef struct
++{
++  const char *dli_fname;        /* File name of defining object.  */
++  void *dli_fbase;              /* Load address of that object.  */
++  const char *dli_sname;        /* Name of nearest symbol.  */
++  void *dli_saddr;              /* Exact value of nearest symbol.  */
++} Dl_info;
++
++#define dladdr(A, B) 0
++
+ /* Android API < 21 doesn't define RTLD_NOLOAD */
+ #ifndef RTLD_NOLOAD
+ #define RTLD_NOLOAD 0
+--- ./nss/lib/freebl/lowhash_vector.c.ORIGIN	2019-03-16 01:25:08.000000000 +0100
++++ ./nss/lib/freebl/lowhash_vector.c	2019-06-05 13:37:18.000000000 +0200
+@@ -29,6 +29,16 @@
+ static const NSSLOWVector *vector;
+ static const char *libraryName = NULL;
+ 
++typedef struct
++{
++  const char *dli_fname;        /* File name of defining object.  */
++  void *dli_fbase;              /* Load address of that object.  */
++  const char *dli_sname;        /* Name of nearest symbol.  */
++  void *dli_saddr;              /* Exact value of nearest symbol.  */
++} Dl_info;
++
++#define dladdr(A, B) 0
++
+ /* pretty much only glibc uses this, make sure we don't have any depenencies
+  * on nspr.. */
+ #undef PORT_Alloc

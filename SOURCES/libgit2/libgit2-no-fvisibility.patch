@@ -1,0 +1,12 @@
+--- ./CMakeLists.txt.ORIG	2020-06-04 10:46:58 +0200
++++ ./CMakeLists.txt	2020-10-08 14:08:44 +0200
+@@ -220,7 +220,8 @@
+ 	IF (MINGW OR MSYS) # MinGW and MSYS always do PIC and complain if we tell them to
+ 		STRING(REGEX REPLACE "-fPIC" "" CMAKE_SHARED_LIBRARY_C_FLAGS "${CMAKE_SHARED_LIBRARY_C_FLAGS}")
+ 	ELSEIF (BUILD_SHARED_LIBS)
+-		ADD_C_FLAG_IF_SUPPORTED(-fvisibility=hidden)
++		# See "pygit2 or libgit2 for AIX" thread on community.ibm.com
++		# ADD_C_FLAG_IF_SUPPORTED(-fvisibility=hidden)
+ 
+ 		SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+ 	ENDIF ()

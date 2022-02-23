@@ -1,0 +1,26 @@
+--- ./libgo/testsuite/gotest.ORIGIN	2018-03-08 16:50:47 -0600
++++ ./libgo/testsuite/gotest	2018-03-08 17:24:04 -0600
+@@ -538,18 +538,20 @@
+ 	pattern='Test([^a-z].*)?'
+ 	# The -p option tells GNU nm not to sort.
+ 	# The -v option tells Solaris nm to sort by value.
+-	tests=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo)
++	# On AIX, mainly in 64bits, some tests appear 2 times
++        nodup='awk {if(T2[$0]!=1){n++;T[n]=$1;T2[$1]=1}}END{for(i=1;i<=n;i++)print(T[i])}'
++	tests=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo | $nodup)
+ 	if [ "x$tests" = x ]; then
+ 		echo 'gotest: warning: no tests matching '$pattern in _gotest_.o $xofile 1>&2
+ 		exit 2
+ 	fi
+ 	# benchmarks are named BenchmarkFoo.
+ 	pattern='Benchmark([^a-z].*)?'
+-	benchmarks=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo)
++	benchmarks=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo | $nodup)
+ 
+ 	# examples are named ExampleFoo
+ 	pattern='Example([^a-z].*)?'
+-	examples=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo)
++	examples=$($NM -p -v _gotest_.o $xofile | egrep " $text .*\."$pattern'$' | grep -v '[^ ]\..*\.' | fgrep -v ' __go_' | sed 's/.* //' | $symtogo | $nodup)
+ 
+ 	# package spec
+ 	echo 'package main'

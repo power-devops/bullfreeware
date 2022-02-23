@@ -1,0 +1,13 @@
+--- libtool-1.5.26/libltdl/ltdl.orig	2016-08-03 17:59:55 +0200
++++ libtool-1.5.26/libltdl/ltdl.c	2016-08-03 18:00:49 +0200
+@@ -3227,7 +3227,9 @@
+ 	}
+       if (!file)
+ 	{
+-	  file = fopen (filename, LT_READTEXT_MODE);
++	  /* don't open .la files in current directory, root might get tricked to run a binary in a prepared directory */
++	  if(!strncmp((filename + strlen(filename) - 3), LTDL_ARCHIVE_EXT,3) || strstr(filename,"/"))
++	    file = fopen (filename, LT_READTEXT_MODE);
+ 	}
+ 
+       /* If we didn't find the file by now, it really isn't there.  Set

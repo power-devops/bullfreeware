@@ -1,0 +1,43 @@
+From 9c9ff189c16b16f848f2e85c1d262f12c6d5e922 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Wed, 3 Jan 2018 12:06:08 -0500
+Subject: [PATCH] Fix securid_sam2 preauth for non-default salt
+
+When looking up the client long-term key, look for any salt type, not
+just the default salt type.
+
+ticket: 8629
+(cherry picked from commit a2339099ad13c84de0843fd04d0ba612fc194a1e)
+---
+ src/plugins/preauth/securid_sam2/grail.c    | 3 +--
+ src/plugins/preauth/securid_sam2/securid2.c | 3 +--
+ 2 files changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/src/plugins/preauth/securid_sam2/grail.c b/src/plugins/preauth/securid_sam2/grail.c
+index 18d48f924..48b61b0d1 100644
+--- a/src/plugins/preauth/securid_sam2/grail.c
++++ b/src/plugins/preauth/securid_sam2/grail.c
+@@ -213,8 +213,7 @@ verify_grail_data(krb5_context context, krb5_db_entry *client,
+         return KRB5KDC_ERR_PREAUTH_FAILED;
+ 
+     ret = krb5_dbe_find_enctype(context, client,
+-                                sr2->sam_enc_nonce_or_sad.enctype,
+-                                KRB5_KDB_SALTTYPE_NORMAL,
++                                sr2->sam_enc_nonce_or_sad.enctype, -1,
+                                 sr2->sam_enc_nonce_or_sad.kvno,
+                                 &client_key_data);
+     if (ret)
+diff --git a/src/plugins/preauth/securid_sam2/securid2.c b/src/plugins/preauth/securid_sam2/securid2.c
+index ca99ce3ef..363e17a10 100644
+--- a/src/plugins/preauth/securid_sam2/securid2.c
++++ b/src/plugins/preauth/securid_sam2/securid2.c
+@@ -313,8 +313,7 @@ verify_securid_data_2(krb5_context context, krb5_db_entry *client,
+     }
+ 
+     retval = krb5_dbe_find_enctype(context, client,
+-                                   sr2->sam_enc_nonce_or_sad.enctype,
+-                                   KRB5_KDB_SALTTYPE_NORMAL,
++                                   sr2->sam_enc_nonce_or_sad.enctype, -1,
+                                    sr2->sam_enc_nonce_or_sad.kvno,
+                                    &client_key_data);
+     if (retval) {

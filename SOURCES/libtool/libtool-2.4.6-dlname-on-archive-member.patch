@@ -1,0 +1,144 @@
+--- a/build-aux/ltmain.in	2019-11-21 16:05:50 +0100
++++ b/build-aux/ltmain.in	2019-11-21 16:13:22 +0100
+@@ -1959,11 +1959,17 @@
+ 	func_dirname "$file" "" "."
+ 	dir=$func_dirname_result
+ 
+-	if test -f "$dir/$objdir/$dlname"; then
++	# Get the name of the file being dlopened.
++	case " $dlname " in
++	  *".a("*")"*) filename=`$ECHO $dlname | $SED 's/(.*)//g`;;
++	  *) filename=$dlname;;
++	esac
++
++	if test -f "$dir/$objdir/$filename"; then
+ 	  func_append dir "/$objdir"
+ 	else
+-	  if test ! -f "$dir/$dlname"; then
+-	    func_fatal_error "cannot find '$dlname' in '$dir' or '$dir/$objdir'"
++	  if test ! -f "$dir/$filename"; then
++	    func_fatal_error "cannot find '$filename' in '$dir' or '$dir/$objdir'"
+ 	  fi
+ 	fi
+ 	;;
+@@ -6123,7 +6129,16 @@
+ 	          func_append dlpreconveniencelibs " $dir/$old_library"
+ 	      # Otherwise, use the dlname, so that lt_dlopen finds it.
+ 	      elif test -n "$dlname"; then
+-	        func_append newdlprefiles " $dir/$dlname"
++	        case " $dlname " in
++	          *".a("*")"*)
++	            # AIX dlname can be a member inside an archive. In this case,
++	            # dlname is "libname.a(libname.so)" and can't be passed as is
++	            # to dlprefiles. Therefore, parse its name and add libname.a
++	            libname=`$ECHO $dlname | $SED 's/(.*)//g`
++	            func_append newdlprefiles " $dir/$libname"
++	            ;;
++	          *) func_append newdlprefiles " $dir/$dlname";;
++	        esac
+ 	      else
+ 	        func_append newdlprefiles " $dir/$linklib"
+ 	      fi
+@@ -8188,8 +8203,13 @@
+ 
+ 	# If -module or -export-dynamic was specified, set the dlname.
+ 	if test yes = "$module" || test yes = "$export_dynamic"; then
+-	  # On all known operating systems, these are identical.
+-	  dlname=$soname
++	  case $host in
++	    # On AIX, modules will be added in the archive. Therefore, dlname
++	    # must follow the pattern $realname($soname).
++	    # On all other known operating systems, soname is enough.
++	    *aix*) dlname="$realname($soname)";;
++	    *) dlname=$soname;;
++	  esac
+ 	fi
+       fi
+       ;;
+@@ -9122,7 +9142,13 @@
+ 	  clean)
+ 	    case " $library_names " in
+ 	    *" $dlname "*) ;;
+-	    *) test -n "$dlname" && func_append rmfiles " $odir/$dlname" ;;
++	    *)
++	      case " $dlname " in
++	      # Skip dlname if it's a archive member.
++	      *" ${library_names%% *}("*") "*);;
++	      *)  test -n "$dlname" && func_append rmfiles " $odir/$dlname" ;;
++	      esac
++	      ;;
+ 	    esac
+ 	    test -n "$libdir" && func_append rmfiles " $odir/$name $odir/${name}i"
+ 	    ;;
+--- a/build-aux/ltmain.sh	2019-11-21 16:07:55 +0100
++++ b/build-aux/ltmain.sh	2019-11-21 16:13:32 +0100
+@@ -3871,11 +3871,17 @@
+ 	func_dirname "$file" "" "."
+ 	dir=$func_dirname_result
+ 
+-	if test -f "$dir/$objdir/$dlname"; then
++	# Get the name of the file being dlopened.
++	case " $dlname " in
++	  *".a("*")"*) filename=`$ECHO $dlname | $SED 's/(.*)//g`;;
++	  *) filename=$dlname;;
++	esac
++
++	if test -f "$dir/$objdir/$filename"; then
+ 	  func_append dir "/$objdir"
+ 	else
+-	  if test ! -f "$dir/$dlname"; then
+-	    func_fatal_error "cannot find '$dlname' in '$dir' or '$dir/$objdir'"
++	  if test ! -f "$dir/$filename"; then
++	    func_fatal_error "cannot find '$filename' in '$dir' or '$dir/$objdir'"
+ 	  fi
+ 	fi
+ 	;;
+@@ -8035,7 +8041,16 @@
+ 	          func_append dlpreconveniencelibs " $dir/$old_library"
+ 	      # Otherwise, use the dlname, so that lt_dlopen finds it.
+ 	      elif test -n "$dlname"; then
+-	        func_append newdlprefiles " $dir/$dlname"
++            case " $dlname " in
++	          *".a("*")"*)
++	            # AIX dlname can be a member inside an archive. In this case,
++	            # dlname is "libname.a(libname.so)" and can't be passed as is
++	            # to dlprefiles. Therefore, parse its name and add libname.a
++	            libname=`$ECHO $dlname | $SED 's/(.*)//g`
++	            func_append newdlprefiles " $dir/$libname"
++	            ;;
++	          *) func_append newdlprefiles " $dir/$dlname";;
++	        esac
+ 	      else
+ 	        func_append newdlprefiles " $dir/$linklib"
+ 	      fi
+@@ -10100,8 +10115,13 @@
+ 
+ 	# If -module or -export-dynamic was specified, set the dlname.
+ 	if test yes = "$module" || test yes = "$export_dynamic"; then
+-	  # On all known operating systems, these are identical.
+-	  dlname=$soname
++	  case $host in
++	    # On AIX, modules will be added in the archive. Therefore, dlname
++	    # must follow the pattern $realname($soname).
++	    # On all other known operating systems, soname is enough.
++	    *aix*) dlname="$realname($soname)";;
++	    *) dlname=$soname;;
++	  esac
+ 	fi
+       fi
+       ;;
+@@ -11034,7 +11054,13 @@
+ 	  clean)
+ 	    case " $library_names " in
+ 	    *" $dlname "*) ;;
+-	    *) test -n "$dlname" && func_append rmfiles " $odir/$dlname" ;;
++	    *)
++	      case " $dlname " in
++	      # Skip dlname if it's a archive member.
++	      *" ${library_names%% *}("*") "*);;
++	      *)  test -n "$dlname" && func_append rmfiles " $odir/$dlname" ;;
++	      esac
++	      ;;
+ 	    esac
+ 	    test -n "$libdir" && func_append rmfiles " $odir/$name $odir/${name}i"
+ 	    ;;

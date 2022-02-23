@@ -1,0 +1,45 @@
+diff -Naur --exclude '*.reg' --exclude '*.orig' --exclude '*~' ocaml-3.11.0/configure ocaml-3.11.0-db4/configure
+--- ocaml-3.11.0/configure	2008-11-07 11:34:16.000000000 +0100
++++ ocaml-3.11.0-db4/configure	2008-12-24 00:38:02.000000000 +0100
+@@ -1322,8 +1322,15 @@
+ dbm_include="not found"
+ dbm_link="not found"
+ use_gdbm_ndbm=no
++use_bdb_ndbm=no
+ 
+-for dir in /usr/include /usr/include/db1 /usr/include/gdbm; do
++for dir in /usr/include /usr/include/db4 /usr/include/gdbm; do
++  if test -f $dir/db.h; then
++    dbm_include="$dir -DDB_DBM_HSEARCH"
++    dbm_link="-ldb"
++    use_bdb_ndbm=yes
++    break
++  fi
+   if test -f $dir/ndbm.h; then
+     dbm_include=$dir
+     if sh ./hasgot dbm_open; then
+@@ -1360,6 +1367,9 @@
+   if test "$use_gdbm_ndbm" = "yes"; then
+     echo "#define DBM_USES_GDBM_NDBM" >> s.h
+   fi
++  if test "$use_bdb_ndbm" = "yes"; then
++    echo "#define DBM_USES_BDB_NDBM" >> s.h
++  fi
+   otherlibraries="$otherlibraries dbm"
+ fi
+ echo "DBM_INCLUDES=$dbm_include" >> Makefile
+diff -Naur --exclude '*.reg' --exclude '*.orig' --exclude '*~' ocaml-3.11.0/otherlibs/dbm/cldbm.c ocaml-3.11.0-db4/otherlibs/dbm/cldbm.c
+--- ocaml-3.11.0/otherlibs/dbm/cldbm.c	2003-07-08 15:50:31.000000000 +0200
++++ ocaml-3.11.0-db4/otherlibs/dbm/cldbm.c	2008-12-24 00:38:02.000000000 +0100
+@@ -21,8 +21,10 @@
+ #include <fail.h>
+ #include <callback.h>
+ 
+-#ifdef DBM_USES_GDBM_NDBM
++#if defined(DBM_USES_GDBM_NDBM)
+ #include <gdbm-ndbm.h>
++#elif defined(DBM_USES_BDB_NDBM)
++#include <db.h>
+ #else
+ #include <ndbm.h>
+ #endif

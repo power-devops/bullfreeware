@@ -1,0 +1,11 @@
+--- tcsh-6.14.00/config_f.h.config	2005-03-26 00:12:39.756467744 +0100
++++ tcsh-6.14.00/config_f.h	2005-03-26 00:12:49.831936040 +0100
+@@ -69,7 +69,7 @@
+  *		if you don't have <nl_types.h>, you don't want
+  *		to define this.
+  */
+-#undef NLS_CATALOGS
++#define NLS_CATALOGS
+ 
+ /*
+  * LOGINFIRST   Source ~/.login before ~/.cshrc

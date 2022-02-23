@@ -1,0 +1,15 @@
+*** ./tests/openpgp-auth.c.ORIG	Nov  5 19:12 2016
+--- ./tests/openpgp-auth.c	Apr 10 11:04 2017
+***************
+*** 19,24 ****
+--- 19,28 ----
+   * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+   */
+  
++ #ifdef _AIX
++ #include <alloca.h>
++ #endif
++ 
+  #ifdef HAVE_CONFIG_H
+  #include <config.h>
+  #endif

@@ -1,0 +1,18 @@
+--- ./tools/build/src/tools/gcc.jam.NEW1	2020-04-16 11:11:10 -0500
++++ ./tools/build/src/tools/gcc.jam	2020-04-16 11:34:49 -0500
+@@ -301,7 +301,14 @@
+         # right onces. Note that we do not provide a clean way to build a 32-bit
+         # binary using a 64-bit compiler, but user can always pass -m32
+         # manually.
+-        local lib_path = $(root)/bin $(root)/lib $(root)/lib32 $(root)/lib64 ;
++        if [ os.name ] = AIX
++        {
++            local lib_path = "" ;
++        }
++        else
++	{
++            local lib_path = $(root)/bin $(root)/lib $(root)/lib32 $(root)/lib64 ;
++	}
+         if $(.debug-configuration)
+         {
+             ECHO "notice:" using gcc libraries "::" $(condition) "::" $(lib_path) ;

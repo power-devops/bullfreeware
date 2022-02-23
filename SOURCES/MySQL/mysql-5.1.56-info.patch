@@ -1,0 +1,112 @@
+Index: mysql-5.1.56/mysql-debug-5.1.56/Docs/Makefile.am
+===================================================================
+--- mysql-5.1.56.orig/mysql-debug-5.1.56/Docs/Makefile.am	2011-02-11 20:20:35.000000000 +0100
++++ mysql-5.1.56/mysql-debug-5.1.56/Docs/Makefile.am	2011-04-07 13:15:00.000000000 +0200
+@@ -20,9 +20,9 @@
+ # if we're building the info page from texi directly.
+ install-data-hook:	$(srcdir)/mysql.info
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  $(mkinstalldirs) $(DESTDIR)$(prefix)/docs ; \
+-	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/docs ; \
+-	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/docs ; \
++	  $(mkinstalldirs) $(DESTDIR)$(prefix)/info ; \
++	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/info ; \
++	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/info ; \
+ 	else \
+ 	  $(mkinstalldirs) $(DESTDIR)$(infodir) $(DESTDIR)$(pkgdatadir) ; \
+ 	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(infodir) ; \
+@@ -31,8 +31,8 @@
+ 
+ uninstall-local:
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/mysql.info ; \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/ChangeLog ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/mysql.info ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/ChangeLog ; \
+ 	else \
+ 	  @RM@ -f $(DESTDIR)$(infodir)/mysql.info ; \
+ 	  @RM@ -f $(DESTDIR)$(pkgdatadir)/ChangeLog ; \
+Index: mysql-5.1.56/mysql-debug-5.1.56/Docs/Makefile.in
+===================================================================
+--- mysql-5.1.56.orig/mysql-debug-5.1.56/Docs/Makefile.in	2011-02-11 20:23:52.000000000 +0100
++++ mysql-5.1.56/mysql-debug-5.1.56/Docs/Makefile.in	2011-04-07 13:15:26.000000000 +0200
+@@ -549,9 +549,9 @@
+ # if we're building the info page from texi directly.
+ install-data-hook:	$(srcdir)/mysql.info
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  $(mkinstalldirs) $(DESTDIR)$(prefix)/docs ; \
+-	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/docs ; \
+-	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/docs ; \
++	  $(mkinstalldirs) $(DESTDIR)$(prefix)/info ; \
++	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/info ; \
++	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/info ; \
+ 	else \
+ 	  $(mkinstalldirs) $(DESTDIR)$(infodir) $(DESTDIR)$(pkgdatadir) ; \
+ 	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(infodir) ; \
+@@ -560,8 +560,8 @@
+ 
+ uninstall-local:
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/mysql.info ; \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/ChangeLog ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/mysql.info ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/ChangeLog ; \
+ 	else \
+ 	  @RM@ -f $(DESTDIR)$(infodir)/mysql.info ; \
+ 	  @RM@ -f $(DESTDIR)$(pkgdatadir)/ChangeLog ; \
+Index: mysql-5.1.56/mysql-release-5.1.56/Docs/Makefile.am
+===================================================================
+--- mysql-5.1.56.orig/mysql-release-5.1.56/Docs/Makefile.am	2011-02-11 20:20:35.000000000 +0100
++++ mysql-5.1.56/mysql-release-5.1.56/Docs/Makefile.am	2011-04-07 13:16:54.000000000 +0200
+@@ -20,9 +20,9 @@
+ # if we're building the info page from texi directly.
+ install-data-hook:	$(srcdir)/mysql.info
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  $(mkinstalldirs) $(DESTDIR)$(prefix)/docs ; \
+-	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/docs ; \
+-	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/docs ; \
++	  $(mkinstalldirs) $(DESTDIR)$(prefix)/info ; \
++	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/info ; \
++	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/info ; \
+ 	else \
+ 	  $(mkinstalldirs) $(DESTDIR)$(infodir) $(DESTDIR)$(pkgdatadir) ; \
+ 	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(infodir) ; \
+@@ -31,8 +31,8 @@
+ 
+ uninstall-local:
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/mysql.info ; \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/ChangeLog ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/mysql.info ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/ChangeLog ; \
+ 	else \
+ 	  @RM@ -f $(DESTDIR)$(infodir)/mysql.info ; \
+ 	  @RM@ -f $(DESTDIR)$(pkgdatadir)/ChangeLog ; \
+Index: mysql-5.1.56/mysql-release-5.1.56/Docs/Makefile.in
+===================================================================
+--- mysql-5.1.56.orig/mysql-release-5.1.56/Docs/Makefile.in	2011-02-11 20:23:52.000000000 +0100
++++ mysql-5.1.56/mysql-release-5.1.56/Docs/Makefile.in	2011-04-07 13:16:42.000000000 +0200
+@@ -549,9 +549,9 @@
+ # if we're building the info page from texi directly.
+ install-data-hook:	$(srcdir)/mysql.info
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  $(mkinstalldirs) $(DESTDIR)$(prefix)/docs ; \
+-	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/docs ; \
+-	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/docs ; \
++	  $(mkinstalldirs) $(DESTDIR)$(prefix)/info ; \
++	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(prefix)/info ; \
++	  test ! -f $(top_srcdir)/ChangeLog || $(INSTALL_DATA) $(top_srcdir)/ChangeLog $(DESTDIR)$(prefix)/info ; \
+ 	else \
+ 	  $(mkinstalldirs) $(DESTDIR)$(infodir) $(DESTDIR)$(pkgdatadir) ; \
+ 	  $(INSTALL_DATA) $(srcdir)/mysql.info $(DESTDIR)$(infodir) ; \
+@@ -560,8 +560,8 @@
+ 
+ uninstall-local:
+ 	if test `basename $(prefix)` = "mysql" ; then \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/mysql.info ; \
+-	  @RM@ -f $(DESTDIR)$(prefix)/docs/ChangeLog ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/mysql.info ; \
++	  @RM@ -f $(DESTDIR)$(prefix)/info/ChangeLog ; \
+ 	else \
+ 	  @RM@ -f $(DESTDIR)$(infodir)/mysql.info ; \
+ 	  @RM@ -f $(DESTDIR)$(pkgdatadir)/ChangeLog ; \

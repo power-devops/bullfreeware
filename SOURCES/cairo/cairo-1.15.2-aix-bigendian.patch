@@ -1,0 +1,12 @@
+diff -Nur cairo-1.15.2-orig/configure cairo-1.15.2-aix/configure
+--- cairo-1.15.2-orig/configure	2015-12-11 09:45:31 +0100
++++ cairo-1.15.2-aix/configure	2016-04-13 13:29:53 +0200
+@@ -19084,7 +19084,7 @@
+ # finds "seesnoon", float words are in little-endian order. If neither value
+ # is found, the user is instructed to specify the ordering.
+ 
+-ax_cv_c_float_words_bigendian=unknown
++ax_cv_c_float_words_bigendian=yes
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 

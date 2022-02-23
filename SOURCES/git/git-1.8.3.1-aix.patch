@@ -1,0 +1,64 @@
+*** ./git-compat-util.h.ORIG	Fri Jul 23 10:09:14 2010
+--- ./git-compat-util.h	Fri Jul 23 10:16:06 2010
+***************
+*** 125,135 ****
+  #include "compat/msvc.h"
+  #endif
+  
+  #ifndef NO_LIBGEN_H
+  #include <libgen.h>
+  #else
+! #define basename gitbasename
+! extern char *gitbasename(char *);
+  #endif
+  
+  #ifndef NO_ICONV
+--- 125,138 ----
+  #include "compat/msvc.h"
+  #endif
+  
++ #ifdef _AIX51
++ #define NO_LIBGEN_H
++ #endif
++ 
+  #ifndef NO_LIBGEN_H
+  #include <libgen.h>
+  #else
+! extern char *basename(char *);
+  #endif
+  
+  #ifndef NO_ICONV
+*** ./vcs-svn/svndiff.c.ORIG	Sun Apr 15 20:00:26 2012
+--- ./vcs-svn/svndiff.c	Sun Apr 15 20:01:44 2012
+***************
+*** 8,13 ****
+--- 8,21 ----
+  #include "line_buffer.h"
+  #include "svndiff.h"
+  
++ #ifdef _AIX51
++ #if (__64BIT__)
++ #define SIZE_MAX        UINT64_MAX
++ #else
++ #define SIZE_MAX        UINT32_MAX
++ #endif
++ #endif
++ 
+  /*
+   * svndiff0 applier
+   *
+*** ./utf8.c.ORIG	Thu May 30 00:09:05 2013
+--- ./utf8.c	Thu May 30 00:09:17 2013
+***************
+*** 590,595 ****
+--- 590,599 ----
+  }
+  #endif
+  
++ #ifndef SIZE_MAX
++ # define SIZE_MAX ((size_t) -1)
++ #endif
++ 
+  /*
+   * Returns first character length in bytes for multi-byte `text` according to
+   * `encoding`.

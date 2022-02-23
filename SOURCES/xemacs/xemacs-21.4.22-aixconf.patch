@@ -1,0 +1,13 @@
+Index: xemacs-21.4.22/config.guess
+===================================================================
+--- xemacs-21.4.22.orig/config.guess	2004-08-13 05:23:16.000000000 +0200
++++ xemacs-21.4.22/config.guess	2012-02-22 13:25:30.000000000 +0100
+@@ -502,7 +502,7 @@
+ 	fi
+ 	echo ${IBM_ARCH}-ibm-aix${IBM_REV}
+ 	exit 0 ;;
+-    *:AIX:*:5)
++    *:AIX:*:[567])
+ 	case "`lsattr -El proc0 -a type -F value`" in
+ 	    PowerPC*) IBM_ARCH=powerpc
+ 		      IBM_MANUF=ibm ;;

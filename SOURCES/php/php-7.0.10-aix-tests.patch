@@ -1,0 +1,9 @@
+diff -Nur php-7.0.3.orig/ext/soap/tests/bugs/bug29109.wsdl php-7.0.3-aix/ext/soap/tests/bugs/bug29109.wsdl
+--- php-7.0.3.orig/ext/soap/tests/bugs/bug29109.wsdl	2016-02-02 17:32:25 +0100
++++ php-7.0.3-aix/ext/soap/tests/bugs/bug29109.wsdl	2016-03-10 17:18:19 +0100
+@@ -1,4 +1,4 @@
+-<?xml version="1.0" encoding="windows-1257"?>
++<?xml version="1.0" encoding="iso-8859-13"?>
+ <definitions xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
+ xmlns:s0="http://tempuri.org/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"

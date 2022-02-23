@@ -1,0 +1,36 @@
+
+# This Makefile builds a static version of the library, 
+# libbz2.a on AIX5L v5.1 and later
+
+BIGFILES = -D_FILE_OFFSET_BITS=64
+CFLAGS= -I. -O2 $(BIGFILES)
+
+OBJS= blocksort.o  \
+      huffman.o    \
+      crctable.o   \
+      randtable.o  \
+      compress.o   \
+      decompress.o \
+      bzlib.o
+
+all: $(OBJS)
+	$(AR) -rv libbz2.a $(OBJS)
+
+clean: 
+	rm -f $(OBJS) libbz2.a
+
+blocksort.o: blocksort.c
+	$(CC) $(CFLAGS) -c blocksort.c
+huffman.o: huffman.c
+	$(CC) $(CFLAGS) -c huffman.c
+crctable.o: crctable.c
+	$(CC) $(CFLAGS) -c crctable.c
+randtable.o: randtable.c
+	$(CC) $(CFLAGS) -c randtable.c
+compress.o: compress.c
+	$(CC) $(CFLAGS) -c compress.c
+decompress.o: decompress.c
+	$(CC) $(CFLAGS) -c decompress.c
+bzlib.o: bzlib.c
+	$(CC) $(CFLAGS) -c bzlib.c
+

@@ -1,0 +1,11 @@
+--- Makefile_orig	2016-05-17 08:56:57.000000000 -0500
++++ Makefile	2016-05-17 08:57:26.000000000 -0500
+@@ -836,7 +836,7 @@
+ 	./config.status subversion/bindings/swig/perl/native/Makefile.PL
+ 
+ $(SWIG_PL_DIR)/native/Makefile: $(SWIG_PL_DIR)/native/Makefile.PL
+-	cd $(SWIG_PL_DIR)/native; $(PERL) Makefile.PL PREFIX=$(prefix)
++	cd $(SWIG_PL_DIR)/native; $(PERL) Makefile.PL
+ 
+ # There is a "readlink -f" command on some systems for the same purpose,
+ # but it's not as portable (e.g. Mac OS X doesn't have it).  These should

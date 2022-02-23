@@ -1,0 +1,14 @@
+--- ./lib/replace/closefrom.c.ORIG      2016-07-27 15:09:58 +0200
++++ ./lib/replace/closefrom.c   2016-09-19 17:11:52 +0200
+@@ -58,7 +58,11 @@
+		return errno;
+	}
+ 
++#if (_XOPEN_SOURCE < 700)
++	dir_fd = dirp->dd_fd;
++#else
+	dir_fd = dirfd(dirp);
++#endif
+	if (dir_fd == -1) {
+		ret = errno;
+		goto fail;

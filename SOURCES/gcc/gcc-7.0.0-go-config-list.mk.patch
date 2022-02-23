@@ -1,0 +1,11 @@
+--- old/contrib/config-list.mk	2016-09-27 11:36:41 +0200
++++ new/contrib/config-list.mk	2016-09-23 15:17:47 +0200
+@@ -103,7 +103,7 @@
+ 		TGT=`echo $@ | awk 'BEGIN { FS = "OPT" }; { print $$1 }'` &&			\
+ 		TGT=`$(GCC_SRC_DIR)/config.sub $$TGT` &&					\
+ 		case $$TGT in									\
+-			*-*-darwin* | *-*-cygwin* | *-*-mingw* | *-*-aix*)			\
++			*-*-darwin* | *-*-cygwin* | *-*-mingw* )			\
+ 				ADDITIONAL_LANGUAGES="";					\
+ 				;;								\
+ 			*)									\

@@ -1,0 +1,56 @@
+From 884ff5ce127e1262c1f1756b4a6e83433610db82 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 26 Mar 2020 14:20:42 -0500
+Subject: [PATCH] gcc/config/rs6000: fix long double builtins for AIX
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Descritpion:
+ * This patch fixes the implicit call made by some C long double
+   builtins when long doubles are on 64bit for AIX.
+
+Tests:
+ * AIX 7.2, 7.1, 6.1: Build/Tests: OK
+
+Changelog:
+2020-04-27 Clément Chigot <clement.chigot@atos.net
+ * config/rs6000/rs6000-call.c (rs6000_init_builtins): Fix explicit
+ for fmodl, frexpl, ldexpl and modfl builtins.
+---
+ gcc/config/rs6000/rs6000.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/gcc/config/rs6000/rs6000.c b/gcc/config/rs6000/rs6000.c
+index e08621ace27..441d16d54d6 100644
+--- a/gcc/config/rs6000/rs6000.c
++++ b/gcc/config/rs6000/rs6000.c
+@@ -12037,6 +12037,25 @@ rs6000_init_builtins (void)
+       (tdecl = builtin_decl_explicit (BUILT_IN_CLOG)) != NULL_TREE)
+     set_user_assembler_name (tdecl, "__clog");
+ 
++  /*
++    When long double is 64bit, some long double builtins of libc functions
++    (like  __builtin_frexpl) must not call the long double libc function (frexpl)
++    but the double version (frexp).
++    The reason is that these long double libc version are expected long double on
++    128 bits only.
++  */
++  if (TARGET_XCOFF && ! TARGET_LONG_DOUBLE_128)
++    {
++      if ((tdecl = builtin_decl_explicit (BUILT_IN_FMODL)) != NULL_TREE)
++        set_user_assembler_name (tdecl, "fmod");
++      if ((tdecl = builtin_decl_explicit (BUILT_IN_FREXPL)) != NULL_TREE)
++        set_user_assembler_name (tdecl, "frexp");
++      if ((tdecl = builtin_decl_explicit (BUILT_IN_LDEXPL)) != NULL_TREE)
++        set_user_assembler_name (tdecl, "ldexp");
++      if ((tdecl = builtin_decl_explicit (BUILT_IN_MODFL)) != NULL_TREE)
++        set_user_assembler_name (tdecl, "modf");
++    }
++
+ #ifdef SUBTARGET_INIT_BUILTINS
+   SUBTARGET_INIT_BUILTINS;
+ #endif
+-- 
+2.25.0
+

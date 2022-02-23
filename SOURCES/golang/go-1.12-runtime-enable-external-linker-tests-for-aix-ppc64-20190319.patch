@@ -1,0 +1,28 @@
+From d24d25b4e43badc38539b563f5264b341ccf3746 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:45:40 +0100
+Subject: [PATCH] runtime: enable external linker tests for aix/ppc64
+
+Change-Id: Icc42843adb15c2aba1cfea854fad049c6704344b
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164014
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/crash_cgo_test.go b/src/runtime/crash_cgo_test.go
+index e0c8955..07eba78 100644
+--- a/src/runtime/crash_cgo_test.go
++++ b/src/runtime/crash_cgo_test.go
+@@ -90,9 +90,9 @@
+ 	case "plan9", "windows":
+ 		t.Skipf("no pthreads on %s", runtime.GOOS)
+ 	}
+-	if runtime.GOARCH == "ppc64" {
++	if runtime.GOARCH == "ppc64" && runtime.GOOS == "linux" {
+ 		// TODO(austin) External linking not implemented on
+-		// ppc64 (issue #8912)
++		// linux/ppc64 (issue #8912)
+ 		t.Skipf("no external linking on ppc64")
+ 	}
+ 

@@ -1,0 +1,336 @@
+From 0bc035db40c5badae3cc00f452560785a0cb0a44 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 31 Jan 2017 17:02:34 -0500
+Subject: [PATCH] Add PKINIT client support for freshness token
+
+Send an empty PA_AS_FRESHNESS padata item in unauthenticated AS
+requests to indicate support for RFC 8070.  If the KDC includes a
+PA_AS_FRESHNESS value in its method data, echo it back in the new
+freshnessToken field of pkAuthenticator
+
+ticket: 8648
+(cherry picked from commit 085785362e01467cb25c79a90dcebfba9ea019d8)
+---
+ doc/user/user_commands/kinit.rst          |  3 +++
+ src/include/k5-int-pkinit.h               |  1 +
+ src/include/krb5/krb5.hin                 |  1 +
+ src/lib/krb5/asn.1/asn1_k_encode.c        |  5 ++++-
+ src/lib/krb5/krb/get_in_tkt.c             | 12 ++++++++----
+ src/lib/krb5/krb/init_creds_ctx.h         |  2 +-
+ src/plugins/preauth/pkinit/pkinit.h       |  3 +++
+ src/plugins/preauth/pkinit/pkinit_clnt.c  | 19 ++++++++++++++++++-
+ src/plugins/preauth/pkinit/pkinit_lib.c   |  3 +++
+ src/plugins/preauth/pkinit/pkinit_trace.h |  2 ++
+ src/tests/asn.1/ktest.c                   |  4 ++++
+ src/tests/asn.1/pkinit_encode.out         |  2 +-
+ src/tests/asn.1/pkinit_trval.out          |  1 +
+ 13 files changed, 50 insertions(+), 8 deletions(-)
+
+diff --git a/doc/user/user_commands/kinit.rst b/doc/user/user_commands/kinit.rst
+index 3f9d5340f..1f696920f 100644
+--- a/doc/user/user_commands/kinit.rst
++++ b/doc/user/user_commands/kinit.rst
+@@ -197,6 +197,9 @@ OPTIONS
+         specify use of RSA, rather than the default Diffie-Hellman
+         protocol
+ 
++    **disable_freshness**\ [**=yes**]
++        disable sending freshness tokens (for testing purposes only)
++
+ 
+ ENVIRONMENT
+ -----------
+diff --git a/src/include/k5-int-pkinit.h b/src/include/k5-int-pkinit.h
+index 7b2f595cb..4622a629e 100644
+--- a/src/include/k5-int-pkinit.h
++++ b/src/include/k5-int-pkinit.h
+@@ -42,6 +42,7 @@ typedef struct _krb5_pk_authenticator {
+     krb5_timestamp  ctime;
+     krb5_int32      nonce;  /* (0..4294967295) */
+     krb5_checksum   paChecksum;
++    krb5_data      *freshnessToken;
+ } krb5_pk_authenticator;
+ 
+ /* PKAuthenticator draft9 */
+diff --git a/src/include/krb5/krb5.hin b/src/include/krb5/krb5.hin
+index e81bb0a6d..833e72335 100644
+--- a/src/include/krb5/krb5.hin
++++ b/src/include/krb5/krb5.hin
+@@ -1879,6 +1879,7 @@ krb5_verify_checksum(krb5_context context, krb5_cksumtype ctype,
+ #define KRB5_PADATA_OTP_PIN_CHANGE      144 /**< RFC 6560 section 4.3 */
+ #define KRB5_PADATA_PKINIT_KX           147 /**< RFC 6112 */
+ #define KRB5_ENCPADATA_REQ_ENC_PA_REP   149 /**< RFC 6806 */
++#define KRB5_PADATA_AS_FRESHNESS        150 /**< RFC 8070 */
+ 
+ #define KRB5_SAM_USE_SAD_AS_KEY         0x80000000
+ #define KRB5_SAM_SEND_ENCRYPTED_SAD     0x40000000
+diff --git a/src/lib/krb5/asn.1/asn1_k_encode.c b/src/lib/krb5/asn.1/asn1_k_encode.c
+index 889460989..3b23fe34a 100644
+--- a/src/lib/krb5/asn.1/asn1_k_encode.c
++++ b/src/lib/krb5/asn.1/asn1_k_encode.c
+@@ -1442,9 +1442,12 @@ DEFFIELD(pk_authenticator_1, krb5_pk_authenticator, ctime, 1, kerberos_time);
+ DEFFIELD(pk_authenticator_2, krb5_pk_authenticator, nonce, 2, int32);
+ DEFFIELD(pk_authenticator_3, krb5_pk_authenticator, paChecksum, 3,
+          ostring_checksum);
++DEFFIELD(pk_authenticator_4, krb5_pk_authenticator, freshnessToken, 4,
++         opt_ostring_data_ptr);
+ static const struct atype_info *pk_authenticator_fields[] = {
+     &k5_atype_pk_authenticator_0, &k5_atype_pk_authenticator_1,
+-    &k5_atype_pk_authenticator_2, &k5_atype_pk_authenticator_3
++    &k5_atype_pk_authenticator_2, &k5_atype_pk_authenticator_3,
++    &k5_atype_pk_authenticator_4
+ };
+ DEFSEQTYPE(pk_authenticator, krb5_pk_authenticator, pk_authenticator_fields);
+ 
+diff --git a/src/lib/krb5/krb/get_in_tkt.c b/src/lib/krb5/krb/get_in_tkt.c
+index 47a00bf2c..1d96ff163 100644
+--- a/src/lib/krb5/krb/get_in_tkt.c
++++ b/src/lib/krb5/krb/get_in_tkt.c
+@@ -895,7 +895,7 @@ krb5_init_creds_init(krb5_context context,
+     ctx->request = k5alloc(sizeof(krb5_kdc_req), &code);
+     if (code != 0)
+         goto cleanup;
+-    ctx->enc_pa_rep_permitted = TRUE;
++    ctx->info_pa_permitted = TRUE;
+     code = krb5_copy_principal(context, client, &ctx->request->client);
+     if (code != 0)
+         goto cleanup;
+@@ -1389,7 +1389,11 @@ init_creds_step_request(krb5_context context,
+         krb5_free_data(context, ctx->encoded_previous_request);
+         ctx->encoded_previous_request = NULL;
+     }
+-    if (ctx->enc_pa_rep_permitted) {
++    if (ctx->info_pa_permitted) {
++        code = add_padata(&ctx->request->padata, KRB5_PADATA_AS_FRESHNESS,
++                          NULL, 0);
++        if (code)
++            goto cleanup;
+         code = add_padata(&ctx->request->padata, KRB5_ENCPADATA_REQ_ENC_PA_REP,
+                           NULL, 0);
+     }
+@@ -1530,7 +1534,7 @@ init_creds_step_reply(krb5_context context,
+                    ctx->selected_preauth_type == KRB5_PADATA_NONE) {
+             /* The KDC didn't like our informational padata (probably a pre-1.7
+              * MIT krb5 KDC).  Retry without it. */
+-            ctx->enc_pa_rep_permitted = FALSE;
++            ctx->info_pa_permitted = FALSE;
+             ctx->restarted = TRUE;
+             code = restart_init_creds_loop(context, ctx, FALSE);
+         } else if (reply_code == KDC_ERR_PREAUTH_EXPIRED) {
+@@ -1574,7 +1578,7 @@ init_creds_step_reply(krb5_context context,
+                 goto cleanup;
+             /* Reset per-realm negotiation state. */
+             ctx->restarted = FALSE;
+-            ctx->enc_pa_rep_permitted = TRUE;
++            ctx->info_pa_permitted = TRUE;
+             code = restart_init_creds_loop(context, ctx, FALSE);
+         } else {
+             if (retry && ctx->selected_preauth_type != KRB5_PADATA_NONE) {
+diff --git a/src/lib/krb5/krb/init_creds_ctx.h b/src/lib/krb5/krb/init_creds_ctx.h
+index fe769685b..b19410a13 100644
+--- a/src/lib/krb5/krb/init_creds_ctx.h
++++ b/src/lib/krb5/krb/init_creds_ctx.h
+@@ -58,7 +58,7 @@ struct _krb5_init_creds_context {
+     krb5_data s2kparams;
+     krb5_keyblock as_key;
+     krb5_enctype etype;
+-    krb5_boolean enc_pa_rep_permitted;
++    krb5_boolean info_pa_permitted;
+     krb5_boolean restarted;
+     struct krb5_responder_context_st rctx;
+     krb5_preauthtype selected_preauth_type;
+diff --git a/src/plugins/preauth/pkinit/pkinit.h b/src/plugins/preauth/pkinit/pkinit.h
+index f3de9ad7a..8489a3e23 100644
+--- a/src/plugins/preauth/pkinit/pkinit.h
++++ b/src/plugins/preauth/pkinit/pkinit.h
+@@ -148,6 +148,7 @@ typedef struct _pkinit_plg_opts {
+     int allow_upn;	    /* allow UPN-SAN instead of pkinit-SAN */
+     int dh_or_rsa;	    /* selects DH or RSA based pkinit */
+     int require_crl_checking; /* require CRL for a CA (default is false) */
++    int disable_freshness;  /* disable freshness token on client for testing */
+     int dh_min_bits;	    /* minimum DH modulus size allowed */
+ } pkinit_plg_opts;
+ 
+@@ -162,6 +163,7 @@ typedef struct _pkinit_req_opts {
+     int require_crl_checking;
+     int dh_size;	    /* initial request DH modulus size (default=1024) */
+     int require_hostname_match;
++    int disable_freshness;
+ } pkinit_req_opts;
+ 
+ /*
+@@ -214,6 +216,7 @@ struct _pkinit_req_context {
+     int identity_initialized;
+     int identity_prompted;
+     krb5_error_code identity_prompt_retval;
++    krb5_data *freshness_token;
+ };
+ typedef struct _pkinit_req_context *pkinit_req_context;
+ 
+diff --git a/src/plugins/preauth/pkinit/pkinit_clnt.c b/src/plugins/preauth/pkinit/pkinit_clnt.c
+index f1bc6b21d..9483d69e5 100644
+--- a/src/plugins/preauth/pkinit/pkinit_clnt.c
++++ b/src/plugins/preauth/pkinit/pkinit_clnt.c
+@@ -231,6 +231,8 @@ pkinit_as_req_create(krb5_context context,
+         auth_pack.pkAuthenticator.cusec = cusec;
+         auth_pack.pkAuthenticator.nonce = nonce;
+         auth_pack.pkAuthenticator.paChecksum = *cksum;
++        if (!reqctx->opts->disable_freshness)
++            auth_pack.pkAuthenticator.freshnessToken = reqctx->freshness_token;
+         auth_pack.clientDHNonce.length = 0;
+         auth_pack.clientPublicValue = &info;
+         auth_pack.supportedKDFs = (krb5_data **)supported_kdf_alg_ids;
+@@ -1162,6 +1164,7 @@ pkinit_client_process(krb5_context context, krb5_clpreauth_moddata moddata,
+     pkinit_context plgctx = (pkinit_context)moddata;
+     pkinit_req_context reqctx = (pkinit_req_context)modreq;
+     krb5_keyblock as_key;
++    krb5_data d;
+ 
+     pkiDebug("pkinit_client_process %p %p %p %p\n",
+              context, plgctx, reqctx, request);
+@@ -1174,6 +1177,12 @@ pkinit_client_process(krb5_context context, krb5_clpreauth_moddata moddata,
+     case KRB5_PADATA_PKINIT_KX:
+         reqctx->rfc6112_kdc = 1;
+         return 0;
++    case KRB5_PADATA_AS_FRESHNESS:
++        TRACE_PKINIT_CLIENT_FRESHNESS_TOKEN(context);
++        krb5_free_data(context, reqctx->freshness_token);
++        reqctx->freshness_token = NULL;
++        d = make_data(in_padata->contents, in_padata->length);
++        return krb5_copy_data(context, &d, &reqctx->freshness_token);
+     case KRB5_PADATA_PK_AS_REQ:
+         reqctx->rfc4556_kdc = 1;
+         pkiDebug("processing KRB5_PADATA_PK_AS_REQ\n");
+@@ -1359,7 +1368,7 @@ cleanup:
+ static int
+ pkinit_client_get_flags(krb5_context kcontext, krb5_preauthtype patype)
+ {
+-    if (patype == KRB5_PADATA_PKINIT_KX)
++    if (patype == KRB5_PADATA_PKINIT_KX || patype == KRB5_PADATA_AS_FRESHNESS)
+         return PA_INFO;
+     return PA_REAL;
+ }
+@@ -1376,6 +1385,7 @@ static krb5_preauthtype supported_client_pa_types[] = {
+     KRB5_PADATA_PK_AS_REP_OLD,
+     KRB5_PADATA_PK_AS_REQ_OLD,
+     KRB5_PADATA_PKINIT_KX,
++    KRB5_PADATA_AS_FRESHNESS,
+     0
+ };
+ 
+@@ -1400,6 +1410,7 @@ pkinit_client_req_init(krb5_context context,
+     reqctx->opts = NULL;
+     reqctx->idctx = NULL;
+     reqctx->idopts = NULL;
++    reqctx->freshness_token = NULL;
+ 
+     retval = pkinit_init_req_opts(&reqctx->opts);
+     if (retval)
+@@ -1410,6 +1421,7 @@ pkinit_client_req_init(krb5_context context,
+     reqctx->opts->dh_or_rsa = plgctx->opts->dh_or_rsa;
+     reqctx->opts->allow_upn = plgctx->opts->allow_upn;
+     reqctx->opts->require_crl_checking = plgctx->opts->require_crl_checking;
++    reqctx->opts->disable_freshness = plgctx->opts->disable_freshness;
+ 
+     retval = pkinit_init_req_crypto(&reqctx->cryptoctx);
+     if (retval)
+@@ -1468,6 +1480,8 @@ pkinit_client_req_fini(krb5_context context, krb5_clpreauth_moddata moddata,
+     if (reqctx->idopts != NULL)
+         pkinit_fini_identity_opts(reqctx->idopts);
+ 
++    krb5_free_data(context, reqctx->freshness_token);
++
+     free(reqctx);
+     return;
+ }
+@@ -1580,6 +1594,9 @@ handle_gic_opt(krb5_context context,
+             pkiDebug("Setting flag to use RSA_PROTOCOL\n");
+             plgctx->opts->dh_or_rsa = RSA_PROTOCOL;
+         }
++    } else if (strcmp(attr, "disable_freshness") == 0) {
++        if (strcmp(value, "yes") == 0)
++            plgctx->opts->disable_freshness = 1;
+     }
+     return 0;
+ }
+diff --git a/src/plugins/preauth/pkinit/pkinit_lib.c b/src/plugins/preauth/pkinit/pkinit_lib.c
+index 2f88545da..d5858c424 100644
+--- a/src/plugins/preauth/pkinit/pkinit_lib.c
++++ b/src/plugins/preauth/pkinit/pkinit_lib.c
+@@ -82,6 +82,8 @@ pkinit_init_plg_opts(pkinit_plg_opts **plgopts)
+     opts->dh_or_rsa = DH_PROTOCOL;
+     opts->allow_upn = 0;
+     opts->require_crl_checking = 0;
++    opts->require_freshness = 0;
++    opts->disable_freshness = 0;
+ 
+     opts->dh_min_bits = PKINIT_DEFAULT_DH_MIN_BITS;
+ 
+@@ -145,6 +147,7 @@ free_krb5_auth_pack(krb5_auth_pack **in)
+         free((*in)->clientPublicValue);
+     }
+     free((*in)->pkAuthenticator.paChecksum.contents);
++    krb5_free_data(NULL, (*in)->pkAuthenticator.freshnessToken);
+     if ((*in)->supportedCMSTypes != NULL)
+         free_krb5_algorithm_identifiers(&((*in)->supportedCMSTypes));
+     if ((*in)->supportedKDFs) {
+diff --git a/src/plugins/preauth/pkinit/pkinit_trace.h b/src/plugins/preauth/pkinit/pkinit_trace.h
+index 2d95da94a..7f95206c0 100644
+--- a/src/plugins/preauth/pkinit/pkinit_trace.h
++++ b/src/plugins/preauth/pkinit/pkinit_trace.h
+@@ -41,6 +41,8 @@
+     TRACE(c, "PKINIT client found no acceptable EKU in KDC cert")
+ #define TRACE_PKINIT_CLIENT_EKU_SKIP(c)                                 \
+     TRACE(c, "PKINIT client skipping EKU check due to configuration")
++#define TRACE_PKINIT_CLIENT_FRESHNESS_TOKEN(c)                  \
++    TRACE(c, "PKINIT client received freshness token from KDC")
+ #define TRACE_PKINIT_CLIENT_KDF_ALG(c, kdf, keyblock)                   \
+     TRACE(c, "PKINIT client used KDF {hexdata} to compute reply key "   \
+           "{keyblock}", kdf, keyblock)
+diff --git a/src/tests/asn.1/ktest.c b/src/tests/asn.1/ktest.c
+index 43084cbbd..cf63f3f66 100644
+--- a/src/tests/asn.1/ktest.c
++++ b/src/tests/asn.1/ktest.c
+@@ -725,6 +725,8 @@ ktest_make_sample_pk_authenticator(krb5_pk_authenticator *p)
+     ktest_make_sample_checksum(&p->paChecksum);
+     /* We don't encode the checksum type, only the contents. */
+     p->paChecksum.checksum_type = 0;
++    p->freshnessToken = ealloc(sizeof(krb5_data));
++    ktest_make_sample_data(p->freshnessToken);
+ }
+ 
+ static void
+@@ -1651,6 +1653,8 @@ ktest_empty_pk_authenticator(krb5_pk_authenticator *p)
+ {
+     ktest_empty_checksum(&p->paChecksum);
+     p->paChecksum.contents = NULL;
++    krb5_free_data(NULL, p->freshnessToken);
++    p->freshnessToken = NULL;
+ }
+ 
+ static void
+diff --git a/src/tests/asn.1/pkinit_encode.out b/src/tests/asn.1/pkinit_encode.out
+index 463128de0..3b0f7190a 100644
+--- a/src/tests/asn.1/pkinit_encode.out
++++ b/src/tests/asn.1/pkinit_encode.out
+@@ -4,7 +4,7 @@ encode_krb5_pa_pk_as_rep(dhInfo): A0 28 30 26 80 08 6B 72 62 35 64 61 74 61 A1 0
+ encode_krb5_pa_pk_as_rep(encKeyPack): 81 08 6B 72 62 35 64 61 74 61
+ encode_krb5_pa_pk_as_rep_draft9(dhSignedData): 80 08 6B 72 62 35 64 61 74 61
+ encode_krb5_pa_pk_as_rep_draft9(encKeyPack): 81 08 6B 72 62 35 64 61 74 61
+-encode_krb5_auth_pack: 30 81 93 A0 29 30 27 A0 05 02 03 01 E2 40 A1 11 18 0F 31 39 39 34 30 36 31 30 30 36 30 33 31 37 5A A2 03 02 01 2A A3 06 04 04 31 32 33 34 A1 22 30 20 30 13 06 09 2A 86 48 86 F7 12 01 02 02 04 06 70 61 72 61 6D 73 03 09 00 6B 72 62 35 64 61 74 61 A2 24 30 22 30 13 06 09 2A 86 48 86 F7 12 01 02 02 04 06 70 61 72 61 6D 73 30 0B 06 09 2A 86 48 86 F7 12 01 02 02 A3 0A 04 08 6B 72 62 35 64 61 74 61 A4 10 30 0E 30 0C A0 0A 06 08 6B 72 62 35 64 61 74 61
++encode_krb5_auth_pack: 30 81 9F A0 35 30 33 A0 05 02 03 01 E2 40 A1 11 18 0F 31 39 39 34 30 36 31 30 30 36 30 33 31 37 5A A2 03 02 01 2A A3 06 04 04 31 32 33 34 A4 0A 04 08 6B 72 62 35 64 61 74 61 A1 22 30 20 30 13 06 09 2A 86 48 86 F7 12 01 02 02 04 06 70 61 72 61 6D 73 03 09 00 6B 72 62 35 64 61 74 61 A2 24 30 22 30 13 06 09 2A 86 48 86 F7 12 01 02 02 04 06 70 61 72 61 6D 73 30 0B 06 09 2A 86 48 86 F7 12 01 02 02 A3 0A 04 08 6B 72 62 35 64 61 74 61 A4 10 30 0E 30 0C A0 0A 06 08 6B 72 62 35 64 61 74 61
+ encode_krb5_auth_pack_draft9: 30 75 A0 4F 30 4D A0 1A 30 18 A0 03 02 01 01 A1 11 30 0F 1B 06 68 66 74 73 61 69 1B 05 65 78 74 72 61 A1 10 1B 0E 41 54 48 45 4E 41 2E 4D 49 54 2E 45 44 55 A2 05 02 03 01 E2 40 A3 11 18 0F 31 39 39 34 30 36 31 30 30 36 30 33 31 37 5A A4 03 02 01 2A A1 22 30 20 30 13 06 09 2A 86 48 86 F7 12 01 02 02 04 06 70 61 72 61 6D 73 03 09 00 6B 72 62 35 64 61 74 61
+ encode_krb5_kdc_dh_key_info: 30 25 A0 0B 03 09 00 6B 72 62 35 64 61 74 61 A1 03 02 01 2A A2 11 18 0F 31 39 39 34 30 36 31 30 30 36 30 33 31 37 5A
+ encode_krb5_reply_key_pack: 30 26 A0 13 30 11 A0 03 02 01 01 A1 0A 04 08 31 32 33 34 35 36 37 38 A1 0F 30 0D A0 03 02 01 01 A1 06 04 04 31 32 33 34
+diff --git a/src/tests/asn.1/pkinit_trval.out b/src/tests/asn.1/pkinit_trval.out
+index 58d870631..f9edbe154 100644
+--- a/src/tests/asn.1/pkinit_trval.out
++++ b/src/tests/asn.1/pkinit_trval.out
+@@ -57,6 +57,7 @@ encode_krb5_auth_pack:
+ .  .  [1] [Generalized Time] "19940610060317Z"
+ .  .  [2] [Integer] 42
+ .  .  [3] [Octet String] "1234"
++.  .  [4] [Octet String] "krb5data"
+ .  [1] [Sequence/Sequence Of]
+ .  .  [Sequence/Sequence Of]
+ .  .  .  [Object Identifier] <9>

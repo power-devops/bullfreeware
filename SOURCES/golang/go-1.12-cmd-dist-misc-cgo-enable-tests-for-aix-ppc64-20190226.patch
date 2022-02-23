@@ -1,0 +1,95 @@
+From 36b4b83230b326ccaae86d75c13700eb8d84f920 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Tue, 19 Feb 2019 08:59:28 -0600
+Subject: [PATCH 23/24] cmd/dist, misc/cgo: enable tests for aix/ppc64
+
+---
+ misc/cgo/test/cthread_unix.c |  2 +-
+ misc/cgo/test/issue18146.go  |  2 ++
+ src/cmd/dist/test.go         | 16 +++++++++++++---
+ 3 files changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/misc/cgo/test/cthread_unix.c b/misc/cgo/test/cthread_unix.c
+index 6323e4980e..247d636d06 100644
+--- a/misc/cgo/test/cthread_unix.c
++++ b/misc/cgo/test/cthread_unix.c
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ #include <pthread.h>
+ #include "_cgo_export.h"
+diff --git a/misc/cgo/test/issue18146.go b/misc/cgo/test/issue18146.go
+index 6483903fed..0605a24ee9 100644
+--- a/misc/cgo/test/issue18146.go
++++ b/misc/cgo/test/issue18146.go
+@@ -46,6 +46,8 @@ func test18146(t *testing.T) {
+ 	switch runtime.GOOS {
+ 	default:
+ 		setNproc = false
++	case "aix":
++		nproc = 9
+ 	case "linux":
+ 		nproc = 6
+ 	case "darwin", "dragonfly", "freebsd", "netbsd", "openbsd":
+diff --git a/src/cmd/dist/test.go b/src/cmd/dist/test.go
+index 709015f167..71298bb184 100644
+--- a/src/cmd/dist/test.go
++++ b/src/cmd/dist/test.go
+@@ -893,7 +893,8 @@ func (t *tester) out(v string) {
+ func (t *tester) extLink() bool {
+ 	pair := gohostos + "-" + goarch
+ 	switch pair {
+-	case "android-arm",
++	case "aix-ppc64",
++		"android-arm",
+ 		"darwin-386", "darwin-amd64", "darwin-arm", "darwin-arm64",
+ 		"dragonfly-amd64",
+ 		"freebsd-386", "freebsd-amd64", "freebsd-arm",
+@@ -928,6 +929,10 @@ func (t *tester) internalLink() bool {
+ 	if goarch == "arm64" || goarch == "mips64" || goarch == "mips64le" || goarch == "mips" || goarch == "mipsle" {
+ 		return false
+ 	}
++	if goos == "aix" {
++		// linkmode=internal isn't supported.
++		return false
++	}
+ 	if isAlpineLinux() {
+ 		// Issue 18243.
+ 		return false
+@@ -1033,7 +1038,8 @@ func (t *tester) cgoTest(dt *distTest) error {
+ 		}
+ 		t.addCmd(dt, "misc/cgo/test", t.goTest(), "-ldflags", "-linkmode=external")
+ 		t.addCmd(dt, "misc/cgo/test", t.goTest(), "-ldflags", "-linkmode=external -s")
+-	case "android-arm",
++	case "aix-ppc64",
++		"android-arm",
+ 		"dragonfly-amd64",
+ 		"freebsd-386", "freebsd-amd64", "freebsd-arm",
+ 		"linux-386", "linux-amd64", "linux-arm", "linux-ppc64le", "linux-s390x",
+@@ -1047,7 +1053,7 @@ func (t *tester) cgoTest(dt *distTest) error {
+ 		t.addCmd(dt, "misc/cgo/testtls", t.goTest(), "-ldflags", "-linkmode=external")
+ 
+ 		switch pair {
+-		case "netbsd-386", "netbsd-amd64":
++		case "aix-ppc64", "netbsd-386", "netbsd-amd64":
+ 			// no static linking
+ 		case "freebsd-arm":
+ 			// -fPIC compiled tls code will use __tls_get_addr instead
+@@ -1175,6 +1181,10 @@ func (t *tester) cgoTestSOSupported() bool {
+ 		// External linking not implemented on linux/ppc64 (issue #8912).
+ 		return false
+ 	}
++	if goarch == "ppc64" && goos == "aix" {
++		// Not yet implemented
++		return false
++	}
+ 	if goarch == "mips64le" || goarch == "mips64" {
+ 		// External linking not implemented on mips64.
+ 		return false
+-- 
+2.15.1
+

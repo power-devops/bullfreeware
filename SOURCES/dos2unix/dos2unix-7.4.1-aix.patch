@@ -1,0 +1,157 @@
+--- Makefile.ORIG	2020-10-13 01:23:45 +0000
++++ Makefile	2020-10-13 01:36:08 +0000
+@@ -70,7 +70,7 @@
+ LINK            = ln -sf
+ LINK_MAN        = $(LINK)
+ 
+-prefix          = /usr
++prefix          = /opt/freeware
+ exec_prefix     = $(prefix)
+ bindir          = $(exec_prefix)/bin
+ datarootdir     = $(prefix)/share
+@@ -79,7 +79,7 @@
+ docsubdir       = $(PACKAGE)-$(DOS2UNIX_VERSION)
+ docdir          = $(datarootdir)/doc/$(docsubdir)
+ localedir       = $(datarootdir)/locale
+-mandir          = $(datarootdir)/man
++mandir          = $(prefix)/man
+ man1dir         = $(mandir)/man1
+ manext          = .1
+ man1ext         = .1
+@@ -130,6 +130,15 @@
+ 
+ # ......................................................... OS flags ...
+ 
++D2U_OS = aix
++
++ifeq (aix,$(D2U_OS))
++      # Running under AIX
++ifdef ENABLE_NLS
++      CFLAGS_OS     = -I/opt/freeware/include
++      LDFLAGS_EXTRA = /opt/freeware/lib/libintl.a
++endif
++endif
+ 
+ ifndef D2U_OS
+         d2u_os=$(shell uname -s)
+@@ -324,11 +333,11 @@
+ 
+ CFLAGS_USER     =
+ ifeq ($(DEBUG), 1)
+-CFLAGS          ?= -O0
++CFLAGS          ?= -O
+ else
+-CFLAGS          ?= -O2
++CFLAGS          = -O2
+ endif
+-CFLAGS          += -Wall -Wextra -Wconversion $(RPM_OPT_FLAGS) $(CPPFLAGS) $(CFLAGS_USER)
++CFLAGS          += $(CPPFLAGS) $(CFLAGS_USER)
+ 
+ EXTRA_CFLAGS    = -DVER_REVISION=\"$(DOS2UNIX_VERSION)\" \
+                   -DVER_DATE=\"$(DOS2UNIX_DATE)\" \
+@@ -358,7 +367,7 @@
+ endif
+ 
+ LDFLAGS_USER    =
+-LDFLAGS = $(RPM_LD_FLAGS) $(LDFLAGS_EXTRA) $(LDFLAGS_USER)
++LDFLAGS = $(LDFLAGS_EXTRA) $(LDFLAGS_USER)
+ LIBS    = $(LIBS_EXTRA)
+ 
+ DEFS_USER       =
+@@ -563,11 +572,11 @@
+ 	cd $(DESTDIR)$(man1dir); $(LINK_MAN) $(PACKAGE).1 $(UNIX2MAC).1
+ endif
+ ifdef ENABLE_NLS
+-	$(foreach manfile, $(MANFILES), $(MKDIR) -p -m 755 $(DESTDIR)$(datarootdir)/$(dir $(manfile)) ;)
+-	$(foreach manfile, $(MANFILES), $(INSTALL_DATA) $(manfile) $(DESTDIR)$(datarootdir)/$(dir $(manfile)) ;)
+-	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(datarootdir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(MAC2UNIX).1 ;)
+-	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(datarootdir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(UNIX2DOS).1 ;)
+-	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(datarootdir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(UNIX2MAC).1 ;)
++	$(foreach manfile, $(MANFILES), $(MKDIR) -p -m 755 $(DESTDIR)$(mandir)/$(dir $(manfile)) ;)
++	$(foreach manfile, $(MANFILES), $(INSTALL_DATA) $(manfile) $(DESTDIR)$(mandir)/$(dir $(manfile)) ;)
++	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(mandir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(MAC2UNIX).1 ;)
++	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(mandir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(UNIX2DOS).1 ;)
++	$(foreach manfile, $(MANFILES), cd $(DESTDIR)$(mandir)/$(dir $(manfile)) ; $(LINK_MAN) $(PACKAGE).1 $(UNIX2MAC).1 ;)
+ endif
+ 
+ install-mo: mofiles
+@@ -621,10 +630,10 @@
+ 	-rm -rf $(DESTDIR)$(docdir)
+ ifdef ENABLE_NLS
+ 	$(foreach mofile, $(MOFILES), rm -f $(DESTDIR)$(localedir)/$(basename $(notdir $(mofile)))/LC_MESSAGES/$(PACKAGE).mo ;)
+-	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(datarootdir)/$(manfile) ;)
+-	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(datarootdir)/$(dir $(manfile))$(MAC2UNIX).1 ;)
+-	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(datarootdir)/$(dir $(manfile))$(UNIX2DOS).1 ;)
+-	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(datarootdir)/$(dir $(manfile))$(UNIX2MAC).1 ;)
++	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(mandir)/$(manfile) ;)
++	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(mandir)/$(dir $(manfile))$(MAC2UNIX).1 ;)
++	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(mandir)/$(dir $(manfile))$(UNIX2DOS).1 ;)
++	$(foreach manfile, $(MANFILES), rm -f $(DESTDIR)$(mandir)/$(dir $(manfile))$(UNIX2MAC).1 ;)
+ endif
+ 
+ mostlyclean:
+@@ -681,19 +690,19 @@
+           bin/$(MAC2UNIX_BIN) \
+           bin/$(UNIX2DOS_BIN) \
+           bin/$(UNIX2MAC_BIN) \
+-          share/man/man1/$(PACKAGE).1 \
+-          share/man/man1/$(MAC2UNIX).1 \
+-          share/man/man1/$(UNIX2DOS).1 \
+-          share/man/man1/$(UNIX2MAC).1 \
++          man/man1/$(PACKAGE).1 \
++          man/man1/$(MAC2UNIX).1 \
++          man/man1/$(UNIX2DOS).1 \
++          man/man1/$(UNIX2MAC).1 \
+           share/doc/$(docsubdir)/*.* \
+           $(ZIPOBJ_EXTRA)
+ 
+ ifdef ENABLE_NLS
+ ZIPOBJ += share/locale/*/LC_MESSAGES/$(PACKAGE).mo
+-ZIPOBJ += share/man/*/man1/$(PACKAGE).1 \
+-          share/man/*/man1/$(MAC2UNIX).1 \
+-          share/man/*/man1/$(UNIX2DOS).1 \
+-          share/man/*/man1/$(UNIX2MAC).1
++ZIPOBJ += man/*/man1/$(PACKAGE).1 \
++          man/*/man1/$(MAC2UNIX).1 \
++          man/*/man1/$(UNIX2DOS).1 \
++          man/*/man1/$(UNIX2MAC).1
+ ZIPOBJ += share/doc/$(docsubdir)/*/*
+ endif
+ 
+@@ -703,11 +712,11 @@
+ 
+ dist-convert/%:
+ 	rm -f $(prefix)/$(ZIPFILE)
+-	cd $(prefix) ; $* --keepdate share/man/man1/$(PACKAGE).1 share/man/man1/$(MAC2UNIX).1 share/man/man1/$(UNIX2DOS).1 share/man/man1/$(UNIX2MAC).1
++	cd $(prefix) ; $* --keepdate man/man1/$(PACKAGE).1 man/man1/$(MAC2UNIX).1 man/man1/$(UNIX2DOS).1 man/man1/$(UNIX2MAC).1
+ 	cd $(prefix) ; $* --keepdate --add-bom share/doc/$(docsubdir)/*.txt
+ 	cd $(prefix) ; $* --keepdate share/doc/$(docsubdir)/*.$(HTMLEXT)
+ ifdef ENABLE_NLS
+-	cd $(prefix) ; $* --keepdate share/man/*/man1/$(PACKAGE).1 share/man/*/man1/$(MAC2UNIX).1 share/man/*/man1/$(UNIX2DOS).1 share/man/*/man1/$(UNIX2MAC).1
++	cd $(prefix) ; $* --keepdate man/*/man1/$(PACKAGE).1 man/*/man1/$(MAC2UNIX).1 man/*/man1/$(UNIX2DOS).1 man/*/man1/$(UNIX2MAC).1
+ 	cd $(prefix) ; $* --keepdate --add-bom share/doc/$(docsubdir)/*/*.txt
+ 	cd $(prefix) ; $* --keepdate share/doc/$(docsubdir)/*/*.$(HTMLEXT)
+ endif
+--- common.h.ORIG	2020-10-13 01:36:46 +0000
++++ common.h	2020-10-13 01:37:41 +0000
+@@ -69,7 +69,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#ifdef __GNUC__
++#if defined(__GNUC__) || defined(_AIX)
+ #ifndef strcmpi
+ #  include <strings.h>
+ #  define strcmpi(s1, s2) strcasecmp(s1, s2)
+ 
+--- Makefile.ORIG	2020-10-13 01:50:21 +0000
++++ Makefile	2020-10-13 01:59:15 +0000
+@@ -366,7 +366,7 @@
+         EXTRA_CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ endif
+ 
+-LDFLAGS_USER    =
++LDFLAGS_USER    = -L/opt/freeware/lib64 -L/opt/freeware/lib -Wl,-blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib:/lib
+ LDFLAGS = $(LDFLAGS_EXTRA) $(LDFLAGS_USER)
+ LIBS    = $(LIBS_EXTRA)
+ 

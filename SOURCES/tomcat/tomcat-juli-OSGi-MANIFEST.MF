@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Export-Package: org.apache.juli;version="8.0.26",org.apache.juli.loggi
+ ng;version="8.0.26"
+Bundle-Vendor: %bundleProvider
+Bundle-ClassPath: .
+Bundle-Version: 8.0.26
+Bundle-Name: %bundleName
+Bundle-Localization: plugin
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.apache.juli
+Bundle-RequiredExecutionEnvironment: J2SE-1.4,CDC-1.0/Foundation-1.0,J
+ 2SE-1.3
+

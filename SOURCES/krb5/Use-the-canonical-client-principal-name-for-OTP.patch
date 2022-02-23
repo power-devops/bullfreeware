@@ -1,0 +1,29 @@
+From d697b2c12eb9a35732fed48d06c374a13f27f4e1 Mon Sep 17 00:00:00 2001
+From: Matt Rogers <mrogers@redhat.com>
+Date: Wed, 5 Apr 2017 16:48:55 -0400
+Subject: [PATCH] Use the canonical client principal name for OTP
+
+In the OTP module, when constructing the RADIUS request, use the
+canonicalized client principal (using the new client_name kdcpreauth
+callback) instead of the request client principal.
+
+ticket: 8571 (new)
+(cherry picked from commit 6411398e35e343cdc4d2d103b079c4d3b9031f7e)
+---
+ src/plugins/preauth/otp/main.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/plugins/preauth/otp/main.c b/src/plugins/preauth/otp/main.c
+index 2649e9a90..a1b681682 100644
+--- a/src/plugins/preauth/otp/main.c
++++ b/src/plugins/preauth/otp/main.c
+@@ -331,7 +331,8 @@ otp_verify(krb5_context context, krb5_data *req_pkt, krb5_kdc_req *request,
+ 
+     /* Send the request. */
+     otp_state_verify((otp_state *)moddata, cb->event_context(context, rock),
+-                     request->client, config, req, on_response, rs);
++                     cb->client_name(context, rock), config, req, on_response,
++                     rs);
+     cb->free_string(context, rock, config);
+ 
+     k5_free_pa_otp_req(context, req);

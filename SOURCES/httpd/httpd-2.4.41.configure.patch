@@ -1,0 +1,11 @@
+--- configure.orig	2018-03-30 06:07:18 -0500
++++ configure	2018-03-30 06:07:45 -0500
+@@ -37745,7 +37745,7 @@
+ 
+ 
+ cat >>confdefs.h <<_ACEOF
+-#define SERVER_CONFIG_FILE "${rel_sysconfdir}/${progname}.conf"
++#define SERVER_CONFIG_FILE "${rel_sysconfdir}/${progname}.conf_64"
+ _ACEOF
+ 
+ 

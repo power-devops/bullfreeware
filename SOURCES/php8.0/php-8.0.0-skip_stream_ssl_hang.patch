@@ -1,0 +1,10 @@
+--- ./ext/openssl/tests/stream_server_reneg_limit.phpt.orig	2020-12-16 16:55:15 +0100
++++ ./ext/openssl/tests/stream_server_reneg_limit.phpt	2020-12-16 16:55:26 +0100
+@@ -2,6 +2,7 @@
+ TLS server rate-limits client-initiated renegotiation
+ --SKIPIF--
+ <?php
++if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') die("skip This tests hang on AIX");
+ if (!extension_loaded("openssl")) die("skip openssl not loaded");
+ if (!function_exists("proc_open")) die("skip no proc_open");
+ exec('openssl help', $out, $code);

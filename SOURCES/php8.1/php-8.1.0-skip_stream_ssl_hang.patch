@@ -1,0 +1,10 @@
+--- ./ext/openssl/tests/stream_server_reneg_limit.phpt.orig	2021-10-05 14:28:43.237089364 +0000
++++ ./ext/openssl/tests/stream_server_reneg_limit.phpt	2021-10-05 14:28:56.886586175 +0000
+@@ -4,6 +4,7 @@
+ openssl
+ --SKIPIF--
+ <?php
++if (strtolower(substr(PHP_OS, 0, 3)) == 'aix') die("skip This tests hang on AIX");
+ if (!function_exists("proc_open")) die("skip no proc_open");
+ exec('openssl help', $out, $code);
+ if ($code > 0) die("skip couldn't locate openssl binary");

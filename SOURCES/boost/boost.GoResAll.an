@@ -1,0 +1,39 @@
+#!/opt/freeware/bin/bash
+FILESBASE=$1
+details=$2
+
+declare -A T
+
+for FILE in $FILESBASE-*
+do
+    lib=`echo $FILE | awk -F- '{print $NF}'`
+    if [ "$lib" == "All" ] || [ "$lib" == "AllFailures" ]
+    then
+	continue;
+    fi
+    if [ "$details" != "" ]
+    then
+        $SOURCES/boost.GoRes.an $FILE $lib Fails | grep failed | sed -e "s/testing.capture-output/T/" \
+                                     | sed -e "s/gcc.compile.c++/C/" \
+                                     | sed -e "s/gcc.link.dll/LD/" \
+                                     | sed -e "s/gcc.link/L/" \
+                                     | sed -e "s/capture-output/O/" \
+                                     | sed    "s/\.\.\.//" \
+                                     | grep -v "error: in" \
+                                     | awk '{n=split($3,T,"/"); print(T[4], $2, T[n])}' \
+                                     | awk '{N=$1; if($1==P)N=""; P=$1 ; if(N!="")printf("  \n"); printf("  %-20s %-2s %-40s  : \n", N, $2, $3)}'
+    else
+        T[$lib]=`$SOURCES/boost.GoRes.an $FILE $lib`
+	echo ${T[$lib]} | awk '{printf("  %-20s %5d %5d %5d %5d\n", $1, $2, $3, $4, $5);}'
+    fi
+done
+
+if [ "$details" == "" ]
+then
+	echo "" | awk '{print("  --------------------------------------------");}'
+	(for i in ${!T[@]}
+	do
+        	echo ${T[$i]}
+	done ) \
+	| awk '{T+=$2;P+=$3;F+=$4;S+=$5}END{printf("  %-20s %5d %5d %5d %5d\n", "Total", T, P, F, S);}'
+fi

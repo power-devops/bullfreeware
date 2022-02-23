@@ -1,0 +1,45 @@
+Index: PyXML-0.8.4/xml/xpath/ParsedAbbreviatedAbsoluteLocationPath.py
+===================================================================
+--- PyXML-0.8.4.orig/xml/xpath/ParsedAbbreviatedAbsoluteLocationPath.py	2003-03-11 15:01:34.000000000 +0100
++++ PyXML-0.8.4/xml/xpath/ParsedAbbreviatedAbsoluteLocationPath.py	2014-10-31 10:09:38.000000000 +0100
+@@ -24,8 +24,8 @@
+         self._rel = rel
+         nt = ParsedNodeTest.ParsedNodeTest('node', '')
+         ppl = ParsedPredicateList.ParsedPredicateList([])
+-        as = ParsedAxisSpecifier.ParsedAxisSpecifier('descendant-or-self')
+-        self._step = ParsedStep.ParsedStep(as, nt, ppl)
++	as_ = ParsedAxisSpecifier.ParsedAxisSpecifier('descendant-or-self')
++	self._step = ParsedStep.ParsedStep(as_, nt, ppl)
+         return
+ 
+     def evaluate(self, context):
+Index: PyXML-0.8.4/xml/xpath/ParsedAbbreviatedRelativeLocationPath.py
+===================================================================
+--- PyXML-0.8.4.orig/xml/xpath/ParsedAbbreviatedRelativeLocationPath.py	2003-03-11 15:01:34.000000000 +0100
++++ PyXML-0.8.4/xml/xpath/ParsedAbbreviatedRelativeLocationPath.py	2014-10-31 10:11:56.000000000 +0100
+@@ -28,8 +28,8 @@
+         self._right = right
+         nt = ParsedNodeTest.ParsedNodeTest('node','')
+         ppl = ParsedPredicateList.ParsedPredicateList([])
+-        as = ParsedAxisSpecifier.ParsedAxisSpecifier('descendant-or-self')
+-        self._middle = ParsedStep.ParsedStep(as, nt, ppl)
++        as_ = ParsedAxisSpecifier.ParsedAxisSpecifier('descendant-or-self')
++        self._middle = ParsedStep.ParsedStep(as_, nt, ppl)
+ 
+     def evaluate(self, context):
+         res = []
+Index: PyXML-0.8.4/xml/xslt/Stylesheet.py
+===================================================================
+--- PyXML-0.8.4.orig/xml/xslt/Stylesheet.py	2003-03-11 15:01:42.000000000 +0100
++++ PyXML-0.8.4/xml/xslt/Stylesheet.py	2014-10-31 10:14:44.000000000 +0100
+@@ -373,8 +373,8 @@
+ 
+         #Attribute sets
+         attribute_sets = filter(lambda x: x.nodeType == Node.ELEMENT_NODE and (x.namespaceURI, x.localName) == (XSL_NAMESPACE, 'attribute-set'), self.childNodes)
+-        for as in attribute_sets:
+-            as.instantiate(context, processor)
++        for as_ in attribute_sets:
++            as_.instantiate(context, processor)
+         overridden_params = {}
+         for k in topLevelParams.keys():
+             if type(k) != types.TupleType:

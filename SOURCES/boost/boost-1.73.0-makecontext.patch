@@ -1,0 +1,40 @@
+--- ./boost/context/continuation_ucontext.hpp.ORIGIN	2020-05-04 15:49:52 -0500
++++ ./boost/context/continuation_ucontext.hpp	2020-05-04 15:50:16 -0500
+@@ -310,7 +310,7 @@
+     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
+             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
+     record->uctx.uc_link = nullptr;
+-    ::makecontext( & record->uctx, ( void (*)() ) & entry_func< capture_t >, 1, record);
++    ::makecontext( & record->uctx, ( void (*)(...) ) & entry_func< capture_t >, 1, record);
+ #if defined(BOOST_USE_ASAN)
+     record->stack_bottom = record->uctx.uc_stack.ss_sp;
+     record->stack_size = record->uctx.uc_stack.ss_size;
+@@ -345,7 +345,7 @@
+     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
+             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
+     record->uctx.uc_link = nullptr;
+-    ::makecontext( & record->uctx,  ( void (*)() ) & entry_func< capture_t >, 1, record);
++    ::makecontext( & record->uctx,  ( void (*)(...) ) & entry_func< capture_t >, 1, record);
+ #if defined(BOOST_USE_ASAN)
+     record->stack_bottom = record->uctx.uc_stack.ss_sp;
+     record->stack_size = record->uctx.uc_stack.ss_size;
+--- ./boost/context/fiber_ucontext.hpp.ORIGIN	2020-05-04 15:37:35 -0500
++++ ./boost/context/fiber_ucontext.hpp	2020-05-04 15:37:06 -0500
+@@ -310,7 +310,7 @@
+     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
+             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
+     record->uctx.uc_link = nullptr;
+-    ::makecontext( & record->uctx, ( void (*)() ) & fiber_entry_func< capture_t >, 1, record);
++    ::makecontext( & record->uctx, ( void (*)(...) ) & fiber_entry_func< capture_t >, 1, record);
+ #if defined(BOOST_USE_ASAN)
+     record->stack_bottom = record->uctx.uc_stack.ss_sp;
+     record->stack_size = record->uctx.uc_stack.ss_size;
+@@ -345,7 +345,7 @@
+     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
+             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
+     record->uctx.uc_link = nullptr;
+-    ::makecontext( & record->uctx,  ( void (*)() ) & fiber_entry_func< capture_t >, 1, record);
++    ::makecontext( & record->uctx,  ( void (*)(...) ) & fiber_entry_func< capture_t >, 1, record);
+ #if defined(BOOST_USE_ASAN)
+     record->stack_bottom = record->uctx.uc_stack.ss_sp;
+     record->stack_size = record->uctx.uc_stack.ss_size;

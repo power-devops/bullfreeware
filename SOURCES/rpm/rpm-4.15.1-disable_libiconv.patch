@@ -1,0 +1,11 @@
+--- ./configure_orig	2021-03-14 11:49:05 +0000
++++ ./configure	2021-03-14 11:49:22 +0000
+@@ -23034,7 +23034,7 @@
+               fi
+             else
+               if test "X$found_a" != "X"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_a"
++                                LIBICONV=""
+               else
+                                                 LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name"
+               fi

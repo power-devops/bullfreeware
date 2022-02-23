@@ -1,0 +1,32 @@
+From a83ef1c760b4146d49d0f5729989e300ed4261fa Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 30 Jul 2021 15:58:40 +0200
+Subject: [PATCH] gas: correctly output XCOFF tbss symbols with XTY_CM type.
+
+Global tbss symbols weren't correctly handled and were generating
+a symbol with XTY_SD instead of XTY_CM as expected.
+
+gas/
+	* config/tc-ppc.c (ppc_frog_symbol): Generate a XTY_CM when
+	a symbol has a storage class of XMC_UL.
+---
+ gas/config/tc-ppc.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index b7567083f66..af025af32ff 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -6001,7 +6001,8 @@ ppc_frob_symbol (symbolS *sym)
+ 	      a->x_csect.x_scnlen.l = (S_GET_VALUE (symbol_get_tc (sym)->next)
+ 				       - S_GET_VALUE (sym));
+ 	    }
+-	  if (symbol_get_tc (sym)->symbol_class == XMC_BS)
++	  if (symbol_get_tc (sym)->symbol_class == XMC_BS
++	      || symbol_get_tc (sym)->symbol_class == XMC_UL)
+ 	    a->x_csect.x_smtyp = (symbol_get_tc (sym)->align << 3) | XTY_CM;
+ 	  else
+ 	    a->x_csect.x_smtyp = (symbol_get_tc (sym)->align << 3) | XTY_SD;
+-- 
+2.33.0
+

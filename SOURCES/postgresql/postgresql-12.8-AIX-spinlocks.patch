@@ -1,0 +1,13 @@
+--- ./src/include/port/atomics/arch-ppc.h.ORIGIN	2018-11-23 09:38:21 +0100
++++ ./src/include/port/atomics/arch-ppc.h	2018-11-23 10:11:36 +0100
+@@ -13,7 +13,9 @@
+  *-------------------------------------------------------------------------
+  */
+ 
+-#if defined(__GNUC__)
++// On Linux, at least GCC supports this.
++// On AIX, both GCC & XLC support this.
++#if defined(__GNUC__) || defined(_AIX)
+ 
+ /*
+  * lwsync orders loads with respect to each other, and similarly with stores.

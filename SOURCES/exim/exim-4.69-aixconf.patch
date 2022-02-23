@@ -1,0 +1,248 @@
+Index: exim-4.69/Local/Makefile
+===================================================================
+--- exim-4.69.orig/Local/Makefile	2008-12-04 18:16:27.000000000 +0100
++++ exim-4.69/Local/Makefile	2008-12-04 18:16:18.-717249840 +0100
+@@ -33,6 +33,8 @@
+ # the C compiler; the overall default is gcc, but some OS Makefiles specify cc.
+ # You can override anything that is set by putting CC=whatever in your
+ # Local/Makefile.
++CC='/usr/vacpp/bin/xlc_r'
++CXX='/usr/vacpp/bin/xlC_r'
+ 
+ # NOTE: You should never need to edit any of the distributed Makefiles; all
+ # overriding can be done in your Local/Makefile(s). This will make it easier
+@@ -100,7 +102,7 @@
+ # /usr/local/sbin. The installation script will try to create this directory,
+ # and any superior directories, if they do not exist.
+ 
+-BIN_DIRECTORY=/usr/exim/bin
++BIN_DIRECTORY=/opt/freeware/exim/bin
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -116,7 +118,7 @@
+ # don't exist. It will also install a default runtime configuration if this
+ # file does not exist.
+ 
+-CONFIGURE_FILE=/usr/exim/configure
++CONFIGURE_FILE=/opt/freeware/exim/configure
+ 
+ # It is possible to specify a colon-separated list of files for CONFIGURE_FILE.
+ # In this case, Exim will use the first of them that exists when it is run.
+@@ -134,7 +136,7 @@
+ # owner of a local mailbox.) Specifying these values as root is very strongly
+ # discouraged.
+ 
+-EXIM_USER=
++EXIM_USER=93
+ 
+ # If you specify EXIM_USER as a name, this is looked up at build time, and the
+ # uid number is built into the binary. However, you can specify that this
+@@ -155,7 +157,7 @@
+ # for EXIM_USER (e.g. EXIM_USER=exim), you don't need to set EXIM_GROUP unless
+ # you want to use a group other than the default group for the given user.
+ 
+-# EXIM_GROUP=
++EXIM_GROUP=93
+ 
+ # Many sites define a user called "exim", with an appropriate default group,
+ # and use
+@@ -188,7 +190,7 @@
+ # options in INCLUDE.  If you want the extra searches only for certain
+ # parts of the build, see more specific xxx_INCLUDE variables below.
+ 
+-# INCLUDE=-I/example/include
++INCLUDE=-I/opt/freeware/include
+ 
+ # You need to specify some routers and transports if you want the Exim that you
+ # are building to be capable of delivering mail. You almost certainly need at
+@@ -265,7 +267,7 @@
+ # LOOKUP_DNSDB=yes
+ # LOOKUP_DSEARCH=yes
+ # LOOKUP_IBASE=yes
+-# LOOKUP_LDAP=yes
++LOOKUP_LDAP=yes
+ # LOOKUP_MYSQL=yes
+ # LOOKUP_NIS=yes
+ # LOOKUP_NISPLUS=yes
+@@ -279,7 +281,7 @@
+ # LOOKUP_LSEARCH is enabled. However, we retain these for backward
+ # compatibility. Setting one forces LOOKUP_LSEARCH if it is not set.
+ 
+-# LOOKUP_WILDLSEARCH=yes
++LOOKUP_WILDLSEARCH=yes
+ # LOOKUP_NWILDLSEARCH=yes
+ 
+ 
+@@ -292,7 +294,7 @@
+ # with Solaris 7 onwards. Uncomment whichever of these you are using.
+ 
+ # LDAP_LIB_TYPE=OPENLDAP1
+-# LDAP_LIB_TYPE=OPENLDAP2
++LDAP_LIB_TYPE=OPENLDAP2
+ # LDAP_LIB_TYPE=NETSCAPE
+ # LDAP_LIB_TYPE=SOLARIS
+ 
+@@ -308,8 +310,9 @@
+ # specified in INCLUDE. The settings below are just examples; -lpq is for
+ # PostgreSQL, -lgds is for Interbase, -lsqlite3 is for SQLite.
+ 
+-# LOOKUP_INCLUDE=-I /usr/local/ldap/include -I /usr/local/mysql/include -I /usr/local/pgsql/include
+-# LOOKUP_LIBS=-L/usr/local/lib -lldap -llber -lmysqlclient -lpq -lgds -lsqlite3
++LOOKUP_INCLUDE=-I /opt/freeware/mysql/include/mysql
++LOOKUP_LIBS=-L/opt/freeware/lib -lldap -llber
++#LOOKUP_LIBS=-L/opt/freeware/lib -lldap -llber -lmysqlclient
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -494,7 +497,7 @@
+ # one that is set in the headers_charset option. The default setting is
+ # defined by this setting:
+ 
+-HEADERS_CHARSET="ISO-8859-1"
++HEADERS_CHARSET="UTF-8"
+ 
+ # If you are going to make use of $header_xxx expansions in your configuration
+ # file, or if your users are going to use them in filter files, and the normal
+@@ -514,7 +517,7 @@
+ # the Sieve filter support. For those OS where iconv() is known to be installed
+ # as standard, the file in OS/Makefile-xxxx contains
+ #
+-# HAVE_ICONV=yes
++HAVE_ICONV=yes
+ #
+ # If you are not using one of those systems, but have installed iconv(), you
+ # need to uncomment that line above. In some cases, you may find that iconv()
+@@ -523,7 +526,7 @@
+ #
+ # HAVE_ICONV=yes
+ # CFLAGS=-O -I/usr/local/include
+-# EXTRALIBS_EXIM=-L/usr/local/lib -liconv
++EXTRALIBS_EXIM=-liconv
+ #
+ # but of course there may need to be other things in CFLAGS and EXTRALIBS_EXIM
+ # as well.
+@@ -576,10 +579,10 @@
+ # leave these settings commented out.
+ 
+ # This setting is required for any TLS support (either OpenSSL or GnuTLS)
+-# SUPPORT_TLS=yes
++SUPPORT_TLS=yes
+ 
+ # Uncomment this setting if you are using OpenSSL
+-# TLS_LIBS=-lssl -lcrypto
++TLS_LIBS=-lssl -lcrypto
+ 
+ # Uncomment these settings if you are using GnuTLS
+ # USE_GNUTLS=yes
+@@ -598,7 +601,7 @@
+ # with all your other libraries. If they are in a special directory, you may
+ # need something like
+ 
+-# TLS_LIBS=-L/usr/local/openssl/lib -lssl -lcrypto
++TLS_LIBS=-L/opt/freeware/lib -lssl -lcrypto
+ # or
+ # TLS_LIBS=-L/opt/gnu/lib -lgnutls -ltasn1 -lgcrypt
+ 
+@@ -606,7 +609,7 @@
+ # auxiliary programs. If the include files are not in a standard place, you can
+ # set TLS_INCLUDE to specify where they are, for example:
+ 
+-# TLS_INCLUDE=-I/usr/local/openssl/include/
++TLS_INCLUDE=-I/opt/freeware/include/openssl
+ # or
+ # TLS_INCLUDE=-I/opt/gnu/include
+ 
+@@ -643,7 +646,7 @@
+ # %s. This will be replaced by one of the strings "main", "panic", or "reject"
+ # to form the final file names. Some installations may want something like this:
+ 
+-# LOG_FILE_PATH=/var/log/exim_%slog
++LOG_FILE_PATH=/var/log/exim_%slog
+ 
+ # which results in files with names /var/log/exim_mainlog, etc. The directory
+ # in which the log files are placed must exist; Exim does not try to create
+@@ -692,7 +695,7 @@
+ # files. Both the name of the command and the suffix that it adds to files
+ # need to be defined here. See also the EXICYCLOG_MAX configuration.
+ 
+-COMPRESS_COMMAND=/usr/bin/gzip
++COMPRESS_COMMAND=/usr/linux/bin/gzip
+ COMPRESS_SUFFIX=gz
+ 
+ 
+@@ -700,7 +703,7 @@
+ # If the exigrep utility is fed compressed log files, it tries to uncompress
+ # them using this command.
+ 
+-ZCAT_COMMAND=/usr/bin/zcat
++ZCAT_COMMAND=/usr/linux/bin/zcat
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -709,7 +712,7 @@
+ # (version 5.004 or later) installed, set EXIM_PERL to perl.o. Using embedded
+ # Perl costs quite a lot of resources. Only do this if you really need it.
+ 
+-# EXIM_PERL=perl.o
++EXIM_PERL=perl.o
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -884,11 +887,11 @@
+ # haven't got Perl, Exim will still build and run; you just won't be able to
+ # use those utilities.
+ 
+-# CHOWN_COMMAND=/usr/bin/chown
+-# CHGRP_COMMAND=/usr/bin/chgrp
+-# MV_COMMAND=/bin/mv
+-# RM_COMMAND=/bin/rm
+-# PERL_COMMAND=/usr/bin/perl
++CHOWN_COMMAND=/usr/linux/bin/chown
++CHGRP_COMMAND=/usr/linux/bin/chgrp
++MV_COMMAND=/usr/linux/bin/mv
++RM_COMMAND=/usr/linux/bin/rm
++PERL_COMMAND=/usr/bin/perl
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -896,7 +899,7 @@
+ # of functions. By default the "ar" command is used, with options "cq".
+ # Only in rare circumstances should you need to change this.
+ 
+-# AR=ar cq
++AR=ar -cq
+ 
+ 
+ #------------------------------------------------------------------------------
+@@ -1082,7 +1085,7 @@
+ # (process id) to a file so that it can easily be identified. The path of the
+ # file can be specified here. Some installations may want something like this:
+ 
+-# PID_FILE_PATH=/var/lock/exim.pid
++PID_FILE_PATH=/var/locks/exim.pid
+ 
+ # If PID_FILE_PATH is not defined, Exim writes a file in its spool directory
+ # using the name "exim-daemon.pid".
+Index: exim-4.69/OS/Makefile-AIX
+===================================================================
+--- exim-4.69.orig/OS/Makefile-AIX	2008-12-04 18:15:58.000000000 +0100
++++ exim-4.69/OS/Makefile-AIX	2008-12-04 18:18:38.-233797528 +0100
+@@ -11,7 +11,7 @@
+ 
+ # Note that nowadays you have to pay extra for a cc compiler with AIX!
+ 
+-CC=gcc
++CC=/usr/vacpp/bin/xlc_r
+ 
+ # This needs to be in here rather than os.h-AIX because of regexp stuff.
+ # basically strchr is a #define, which means "extern char *strchr()"
+@@ -21,7 +21,7 @@
+ # using gcc. Commented out by PH.
+ #CFLAGS = -D__STR31__
+ 
+-CFLAGS = -mcpu=power4 -maix64 -O3
++CFLAGS = -O2
+ 
+ # Needed for vfork() and vfork() only?
+ 

@@ -1,0 +1,16 @@
+--- ./configure.py.ORIGIN	2020-12-10 22:31:50 +0100
++++ ./configure.py	2020-12-10 22:39:25 +0100
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3_64
+ #
+ # Copyright 2001 Google Inc. All Rights Reserved.
+ #
+--- ./misc/ninja_syntax.py.ORIGIN	2020-12-10 22:24:09 +0100
++++ ./misc/ninja_syntax.py	2020-12-10 22:26:19 +0100
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3_64
+ 
+ # Copyright 2011 Google Inc. All Rights Reserved.
+ #

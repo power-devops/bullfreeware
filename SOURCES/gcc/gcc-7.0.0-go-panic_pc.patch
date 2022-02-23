@@ -1,0 +1,12 @@
+--- gcc-7-20170203/libgo/runtime/go-signal.c.orig    2017-04-12 17:03:21 -0500
++++ gcc-7-20170203/libgo/runtime/go-signal.c 2017-04-12 17:02:46 -0500
+@@ -215,6 +215,9 @@ getSiginfo(siginfo_t *info, void *contex
+     ret.sigpc = ((ucontext_t*)(context))->uc_mcontext.gregs[REG_EIP];
+   #endif
+ #endif
++#ifdef _AIX
++       ret.sigpc = ((ucontext_t*)(context))->uc_mcontext.jmp_context.iar;
++#endif
+ 
+ 	if (ret.sigpc == 0) {
+ 		// Skip getSiginfo/sighandler/sigtrampgo/sigtramp/handler.

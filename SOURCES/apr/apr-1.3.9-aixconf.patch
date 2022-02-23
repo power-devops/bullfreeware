@@ -1,0 +1,35 @@
+Index: apr-1.3.9/build/config.guess
+===================================================================
+--- apr-1.3.9.orig/build/config.guess	2006-08-07 13:00:22.000000000 +0200
++++ apr-1.3.9/build/config.guess	2011-02-17 13:52:46.000000000 +0100
+@@ -531,7 +531,7 @@
+ 		echo rs6000-ibm-aix3.2
+ 	fi
+ 	exit ;;
+-    *:AIX:*:[45])
++    *:AIX:*:[4-9])
+ 	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+Index: apr-1.3.9/configure
+===================================================================
+--- apr-1.3.9.orig/configure	2009-09-21 23:59:34.000000000 +0200
++++ apr-1.3.9/configure	2011-02-17 13:52:05.000000000 +0100
+@@ -5241,7 +5241,7 @@
+   fi
+ 
+ 	        ;;
+-            *-ibm-aix5*)
++            *-ibm-aix5*|*aix6*)
+ 
+   if test "x$CPPFLAGS" = "x"; then
+     test "x$silent" != "xyes" && echo "  setting CPPFLAGS to \"-D_USE_IRS\""
+@@ -29620,7 +29620,7 @@
+          pid_t_fmt='#define APR_PID_T_FMT "ld"'
+        fi
+        ;;
+-   *aix4*|*aix5*)
++   *aix4*|*aix5*|*aix6*)
+        ssize_t_fmt="ld"
+        size_t_fmt="lu"
+        ;;

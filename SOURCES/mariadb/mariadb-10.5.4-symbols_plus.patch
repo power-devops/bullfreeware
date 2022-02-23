@@ -1,0 +1,16 @@
+--- ./unittest/embedded/CMakeLists.txt.inet	2020-06-23 17:10:18 +0200
++++ ./unittest/embedded/CMakeLists.txt	2020-07-17 12:03:04 +0200
+@@ -12,9 +12,12 @@
+ 
+ MYSQL_ADD_EXECUTABLE(test-connect-t test-connect.cc
+                COMPONENT Test)
+-TARGET_LINK_LIBRARIES(test-connect-t mysqlserver )
+ MY_ADD_TEST(test-connect)
+ 
++TARGET_LINK_LIBRARIES(test-connect-t mariadb)
++TARGET_LINK_OPTIONS(test-connect-t PRIVATE "-Wl,-bI:${CMAKE_SOURCE_DIR}/libmariadbd.imp")
++ADD_DEPENDENCIES(test-connect-t symbols_import)
++
+ IF(UNIX)
+ SET_TARGET_PROPERTIES(test-connect-t PROPERTIES ENABLE_EXPORTS TRUE)
+ ENDIF()

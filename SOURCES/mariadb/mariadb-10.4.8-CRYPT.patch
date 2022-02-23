@@ -1,0 +1,11 @@
+--- ./libmariadb/plugins/auth/CMakeLists.txt.orig	2019-09-25 11:53:01 +0200
++++ ./libmariadb/plugins/auth/CMakeLists.txt	2019-09-25 11:53:10 +0200
+@@ -83,7 +83,7 @@
+                     CONFIGURATIONS DYNAMIC STATIC OFF
+                     DEFAULT DYNAMIC
+                     SOURCES ${AUTH_DIR}/sha256_pw.c
+-                    LIBRARIES ${CRYT_LIBS})
++                    LIBRARIES ${CRYPT_LIBS})
+   ENDIF()
+ ENDIF()
+ 

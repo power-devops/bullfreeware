@@ -1,0 +1,55 @@
+--- ./source3/smbd/open.c.ORIG	2017-05-23 10:15:18 +0200
++++ ./source3/smbd/open.c	2017-06-07 14:11:05 +0200
+@@ -38,6 +38,19 @@
+ #include "locking/leases_db.h"
+ #include "librpc/gen_ndr/ndr_leases_db.h"
+ 
++#ifdef _AIX
++/* Compiling on AIX 6.1 for execution on 6.1, 7.1, 7.2
++ * O_NOFOLLOW not supported on 6.1
++ * O_NOFOLLOW defined as _FCLREAD    0x02000000 on 7.1
++ * O_NOFOLLOW defined                0x01000000 on 7.2
++ */
++/* Need a run time test to set open() flags */
++#include <sys/utsname.h>
++struct utsname UN_aix;
++struct utsname *un_aix = &UN_aix;
++int O_NOFOLLOW_aix;
++#endif /* _AIX */
++
+ extern const struct generic_mapping file_generic_mapping;
+ 
+ struct deferred_open_record {
+@@ -568,7 +581,11 @@
+ 				&smb_fname->st,
+ 				smb_fname->flags);
+ 
++#ifdef _AIX
++	flags |= O_NOFOLLOW_aix;
++#else
+ 	flags |= O_NOFOLLOW;
++#endif /* _AIX */
+ 
+ 	{
+ 		struct smb_filename *tmp_name = fsp->fsp_name;
+@@ -641,8 +658,20 @@
+ 	 * client should be doing this.
+ 	 */
+ 
++#ifdef _AIX
++	O_NOFOLLOW_aix = 0x02000000;  /* for AIX 7.1 (6.1 ignored) */
++	uname(un_aix);
++	if (un_aix->version[0] == '7' && un_aix->release[0] == '2')
++		O_NOFOLLOW_aix = 0x01000000;
++#endif /* _AIX */
++
++
+ 	if ((fsp->posix_flags & FSP_POSIX_FLAGS_OPEN) || !lp_follow_symlinks(SNUM(conn))) {
++#ifdef _AIX
++		flags |= O_NOFOLLOW_aix;
++#else
+ 		flags |= O_NOFOLLOW;
++#endif /* _AIX */
+ 	}
+ 
+ 	/* Ensure path is below share definition. */

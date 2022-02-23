@@ -1,0 +1,353 @@
+From 7ddcd26ebb60a8a4b57330442631115cabb6ec22 Mon Sep 17 00:00:00 2001
+From: Jonathan Wakely <jwakely@redhat.com>
+Date: Fri, 30 Apr 2021 15:54:14 +0100
+Subject: [PATCH] libstdc++: Remove GLIBCXX_CHECK_INT64_T checks
+
+This simplifies the definition of std::streamoff by using the predefined
+__INT64_TYPE__ macro, instead of the _GLIBCXX_HAVE_INT64_T_LONG,
+_GLIBCXX_HAVE_INT64_T_LONG_LONG and _GLIBCXX_HAVE_INT64_T macros defined
+by configure.
+
+By using the __INT64_TYPE__ macro (which all of GCC, Clang and Intel
+define) we do not need to determine the type of int64_t in configure, we
+can just use that type directly.
+
+The background for the change was explained by David Edelsohn:
+
+  Currently the type of streamoff is determined at libstdc++ configure
+  time, chosen by the definitions of _GLIBCXX_HAVE_INT64_T_LONG and
+  _GLIBCXX_HAVE_INT64_T_LONG_LONG.  For a multilib configuration, the
+  difference is encoded in the different multilib header file paths.
+  For "FAT" library targets that package 32 bit and 64 bit libraries
+  together, G++ also expects a single header file directory hierarchy,
+  causing an incorrect value for streamoff in some situations.
+
+And in a subsequent mail:
+
+  Most of the libstdc++ headers are architecture-neutral, OS neutral and
+  ABI neutral.  The differences are localized in bits/c++config.h.  And
+  most of c++config.h is identical for 32 bit AIX and 64 bit AIX.  The
+  only differences that matter are __int128 and __int64_t.
+
+This change removes some of those differences. With the only uses of the
+INT64_T configure macros removed, the configure checks themselves can
+also be removed.
+
+Co-authored-by: David Edelsohn <dje.gcc@gmail.com>
+
+libstdc++-v3/ChangeLog:
+
+	* acinclude.m4 (GLIBCXX_CHECK_INT64_T): Delete.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* configure.ac: Do not use GLIBCXX_CHECK_INT64_T.
+	* include/bits/postypes.h: Remove include of <stdint.h> and
+	definition/undefinition of the __STDC_LIMIT_MACROS and
+	__STDC_CONSTANT_MACROS macros.
+	(streamoff): Use __INT64_TYPE__ if defined.
+---
+ libstdc++-v3/acinclude.m4            |  57 ------------
+ libstdc++-v3/config.h.in             |   9 --
+ libstdc++-v3/configure               | 130 ---------------------------
+ libstdc++-v3/configure.ac            |   3 -
+ libstdc++-v3/include/bits/postypes.h |  34 +------
+ 5 files changed, 2 insertions(+), 231 deletions(-)
+
+diff --git a/libstdc++-v3/acinclude.m4 b/libstdc++-v3/acinclude.m4
+index 1c0a4c13052..7b78e148fbd 100644
+--- a/libstdc++-v3/acinclude.m4
++++ b/libstdc++-v3/acinclude.m4
+@@ -474,63 +474,6 @@ AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
+ ])
+ 
+ 
+-dnl
+-dnl Check whether int64_t is available in <stdint.h>, and define HAVE_INT64_T.
+-dnl Also check whether int64_t is actually a typedef to long or long long.
+-dnl
+-AC_DEFUN([GLIBCXX_CHECK_INT64_T], [
+-
+-  AC_LANG_SAVE
+-  AC_LANG_CPLUSPLUS
+-
+-  AC_MSG_CHECKING([for int64_t])
+-  AC_CACHE_VAL(glibcxx_cv_INT64_T, [
+-    AC_TRY_COMPILE(
+-      [#include <stdint.h>],
+-      [int64_t var;],
+-      [glibcxx_cv_INT64_T=yes],
+-      [glibcxx_cv_INT64_T=no])
+-  ])
+-
+-  if test $glibcxx_cv_INT64_T = yes; then
+-    AC_DEFINE(HAVE_INT64_T, 1, [Define if int64_t is available in <stdint.h>.])
+-    AC_MSG_RESULT($glibcxx_cv_INT64_T)
+-
+-    AC_MSG_CHECKING([for int64_t as long])
+-    AC_CACHE_VAL(glibcxx_cv_int64_t_long, [
+-      AC_TRY_COMPILE(
+-	[#include <stdint.h>
+-	template<typename, typename> struct same { enum { value = -1 }; };
+-	template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+-	int array[same<int64_t, long>::value];], [],
+-	[glibcxx_cv_int64_t_long=yes], [glibcxx_cv_int64_t_long=no])
+-    ])
+-
+-    if test $glibcxx_cv_int64_t_long = yes; then
+-      AC_DEFINE(HAVE_INT64_T_LONG, 1, [Define if int64_t is a long.])
+-      AC_MSG_RESULT($glibcxx_cv_int64_t_long)
+-    fi
+-
+-    AC_MSG_CHECKING([for int64_t as long long])
+-    AC_CACHE_VAL(glibcxx_cv_int64_t_long_long, [
+-      AC_TRY_COMPILE(
+-	[#include <stdint.h>
+-	template<typename, typename> struct same { enum { value = -1 }; };
+-	template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+-	int array[same<int64_t, long long>::value];], [],
+-	[glibcxx_cv_int64_t_long_long=yes], [glibcxx_cv_int64_t_long_long=no])
+-    ])
+-
+-    if test $glibcxx_cv_int64_t_long_long = yes; then
+-      AC_DEFINE(HAVE_INT64_T_LONG_LONG, 1, [Define if int64_t is a long long.])
+-      AC_MSG_RESULT($glibcxx_cv_int64_t_long_long)
+-    fi
+-  fi
+-
+-  AC_LANG_RESTORE
+-])
+-
+-
+ dnl
+ dnl Check whether LFS support is available.
+ dnl
+diff --git a/libstdc++-v3/config.h.in b/libstdc++-v3/config.h.in
+index 37b56b82b0e..197e8e691cb 100644
+--- a/libstdc++-v3/config.h.in
++++ b/libstdc++-v3/config.h.in
+@@ -153,15 +153,6 @@
+ /* Define to 1 if you have the <ieeefp.h> header file. */
+ #undef HAVE_IEEEFP_H
+ 
+-/* Define if int64_t is available in <stdint.h>. */
+-#undef HAVE_INT64_T
+-
+-/* Define if int64_t is a long. */
+-#undef HAVE_INT64_T_LONG
+-
+-/* Define if int64_t is a long long. */
+-#undef HAVE_INT64_T_LONG_LONG
+-
+ /* Define to 1 if you have the <inttypes.h> header file. */
+ #undef HAVE_INTTYPES_H
+ 
+diff --git a/libstdc++-v3/configure b/libstdc++-v3/configure
+index 326a279c54f..272bd993a9c 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -19139,136 +19139,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+ 
+-# For the streamoff typedef.
+-
+-
+-
+-  ac_ext=cpp
+-ac_cpp='$CXXCPP $CPPFLAGS'
+-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+-
+-
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for int64_t" >&5
+-$as_echo_n "checking for int64_t... " >&6; }
+-  if ${glibcxx_cv_INT64_T+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-
+-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <stdint.h>
+-int
+-main ()
+-{
+-int64_t var;
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_cxx_try_compile "$LINENO"; then :
+-  glibcxx_cv_INT64_T=yes
+-else
+-  glibcxx_cv_INT64_T=no
+-fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+-
+-fi
+-
+-
+-  if test $glibcxx_cv_INT64_T = yes; then
+-
+-$as_echo "#define HAVE_INT64_T 1" >>confdefs.h
+-
+-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_INT64_T" >&5
+-$as_echo "$glibcxx_cv_INT64_T" >&6; }
+-
+-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for int64_t as long" >&5
+-$as_echo_n "checking for int64_t as long... " >&6; }
+-    if ${glibcxx_cv_int64_t_long+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-
+-      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <stdint.h>
+-	template<typename, typename> struct same { enum { value = -1 }; };
+-	template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+-	int array[same<int64_t, long>::value];
+-int
+-main ()
+-{
+-
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_cxx_try_compile "$LINENO"; then :
+-  glibcxx_cv_int64_t_long=yes
+-else
+-  glibcxx_cv_int64_t_long=no
+-fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+-
+-fi
+-
+-
+-    if test $glibcxx_cv_int64_t_long = yes; then
+-
+-$as_echo "#define HAVE_INT64_T_LONG 1" >>confdefs.h
+-
+-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_int64_t_long" >&5
+-$as_echo "$glibcxx_cv_int64_t_long" >&6; }
+-    fi
+-
+-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for int64_t as long long" >&5
+-$as_echo_n "checking for int64_t as long long... " >&6; }
+-    if ${glibcxx_cv_int64_t_long_long+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-
+-      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <stdint.h>
+-	template<typename, typename> struct same { enum { value = -1 }; };
+-	template<typename Tp> struct same<Tp, Tp> { enum { value = 1 }; };
+-	int array[same<int64_t, long long>::value];
+-int
+-main ()
+-{
+-
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_cxx_try_compile "$LINENO"; then :
+-  glibcxx_cv_int64_t_long_long=yes
+-else
+-  glibcxx_cv_int64_t_long_long=no
+-fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+-
+-fi
+-
+-
+-    if test $glibcxx_cv_int64_t_long_long = yes; then
+-
+-$as_echo "#define HAVE_INT64_T_LONG_LONG 1" >>confdefs.h
+-
+-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_int64_t_long_long" >&5
+-$as_echo "$glibcxx_cv_int64_t_long_long" >&6; }
+-    fi
+-  fi
+-
+-  ac_ext=c
+-ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+-ac_compiler_gnu=$ac_cv_c_compiler_gnu
+-
+-
+-
+ # For LFS support.
+ 
+ 
+diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
+index 3c799be82b1..95dd9ce5da5 100644
+--- a/libstdc++-v3/configure.ac
++++ b/libstdc++-v3/configure.ac
+@@ -185,9 +185,6 @@ GLIBCXX_CHECK_STDIO_PROTO
+ GLIBCXX_CHECK_MATH11_PROTO
+ GLIBCXX_CHECK_UCHAR_H
+ 
+-# For the streamoff typedef.
+-GLIBCXX_CHECK_INT64_T
+-
+ # For LFS support.
+ GLIBCXX_CHECK_LFS
+ 
+diff --git a/libstdc++-v3/include/bits/postypes.h b/libstdc++-v3/include/bits/postypes.h
+index cb44cfe1396..52590ddd61b 100644
+--- a/libstdc++-v3/include/bits/postypes.h
++++ b/libstdc++-v3/include/bits/postypes.h
+@@ -39,32 +39,6 @@
+ 
+ #include <cwchar> // For mbstate_t
+ 
+-// XXX If <stdint.h> is really needed, make sure to define the macros
+-// before including it, in order not to break <tr1/cstdint> (and <cstdint>
+-// in C++11).  Reconsider all this as soon as possible...
+-#if (defined(_GLIBCXX_HAVE_INT64_T) && !defined(_GLIBCXX_HAVE_INT64_T_LONG) \
+-     && !defined(_GLIBCXX_HAVE_INT64_T_LONG_LONG))
+-
+-#ifndef __STDC_LIMIT_MACROS
+-# define _UNDEF__STDC_LIMIT_MACROS
+-# define __STDC_LIMIT_MACROS
+-#endif
+-#ifndef __STDC_CONSTANT_MACROS
+-# define _UNDEF__STDC_CONSTANT_MACROS
+-# define __STDC_CONSTANT_MACROS
+-#endif
+-#include <stdint.h> // For int64_t
+-#ifdef _UNDEF__STDC_LIMIT_MACROS
+-# undef __STDC_LIMIT_MACROS
+-# undef _UNDEF__STDC_LIMIT_MACROS
+-#endif
+-#ifdef _UNDEF__STDC_CONSTANT_MACROS
+-# undef __STDC_CONSTANT_MACROS
+-# undef _UNDEF__STDC_CONSTANT_MACROS
+-#endif
+-
+-#endif
+-
+ namespace std _GLIBCXX_VISIBILITY(default)
+ {
+ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+@@ -84,12 +58,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+    *  Note: In versions of GCC up to and including GCC 3.3, streamoff
+    *  was typedef long.
+   */  
+-#ifdef _GLIBCXX_HAVE_INT64_T_LONG
+-  typedef long          streamoff;
+-#elif defined(_GLIBCXX_HAVE_INT64_T_LONG_LONG)
+-  typedef long long     streamoff;
+-#elif defined(_GLIBCXX_HAVE_INT64_T) 
+-  typedef int64_t       streamoff;
++#ifdef __INT64_TYPE__
++  typedef __INT64_TYPE__          streamoff;
+ #else
+   typedef long long     streamoff;
+ #endif
+-- 
+2.31.1
+

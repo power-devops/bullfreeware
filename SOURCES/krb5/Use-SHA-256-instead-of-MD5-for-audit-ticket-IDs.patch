@@ -1,0 +1,53 @@
+From a9bc03fe03ef4b00bcdad13c99bb4c376a8b9964 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Tue, 10 Jul 2018 16:17:15 -0400
+Subject: [PATCH] Use SHA-256 instead of MD5 for audit ticket IDs
+
+ticket: 8711 (new)
+(cherry picked from commit c1e1bfa26bd2f045e88e6013c500fca9428c98f3)
+---
+ src/kdc/kdc_audit.c | 21 ++++++++++-----------
+ 1 file changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/src/kdc/kdc_audit.c b/src/kdc/kdc_audit.c
+index c9a7f9f9d..f40913dc8 100644
+--- a/src/kdc/kdc_audit.c
++++ b/src/kdc/kdc_audit.c
+@@ -146,7 +146,7 @@ kau_make_tkt_id(krb5_context context,
+ {
+     krb5_error_code ret = 0;
+     char *hash = NULL, *ptr;
+-    krb5_checksum cksum;
++    uint8_t hashbytes[K5_SHA256_HASHLEN];
+     unsigned int i;
+ 
+     *out = NULL;
+@@ -154,19 +154,18 @@ kau_make_tkt_id(krb5_context context,
+     if (ticket == NULL)
+         return EINVAL;
+ 
+-    ret = krb5_c_make_checksum(context, CKSUMTYPE_RSA_MD5, NULL, 0,
+-                               &ticket->enc_part.ciphertext, &cksum);
++    ret = k5_sha256(&ticket->enc_part.ciphertext, 1, hashbytes);
+     if (ret)
+         return ret;
+ 
+-    hash = k5alloc(cksum.length * 2 + 1, &ret);
+-    if (hash != NULL) {
+-        for (i = 0, ptr = hash; i < cksum.length; i++, ptr += 2)
+-            snprintf(ptr, 3, "%02X", cksum.contents[i]);
+-        *ptr = '\0';
+-        *out = hash;
+-    }
+-    krb5_free_checksum_contents(context, &cksum);
++    hash = k5alloc(sizeof(hashbytes) * 2 + 1, &ret);
++    if (hash == NULL)
++        return ret;
++
++    for (i = 0, ptr = hash; i < sizeof(hashbytes); i++, ptr += 2)
++        snprintf(ptr, 3, "%02X", hashbytes[i]);
++    *ptr = '\0';
++    *out = hash;
+ 
+     return 0;
+ }

@@ -1,0 +1,12 @@
+--- ./sed/utils.c.orig
++++ ./sed/utils.c
+@@ -267,8 +267,8 @@ ck_fclose (FILE *stream)
+     {
+       if (!stream || stream == cur->fp)
+         {
+-          do_ck_fclose (cur->fp);
+           prev->link = cur->link;
++          do_ck_fclose (cur->fp);
+           free (cur->name);
+           free (cur);
+         }

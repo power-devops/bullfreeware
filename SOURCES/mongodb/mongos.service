@@ -1,0 +1,15 @@
+[Unit]
+Description=High-performance, schema-free document-oriented database
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=mongodb
+EnvironmentFile=/etc/sysconfig/mongos
+ExecStart=/bin/sh -c "exec $NUMACTL /usr/bin/mongos $OPTIONS"
+PrivateTmp=true
+LimitNOFILE=64000
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

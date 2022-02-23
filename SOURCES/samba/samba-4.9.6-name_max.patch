@@ -1,0 +1,11 @@
+--- ./source3/modules/vfs_glusterfs_fuse.c_orig	2019-05-08 17:39:14 +0000
++++ ./source3/modules/vfs_glusterfs_fuse.c	2019-05-08 17:39:49 +0000
+@@ -21,6 +21,8 @@
+ #include "smbd/smbd.h"
+ #include "system/filesys.h"
+ 
++#define NAME_MAX PATH_MAX
++
+ static int vfs_gluster_fuse_get_real_filename(struct vfs_handle_struct *handle,
+ 					      const char *path,
+ 					      const char *name,

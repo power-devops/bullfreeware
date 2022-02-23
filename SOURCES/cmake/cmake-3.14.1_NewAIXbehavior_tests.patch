@@ -1,0 +1,173 @@
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake.orig	2019-04-01 16:24:52.344000000 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-all-check.cmake	2019-04-08 14:32:25.788000000 +0200
+@@ -38,6 +38,16 @@
+     [[lib/libnamelink-uns\.1\.dylib]]
+     [[lib/libnamelink-uns\.dylib]]
+   )
++elseif(AIX)
++  set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++  )
+ elseif(NO_NAMELINK)
+   set(_check_files
+     [[lib]]
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake.orig	2019-04-01 16:20:43.772000000 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-lib-check.cmake	2019-04-01 16:20:28.516000000 +0200
+@@ -26,6 +26,14 @@
+     [[lib/libnamelink-skip\.1\.0\.dylib]]
+     [[lib/libnamelink-skip\.1\.dylib]]
+   )
++elseif(AIX)
++  set(_check_files
++    [[lib]]
++    [[lib/libnamelink-none\.a]]
++    [[lib/libnamelink-same\.a]]
++    [[lib/libnamelink-sep\.a]]
++    [[lib/libnamelink-skip\.a]]
++  )
+ elseif(NO_NAMELINK)
+   set(_check_files
+     [[lib]]
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake.orig	2019-04-01 16:23:58.360000000 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-uns-check.cmake	2019-04-09 12:21:40.512000000 +0200
+@@ -19,6 +19,12 @@
+     [[lib/libnamelink-uns\.1\.dylib]]
+     [[lib/libnamelink-uns\.dylib]]
+   )
++elseif(AIX)
++  set(_check_files
++    [[lib]]
++    [[lib/libnamelink-uns-dev\.a]]
++    [[lib/libnamelink-uns\.a]]
++  )  
+ elseif(NO_NAMELINK)
+   set(_check_files
+     [[lib]]
+--- ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake.orig	2019-04-08 14:33:13.588000000 +0200
++++ ./Tests/RunCMake/install/TARGETS-NAMELINK_COMPONENT-dev-check.cmake	2019-04-09 11:43:39.804000000 +0200
+@@ -3,9 +3,9 @@
+ else()
+   set(_check_files
+     [[lib]]
+-    [[lib/libnamelink-only\.(so|dylib)]]
+-    [[lib/libnamelink-sep\.(so|dylib)]]
+-    [[lib/libnamelink-uns-dev\.(so|dylib)]]
++    [[lib/libnamelink-only\.(so|dylib|a)]]
++    [[lib/libnamelink-sep\.(so|dylib|a)]]
++    [[lib/libnamelink-uns-dev\.(so|dylib|a)]]
+   )
+ endif()
+ check_installed("^${_check_files}$")
+--- ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake.orig	2019-02-01 14:35:28.000000000 +0100
++++ ./Tests/RunCMake/install/TARGETS-OUTPUT_NAME-all-check.cmake	2019-04-01 16:18:34.260000000 +0200
+@@ -8,6 +8,8 @@
+   check_installed([[^bin;bin/cygtest4\.dll;bin/libtest4\.dll\.a;bin/libtest5ar\.a;bin/test1out\.exe;bin/test2deb\.exe;bin/test3exc\.exe$]])
+ elseif(APPLE)
+   check_installed([[^bin;bin/libtest4lib\.dylib;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
++elseif(AIX)
++  check_installed([[^bin;bin/libtest4lib\.a;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ else()
+   check_installed([[^bin;bin/libtest4lib\.so;bin/libtest5ar\.a;bin/test1out;bin/test2deb;bin/test3exc$]])
+ endif()
+--- ./Tests/Plugin/CMakeLists.txt.orig	2019-04-04 09:13:37.744000000 +0200
++++ ./Tests/Plugin/CMakeLists.txt	2019-04-12 12:00:09.584000000 +0200
+@@ -35,7 +35,12 @@
+ endif()
+ 
+ # Create an executable that exports an API for use by plugins.
+-add_executable(example_exe src/example_exe.cxx)
++if(AIX)
++  add_library(example_exe_obj OBJECT src/example_exe.cxx)
++  add_executable(example_exe $<TARGET_OBJECTS:example_exe_obj>)
++else()
++  add_executable(example_exe src/example_exe.cxx)
++endif()
+ set_target_properties(example_exe PROPERTIES
+   ENABLE_EXPORTS 1
+   OUTPUT_NAME example
+@@ -48,7 +53,11 @@
+ # This module "links" to the executable to use the symbols.
+ add_library(example_mod_1 MODULE src/example_mod_1.c)
+ target_link_libraries(example_mod_1 example_exe)
+-
++if(AIX)
++  ExportAIX(example_exe example_exe_obj "example.exp" ".")
++  ImportAIX(example_mod_1 "example.exp")
++  add_dependencies(example_mod_1 example_exe)
++endif()
+ 
+ if(CMAKE_SHARED_LIBRARY_SONAME_C_FLAG AND
+     "${CMAKE_C_CREATE_SHARED_MODULE}" MATCHES "SONAME_FLAG")
+--- ./Tests/RunCMake/FileAPI/codemodel-v2-check.py.orig	2019-04-04 21:37:50.000000000 +0200
++++ ./Tests/RunCMake/FileAPI/codemodel-v2-check.py	2019-04-04 21:34:47.000000000 +0200
+@@ -1341,10 +1341,10 @@
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^lib/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?c_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+@@ -2184,10 +2184,10 @@
+                 },
+             ],
+             "folder": None,
+-            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++            "nameOnDisk": "^(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+             "artifacts": [
+                 {
+-                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(so|dylib|dll)$",
++                    "path": "^cxx/((Debug|Release|RelWithDebInfo|MinSizeRel)/)?(lib|cyg)?cxx_shared_lib\\.(a|so|dylib|dll)$",
+                     "_dllExtra": False,
+                 },
+                 {
+--- ./Tests/ExportImport/Export/CMakeLists.txt.orig	2019-02-01 14:35:27.000000000 +0100
++++ ./Tests/ExportImport/Export/CMakeLists.txt	2019-04-12 12:02:03.528000000 +0200
+@@ -15,7 +15,13 @@
+ add_library(testExe2lib SHARED testExe2lib.c)
+ target_link_libraries(testExe2lib testExe2libImp)
+ set_property(TARGET testExe2lib PROPERTY LINK_INTERFACE_LIBRARIES "")
+-add_executable(testExe2 testExe2.c)
++if (AIX)
++  add_library(testExe2_obj OBJECT testExe2.c)
++  add_executable(testExe2 $<TARGET_OBJECTS:testExe2_obj>)
++  ExportAIX(testExe2 testExe2_obj "/tmp/objects.exp" ".")
++else()
++  add_executable(testExe2 testExe2.c)
++endif()
+ set_property(TARGET testExe2 PROPERTY ENABLE_EXPORTS 1)
+ set_property(TARGET testExe2 PROPERTY LINK_INTERFACE_LIBRARIES testExe2lib)
+ 
+--- ./Tests/ExportImport/Import/A/CMakeLists.txt.orig	2019-04-04 14:46:19.236000000 +0200
++++ ./Tests/ExportImport/Import/A/CMakeLists.txt	2019-04-08 14:26:27.020000000 +0200
+@@ -66,6 +66,9 @@
+ 
+ # Try building a plugin to an executable imported from the install tree.
+ add_library(imp_mod1 MODULE imp_mod1.c)
++if (AIX)
++  ImportAIX(imp_mod1 "/tmp/objects.exp")
++endif()
+ target_link_libraries(imp_mod1 exp_testExe2)
+ 
+ # Try referencing an executable imported from the build tree.
+@@ -171,6 +174,9 @@
+ 
+ # Try building a plugin to an executable imported from the build tree.
+ add_library(imp_mod1b MODULE imp_mod1.c)
++if (AIX)
++  ImportAIX(imp_mod1b "/tmp/objects.exp")
++endif()
+ target_link_libraries(imp_mod1b bld_testExe2)
+ 
+ # Export/CMakeLists.txt pretends the RelWithDebInfo (as well as Debug)

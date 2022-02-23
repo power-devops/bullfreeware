@@ -1,0 +1,20 @@
+Index: Python-2.7.6/Modules/socketmodule.c
+===================================================================
+--- Python-2.7.6.orig/Modules/socketmodule.c	2013-05-12 05:32:51.000000000 +0200
++++ Python-2.7.6/Modules/socketmodule.c	2013-06-04 16:22:47.000000000 +0200
+@@ -158,12 +158,14 @@
+ #endif
+ 
+ #ifdef HAVE_GETHOSTBYNAME_R
+-# if defined(_AIX) || defined(__osf__)
++# if (defined(_AIX) || defined(__osf__)) && !defined(_LINUX_SOURCE_COMPAT)
+ #  define HAVE_GETHOSTBYNAME_R_3_ARG
+ # elif defined(__sun) || defined(__sgi)
+ #  define HAVE_GETHOSTBYNAME_R_5_ARG
+ # elif defined(linux)
+ /* Rely on the configure script */
++# elif defined(_LINUX_SOURCE_COMPAT)
++#  define HAVE_GETHOSTBYNAME_R_6_ARG
+ # else
+ #  undef HAVE_GETHOSTBYNAME_R
+ # endif

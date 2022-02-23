@@ -1,0 +1,109 @@
+From 64d5f92173481b076e1f53db25cc1924b17c9996 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 14:34:00 +0200
+Subject: [PATCH] cmd/dist: add AIX operating system.
+
+This commit adds AIX operating system to cmd/dist package for ppc64
+architecture.
+
+The stack guard is increased because of syscalls made inside the runtime
+which need a larger stack.
+
+Disable cmd/vet/all tests until aix/ppc64 is fully available.
+
+Change-Id: I7e3caf86724249ae564a152d90c1cbd4de288814
+---
+
+diff --git a/src/cmd/dist/build.go b/src/cmd/dist/build.go
+index b27d3aa..49f4a5e 100644
+--- a/src/cmd/dist/build.go
++++ b/src/cmd/dist/build.go
+@@ -87,6 +87,7 @@
+ 	"openbsd",
+ 	"plan9",
+ 	"windows",
++	"aix",
+ }
+ 
+ // find reports the first index of p in l[0:n], or else -1.
+@@ -1388,6 +1389,7 @@
+ // single point of truth for supported platforms. This list is used
+ // by 'go tool dist list'.
+ var cgoEnabled = map[string]bool{
++	"aix/ppc64":       false,
+ 	"darwin/386":      true,
+ 	"darwin/amd64":    true,
+ 	"darwin/arm":      true,
+diff --git a/src/cmd/dist/buildruntime.go b/src/cmd/dist/buildruntime.go
+index acf2230..10d1552 100644
+--- a/src/cmd/dist/buildruntime.go
++++ b/src/cmd/dist/buildruntime.go
+@@ -87,6 +87,10 @@
+ // stack guard size. Larger multipliers are used for non-optimized
+ // builds that have larger stack frames.
+ func stackGuardMultiplier() int {
++	// On AIX, a larger stack is needed for syscalls
++	if goos == "aix" {
++		return 2
++	}
+ 	for _, s := range strings.Split(os.Getenv("GO_GCFLAGS"), " ") {
+ 		if s == "-N" {
+ 			return 2
+diff --git a/src/cmd/dist/main.go b/src/cmd/dist/main.go
+index 37e37e2..bf08869 100644
+--- a/src/cmd/dist/main.go
++++ b/src/cmd/dist/main.go
+@@ -81,6 +81,9 @@
+ 		}
+ 	case "windows":
+ 		exe = ".exe"
++	case "aix":
++		// uname -m doesn't work under AIX
++		gohostarch = "ppc64"
+ 	}
+ 
+ 	sysinit()
+diff --git a/src/cmd/internal/objabi/head.go b/src/cmd/internal/objabi/head.go
+index 23c7b62..db2221d 100644
+--- a/src/cmd/internal/objabi/head.go
++++ b/src/cmd/internal/objabi/head.go
+@@ -48,10 +48,13 @@
+ 	Hplan9
+ 	Hsolaris
+ 	Hwindows
++	Haix
+ )
+ 
+ func (h *HeadType) Set(s string) error {
+ 	switch s {
++	case "aix":
++		*h = Haix
+ 	case "darwin":
+ 		*h = Hdarwin
+ 	case "dragonfly":
+@@ -82,6 +85,8 @@
+ 
+ func (h *HeadType) String() string {
+ 	switch *h {
++	case Haix:
++		return "aix"
+ 	case Hdarwin:
+ 		return "darwin"
+ 	case Hdragonfly:
+diff --git a/src/cmd/vet/all/main.go b/src/cmd/vet/all/main.go
+index 24dfafd..7e4a681 100644
+--- a/src/cmd/vet/all/main.go
++++ b/src/cmd/vet/all/main.go
+@@ -204,6 +204,12 @@
+ 		return
+ 	}
+ 
++	if p.os == "aix" && p.arch == "ppc64" {
++		// TODO(aix): enable as soon as the aix/ppc64 port has fully landed
++		fmt.Println("skipping aix/ppc64")
++		return
++	}
++
+ 	var buf bytes.Buffer
+ 	fmt.Fprintf(&buf, "go run main.go -p %s\n", p)
+ 

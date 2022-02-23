@@ -1,0 +1,60 @@
+From b4f9d68e688bf2652685bccdd51d6bb29de545b4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 30 Apr 2021 09:44:42 +0200
+Subject: [PATCH] gcc/config: force /opt/freeware/lib in AIX LIBPATH
+
+This patch adds /opt/freeware/lib at the end of the LIBPATH of every
+gcc built programs.
+/opt/freeware/lib is already referenced but it's using the buildhost
+and the current version directory
+(eg /opt/freeware/bin/../lib/gcc/powerpc-ibm-aix7.2.0.0/8.3.0/../../..)
+That means that when upgrading to a new version of gcc, this directory
+will be removed and thus /opt/freeware/lib cannot be found anymore.
+---
+ gcc/config/rs6000/aix71.h | 2 +-
+ gcc/config/rs6000/aix72.h | 2 +-
+ gcc/config/rs6000/aix73.h | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gcc/config/rs6000/aix71.h b/gcc/config/rs6000/aix71.h
+index 38cfa9e158a..0878b2a8204 100644
+--- a/gcc/config/rs6000/aix71.h
++++ b/gcc/config/rs6000/aix71.h
+@@ -169,7 +169,7 @@ do {									\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
+    %{mlong-double-128:-lc128}\
+-   %{pthread:-lpthreads} -lc"
++   %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #define LINK_SPEC32 "%{!shared:%{g*: %(link_libg) }} -b32"
+ #define LINK_SPEC64 "-b64"
+diff --git a/gcc/config/rs6000/aix72.h b/gcc/config/rs6000/aix72.h
+index a497a7d8541..fefa5587ac0 100644
+--- a/gcc/config/rs6000/aix72.h
++++ b/gcc/config/rs6000/aix72.h
+@@ -171,7 +171,7 @@ do {									\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
+    %{mlong-double-128:-lc128}\
+-   %{pthread:-lpthreads} -lc"
++   %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #define LINK_SPEC32 "%{!shared:%{g*: %(link_libg) }} -b32"
+ #define LINK_SPEC64 "-b64"
+diff --git a/gcc/config/rs6000/aix73.h b/gcc/config/rs6000/aix73.h
+index c707c7e76b6..6eaf0248ddb 100644
+--- a/gcc/config/rs6000/aix73.h
++++ b/gcc/config/rs6000/aix73.h
+@@ -172,7 +172,7 @@ do {									\
+    %{fprofile-arcs|fprofile-generate*|coverage:-lpthreads}\
+    %{mpe:-L%R/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
+    %{mlong-double-128:-lc128}\
+-   %{pthread:-lpthreads} -lc"
++   %{pthread:-lpthreads} -lc -L/opt/freeware/lib"
+ 
+ #define LINK_SPEC32 "%{!shared:%{g*: %(link_libg) }} -b32"
+ #define LINK_SPEC64 "-b64"
+-- 
+2.31.1
+

@@ -1,0 +1,34 @@
+--- gcc/Makefile.in.orig	2005-04-04 14:45:13.000000000 -0500
++++ gcc/Makefile.in	2005-10-13 11:21:52.000000000 -0500
+@@ -141,10 +141,10 @@
+ # TCFLAGS is used for compilations with the GCC just built.
+ XCFLAGS =
+ TCFLAGS =
+-CFLAGS = -g
+-STAGE1_CFLAGS = -g @stage1_cflags@
++CFLAGS = -O2
++STAGE1_CFLAGS = -O2 @stage1_cflags@
+ STAGE1_CHECKING = -DENABLE_CHECKING -DENABLE_ASSERT_CHECKING
+-BOOT_CFLAGS = -g -O2
++BOOT_CFLAGS = -O2
+ 
+ # Flags to determine code coverage. When coverage is disabled, this will
+ # contain the optimization flags, as you normally want code coverage
+@@ -517,7 +517,7 @@
+ 
+ # Options to use when compiling libgcc2.a.
+ #
+-LIBGCC2_DEBUG_CFLAGS = -g
++LIBGCC2_DEBUG_CFLAGS =
+ LIBGCC2_CFLAGS = -O2 $(LIBGCC2_INCLUDES) $(GCC_CFLAGS) $(TARGET_LIBGCC2_CFLAGS) $(LIBGCC2_DEBUG_CFLAGS) $(GTHREAD_FLAGS) -DIN_LIBGCC2 -D__GCC_FLOAT_NOT_NEEDED @inhibit_libc@
+ 
+ # Additional options to use when compiling libgcc2.a.
+@@ -528,7 +528,7 @@
+ TARGET_LIBGCC2_CFLAGS =
+ 
+ # Options to use when compiling crtbegin/end.
+-CRTSTUFF_CFLAGS = -O2 $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) -g0 \
++CRTSTUFF_CFLAGS = -O2 $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) \
+   -finhibit-size-directive -fno-inline-functions -fno-exceptions \
+   -fno-zero-initialized-in-bss -fno-unit-at-a-time
+ 

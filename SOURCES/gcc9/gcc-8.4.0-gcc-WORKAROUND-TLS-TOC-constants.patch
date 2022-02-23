@@ -1,0 +1,27 @@
+From 16954e7e8f081a8c84d9b3c28b9c802678c6e803 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Thu, 23 Apr 2020 14:49:16 -0500
+Subject: [PATCH] gcc: WORKAROUND TLS TOC constants
+
+---
+ gcc/calls.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/calls.c b/gcc/calls.c
+index 5bd922779af..e3aac697e24 100644
+--- a/gcc/calls.c
++++ b/gcc/calls.c
+@@ -996,7 +996,9 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
+ 	/* If the value is a non-legitimate constant, force it into a
+ 	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
+ 	if (CONSTANT_P (args[i].value)
+-	    && !targetm.legitimate_constant_p (args[i].mode, args[i].value))
++	    && (!targetm.legitimate_constant_p (args[i].mode, args[i].value)
++	    || (SYMBOL_REF_P (args[i].value)
++		    && SYMBOL_REF_TLS_MODEL (args[i].value))))
+ 	  args[i].value = force_reg (args[i].mode, args[i].value);
+ 
+ 	/* If we're going to have to load the value by parts, pull the
+-- 
+2.25.0
+

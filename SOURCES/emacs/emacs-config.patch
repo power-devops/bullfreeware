@@ -1,0 +1,22 @@
+--- configure.in.org	2004-02-25 16:47:24.000000000 -0600
++++ configure.in	2004-02-25 16:48:24.000000000 -0600
+@@ -581,7 +581,7 @@
+     machine=ibmrs6000 opsys=aix4-1
+   ;;
+   rs6000-ibm-aix* | powerpc-ibm-aix* )
+-    machine=ibmrs6000 opsys=aix3-2
++    machine=ibmrs6000 opsys=aix4-2
+   ;;
+   romp-ibm-bsd4.3* )
+     machine=ibmrt opsys=bsd4-3
+--- configure.org	2004-02-25 16:47:29.000000000 -0600
++++ configure	2004-02-25 16:48:01.000000000 -0600
+@@ -1207,7 +1207,7 @@
+     machine=ibmrs6000 opsys=aix4-1
+   ;;
+   rs6000-ibm-aix* | powerpc-ibm-aix* )
+-    machine=ibmrs6000 opsys=aix3-2
++    machine=ibmrs6000 opsys=aix4-2
+   ;;
+   romp-ibm-bsd4.3* )
+     machine=ibmrt opsys=bsd4-3

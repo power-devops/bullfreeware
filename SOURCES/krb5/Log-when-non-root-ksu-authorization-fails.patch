@@ -1,0 +1,35 @@
+From 9dd3a84f324979c29e8ab4b472e98dfa73e6b290 Mon Sep 17 00:00:00 2001
+From: Robbie Harwood <rharwood@redhat.com>
+Date: Mon, 7 May 2018 16:42:59 -0400
+Subject: [PATCH] Log when non-root ksu authorization fails
+
+If non-root user attempts to ksu but is denied by policy, log to
+syslog at LOG_WARNING in keeping with other failure messages.
+
+ticket: 8270
+(cherry picked from commit 6cfa5c113e981f14f70ccafa20abfa5c46b665ba)
+---
+ src/clients/ksu/main.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/clients/ksu/main.c b/src/clients/ksu/main.c
+index c6321c01b..35ff8978f 100644
+--- a/src/clients/ksu/main.c
++++ b/src/clients/ksu/main.c
+@@ -417,6 +417,16 @@ main (argc, argv)
+     if (hp){
+         if (gb_err) fprintf(stderr, "%s", gb_err);
+         fprintf(stderr, _("account %s: authorization failed\n"), target_user);
++
++        if (cmd != NULL) {
++            syslog(LOG_WARNING,
++                   "Account %s: authorization for %s for execution of %s failed",
++                   target_user, source_user, cmd);
++        } else {
++            syslog(LOG_WARNING, "Account %s: authorization of %s failed",
++                   target_user, source_user);
++        }
++
+         exit(1);
+     }
+ 

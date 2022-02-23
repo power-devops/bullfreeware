@@ -1,0 +1,11 @@
+--- a/Makefile.in	2019-12-19 15:54:30 +0100
++++ b/Makefile.in	2019-12-19 15:54:36 +0100
+@@ -772,7 +772,7 @@
+ # Rules to build the LEMON compiler generator
+ #
+ lemon$(BEXE):	$(TOP)/tool/lemon.c $(TOP)/tool/lempar.c
+-	$(BCC) -o $@ $(TOP)/tool/lemon.c
++	$(BCC) -o $@ $(TOP)/tool/lemon.c @LDFLAGS@
+ 	cp $(TOP)/tool/lempar.c .
+ 
+ # Rules to build the program that generates the source-id

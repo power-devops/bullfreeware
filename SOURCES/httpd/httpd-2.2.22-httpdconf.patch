@@ -1,0 +1,32 @@
+Index: httpd-2.2.22/docs/conf/httpd.conf.in
+===================================================================
+--- httpd-2.2.22.orig/docs/conf/httpd.conf.in	2011-09-29 10:28:10.000000000 +0200
++++ httpd-2.2.22/docs/conf/httpd.conf.in	2012-05-11 15:35:37.000000000 +0200
+@@ -63,8 +63,8 @@
+ # It is usually good practice to create a dedicated user and group for
+ # running httpd, as with most system services.
+ #
+-User daemon
+-Group daemon
++User nobody
++Group nobody
+ 
+ </IfModule>
+ </IfModule>
+@@ -164,7 +164,7 @@
+ # is requested.
+ #
+ <IfModule dir_module>
+-    DirectoryIndex index.html
++    DirectoryIndex index.html index.php
+ </IfModule>
+ 
+ #
+@@ -329,6 +329,7 @@
+     #
+     #AddType text/html .shtml
+     #AddOutputFilter INCLUDES .shtml
++    AddType application/x-httpd-php .php
+ </IfModule>
+ 
+ #

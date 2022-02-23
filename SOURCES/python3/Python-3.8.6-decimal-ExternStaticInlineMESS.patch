@@ -1,0 +1,43 @@
+--- ./Modules/_decimal/libmpdec/mpdecimal.h.ORIGIN	2020-07-22 18:33:31 -0500
++++ ./Modules/_decimal/libmpdec/mpdecimal.h	2020-07-23 09:33:53 -0500
+@@ -79,7 +79,11 @@
+     #define MPD_HIDE_SYMBOLS_START
+     #define MPD_HIDE_SYMBOLS_END
+   #endif
+-  #define EXTINLINE
++  #if ( defined(_AIX) && defined(__IBMC__) )
++    #define EXTINLINE extern inline
++  #else
++    #define EXTINLINE
++  #endif
+ #endif
+ 
+ 
+--- ./Modules/_decimal/libmpdec/typearith.h.ORIGIN	2020-07-23 09:09:59 -0500
++++ ./Modules/_decimal/libmpdec/typearith.h	2020-07-23 09:32:14 -0500
+@@ -569,7 +569,10 @@
+     *r = v - *q * d;
+ }
+ 
+-static inline void
++#if ! ( defined(_AIX) && defined(__IBMC__) )
++static
++#endif
++inline void
+ _mpd_idiv_word(mpd_ssize_t *q, mpd_ssize_t *r, mpd_ssize_t v, mpd_ssize_t d)
+ {
+     *q = v / d;
+--- ./Modules/_decimal/libmpdec/mpdecimal.c.ORIGIN	2020-07-23 09:38:27 -0500
++++ ./Modules/_decimal/libmpdec/mpdecimal.c	2020-07-23 09:40:00 -0500
+@@ -920,7 +920,10 @@
+ }
+ 
+ /* Integer: Undefined for specials */
+-static int
++#if !(defined(_AIX) && defined(__IBMC__))
++static
++#endif
++int
+ _mpd_isint(const mpd_t *dec)
+ {
+     mpd_ssize_t tz;

@@ -1,0 +1,233 @@
+Index: gcc-4.2.0-aix/gcc/config/rs6000/rs6000.c
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/rs6000.c	2008-03-19 17:37:15.1446444824 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/rs6000.c	2008-03-19 17:44:49.-1682584176 +0100
+@@ -15884,6 +15884,41 @@
+   || strncmp ("_ZTT", name, strlen ("_ZTT")) == 0	\
+   || strncmp ("_ZTI", name, strlen ("_ZTI")) == 0	\
+   || strncmp ("_ZTC", name, strlen ("_ZTC")) == 0)
++#if TARGET_XCOFF
++static const char* rs6000_xcoff_strip_dollar(const char* name)
++{
++  int len;
++  int dollar_inside = 0;
++  char *strip;
++
++  for (len = 0; name[len]; len++)
++    if (name[len] == '$' && len != 0)
++      {
++        dollar_inside = 1;
++        break;
++      }
++
++  if (!dollar_inside)
++    return name;
++
++  while (name[len])
++    len++;
++
++  strip = (char *)ggc_alloc_string (name, len);
++
++  for (len = 0; name[len]; len++)
++    if (name[len] == '$')
++      strip[len] = '_';
++    else
++      strip[len] = name[len];
++  strip[len] = 0;
++
++  return strip;
++}
++#define STRIP_DOLLAR(x) rs6000_xcoff_strip_dollar(x)
++#else
++#define STRIP_DOLLAR(x) (x)
++#endif
+ 
+ void
+ rs6000_output_symbol_ref (FILE *file, rtx x)
+@@ -15894,7 +15929,7 @@
+      a reference to an unknown section.  Thus, for vtables only,
+      we emit the TOC reference to reference the symbol and not the
+      section.  */
+-  const char *name = XSTR (x, 0);
++  const char *name = STRIP_DOLLAR(XSTR (x, 0));
+ 
+   if (VTABLE_NAME_P (name))
+     {
+@@ -18606,9 +18641,9 @@
+     name++;
+   len = strlen (name);
+   if (name[len - 1] == ']')
+-    return ggc_alloc_string (name, len - 4);
++    return rs6000_xcoff_strip_dollar(ggc_alloc_string (name, len - 4));
+   else
+-    return name;
++    return rs6000_xcoff_strip_dollar(name);
+ }
+ 
+ /* Section attributes.  AIX is always PIC.  */
+Index: gcc-4.2.0-aix/gcc/config/rs6000/xcoff.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config/rs6000/xcoff.h	2008-03-19 17:37:15.-93901728 +0100
++++ gcc-4.2.0-aix/gcc/config/rs6000/xcoff.h	2008-03-19 17:44:49.-1813009320 +0100
+@@ -141,36 +141,55 @@
+    are placeholders which no longer have any use.  */
+ 
+ #define ASM_DECLARE_FUNCTION_NAME(FILE,NAME,DECL)		\
+-{ if (TREE_PUBLIC (DECL))					\
++{ char buffer[256];						\
++  int dollar_inside = 0;					\
++  int i;							\
++  for (i = 0; NAME[i]; i++) {					\
++    if (NAME[i] == '$') {					\
++      dollar_inside = 1;					\
++      buffer[i] = '_';						\
++    } else							\
++      buffer[i] = NAME[i];					\
++  }								\
++  buffer[i] = 0;						\
++  if (TREE_PUBLIC (DECL))					\
+     {								\
+       if (!RS6000_WEAK || !DECL_WEAK (decl))			\
+ 	{							\
++          if (dollar_inside) {					\
++              fprintf(FILE, "\t.rename .%s,\".%s\"\n", buffer, NAME);	\
++              fprintf(FILE, "\t.rename %s,\"%s\"\n", buffer, NAME);	\
++	    }							\
+ 	  fputs ("\t.globl .", FILE);				\
+-	  RS6000_OUTPUT_BASENAME (FILE, NAME);			\
++	  RS6000_OUTPUT_BASENAME (FILE, buffer);		\
+ 	  putc ('\n', FILE);					\
+ 	}							\
+     }								\
+   else								\
+     {								\
++      if (dollar_inside) {					\
++          fprintf(FILE, "\t.rename .%s,\".%s\"\n", buffer, NAME);	\
++          fprintf(FILE, "\t.rename %s,\"%s\"\n", buffer, NAME);	\
++	}							\
+       fputs ("\t.lglobl .", FILE);				\
+-      RS6000_OUTPUT_BASENAME (FILE, NAME);			\
++      RS6000_OUTPUT_BASENAME (FILE, buffer);			\
+       putc ('\n', FILE);					\
+     }								\
+   fputs ("\t.csect ", FILE);					\
+-  RS6000_OUTPUT_BASENAME (FILE, NAME);				\
++  RS6000_OUTPUT_BASENAME (FILE, buffer);			\
+   fputs (TARGET_32BIT ? "[DS]\n" : "[DS],3\n", FILE);		\
+-  RS6000_OUTPUT_BASENAME (FILE, NAME);				\
++  RS6000_OUTPUT_BASENAME (FILE, buffer);			\
+   fputs (":\n", FILE);						\
+   fputs (TARGET_32BIT ? "\t.long ." : "\t.llong .", FILE);	\
+-  RS6000_OUTPUT_BASENAME (FILE, NAME);				\
++  RS6000_OUTPUT_BASENAME (FILE, buffer);			\
+   fputs (", TOC[tc0], 0\n", FILE);				\
+   in_section = NULL;						\
+   switch_to_section (function_section (DECL));			\
+   putc ('.', FILE);						\
+-  RS6000_OUTPUT_BASENAME (FILE, NAME);				\
++  RS6000_OUTPUT_BASENAME (FILE, buffer);			\
+   fputs (":\n", FILE);						\
+   if (write_symbols != NO_DEBUG)				\
+-    xcoffout_declare_function (FILE, DECL, NAME);		\
++    xcoffout_declare_function (FILE, DECL, buffer);		\
+ }
+ 
+ /* Output a reference to SYM on FILE.  */
+@@ -182,7 +201,24 @@
+ 
+ #undef  ASM_OUTPUT_EXTERNAL
+ #define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME)				\
+-{ rtx _symref = XEXP (DECL_RTL (DECL), 0);				\
++{ char buffer[256];							\
++  int dollar_inside = 0;						\
++  int i;								\
++  for (i = 0; NAME[i]; i++) {						\
++    if (NAME[i] == '$') {						\
++      dollar_inside = 1;						\
++      buffer[i] = '_';							\
++    } else								\
++      buffer[i] = NAME[i];						\
++  }									\
++  buffer[i] = 0;							\
++  if (dollar_inside) {							\
++      fputs ("\t.extern .", FILE);				\
++      RS6000_OUTPUT_BASENAME (FILE, buffer);			\
++      putc ('\n', FILE);					\
++      fprintf(FILE, "\t.rename .%s,\".%s\"\n", buffer, NAME);		\
++    }									\
++  rtx _symref = XEXP (DECL_RTL (DECL), 0);				\
+   if ((TREE_CODE (DECL) == VAR_DECL					\
+        || TREE_CODE (DECL) == FUNCTION_DECL)				\
+       && (NAME)[strlen (NAME) - 1] != ']')				\
+Index: gcc-4.2.0-aix/gcc/dbxout.c
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/dbxout.c	2008-03-19 17:37:15.-158459800 +0100
++++ gcc-4.2.0-aix/gcc/dbxout.c	2008-03-19 17:44:49.942401424 +0100
+@@ -474,7 +474,14 @@
+ void
+ dbxout_stab_value_label (const char *label)
+ {
+-  assemble_name (asm_out_file, label);
++  char buf[256];
++  int i;
++  for (i = 0; label[i]; i++)
++    if (label[i] == '$')
++      buf[i] = '_';
++    else
++      buf[i] = label[i];
++  assemble_name (asm_out_file, buf);
+   putc ('\n', asm_out_file);
+ }
+ 
+Index: gcc-4.2.0-aix/gcc/xcoffout.h
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/xcoffout.h	2008-03-19 17:37:15.1186694536 +0100
++++ gcc-4.2.0-aix/gcc/xcoffout.h	2008-03-19 17:44:49.-597212128 +0100
+@@ -85,7 +85,10 @@
+ 	    fputs (_p+1, asm_out_file);					\
+ 	  else								\
+ 	    for (; *_p != '[' && *_p; _p++)				\
+-	      putc (*_p, asm_out_file);					\
++              if (*_p == '$')						\
++	        putc ('_', asm_out_file);				\
++	      else							\
++	        putc (*_p, asm_out_file);				\
+ 	}								\
+       else								\
+ 	output_addr_const (asm_out_file, ADDR);				\
+Index: gcc-4.2.0-aix/libjava/sysdep/powerpc/locks.h
+===================================================================
+--- gcc-4.2.0-aix.orig/libjava/sysdep/powerpc/locks.h	2008-03-19 17:37:15.992721320 +0100
++++ gcc-4.2.0-aix/libjava/sysdep/powerpc/locks.h	2008-03-19 17:44:49.618627064 +0100
+@@ -33,12 +33,11 @@
+   obj_addr_t ret;
+ 
+   __asm__ __volatile__ (
+-	   "0:    " _LARX "%0,0,%1 \n"
++	   "      " _LARX "%0,0,%1 \n"
+ 	   "      xor. %0,%3,%0\n"
+-	   "      bne 1f\n"
++	   "      bne $ + 12\n"
+ 	   "      " _STCX "%2,0,%1\n"
+-	   "      bne- 0b\n"
+-	   "1:   \n"
++	   "      bne- $ - 16\n"
+ 	: "=&r" (ret)
+ 	: "r" (addr), "r" (new_val), "r" (old)
+ 	: "cr0", "memory");
+@@ -67,12 +66,11 @@
+   __asm__ __volatile__ ("sync" : : : "memory");
+ 
+   __asm__ __volatile__ (
+-	   "0:    " _LARX "%0,0,%1 \n"
++	   "      " _LARX "%0,0,%1 \n"
+ 	   "      xor. %0,%3,%0\n"
+-	   "      bne 1f\n"
++	   "      bne $ + 12\n"
+ 	   "      " _STCX "%2,0,%1\n"
+-	   "      bne- 0b\n"
+-	   "1:   \n"
++	   "      bne- $ - 16\n"
+ 	: "=&r" (ret)
+ 	: "r" (addr), "r" (new_val), "r" (old)
+ 	: "cr0", "memory");

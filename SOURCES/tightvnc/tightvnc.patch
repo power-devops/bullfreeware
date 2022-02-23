@@ -1,0 +1,16 @@
+diff -Nur vnc_unixsrc.target/Xvnc/programs/Xserver/mi/miarc.c vnc_unixsrc/Xvnc/programs/Xserver/mi/miarc.c
+--- vnc_unixsrc.target/Xvnc/programs/Xserver/mi/miarc.c	2016-03-30 15:40:36 +0200
++++ vnc_unixsrc/Xvnc/programs/Xserver/mi/miarc.c	2016-03-30 15:43:13 +0200
+@@ -71,11 +71,7 @@
+ #include "Xfuncproto.h"
+ 
+ static double miDsin(), miDcos(), miDasin(), miDatan2();
+-double	cbrt(
+-#if NeedFunctionPrototypes
+-	     double
+-#endif
+-);
++double	cbrt();
+ 
+ #ifdef ICEILTEMPDECL
+ ICEILTEMPDECL

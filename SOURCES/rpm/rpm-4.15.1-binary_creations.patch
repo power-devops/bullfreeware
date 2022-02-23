@@ -1,0 +1,20 @@
+--- ./build/pack.c_orig	2020-04-19 02:09:49 +0000
++++ ./build/pack.c	2020-04-19 02:35:40 +0000
+@@ -749,17 +749,13 @@
+     Package pkg;
+ 
+     /* Run binary creation in parallel */
+-    #pragma omp parallel
+-    #pragma omp single
+     for (pkg = spec->packages; pkg != NULL; pkg = pkg->next) {
+-	#pragma omp task
+ 	{
+ 	pkg->rc = packageBinary(spec, pkg, cookie, cheating, &pkg->filename);
+ 	rpmlog(RPMLOG_DEBUG,
+ 		_("Finished binary package job, result %d, filename %s\n"),
+ 		pkg->rc, pkg->filename);
+ 	if (pkg->rc) {
+-	    #pragma omp critical
+ 	    rc = pkg->rc;
+ 	}
+ 	} /* omp task */

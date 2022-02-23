@@ -1,0 +1,84 @@
+diff --git a/configure b/configure
+index cc9e116..fc4e1e7 100755
+--- a/configure
++++ b/configure
+@@ -6082,7 +6070,7 @@ else
+ 
+ 		if test "$GCC" = yes; then :
+ 
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
++		    SHLIB_LD='${CC} -shared'
+ 
+ else
+ 
+@@ -6095,6 +6083,8 @@ fi
+ 		LD_SEARCH_FLAGS=${CC_SEARCH_FLAGS}
+ 
+ fi
++		SHARED_LIB_SUFFIX='${SHLIB_SUFFIX}.${PACKAGE_VERSION}'
++		UNSHARED_LIB_SUFFIX='${SHLIB_SUFFIX}'
+ 	    ;;
+ 	BeOS*)
+ 	    SHLIB_CFLAGS="-fPIC"
+@@ -9659,10 +9647,14 @@ if test "$FRAMEWORK_BUILD" = "1" ; then
+     $as_echo "#define EXP_FRAMEWORK 1" >>confdefs.h
+ 
+ else
+-    if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
+-        EXP_LIB_FLAG="-lexpect${EXP_LIB_VERSION}"
++    if test "`uname -s`" = "AIX"; then
++        EXP_LIB_FLAG="-lexpect"
+     else
+-        EXP_LIB_FLAG="-lexpect`echo ${EXP_LIB_VERSION} | tr -d .`"
++        if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
++            EXP_LIB_FLAG="-lexpect${EXP_LIB_VERSION}"
++        else
++            EXP_LIB_FLAG="-lexpect`echo ${EXP_LIB_VERSION} | tr -d .`"
++        fi
+     fi
+     EXP_BUILD_LIB_SPEC="-L`pwd` ${EXP_LIB_FLAG}"
+     EXP_LIB_SPEC="-L${libdir} ${EXP_LIB_FLAG}"
+diff --git a/configure.in b/configure.in
+index fb7cdcd..b92b477 100755
+--- a/configure.in
++++ b/configure.in
+@@ -923,10 +923,14 @@ if test "$FRAMEWORK_BUILD" = "1" ; then
+     EXP_LIB_FILE="Expect"
+     AC_DEFINE(EXP_FRAMEWORK)
+ else
+-    if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
+-        EXP_LIB_FLAG="-lexpect${EXP_LIB_VERSION}"
++    if test "`uname -s`" = "AIX"; then
++        EXP_LIB_FLAG="-lexpect"
+     else
+-        EXP_LIB_FLAG="-lexpect`echo ${EXP_LIB_VERSION} | tr -d .`"
++        if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
++            EXP_LIB_FLAG="-lexpect${EXP_LIB_VERSION}"
++        else
++            EXP_LIB_FLAG="-lexpect`echo ${EXP_LIB_VERSION} | tr -d .`"
++        fi
+     fi
+     EXP_BUILD_LIB_SPEC="-L`pwd` ${EXP_LIB_FLAG}"
+     EXP_LIB_SPEC="-L${libdir} ${EXP_LIB_FLAG}"
+diff --git a/tclconfig/tcl.m4 b/tclconfig/tcl.m4
+index 0689cab..5caffb3 100644
+--- a/tclconfig/tcl.m4
++++ b/tclconfig/tcl.m4
+@@ -1376,7 +1376,7 @@ dnl AC_CHECK_TOOL(AR, ar)
+ 		LD_SEARCH_FLAGS='-R ${LIB_RUNTIME_DIR}'
+ 	    ], [
+ 		AS_IF([test "$GCC" = yes], [
+-		    SHLIB_LD='${CC} -shared -Wl,-bexpall'
++		    SHLIB_LD='${CC} -shared'
+ 		], [
+ 		    SHLIB_LD="/bin/ld -bhalt:4 -bM:SRE -bexpall -H512 -T512 -bnoentry"
+ 		    LDFLAGS="$LDFLAGS -brtl"
+@@ -1385,6 +1385,8 @@ dnl AC_CHECK_TOOL(AR, ar)
+ 		CC_SEARCH_FLAGS='-L${LIB_RUNTIME_DIR}'
+ 		LD_SEARCH_FLAGS=${CC_SEARCH_FLAGS}
+ 	    ])
++	    SHARED_LIB_SUFFIX='${SHLIB_SUFFIX}.${PACKAGE_VERSION}'
++	     UNSHARED_LIB_SUFFIX='${SHLIB_SUFFIX}'
+ 	    ;;
+ 	BeOS*)
+ 	    SHLIB_CFLAGS="-fPIC"

@@ -1,0 +1,45 @@
+Index: gotools/Makefile.am
+===================================================================
+--- a/gotools/Makefile.am	(revision 271953)
++++ b/gotools/Makefile.am	(working copy)
+@@ -25,7 +25,7 @@ mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinst
+ PWD_COMMAND = $${PWDCMD-pwd}
+ STAMP = echo timestamp >
+ 
+-libgodir = ../$(target_noncanonical)/libgo
++libgodir = ../$(target_noncanonical)/ppc64/libgo
+ LIBGODEP = $(libgodir)/libgo.la
+ 
+ LIBGOTOOL = $(libgodir)/libgotool.a
+@@ -40,7 +41,7 @@ endif
+ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+ 
+-AM_GOCFLAGS = -I $(libgodir)
++AM_GOCFLAGS = -I $(libgodir) -maix64
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L /opt/freeware/lib
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ 
+Index: gotools/Makefile.in
+===================================================================
+--- a/gotools/Makefile.in	(revision 271953)
++++ b/gotools/Makefile.in	(working copy)
+@@ -336,7 +336,7 @@ libexecsubdir = $(libexecdir)/gcc/$(target_noncano
+ mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinstalldirs
+ PWD_COMMAND = $${PWDCMD-pwd}
+ STAMP = echo timestamp >
+-libgodir = ../$(target_noncanonical)/libgo
++libgodir = ../$(target_noncanonical)/ppc64/libgo
+ LIBGODEP = $(libgodir)/libgo.la
+ LIBGOTOOL = $(libgodir)/libgotool.a
+ @NATIVE_FALSE@GOCOMPILER = $(GOC)
+@@ -345,7 +345,7 @@ LIBGOTOOL = $(libgodir)/libgotool.a
+ @NATIVE_TRUE@GOCOMPILER = $(GOC_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET)
+ GOCFLAGS = $(CFLAGS_FOR_TARGET)
+ GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
+-AM_GOCFLAGS = -I $(libgodir)
++AM_GOCFLAGS = -I $(libgodir) -maix64
+ AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs -L /opt/freeware/lib
+ GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
+ libgosrcdir = $(srcdir)/../libgo/go
+ cmdsrcdir = $(libgosrcdir)/cmd

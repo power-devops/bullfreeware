@@ -1,0 +1,54 @@
+--- ./tests/core/dirent.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./tests/core/dirent.c	2020-11-03 17:51:08 +0100
+@@ -209,12 +209,14 @@
+ 	check_counts(&odd);
+ }
+ 
++/* AIX FILENAME_MAX is 255 which does not return error at open() */
++#define Linux_FILENAME_MAX 4096
+ /* test filename length limits */
+ void test_core_dirent__length_limits(void)
+ {
+-	char *big_filename = (char *)git__malloc(FILENAME_MAX + 1);
+-	memset(big_filename, 'a', FILENAME_MAX + 1);
+-	big_filename[FILENAME_MAX] = 0;
++	char *big_filename = (char *)git__malloc(Linux_FILENAME_MAX + 1);
++	memset(big_filename, 'a', Linux_FILENAME_MAX + 1);
++	big_filename[Linux_FILENAME_MAX] = 0;
+ 
+ 	cl_must_fail(p_creat(big_filename, 0666));
+ 
+--- ./tests/config/conditionals.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./tests/config/conditionals.c	2020-11-23 12:23:49 +0100
+@@ -50,7 +50,14 @@
+ 
+ static char *sandbox_path(git_buf *buf, const char *suffix)
+ {
++#ifdef _AIX61
++	/* char PN[PATH_MAX];  leads to error no memeory later on */
++	char *PN;
++	PN = malloc(PATH_MAX * 10);
++	char *path = p_realpath(clar_sandbox_path(), PN);
++#else
+ 	char *path = p_realpath(clar_sandbox_path(), NULL);
++#endif
+ 	cl_assert(path);
+ 	cl_git_pass(git_buf_attach(buf, path, 0));
+ 	cl_git_pass(git_buf_joinpath(buf, buf->ptr, suffix));
+--- ./tests/repo/discover.c.ORIG	2020-06-04 10:46:58 +0200
++++ ./tests/repo/discover.c	2020-11-23 17:30:52 +0100
+@@ -30,7 +30,14 @@
+ {
+ 	git_buf found_path = GIT_BUF_INIT, resolved = GIT_BUF_INIT;
+ 
++#ifdef _AIX61
++	char *PN;
++	PN = malloc(PATH_MAX * 10);
++	git_buf_attach(&resolved, p_realpath(expected_path, PN), 0);
++#else
+ 	git_buf_attach(&resolved, p_realpath(expected_path, NULL), 0);
++#endif
++
+ 	cl_assert(resolved.size > 0);
+ 	cl_git_pass(git_path_to_dir(&resolved));
+ 	cl_git_pass(git_repository_discover(&found_path, start_path, 1, ceiling_dirs));

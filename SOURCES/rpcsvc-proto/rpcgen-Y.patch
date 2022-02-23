@@ -1,0 +1,15 @@
+--- ./rpcsvc/Makefile.in.ORIGIN	2018-05-28 02:27:44.000000000 -0500
++++ ./rpcsvc/Makefile.in	2019-06-20 16:46:14.000000000 -0500
+@@ -531,7 +531,11 @@
+ 
+ 
+ %.h: %.x
+-	$(top_builddir)/rpcgen/rpcgen -h -o $@ $<
++	if test -e $(CPP); then \
++	  $(top_builddir)/rpcgen/rpcgen -Y `dirname $(CPP)` -h -o $@ $< ; \
++	else \
++	  $(top_builddir)/rpcgen/rpcgen -h -o $@ $< ; \
++	fi
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.

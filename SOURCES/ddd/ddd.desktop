@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=DDD
+Comment=Data Display Debugger
+Exec=ddd
+Icon=gnome-cpu.png

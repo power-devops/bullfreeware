@@ -1,0 +1,37 @@
+--- ./makefile.aix_gcc_64.ORIGIN	2020-11-10 16:30:33 +0100
++++ ./makefile.aix_gcc_64	2020-11-10 16:30:27 +0100
+@@ -3,11 +3,31 @@
+ # tested with AIX 5.3 and g++ 4.1.0
+ #
+ 
+-OPTFLAGS=-O -s
++OPTFLAGS=-O2
+ 
+ ALLFLAGS=${OPTFLAGS} \
+-        -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES \
+-        -DNDEBUG -D_REENTRANT -DENV_UNIX \
++	-maix64  \
++	-fexceptions \
++	-grecord-gcc-switches \
++	-pipe \
++	-Wall \
++	-Werror=format-security \
++	-Wp,-D_FORTIFY_SOURCE=2 \
++	-Wp,-D_GLIBCXX_ASSERTIONS \
++	-fasynchronous-unwind-tables \
++	-fstack-clash-protection \
++	-DNDEBUG \
++	-DENV_UNIX \
++	-D_7ZIP_LARGE_PAGES \
++	-D_7ZIP_ASM \
++	-fPIC \
++	-D_FILE_OFFSET_BITS=64 \
++	-D_LARGEFILE_SOURCE \
++	-D_REENTRANT \
++	-DENV_UNIX \
++	-DBREAK_HANDLER \
++	-DUNICODE \
++	-D_UNICODE \
+         $(LOCAL_FLAGS)
+ 
+ CXX=g++

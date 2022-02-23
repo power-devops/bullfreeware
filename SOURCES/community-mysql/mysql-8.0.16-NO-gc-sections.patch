@@ -1,0 +1,18 @@
+--- ./CMakeLists.txt.ORIGIN	2019-06-04 09:16:33 -0500
++++ ./CMakeLists.txt	2019-06-04 09:16:57 -0500
+@@ -687,10 +687,11 @@
+ 
+     # Seemingly --gc-sections causes problems with randomization, so only
+     # turn it on if we are not making a randomized build.
+-    IF (NOT LINK_RANDOMIZE)
+-      STRING_APPEND(CMAKE_C_LINK_FLAGS " -Wl,--gc-sections")
+-      STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -Wl,--gc-sections")
+-    ENDIF()
++# Not on AIX
++#    IF (NOT LINK_RANDOMIZE)
++#      STRING_APPEND(CMAKE_C_LINK_FLAGS " -Wl,--gc-sections")
++#      STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -Wl,--gc-sections")
++#    ENDIF()
+   ENDIF()
+   CMAKE_POP_CHECK_STATE()
+ ENDIF()

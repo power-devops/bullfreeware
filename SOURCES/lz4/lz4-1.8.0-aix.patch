@@ -1,0 +1,183 @@
+*** ./lib/Makefile.ORIG	Wed Nov 15 16:15:01 2017
+--- ./lib/Makefile	Wed Nov 15 16:44:07 2017
+***************
+*** 1,4 ****
+! # ################################################################
+  # LZ4 library - Makefile
+  # Copyright (C) Yann Collet 2011-2016
+  # All rights reserved.
+--- 1,4 ----
+!  ################################################################
+  # LZ4 library - Makefile
+  # Copyright (C) Yann Collet 2011-2016
+  # All rights reserved.
+***************
+*** 46,54 ****
+  
+  CPPFLAGS+= -DXXH_NAMESPACE=LZ4_
+  CFLAGS  ?= -O3
+! DEBUGFLAGS:= -Wall -Wextra -Wcast-qual -Wcast-align -Wshadow \
+!            -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wundef \
+!            -Wpointer-arith -Wstrict-aliasing=1
+  CFLAGS  += $(DEBUGFLAGS) $(MOREFLAGS)
+  FLAGS    = $(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
+  
+--- 46,52 ----
+  
+  CPPFLAGS+= -DXXH_NAMESPACE=LZ4_
+  CFLAGS  ?= -O3
+! DEBUGFLAGS:=
+  CFLAGS  += $(DEBUGFLAGS) $(MOREFLAGS)
+  FLAGS    = $(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
+  
+***************
+*** 62,68 ****
+  	SHARED_EXT_VER = $(LIBVER).$(SHARED_EXT)
+  	SONAME_FLAGS = -install_name $(LIBDIR)/liblz4.$(SHARED_EXT_MAJOR) -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER)
+  else
+! 	SONAME_FLAGS = -Wl,-soname=liblz4.$(SHARED_EXT).$(LIBVER_MAJOR)
+  	SHARED_EXT = so
+  	SHARED_EXT_MAJOR = $(SHARED_EXT).$(LIBVER_MAJOR)
+  	SHARED_EXT_VER = $(SHARED_EXT).$(LIBVER)
+--- 60,70 ----
+  	SHARED_EXT_VER = $(LIBVER).$(SHARED_EXT)
+  	SONAME_FLAGS = -install_name $(LIBDIR)/liblz4.$(SHARED_EXT_MAJOR) -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER)
+  else
+! ifeq ($(shell uname), AIX)
+!         SONAME_FLAGS =
+! else
+!         SONAME_FLAGS = -Wl,-soname=liblz4.$(SHARED_EXT).$(LIBVER_MAJOR)
+! endif
+  	SHARED_EXT = so
+  	SHARED_EXT_MAJOR = $(SHARED_EXT).$(LIBVER_MAJOR)
+  	SHARED_EXT_VER = $(SHARED_EXT).$(LIBVER)
+***************
+*** 96,106 ****
+  	@$(CC) $(FLAGS) -DLZ4_DLL_EXPORT=1 -shared $^ -o dll\$@.dll
+  	dlltool -D dll\liblz4.dll -d dll\liblz4.def -l dll\liblz4.lib
+  else
+  	@$(CC) $(FLAGS) -shared $^ -fPIC -fvisibility=hidden $(SONAME_FLAGS) -o $@
+  	@echo creating versioned links
+! 	@ln -sf $@ liblz4.$(SHARED_EXT_MAJOR)
+  	@ln -sf $@ liblz4.$(SHARED_EXT)
+  endif
+  
+  liblz4: $(LIBLZ4)
+  
+--- 98,118 ----
+  	@$(CC) $(FLAGS) -DLZ4_DLL_EXPORT=1 -shared $^ -o dll\$@.dll
+  	dlltool -D dll\liblz4.dll -d dll\liblz4.def -l dll\liblz4.lib
+  else
++ ifeq ($(shell uname), AIX)
++ 	CreateExportList liblz4.exp liblz4.a
++ 	$(CC) -qmkshrobj liblz4.a -o $@ -bE:liblz4.exp -bernotok
++ 	/usr/bin/rm -f liblz4.exp
++ 	/usr/bin/rm -f liblz4.a
++ else
+  	@$(CC) $(FLAGS) -shared $^ -fPIC -fvisibility=hidden $(SONAME_FLAGS) -o $@
++ endif
+  	@echo creating versioned links
+! 	@ln -sf $@ liblz4.$(SHARED_EXT).$(LIBVER_MAJOR)
+  	@ln -sf $@ liblz4.$(SHARED_EXT)
++ ifeq ($(shell uname), AIX)
++ 	/usr/bin/ar -q liblz4.a $@
+  endif
++ endif
+  
+  liblz4: $(LIBLZ4)
+  
+***************
+*** 113,119 ****
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  
+  DESTDIR     ?=
+  # directory variables : GNU convention prefers lowercase
+--- 125,131 ----
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),AIX Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  
+  DESTDIR     ?=
+  # directory variables : GNU convention prefers lowercase
+*** ./programs/Makefile.ORIG	Wed Nov 15 16:17:59 2017
+--- ./programs/Makefile	Wed Nov 15 16:19:31 2017
+***************
+*** 46,54 ****
+  
+  CPPFLAGS += -I$(LZ4DIR) -DXXH_NAMESPACE=LZ4_
+  CFLAGS   ?= -O3
+! DEBUGFLAGS:=-Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow \
+!            -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes \
+!            -Wpointer-arith -Wstrict-aliasing=1
+  CFLAGS   += $(DEBUGFLAGS) $(MOREFLAGS)
+  FLAGS     = $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+  
+--- 46,52 ----
+  
+  CPPFLAGS += -I$(LZ4DIR) -DXXH_NAMESPACE=LZ4_
+  CFLAGS   ?= -O3
+! DEBUGFLAGS:=
+  CFLAGS   += $(DEBUGFLAGS) $(MOREFLAGS)
+  FLAGS     = $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+  
+***************
+*** 109,115 ****
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  
+  unlz4: lz4
+  	ln -s lz4 unlz4
+--- 107,113 ----
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),AIX Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  
+  unlz4: lz4
+  	ln -s lz4 unlz4
+***************
+*** 132,140 ****
+  bindir      ?= $(exec_prefix)/bin
+  BINDIR      ?= $(bindir)
+  datarootdir ?= $(PREFIX)/share
+! mandir      ?= $(datarootdir)/man
+  
+! ifneq (,$(filter $(shell uname),OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  MANDIR  ?= $(PREFIX)/man/man1
+  else
+  MANDIR  ?= $(mandir)
+--- 130,138 ----
+  bindir      ?= $(exec_prefix)/bin
+  BINDIR      ?= $(bindir)
+  datarootdir ?= $(PREFIX)/share
+! mandir      ?= $(PREFIX)/man
+  
+! ifneq (,$(filter $(shell uname),AIX OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  MANDIR  ?= $(PREFIX)/man/man1
+  else
+  MANDIR  ?= $(mandir)
+*** ./Makefile.ORIG	Wed Nov 15 16:17:30 2017
+--- ./Makefile	Wed Nov 15 16:19:51 2017
+***************
+*** 90,96 ****
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  HOST_OS = POSIX
+  
+  .PHONY: install uninstall
+--- 90,96 ----
+  #-----------------------------------------------------------------------------
+  # make install is validated only for Linux, OSX, BSD, Hurd and Solaris targets
+  #-----------------------------------------------------------------------------
+! ifneq (,$(filter $(shell uname),AIX Linux Darwin GNU/kFreeBSD GNU OpenBSD FreeBSD NetBSD DragonFly SunOS))
+  HOST_OS = POSIX
+  
+  .PHONY: install uninstall

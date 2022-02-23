@@ -1,0 +1,14 @@
+--- mysql-8.0.4-rc/mysql-test/include/mtr_warnings.sql~	2018-01-18 16:52:52.000000000 +0100
++++ mysql-8.0.4-rc/mysql-test/include/mtr_warnings.sql	2018-03-08 20:14:48.537507245 +0100
+@@ -311,6 +311,11 @@
+  */
+  ("The SSL library function CRYPTO_set_mem_functions failed"),
+ 
++ /*
++   ARM32 don't support timers and get this warning in every test.
++ */
++ ("The CYCLE timer is not available. WAIT events in the performance_schema will not be timed."),
++
+  ("THE_LAST_SUPPRESSION")||
+ 
+ 

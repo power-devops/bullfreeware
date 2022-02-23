@@ -1,0 +1,25 @@
+From c72db2df51046e6b2f3006dff0a696837e0c51e9 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Tue, 29 Jan 2019 16:27:23 -0600
+Subject: [PATCH 24/24] cmd/dist: enable cgo for aix/ppc64
+
+---
+ src/cmd/dist/build.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/cmd/dist/build.go b/src/cmd/dist/build.go
+index ad2c96436a..5c10711c83 100644
+--- a/src/cmd/dist/build.go
++++ b/src/cmd/dist/build.go
+@@ -1413,7 +1413,7 @@ func checkNotStale(goBinary string, targets ...string) {
+ // single point of truth for supported platforms. This list is used
+ // by 'go tool dist list'.
+ var cgoEnabled = map[string]bool{
+-	"aix/ppc64":       false,
++	"aix/ppc64":       true,
+ 	"darwin/386":      true,
+ 	"darwin/amd64":    true,
+ 	"darwin/arm":      true,
+-- 
+2.15.1
+

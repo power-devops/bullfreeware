@@ -1,0 +1,18 @@
+--- ./libgo/runtime/malloc.goc.ORIGIN	2017-06-09 16:45:54 +0200
++++ ./libgo/runtime/malloc.goc	2017-06-09 16:45:59 +0200
+@@ -41,7 +41,14 @@
+ #define HeapBaseOptions 1
+ #elif defined(_AIX)
+ // mmap adresses range start at 0x07000000_00000000 on AIX for 64 bits processes
+-#define HeapBase(i) ((void*)(uintptr)(0x70ULL<<52))
++// Previously : #define HeapBase(i) ((void*)(uintptr)(0x70ULL<<52))
++// On AIX, the first set of address ranges available for mmap consists of the
++// range 0x07000000_00000000-0x07FFFFFF_FFFFFFFF.  It is available for both
++// fixed-location and variable-location mappings.  However, since the 64-bit
++// Go runtime does not actually reserve the arena range, we start the arena
++// range at a slightly higher location so that it is not stolen by
++// allocmcache/sysAlloc.
++#define HeapBase(i) ((void*)(uintptr)(0x70ULL<<52|1ULL<<32))
+ #define HeapBaseOptions 1
+ #else
+ #define HeapBase(i) ((void*)(uintptr)(i<<40|0x00c0ULL<<32))

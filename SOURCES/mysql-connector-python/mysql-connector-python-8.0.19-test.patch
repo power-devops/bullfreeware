@@ -1,0 +1,11 @@
+--- ./tests/test_mysqlx_crud.py.orig	2020-01-21 12:19:27 +0100
++++ ./tests/test_mysqlx_crud.py	2020-01-21 12:02:58 +0100
+@@ -275,7 +275,7 @@
+         self.assertTrue(collection.exists_in_database())
+         self.schema.drop_collection(collection_name)
+ 
+-    @unittest.skipIf(tests.MYSQL_VERSION < (8, 0, 3), "Row locks unavailable.")
++    @unittest.skipIf(tests.MYSQL_VERSION < (1000, 0, 3), "Row locks unavailable.")
+     def test_lock_shared(self):
+         collection_name = "collection_test"
+         collection = self.schema.create_collection(collection_name)

@@ -1,0 +1,10 @@
+--- a/gmp-5.1.3/configure	2013-09-30 12:18:33.000000000 +0200
++++ b/gmp-5.1.3/configure	2015-10-22 14:30:16.000000000 +0200
+@@ -20514,6 +20514,7 @@
+ 	  lt_prog_compiler_static_CXX='-Bstatic'
+ 	else
+ 	  lt_prog_compiler_static_CXX='-bnso -bI:/lib/syscalls.exp'
++	   lt_prog_compiler_wl_CXX='-Wl,' # GCC seems to not be recognized
+ 	fi
+ 	;;
+        chorus*)

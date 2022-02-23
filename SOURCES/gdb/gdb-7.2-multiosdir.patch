@@ -1,0 +1,13 @@
+Index: gdb-7.2/libiberty/Makefile.in
+===================================================================
+--- gdb-7.2.orig/libiberty/Makefile.in	2010-04-24 03:03:21.000000000 +0200
++++ gdb-7.2/libiberty/Makefile.in	2011-05-23 15:04:35.000000000 +0200
+@@ -327,7 +327,7 @@
+ # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+ # default multilib, so we have to take CFLAGS into account as well,
+ # since it will be passed the multilib flags.
+-MULTIOSDIR = `$(CC) $(CFLAGS) -print-multi-os-directory`
++MULTIOSDIR = ./
+ install_to_libdir: all
+ 	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+ 	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n

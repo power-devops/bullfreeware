@@ -1,0 +1,62 @@
+Index: tcsh-6.14.00/sh.proc.c
+===================================================================
+--- tcsh-6.14.00.orig/sh.proc.c	2005-03-03 20:57:07.000000000 +0100
++++ tcsh-6.14.00/sh.proc.c	2010-12-03 17:16:50.000000000 +0100
+@@ -543,9 +543,7 @@
+ {
+     struct process *fp;
+     int     jobflags, reason;
+-#ifdef BSDSIGS
+-    sigmask_t omask;
+-#endif /* BSDSIGS */
++    sigset_t omask, pause_mask;
+ #ifdef UNRELSIGS
+     signalfun_t inthandler;
+ #endif /* UNRELSIGS */
+@@ -562,17 +560,16 @@
+      * target process, or any of its friends, are running
+      */
+     fp = pp;
+-#ifdef BSDSIGS
+-    omask = sigblock(sigmask(SIGCHLD));
+-#endif /* BSDSIGS */
++    sigprocmask(SIG_BLOCK, NULL, &omask);
++    sighold(SIGINT);
++    sigprocmask(SIG_BLOCK, NULL, &pause_mask);
++    sighold(SIGCHLD);
++    sigdelset(&pause_mask, SIGCHLD);
+ #ifdef UNRELSIGS
+     if (setintr)
+         inthandler = signal(SIGINT, SIG_IGN);
+ #endif /* UNRELSIGS */
+     for (;;) {
+-#ifndef BSDSIGS
+-	(void) sighold(SIGCHLD);
+-#endif /* !BSDSIGS */
+ 	jobflags = 0;
+ 	do
+ 	    jobflags |= fp->p_flags;
+@@ -583,21 +580,12 @@
+ 	xprintf("%d starting to sigpause for SIGCHLD on %d\n",
+ 		getpid(), fp->p_procid);
+ #endif /* JOBDEBUG */
+-#ifdef BSDSIGS
+-	/* (void) sigpause(sigblock((sigmask_t) 0) &~ sigmask(SIGCHLD)); */
+-	(void) sigpause(omask & ~sigmask(SIGCHLD));
+-#else /* !BSDSIGS */
+-	(void) sigpause(SIGCHLD);
+-#endif /* !BSDSIGS */
++	sigsuspend(&pause_mask);
+     }
+ #ifdef JOBDEBUG
+ 	xprintf("%d returned from sigpause loop\n", getpid());
+ #endif /* JOBDEBUG */
+-#ifdef BSDSIGS
+-    (void) sigsetmask(omask);
+-#else /* !BSDSIGS */
+-    (void) sigrelse(SIGCHLD);
+-#endif /* !BSDSIGS */
++    sigprocmask(SIG_SETMASK, &omask, NULL);
+ #ifdef UNRELSIGS
+     if (setintr)
+         (void) signal(SIGINT, inthandler);

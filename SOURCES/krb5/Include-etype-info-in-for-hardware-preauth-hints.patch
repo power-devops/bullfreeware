@@ -1,0 +1,38 @@
+From 6f883193ddb63da0f29977e3b95a663321404546 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Wed, 3 Jan 2018 11:59:14 -0500
+Subject: [PATCH] Include etype-info in for hardware preauth hints
+
+If a principal has the requires_hwauth bit set, include PA-ETYPE-INFO
+or PA-ETYPE-INFO2 padata in the PREAUTH_REQUIRED error, as preauth
+mechs involving hardware tokens may also use the principal's Kerberos
+password.
+
+ticket: 8629
+(cherry picked from commit ba92da05accc524b8037453b63ced1a6c65fd2a1)
+---
+ src/kdc/kdc_preauth.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/kdc/kdc_preauth.c b/src/kdc/kdc_preauth.c
+index 81d0b8cff..739c5e776 100644
+--- a/src/kdc/kdc_preauth.c
++++ b/src/kdc/kdc_preauth.c
+@@ -144,7 +144,7 @@ static preauth_system static_preauth_systems[] = {
+     {
+         "etype-info",
+         KRB5_PADATA_ETYPE_INFO,
+-        0,
++        PA_HARDWARE,
+         NULL,
+         NULL,
+         NULL,
+@@ -155,7 +155,7 @@ static preauth_system static_preauth_systems[] = {
+     {
+         "etype-info2",
+         KRB5_PADATA_ETYPE_INFO2,
+-        0,
++        PA_HARDWARE,
+         NULL,
+         NULL,
+         NULL,

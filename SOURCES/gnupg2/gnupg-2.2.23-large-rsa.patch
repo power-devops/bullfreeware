@@ -1,0 +1,12 @@
+diff -up gnupg-2.2.23/g10/keygen.c.large-rsa gnupg-2.2.23/g10/keygen.c
+--- gnupg-2.2.23/g10/keygen.c.large-rsa	2020-09-04 13:53:42.030486671 +0200
++++ gnupg-2.2.23/g10/keygen.c	2020-09-04 13:55:52.896669542 +0200
+@@ -2262,7 +2262,7 @@ get_keysize_range (int algo, unsigned in
+ 
+     default:
+       *min = opt.compliance == CO_DE_VS ? 2048: 1024;
+-      *max = 4096;
++      *max = opt.flags.large_rsa == 1 ? 8192 : 4096;
+       def = 3072;
+       break;
+     }

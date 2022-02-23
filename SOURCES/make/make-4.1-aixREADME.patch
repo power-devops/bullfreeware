@@ -1,0 +1,18 @@
+Index: tests/README
+===================================================================
+--- tests.orig/README	2014-10-05 18:24:51.000000000 +0200
++++ tests/README	2015-11-18 15:38:02.000000000 +0100
+@@ -62,6 +62,13 @@
+ options/dash-l test should no longer *fail* because make can't read
+ /dev/kmem.
+ 
++On AIX there are some limitations:
++- The features/archives tests fail because ./configure sets "AR" to "ar" but we expect "/usr/bin/ar".
++- The functions/files tests fail when executed as root. Because we can write in the file read-only.
++- The misc/close_stdout tests fail because the file system "/dev/full" doesn't exist on AIX.
++- The option/dash-l tests fail because "make" cannot get the system load (as explained above.)
++- The features/output-sync tests fail or succeed randomly. Thus, the -O option is not made available on AIX.
++ 
+ A directory named "work" will be created when the tests are run which
+ will contain any makefiles and "diff" files of tests that fail so that
+ you may look at them afterward to see the output of make and the

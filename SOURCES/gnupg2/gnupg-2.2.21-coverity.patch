@@ -1,0 +1,248 @@
+diff -up gnupg-2.2.21/common/server-help.c.coverity gnupg-2.2.21/common/server-help.c
+--- gnupg-2.2.21/common/server-help.c.coverity	2019-02-11 10:59:34.000000000 +0100
++++ gnupg-2.2.21/common/server-help.c	2020-07-20 17:09:57.416148768 +0200
+@@ -156,7 +156,7 @@ get_option_value (char *line, const char
+   *pend = 0;
+   *r_value = xtrystrdup (p);
+   *pend = c;
+-  if (!p)
++  if (!*r_value)
+     return my_error_from_syserror ();
+   return 0;
+ }
+diff -up gnupg-2.2.21/dirmngr/domaininfo.c.coverity gnupg-2.2.21/dirmngr/domaininfo.c
+--- gnupg-2.2.21/dirmngr/domaininfo.c.coverity	2019-07-09 11:08:45.000000000 +0200
++++ gnupg-2.2.21/dirmngr/domaininfo.c	2020-07-20 17:09:57.418148784 +0200
+@@ -193,6 +193,7 @@ insert_or_update (const char *domain,
+           log_error ("domaininfo: error allocating helper array: %s\n",
+                      gpg_strerror (gpg_err_code_from_syserror ()));
+           drop_extra = bucket;
++          xfree (di_new);
+           goto leave;
+         }
+       narray = 0;
+@@ -258,6 +259,8 @@ insert_or_update (const char *domain,
+        * sensible strategy.  */
+       drop_extra = domainbuckets[hash];
+       domainbuckets[hash] = keep;
++
++      xfree (array);
+     }
+ 
+   /* Insert */
+diff -up gnupg-2.2.21/dirmngr/http.c.coverity gnupg-2.2.21/dirmngr/http.c
+--- gnupg-2.2.21/dirmngr/http.c.coverity	2019-11-18 18:44:33.000000000 +0100
++++ gnupg-2.2.21/dirmngr/http.c	2020-07-20 17:09:57.419148793 +0200
+@@ -3656,7 +3656,6 @@ http_prepare_redirect (http_redir_info_t
+       if (!newurl)
+         {
+           err = gpg_error_from_syserror ();
+-          http_release_parsed_uri (locuri);
+           return err;
+         }
+     }
+@@ -3675,7 +3674,6 @@ http_prepare_redirect (http_redir_info_t
+       if (!newurl)
+         {
+           err = gpg_error_from_syserror ();
+-          http_release_parsed_uri (locuri);
+           return err;
+         }
+     }
+diff -up gnupg-2.2.21/dirmngr/ks-engine-hkp.c.coverity gnupg-2.2.21/dirmngr/ks-engine-hkp.c
+--- gnupg-2.2.21/dirmngr/ks-engine-hkp.c.coverity	2019-11-18 18:44:33.000000000 +0100
++++ gnupg-2.2.21/dirmngr/ks-engine-hkp.c	2020-07-20 17:09:57.419148793 +0200
+@@ -1426,7 +1426,7 @@ ks_hkp_search (ctrl_t ctrl, parsed_uri_t
+   int reselect;
+   unsigned int httpflags;
+   char *httphost = NULL;
+-  unsigned int http_status;
++  unsigned int http_status = 0;
+   unsigned int tries = SEND_REQUEST_RETRIES;
+   unsigned int extra_tries = SEND_REQUEST_EXTRA_RETRIES;
+ 
+diff -up gnupg-2.2.21/g10/card-util.c.coverity gnupg-2.2.21/g10/card-util.c
+--- gnupg-2.2.21/g10/card-util.c.coverity	2020-04-15 15:17:48.000000000 +0200
++++ gnupg-2.2.21/g10/card-util.c	2020-07-20 17:09:57.419148793 +0200
+@@ -667,7 +667,7 @@ card_status (ctrl_t ctrl, estream_t fp,
+ {
+   int err;
+   strlist_t card_list, sl;
+-  char *serialno0, *serialno1;
++  char *serialno0, *serialno1 = NULL;
+   int all_cards = 0;
+   int any_card = 0;
+ 
+@@ -712,6 +712,7 @@ card_status (ctrl_t ctrl, estream_t fp,
+ 
+       current_card_status (ctrl, fp, NULL, 0);
+       xfree (serialno1);
++      serialno1 = NULL;
+ 
+       if (!all_cards)
+         goto leave;
+diff -up gnupg-2.2.21/g10/import.c.coverity gnupg-2.2.21/g10/import.c
+--- gnupg-2.2.21/g10/import.c.coverity	2020-07-20 17:09:57.416148768 +0200
++++ gnupg-2.2.21/g10/import.c	2020-07-20 17:09:57.419148793 +0200
+@@ -1888,7 +1888,7 @@ import_one_real (ctrl_t ctrl,
+ 
+   if (opt.interactive && !silent)
+     {
+-      if (is_status_enabled())
++      if (uidnode && is_status_enabled())
+         print_import_check (pk, uidnode->pkt->pkt.user_id);
+       merge_keys_and_selfsig (ctrl, keyblock);
+       tty_printf ("\n");
+diff -up gnupg-2.2.21/g10/keygen.c.coverity gnupg-2.2.21/g10/keygen.c
+--- gnupg-2.2.21/g10/keygen.c.coverity	2020-07-20 17:09:57.401148640 +0200
++++ gnupg-2.2.21/g10/keygen.c	2020-07-20 17:09:57.420148801 +0200
+@@ -3075,7 +3075,7 @@ parse_key_parameter_part (ctrl_t ctrl,
+   char *endp;
+   const char *curve = NULL;
+   int ecdh_or_ecdsa = 0;
+-  unsigned int size;
++  unsigned int size = 0;
+   int keyuse;
+   int i;
+   const char *s;
+@@ -5719,12 +5719,20 @@ gen_card_key (int keyno, int algo, int i
+      the self-signatures. */
+   err = agent_readkey (NULL, 1, keyid, &public);
+   if (err)
+-    return err;
++    {
++      xfree (pkt);
++      xfree (pk);
++      return err;
++    }
+   err = gcry_sexp_sscan (&s_key, NULL, public,
+                          gcry_sexp_canon_len (public, 0, NULL, NULL));
+   xfree (public);
+   if (err)
+-    return err;
++    {
++      xfree (pkt);
++      xfree (pk);
++      return err;
++    }
+ 
+   if (algo == PUBKEY_ALGO_RSA)
+     err = key_from_sexp (pk->pkey, s_key, "public-key", "ne");
+@@ -5739,6 +5747,7 @@ gen_card_key (int keyno, int algo, int i
+   if (err)
+     {
+       log_error ("key_from_sexp failed: %s\n", gpg_strerror (err) );
++      xfree (pkt);
+       free_public_key (pk);
+       return err;
+     }
+diff -up gnupg-2.2.21/g10/sig-check.c.coverity gnupg-2.2.21/g10/sig-check.c
+--- gnupg-2.2.21/g10/sig-check.c.coverity	2020-07-03 16:17:05.000000000 +0200
++++ gnupg-2.2.21/g10/sig-check.c	2020-07-20 17:09:57.420148801 +0200
+@@ -902,6 +902,7 @@ check_signature_over_key_or_uid (ctrl_t
+                 {
+                   /* Issued by a subkey.  */
+                   signer = subk;
++                  *is_selfsig = 1;
+                   break;
+                 }
+             }
+diff -up gnupg-2.2.21/g10/sign.c.coverity gnupg-2.2.21/g10/sign.c
+--- gnupg-2.2.21/g10/sign.c.coverity	2020-07-20 17:09:57.399148624 +0200
++++ gnupg-2.2.21/g10/sign.c	2020-07-20 17:09:57.420148801 +0200
+@@ -824,7 +824,7 @@ write_signature_packets (ctrl_t ctrl,
+       PKT_public_key *pk;
+       PKT_signature *sig;
+       gcry_md_hd_t md;
+-      gpg_error_t err;
++      gpg_error_t err = 0;
+ 
+       pk = sk_rover->pk;
+ 
+diff -up gnupg-2.2.21/kbx/keybox-dump.c.coverity gnupg-2.2.21/kbx/keybox-dump.c
+--- gnupg-2.2.21/kbx/keybox-dump.c.coverity	2019-08-23 15:59:06.000000000 +0200
++++ gnupg-2.2.21/kbx/keybox-dump.c	2020-07-20 17:09:57.420148801 +0200
+@@ -786,11 +786,15 @@ _keybox_dump_cut_records (const char *fi
+   while ( !(rc = _keybox_read_blob (&blob, fp, NULL)) )
+     {
+       if (recno > to)
+-        break; /* Ready.  */
++        {
++          _keybox_release_blob (blob);
++          break; /* Ready.  */
++        }
+       if (recno >= from)
+         {
+           if ((rc = _keybox_write_blob (blob, outfp)))
+             {
++              _keybox_release_blob (blob);
+               fprintf (stderr, "error writing output: %s\n",
+                        gpg_strerror (rc));
+               goto leave;
+diff -up gnupg-2.2.21/tools/gpg-wks-server.c.coverity gnupg-2.2.21/tools/gpg-wks-server.c
+--- gnupg-2.2.21/tools/gpg-wks-server.c.coverity	2020-02-10 16:12:13.000000000 +0100
++++ gnupg-2.2.21/tools/gpg-wks-server.c	2020-07-20 17:09:57.420148801 +0200
+@@ -890,15 +890,18 @@ store_key_as_pending (const char *dir, e
+     }
+ 
+  leave:
+-  if (err)
++  if (fname)
+     {
+-      es_fclose (outfp);
+-      gnupg_remove (fname);
+-    }
+-  else if (es_fclose (outfp))
+-    {
+-      err = gpg_error_from_syserror ();
+-      log_error ("error closing '%s': %s\n", fname, gpg_strerror (err));
++      if (err)
++        {
++          es_fclose (outfp);
++          gnupg_remove (fname);
++        }
++      else if (es_fclose (outfp))
++        {
++          err = gpg_error_from_syserror ();
++          log_error ("error closing '%s': %s\n", fname, gpg_strerror (err));
++        }
+     }
+ 
+   if (!err)
+diff -up gnupg-2.2.21/tools/wks-util.c.coverity gnupg-2.2.21/tools/wks-util.c
+--- gnupg-2.2.21/tools/wks-util.c.coverity	2019-11-23 13:50:21.000000000 +0100
++++ gnupg-2.2.21/tools/wks-util.c	2020-07-20 17:09:57.421148810 +0200
+@@ -948,7 +948,7 @@ ensure_policy_file (const char *addrspec
+ static gpg_error_t
+ install_key_from_spec_file (const char *fname)
+ {
+-  gpg_error_t err;
++  gpg_error_t err = 0;
+   estream_t fp;
+   char *line = NULL;
+   size_t linelen = 0;
+@@ -1195,10 +1195,8 @@ wks_cmd_print_wkd_hash (const char *user
+   char *addrspec, *fname;
+ 
+   err = wks_fname_from_userid (userid, 1, &fname, &addrspec);
+-  if (err)
+-    return err;
+-
+-  es_printf ("%s %s\n", fname, addrspec);
++  if (!err)
++    es_printf ("%s %s\n", fname, addrspec);
+ 
+   xfree (fname);
+   xfree (addrspec);
+@@ -1216,7 +1214,10 @@ wks_cmd_print_wkd_url (const char *useri
+ 
+   err = wks_fname_from_userid (userid, 1, &fname, &addrspec);
+   if (err)
+-    return err;
++    {
++      xfree (addrspec);
++      return err;
++    }
+ 
+   domain = strchr (addrspec, '@');
+   if (domain)

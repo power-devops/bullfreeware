@@ -1,0 +1,130 @@
+--- ./source4/torture/smb2/acls.c_orig	2019-05-08 16:53:06 +0000
++++ ./source4/torture/smb2/acls.c	2019-05-08 17:08:35 +0000
+@@ -2406,11 +2406,9 @@
+ 
+ 	torture_comment(tctx, "get the original sd\n");
+ 
+-	gi = (union smb_fileinfo) {
+-		.query_secdesc.level = RAW_FILEINFO_SEC_DESC,
+-		.query_secdesc.in.file.handle = handle,
+-		.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER,
+-	};
++	gi.query_secdesc.level = RAW_FILEINFO_SEC_DESC;
++	gi.query_secdesc.in.file.handle = handle;
++	gi.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER;
+ 
+ 	status = smb2_getinfo_file(tree, tctx, &gi);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2440,12 +2438,10 @@
+ 	torture_assert_not_null_goto(tctx, sd, ret, done,
+ 				     "SD create failed\n");
+ 
+-	si = (union smb_setfileinfo) {
+-		.set_secdesc.level = RAW_SFILEINFO_SEC_DESC,
+-		.set_secdesc.in.file.handle = handle,
+-		.set_secdesc.in.secinfo_flags = SECINFO_DACL,
+-		.set_secdesc.in.sd = sd,
+-	};
++	si.set_secdesc.level = RAW_SFILEINFO_SEC_DESC;
++	si.set_secdesc.in.file.handle = handle;
++	si.set_secdesc.in.secinfo_flags = SECINFO_DACL;
++	si.set_secdesc.in.sd = sd;
+ 
+ 	status = smb2_setinfo_file(tree, &si);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2542,11 +2538,9 @@
+ 
+ 	torture_comment(tctx, "get the original sd\n");
+ 
+-	gi = (union smb_fileinfo) {
+-		.query_secdesc.level = RAW_FILEINFO_SEC_DESC,
+-		.query_secdesc.in.file.handle = handle,
+-		.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER,
+-	};
++	gi.query_secdesc.level = RAW_FILEINFO_SEC_DESC;
++	gi.query_secdesc.in.file.handle = handle;
++	gi.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER;
+ 
+ 	status = smb2_getinfo_file(tree, tctx, &gi);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2576,12 +2570,10 @@
+ 	torture_assert_not_null_goto(tctx, sd, ret, done,
+ 					"SD create failed\n");
+ 
+-	si = (union smb_setfileinfo) {
+-		.set_secdesc.level = RAW_SFILEINFO_SEC_DESC,
+-		.set_secdesc.in.file.handle = handle,
+-		.set_secdesc.in.secinfo_flags = SECINFO_DACL,
+-		.set_secdesc.in.sd = sd,
+-	};
++	si.set_secdesc.level = RAW_SFILEINFO_SEC_DESC;
++	si.set_secdesc.in.file.handle = handle;
++	si.set_secdesc.in.secinfo_flags = SECINFO_DACL;
++	si.set_secdesc.in.sd = sd;
+ 
+ 	status = smb2_setinfo_file(tree, &si);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2677,11 +2667,9 @@
+ 
+ 	torture_comment(tctx, "get the original sd\n");
+ 
+-	gi = (union smb_fileinfo) {
+-		.query_secdesc.level = RAW_FILEINFO_SEC_DESC,
+-		.query_secdesc.in.file.handle = handle,
+-		.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER,
+-	};
++	gi.query_secdesc.level = RAW_FILEINFO_SEC_DESC;
++	gi.query_secdesc.in.file.handle = handle;
++	gi.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER;
+ 
+ 	status = smb2_getinfo_file(tree, tctx, &gi);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2718,12 +2706,10 @@
+ 	torture_assert_not_null_goto(tctx, sd, ret, done,
+ 					"SD create failed\n");
+ 
+-	si = (union smb_setfileinfo) {
+-		.set_secdesc.level = RAW_SFILEINFO_SEC_DESC,
+-		.set_secdesc.in.file.handle = handle,
+-		.set_secdesc.in.secinfo_flags = SECINFO_DACL,
+-		.set_secdesc.in.sd = sd,
+-	};
++	si.set_secdesc.level = RAW_SFILEINFO_SEC_DESC;
++	si.set_secdesc.in.file.handle = handle;
++	si.set_secdesc.in.secinfo_flags = SECINFO_DACL;
++	si.set_secdesc.in.sd = sd;
+ 
+ 	status = smb2_setinfo_file(tree, &si);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2818,11 +2800,9 @@
+ 
+ 	torture_comment(tctx, "get the original sd\n");
+ 
+-	gi = (union smb_fileinfo) {
+-		.query_secdesc.level = RAW_FILEINFO_SEC_DESC,
+-		.query_secdesc.in.file.handle = handle,
+-		.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER,
+-	};
++	gi.query_secdesc.level = RAW_FILEINFO_SEC_DESC;
++	gi.query_secdesc.in.file.handle = handle;
++	gi.query_secdesc.in.secinfo_flags = SECINFO_DACL|SECINFO_OWNER;
+ 
+ 	status = smb2_getinfo_file(tree, tctx, &gi);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+@@ -2853,12 +2833,10 @@
+ 	torture_assert_not_null_goto(tctx, sd, ret, done,
+ 					"SD create failed\n");
+ 
+-	si = (union smb_setfileinfo) {
+-		.set_secdesc.level = RAW_SFILEINFO_SEC_DESC,
+-		.set_secdesc.in.file.handle = handle,
+-		.set_secdesc.in.secinfo_flags = SECINFO_DACL,
+-		.set_secdesc.in.sd = sd,
+-	};
++	si.set_secdesc.level = RAW_SFILEINFO_SEC_DESC;
++	si.set_secdesc.in.file.handle = handle;
++	si.set_secdesc.in.secinfo_flags = SECINFO_DACL;
++	si.set_secdesc.in.sd = sd;
+ 
+ 	status = smb2_setinfo_file(tree, &si);
+ 	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,

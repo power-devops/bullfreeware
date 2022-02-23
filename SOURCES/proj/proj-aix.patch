@@ -1,0 +1,13 @@
+--- ./src/geodesic.c.ORIGIN	2018-02-07 15:14:27 +0100
++++ ./src/geodesic.c	2018-02-07 15:15:46 +0100
+@@ -44,8 +44,8 @@
+ typedef int boolx;
+ 
+ static unsigned init = 0;
+-static const int FALSE = 0;
+-static const int TRUE = 1;
++#define FALSE 0
++#define TRUE 1
+ static unsigned digits, maxit1, maxit2;
+ static real epsilon, realmin, pi, degree, NaN,
+   tiny, tol0, tol1, tol2, tolb, xthresh;

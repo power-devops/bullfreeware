@@ -1,0 +1,34 @@
+From bf103723f829b206bd24e4cf3c4306c4232b6fc7 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:46:47 +0100
+Subject: [PATCH] runtime: fix sigfwd for aix/ppc64
+
+This commit fixes runtime.sigfwd for aix/ppc64. fn is a function
+descriptor and not a function. R2 must be saved and restored.
+
+Change-Id: Ie506b0bdde562ca37202d19973ba1d537c3d64e2
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164015
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index d9e97ac..ee572cb 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -77,8 +77,15 @@
+ 	MOVD	info+16(FP), R4
+ 	MOVD	ctx+24(FP), R5
+ 	MOVD	fn+0(FP), R12
+-	MOVD	R12, CTR
++	// fn is a function descriptor
++	// R2 must be saved on restore
++	MOVD	0(R12), R0
++	MOVD	R2, 40(R1)
++	MOVD	8(R12), R2
++	MOVD	R0, CTR
+ 	BL	(CTR)
++	MOVD	40(R1), R2
++	BL	runtime·reginit(SB)
+ 	RET
+ 
+ 

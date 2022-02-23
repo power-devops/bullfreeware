@@ -1,0 +1,11 @@
+--- ppdc/Makefile.ORG	2018-02-05 05:23:51 -0600
++++ ppdc/Makefile	2018-02-05 05:24:53 -0600
+@@ -222,7 +222,7 @@
+ 		libcupsppdc.a ../cups/$(LIBCUPSSTATIC) $(LIBGSSAPI) $(SSLLIBS) \
+ 		$(DNSSDLIBS) $(COMMONLIBS) $(LIBZ)
+ 	echo Generating localization strings...
+-	./genstrings >sample.c
++#	./genstrings >sample.c
+ 
+ 
+ #

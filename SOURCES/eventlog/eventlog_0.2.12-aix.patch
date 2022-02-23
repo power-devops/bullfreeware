@@ -1,0 +1,31 @@
+Index: eventlog-0.2.12/src/evtstr.c
+===================================================================
+--- eventlog-0.2.12.orig/src/evtstr.c	2010-06-16 10:26:05.000000000 +0200
++++ eventlog-0.2.12/src/evtstr.c	2012-01-04 15:29:43.000000000 +0100
+@@ -90,7 +90,7 @@
+   /* FIXME: this is a gcc extension, alternative would be to use alloca(),
+    * which is not portable */
+ 
+-  char *buf = (char *)alloca(4*unescaped_len + 1);
++  char *buf = (char *)__alloca(4*unescaped_len + 1);
+                              
+   int i, dst;
+   
+@@ -125,7 +125,7 @@
+   /* FIXME: this is a gcc extension, alternative would be to use alloca(),
+    * which is not portable */
+ 
+-  char *buf = (char *)alloca(6*unescaped_len + 1);
++  char *buf = (char *)__alloca(6*unescaped_len + 1);
+                              
+   int i, dst;
+   
+@@ -159,7 +159,7 @@
+   /* FIXME: this is a gcc extension, alternative would be to use alloca(),
+    * which is not portable */
+ 
+-  char *buf = (char *)alloca(6*unescaped_len + 1);
++  char *buf = (char *)__alloca(6*unescaped_len + 1);
+                              
+   int i, dst;
+   

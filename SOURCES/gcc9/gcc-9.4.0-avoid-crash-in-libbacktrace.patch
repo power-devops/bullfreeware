@@ -1,0 +1,14 @@
+diff --git a/libbacktrace/fileline.c b/libbacktrace/fileline.c
+index 0472f4721ab..a379451711a 100644
+--- a/libbacktrace/fileline.c
++++ b/libbacktrace/fileline.c
+@@ -298,6 +298,9 @@ backtrace_pcinfo (struct backtrace_state *state, uintptr_t pc,
+   if (state->fileline_initialization_failed)
+     return 0;
+ 
++  if (state->fileline_fn == NULL)
++    return 0;
++
+   return state->fileline_fn (state, pc, callback, error_callback, data);
+ }
+ 

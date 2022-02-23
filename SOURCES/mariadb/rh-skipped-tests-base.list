@@ -1,0 +1,61 @@
+# The SSL test are failing correctly. Fro more explanation, see:
+# https://jira.mariadb.org/browse/MDEV-8404?focusedCommentId=84275&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-84275
+main.ssl_7937                                : #1399847
+main.ssl_crl_clients                         : #1399847
+main.ssl_cert_verify                         :
+
+main.ssl_8k_key                              :
+
+# From 10.3.9
+main.openssl_1                               :
+main.openssl_6975                            :
+main.ssl                                     :
+main.ssl_cipher                              :
+
+# 
+perfschema.nesting                           : #1399847
+perfschema.socket_summary_by_instance_func   : #1399847
+perfschema.socket_summary_by_event_name_func :
+
+# ------------------------------
+# Tests that fails because of 'Self Signed Certificate in the Certificate Chain'
+perfschema.cnf_option                        :
+
+rpl.rpl_row_img_blobs                        :
+rpl.rpl_row_img_eng_min                      :
+rpl.rpl_row_img_eng_noblob                   :
+
+sys_vars.slave_parallel_threads_basic        :
+
+# ------------------------------
+# Fails since 10.1.12
+innodb.innodb_defrag_binlog                  :
+
+# on x86_64 after 10.2.12 and 10.2.13 after some unidentified change in Rawhide buildroot
+mroonga/storage.index_multiple_column_range_all_used_less_than                               :
+mroonga/storage.index_multiple_column_range_all_used_less_than_or_equal                      :
+mroonga/storage.index_multiple_column_range_partially_used_have_prefix_less_than             :
+mroonga/storage.index_multiple_column_range_partially_used_have_prefix_less_than_or_equal    :
+mroonga/storage.index_multiple_column_range_partially_used_no_prefix_less_than               :
+mroonga/storage.index_multiple_column_range_partially_used_no_prefix_less_than_or_equal      :
+mroonga/storage.optimization_order_limit_optimized_datetime_less_than                        :
+mroonga/storage.optimization_order_limit_optimized_datetime_less_than_or_equal               :
+
+# Fails everywhere since 10.2.15
+main.userstat				     :
+
+# Fails on x86_64 since 10.2.15
+rocksdb.bulk_load_errors                     :
+rocksdb.index_merge_rocksdb                  :
+rocksdb.index_merge_rocksdb2                 :
+rocksdb.read_only_tx                         :
+rocksdb_rpl.mdev12179                        :
+rocksdb.shutdown                             :
+rocksdb.2pc_group_commit                     :
+
+# Fails on ppc and arm since 10.2.15
+innodb_gis.rtree_compress2                   :
+parts.partition_alter4_innodb                :
+
+# Fails from 10.3.9
+encryption.innodb-redo-badkey :

@@ -1,0 +1,11 @@
+--- a/auditbeat/magefile.go	2020-01-10 08:43:31 +0100
++++ b/auditbeat/magefile.go	2020-01-10 08:43:49 +0100
+@@ -84,7 +84,7 @@
+ 	auditbeat.CustomizePackaging(auditbeat.OSSPackaging)
+ 
+ 	mg.SerialDeps(Fields, Dashboards, Config, devtools.GenerateModuleIncludeListGo)
+-	mg.Deps(CrossBuild, CrossBuildGoDaemon)
++	// mg.Deps(CrossBuild, CrossBuildGoDaemon)
+ 	mg.SerialDeps(devtools.Package, TestPackages)
+ }
+ 

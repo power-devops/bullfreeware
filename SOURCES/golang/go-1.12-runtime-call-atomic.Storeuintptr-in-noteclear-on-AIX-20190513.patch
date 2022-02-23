@@ -1,0 +1,39 @@
+From 3546f03763fd647c99804d28b736526b7dbf2a09 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 25 Feb 2019 09:44:33 +0100
+Subject: [PATCH] runtime: call atomic.Storeuintptr in noteclear on AIX
+
+The memory might not be synchronized in a thread being woken up after a
+semasleep. Using atomic instructions in noteclear function will force
+this synchronisation.
+
+Fixes #30189
+
+Change-Id: If7432f29b2a1a56288231822db52f3f8d1d6dbfe
+---
+ src/runtime/lock_sema.go | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/runtime/lock_sema.go b/src/runtime/lock_sema.go
+index 08dfd2b664..0ee10e3617 100644
+--- a/src/runtime/lock_sema.go
++++ b/src/runtime/lock_sema.go
+@@ -122,7 +122,14 @@ func unlock(l *mutex) {
+ 
+ // One-time notifications.
+ func noteclear(n *note) {
+-	n.key = 0
++	if GOOS == "aix" {
++		// On AIX, semaphores might not synchronize the memory in some
++		// rare cases. Therefore, this Storeuintptr will force the memory
++		// to be update.
++		atomic.Storeuintptr(&n.key, 0)
++	} else {
++		n.key = 0
++	}
+ }
+ 
+ func notewakeup(n *note) {
+-- 
+2.17.1
+

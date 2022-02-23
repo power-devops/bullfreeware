@@ -1,0 +1,40 @@
+Index: xz-5.0.3/build-aux/config.rpath
+===================================================================
+--- xz-5.0.3.orig/build-aux/config.rpath	2011-05-21 15:29:57.000000000 +0200
++++ xz-5.0.3/build-aux/config.rpath	2012-09-06 09:02:24.000000000 +0200
+@@ -155,7 +155,7 @@
+   # option of GNU ld is called -rpath, not --rpath.
+   hardcode_libdir_flag_spec='${wl}-rpath ${wl}$libdir'
+   case "$host_os" in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+         ld_shlibs=no
+@@ -251,7 +251,7 @@
+         hardcode_direct=unsupported
+       fi
+       ;;
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6*)
+       if test "$host_cpu" = ia64; then
+         # On IA64, the linker does run time linking by default, so we don't
+         # have to do anything special.
+@@ -261,7 +261,7 @@
+         # Test if we are trying to use run time linking or normal
+         # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+         # need to do runtime linking.
+-        case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++        case $host_os in aix4.[23]|aix4.[23].*|aix5*|aix6*)
+           for ld_flag in $LDFLAGS; do
+             if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+               aix_use_runtimelinking=yes
+@@ -492,7 +492,7 @@
+ case "$host_os" in
+   aix3*)
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     ;;
+   amigaos*)
+     ;;

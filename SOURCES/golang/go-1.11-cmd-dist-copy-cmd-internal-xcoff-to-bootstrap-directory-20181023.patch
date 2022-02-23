@@ -1,0 +1,26 @@
+From 47cc59f31f8e2ef18ee34402be7b94cbe39638aa Mon Sep 17 00:00:00 2001
+From: Ian Lance Taylor <iant@golang.org>
+Date: Mon, 22 Oct 2018 17:14:36 -0700
+Subject: [PATCH] cmd/dist: copy cmd/internal/xcoff to bootstrap directory
+
+Fixes build.
+
+Change-Id: Id3d78ae9e4669371b4ebf29f69217d0809ffb829
+Reviewed-on: https://go-review.googlesource.com/c/143917
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/cmd/dist/buildtool.go b/src/cmd/dist/buildtool.go
+index 94b7587..2058c72 100644
+--- a/src/cmd/dist/buildtool.go
++++ b/src/cmd/dist/buildtool.go
+@@ -65,6 +65,7 @@
+ 	"cmd/internal/obj/wasm",
+ 	"cmd/internal/src",
+ 	"cmd/internal/sys",
++	"cmd/internal/xcoff",
+ 	"cmd/link",
+ 	"cmd/link/internal/amd64",
+ 	"cmd/link/internal/arm",

@@ -1,0 +1,16 @@
+diff --git a/build-aux/config.rpath b/build-aux/config.rpath
+index be202c1..0a7bd9d 100755
+--- a/build-aux/config.rpath
++++ b/build-aux/config.rpath
+@@ -517,6 +517,11 @@ case "$host_os" in
+     library_names_spec='$libname.a'
+     ;;
+   aix[4-9]*)
++    # Without -brtl, shared libraries stored inside .a files
++    # must be used/
++    if test $aix_use_runtimelinking = no; then
++      shrext=.a
++    fi
+     library_names_spec='$libname$shrext'
+     ;;
+   amigaos*)

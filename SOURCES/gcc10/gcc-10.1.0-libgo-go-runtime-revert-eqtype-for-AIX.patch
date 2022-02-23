@@ -1,0 +1,377 @@
+From fc6ce7b3a443f0a34d3c8119238ce5f625c5718a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 27 May 2020 09:34:08 -0500
+Subject: [PATCH] libgo/go/runtime: revert eqtype for AIX
+
+---
+ gcc/go/go-c.h                        |  1 +
+ gcc/go/go-lang.c                     |  1 +
+ gcc/go/gofrontend/expressions.cc     | 33 ++++++++++++++++++++++------
+ gcc/go/gofrontend/expressions.h      |  2 +-
+ gcc/go/gofrontend/go.cc              |  2 ++
+ gcc/go/gofrontend/gogo.cc            |  1 +
+ gcc/go/gofrontend/gogo.h             | 12 ++++++++++
+ gcc/go/gofrontend/runtime.def        |  3 +++
+ libgo/go/runtime/alg.go              | 10 ++++-----
+ libgo/go/runtime/eqtype.go           | 18 +++++++++++++++
+ libgo/go/runtime/eqtype_aix_gccgo.go | 30 +++++++++++++++++++++++++
+ libgo/go/runtime/iface.go            | 12 +++++-----
+ 12 files changed, 106 insertions(+), 19 deletions(-)
+ create mode 100644 libgo/go/runtime/eqtype.go
+ create mode 100644 libgo/go/runtime/eqtype_aix_gccgo.go
+
+diff --git a/gcc/go/go-c.h b/gcc/go/go-c.h
+index 7e46f4b0a57..b6675e2121a 100644
+--- a/gcc/go/go-c.h
++++ b/gcc/go/go-c.h
+@@ -49,6 +49,7 @@ struct go_create_gogo_args
+   int debug_escape_level;
+   const char* debug_escape_hash;
+   int64_t nil_check_size_threshold;
++  bool need_eqtype;
+   bool debug_optimization;
+ };
+ 
+diff --git a/gcc/go/go-lang.c b/gcc/go/go-lang.c
+index 387694e4f56..2cfb41042bd 100644
+--- a/gcc/go/go-lang.c
++++ b/gcc/go/go-lang.c
+@@ -119,6 +119,7 @@ go_langhook_init (void)
+   args.debug_escape_hash = go_debug_escape_hash;
+   args.nil_check_size_threshold = TARGET_AIX ? -1 : 4096;
+   args.debug_optimization = go_debug_optimization;
++  args.need_eqtype = TARGET_AIX ? true : false;
+   args.linemap = go_get_linemap();
+   args.backend = go_get_backend();
+   go_create_gogo (&args);
+diff --git a/gcc/go/gofrontend/expressions.cc b/gcc/go/gofrontend/expressions.cc
+index deac87448f3..b084472c40e 100644
+--- a/gcc/go/gofrontend/expressions.cc
++++ b/gcc/go/gofrontend/expressions.cc
+@@ -208,7 +208,7 @@ Expression::is_same_variable(Expression* a, Expression* b)
+ // assignment.
+ 
+ Expression*
+-Expression::convert_for_assignment(Gogo*, Type* lhs_type,
++Expression::convert_for_assignment(Gogo* gogo, Type* lhs_type,
+ 				   Expression* rhs, Location location)
+ {
+   Type* rhs_type = rhs->type();
+@@ -229,7 +229,7 @@ Expression::convert_for_assignment(Gogo*, Type* lhs_type,
+                                                         location);
+     }
+   else if (!are_identical && rhs_type->interface_type() != NULL)
+-    return Expression::convert_interface_to_type(lhs_type, rhs, location);
++    return Expression::convert_interface_to_type(gogo, lhs_type, rhs, location);
+   else if (lhs_type->is_slice_type() && rhs_type->is_nil_type())
+     {
+       // Assigning nil to a slice.
+@@ -498,7 +498,7 @@ Expression::convert_interface_to_interface(Type *lhs_type, Expression* rhs,
+ // non-interface type.
+ 
+ Expression*
+-Expression::convert_interface_to_type(Type *lhs_type, Expression* rhs,
++Expression::convert_interface_to_type(Gogo *gogo, Type *lhs_type, Expression* rhs,
+                                       Location location)
+ {
+   // We are going to evaluate RHS multiple times.
+@@ -509,6 +509,11 @@ Expression::convert_interface_to_type(Type *lhs_type, Expression* rhs,
+   // valid.
+   // (lhs_type != rhs_type ? panicdottype(lhs_type, rhs_type, inter_type) :
+   //    nil /*dummy*/)
++  // For some Oses, runtime.eqtype needs to be called as the merge of type
++  // descriptors isn't done correctly when coming from different shared
++  // objects.
++  // (runtime.eqtype(lhs_type, rhs_type) ? nil /*dummy*/ :
++  //    panicdottype(lhs_type, rhs_type, inter_type)
+   Expression* lhs_type_expr = Expression::make_type_descriptor(lhs_type,
+                                                                 location);
+   Expression* rhs_descriptor =
+@@ -517,17 +522,31 @@ Expression::convert_interface_to_type(Type *lhs_type, Expression* rhs,
+   Type* rhs_type = rhs->type();
+   Expression* rhs_inter_expr = Expression::make_type_descriptor(rhs_type,
+                                                                 location);
++  Expression* cond;
++  if (gogo->need_eqtype()) {
++    cond = Runtime::make_call(Runtime::EQTYPE, location,
++                                          2, lhs_type_expr->copy(),
++                                          rhs_descriptor);
++  } else {
++    cond = Expression::make_binary(OPERATOR_NOTEQ, lhs_type_expr,
++                                               rhs_descriptor, location);
++  }
+ 
+-  Expression* cond = Expression::make_binary(OPERATOR_NOTEQ, lhs_type_expr,
+-                                             rhs_descriptor, location);
+   rhs_descriptor = Expression::get_interface_type_descriptor(rhs);
+   Expression* panic = Runtime::make_call(Runtime::PANICDOTTYPE, location,
+                                          3, lhs_type_expr->copy(),
+                                          rhs_descriptor,
+                                          rhs_inter_expr);
+   Expression* nil = Expression::make_nil(location);
+-  Expression* check = Expression::make_conditional(cond, panic, nil,
+-                                                   location);
++
++  Expression* check;
++  if (gogo->need_eqtype()) {
++    check  = Expression::make_conditional(cond, nil, panic,
++                                                     location);
++  } else {
++    check = Expression::make_conditional(cond, panic, nil,
++                                                     location);
++  }
+ 
+   // If the conversion succeeds, pull out the value.
+   Expression* obj = Expression::make_interface_info(rhs, INTERFACE_INFO_OBJECT,
+diff --git a/gcc/go/gofrontend/expressions.h b/gcc/go/gofrontend/expressions.h
+index a4f892acaf7..acb2732bdde 100644
+--- a/gcc/go/gofrontend/expressions.h
++++ b/gcc/go/gofrontend/expressions.h
+@@ -1273,7 +1273,7 @@ class Expression
+   }
+ 
+   static Expression*
+-  convert_interface_to_type(Type*, Expression*, Location);
++  convert_interface_to_type(Gogo*, Type*, Expression*, Location);
+ 
+   static Expression*
+   import_identifier(Import_function_body*, Location);
+diff --git a/gcc/go/gofrontend/go.cc b/gcc/go/gofrontend/go.cc
+index 12205bd5aa7..e026d6592ba 100644
+--- a/gcc/go/gofrontend/go.cc
++++ b/gcc/go/gofrontend/go.cc
+@@ -46,6 +46,8 @@ go_create_gogo(const struct go_create_gogo_args* args)
+   ::gogo->set_nil_check_size_threshold(args->nil_check_size_threshold);
+   if (args->debug_optimization)
+     ::gogo->set_debug_optimization(args->debug_optimization);
++  if (args->need_eqtype)
++    ::gogo->set_need_eqtype(args->need_eqtype);
+ }
+ 
+ // Parse the input files.
+diff --git a/gcc/go/gofrontend/gogo.cc b/gcc/go/gofrontend/gogo.cc
+index 212ef45a29c..ba5d018eb96 100644
+--- a/gcc/go/gofrontend/gogo.cc
++++ b/gcc/go/gofrontend/gogo.cc
+@@ -57,6 +57,7 @@ Gogo::Gogo(Backend* backend, Linemap* linemap, int, int pointer_size)
+     debug_escape_level_(0),
+     debug_optimization_(false),
+     nil_check_size_threshold_(4096),
++    need_eqtype_(false),
+     verify_types_(),
+     interface_types_(),
+     specific_type_functions_(),
+diff --git a/gcc/go/gofrontend/gogo.h b/gcc/go/gofrontend/gogo.h
+index 2fb8a3aeb43..68793f9fd67 100644
+--- a/gcc/go/gofrontend/gogo.h
++++ b/gcc/go/gofrontend/gogo.h
+@@ -360,6 +360,16 @@ class Gogo
+   set_nil_check_size_threshold(int64_t bytes)
+   { this->nil_check_size_threshold_ = bytes; }
+ 
++  // Return whether runtime.eqtype calls are needed.
++  bool
++  need_eqtype() const
++  { return this->need_eqtype_; }
++
++  // Set the option to call runtime.eqtype.
++  void
++  set_need_eqtype(bool b)
++  { this->need_eqtype_ = b; }
++
+   // Import a package.  FILENAME is the file name argument, LOCAL_NAME
+   // is the local name to give to the package.  If LOCAL_NAME is empty
+   // the declarations are added to the global scope.
+@@ -1161,6 +1171,8 @@ class Gogo
+   bool debug_optimization_;
+   // Nil-check size threshhold.
+   int64_t nil_check_size_threshold_;
++  // Whether runtime.eqtype calls are needed.
++  bool need_eqtype_;
+   // A list of types to verify.
+   std::vector<Type*> verify_types_;
+   // A list of interface types defined while parsing.
+diff --git a/gcc/go/gofrontend/runtime.def b/gcc/go/gofrontend/runtime.def
+index 2ef0f94133d..d6784105ce6 100644
+--- a/gcc/go/gofrontend/runtime.def
++++ b/gcc/go/gofrontend/runtime.def
+@@ -341,6 +341,9 @@ DEF_GO_RUNTIME(PANICDOTTYPE, "runtime.panicdottype", P3(TYPE, TYPE, TYPE),
+ // Return whether we can convert a type to an interface type.
+ DEF_GO_RUNTIME(IFACET2IP, "runtime.ifaceT2Ip", P2(TYPE, TYPE), R1(BOOL))
+ 
++// Compare two type descriptors for equality.
++DEF_GO_RUNTIME(EQTYPE, "runtime.eqtype", P2(TYPE, TYPE), R1(BOOL))
++
+ // Compare two empty interface values.
+ DEF_GO_RUNTIME(EFACEEQ, "runtime.efaceeq", P2(EFACE, EFACE), R1(BOOL))
+ 
+diff --git a/libgo/go/runtime/alg.go b/libgo/go/runtime/alg.go
+index 95f02aa31c4..b5b22cfd0f8 100644
+--- a/libgo/go/runtime/alg.go
++++ b/libgo/go/runtime/alg.go
+@@ -276,7 +276,7 @@ func nilinterequal(p, q unsafe.Pointer) bool {
+ }
+ func efaceeq(x, y eface) bool {
+ 	t := x._type
+-	if t != y._type {
++	if !eqtype(t, y._type) {
+ 		return false
+ 	}
+ 	if t == nil {
+@@ -301,7 +301,7 @@ func ifaceeq(x, y iface) bool {
+ 		return false
+ 	}
+ 	t := *(**_type)(xtab)
+-	if t != *(**_type)(y.tab) {
++	if !eqtype(t, *(**_type)(y.tab)) {
+ 		return false
+ 	}
+ 	eq := t.equal
+@@ -322,7 +322,7 @@ func ifacevaleq(x iface, t *_type, p unsafe.Pointer) bool {
+ 		return false
+ 	}
+ 	xt := *(**_type)(x.tab)
+-	if xt != t {
++	if !eqtype(xt, t) {
+ 		return false
+ 	}
+ 	eq := t.equal
+@@ -343,7 +343,7 @@ func ifaceefaceeq(x iface, y eface) bool {
+ 		return false
+ 	}
+ 	xt := *(**_type)(x.tab)
+-	if xt != y._type {
++	if !eqtype(xt, y._type) {
+ 		return false
+ 	}
+ 	eq := xt.equal
+@@ -360,7 +360,7 @@ func efacevaleq(x eface, t *_type, p unsafe.Pointer) bool {
+ 	if x._type == nil {
+ 		return false
+ 	}
+-	if x._type != t {
++	if !eqtype(x._type, t) {
+ 		return false
+ 	}
+ 	eq := t.equal
+diff --git a/libgo/go/runtime/eqtype.go b/libgo/go/runtime/eqtype.go
+new file mode 100644
+index 00000000000..9547b53c9c5
+--- /dev/null
++++ b/libgo/go/runtime/eqtype.go
+@@ -0,0 +1,18 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build !aix,!gccgo
++
++package runtime
++
++import (
++	_ "unsafe"
++)
++
++//go:linkname eqtype
++
++// Return whether two type descriptors are equal.
++func eqtype(t1, t2 *_type) bool {
++	return t1 == t2
++}
+diff --git a/libgo/go/runtime/eqtype_aix_gccgo.go b/libgo/go/runtime/eqtype_aix_gccgo.go
+new file mode 100644
+index 00000000000..2f9dbc97cb1
+--- /dev/null
++++ b/libgo/go/runtime/eqtype_aix_gccgo.go
+@@ -0,0 +1,30 @@
++// Copyright 2020 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix,gccgo
++
++package runtime
++
++import (
++	_ "unsafe"
++)
++
++//go:linkname eqtype
++
++// Return whether two type descriptors are equal.
++// This is gccgo-specific, as some linkers, are not able
++// to merge identical type descriptors coming from
++// different object or shared object files.
++func eqtype(t1, t2 *_type) bool {
++	switch {
++	case t1 == t2:
++		return true
++	case t1 == nil || t2 == nil:
++		return false
++	case t1.kind != t2.kind || t1.hash != t2.hash:
++		return false
++	default:
++		return t1.string() == t2.string()
++	}
++}
+diff --git a/libgo/go/runtime/iface.go b/libgo/go/runtime/iface.go
+index 74b54f5209c..39fd0b2e766 100644
+--- a/libgo/go/runtime/iface.go
++++ b/libgo/go/runtime/iface.go
+@@ -232,7 +232,7 @@ func (m *itab) init() string {
+ 			ri++
+ 		}
+ 
+-		if lhsMethod.typ != rhsMethod.mtyp {
++		if !eqtype(lhsMethod.typ, rhsMethod.mtyp) {
+ 			m.methods[1] = nil
+ 			return *lhsMethod.name
+ 		}
+@@ -405,7 +405,7 @@ func ifaceI2I2(inter *_type, i iface) (iface, bool) {
+ 
+ // Convert an empty interface to a pointer non-interface type.
+ func ifaceE2T2P(t *_type, e eface) (unsafe.Pointer, bool) {
+-	if t != e._type {
++	if !eqtype(t, e._type) {
+ 		return nil, false
+ 	} else {
+ 		return e.data, true
+@@ -414,7 +414,7 @@ func ifaceE2T2P(t *_type, e eface) (unsafe.Pointer, bool) {
+ 
+ // Convert a non-empty interface to a pointer non-interface type.
+ func ifaceI2T2P(t *_type, i iface) (unsafe.Pointer, bool) {
+-	if i.tab == nil || t != *(**_type)(i.tab) {
++	if i.tab == nil || !eqtype(t, *(**_type)(i.tab)) {
+ 		return nil, false
+ 	} else {
+ 		return i.data, true
+@@ -423,7 +423,7 @@ func ifaceI2T2P(t *_type, i iface) (unsafe.Pointer, bool) {
+ 
+ // Convert an empty interface to a non-pointer non-interface type.
+ func ifaceE2T2(t *_type, e eface, ret unsafe.Pointer) bool {
+-	if t != e._type {
++	if !eqtype(t, e._type) {
+ 		typedmemclr(t, ret)
+ 		return false
+ 	} else {
+@@ -438,7 +438,7 @@ func ifaceE2T2(t *_type, e eface, ret unsafe.Pointer) bool {
+ 
+ // Convert a non-empty interface to a non-pointer non-interface type.
+ func ifaceI2T2(t *_type, i iface, ret unsafe.Pointer) bool {
+-	if i.tab == nil || t != *(**_type)(i.tab) {
++	if i.tab == nil || !eqtype(t, *(**_type)(i.tab)) {
+ 		typedmemclr(t, ret)
+ 		return false
+ 	} else {
+@@ -484,7 +484,7 @@ func ifaceT2Ip(to, from *_type) bool {
+ 			ri++
+ 		}
+ 
+-		if fromMethod.mtyp != toMethod.typ {
++		if !eqtype(fromMethod.mtyp, toMethod.typ) {
+ 			return false
+ 		}
+ 
+-- 
+2.25.0
+

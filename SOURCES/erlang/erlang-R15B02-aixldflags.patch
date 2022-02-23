@@ -1,0 +1,50 @@
+Index: otp_src_R15B02/lib/megaco/src/flex/Makefile.in
+===================================================================
+--- otp_src_R15B02.orig/lib/megaco/src/flex/Makefile.in	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/megaco/src/flex/Makefile.in	2012-12-11 15:43:13.000000000 +0100
+@@ -64,7 +64,11 @@
+ endif
+ CC      = $(DED_CC)
+ CFLAGS_MT = $(CFLAGS) $(DED_THR_DEFS)
++ifdef Aix64
++LD      = $(DED_LD) -b64
++else
+ LD      = $(DED_LD)
++endif
+ LDFLAGS = $(DED_LDFLAGS)
+ LEX     = @LEX@
+ LEXLIB  = @LEXLIB@
+@@ -187,7 +191,17 @@
+ CFLAGS += -DMFS_FLEX_DEBUG=0
+ endif
+ 
++ifdef Aix64
++CFLAGS += $(DED_INCLUDES) -I$(ERL_TOP)/erts/$(TARGET) $(DRV_FLAGS) -funroll-loops -Wl,-blibpath:/opt/freeware/lib64:/opt/freeware/lib:/usr/lib64:/usr/lib:/lib
++endif
++ifdef Aix32
++CFLAGS += $(DED_INCLUDES) -I$(ERL_TOP)/erts/$(TARGET) $(DRV_FLAGS) -funroll-loops -Wl,-blibpath:/opt/freeware/lib:/usr/lib:/lib
++endif
++ifndef Aix64
++ifndef Aix32
+ CFLAGS += $(DED_INCLUDES) -I$(ERL_TOP)/erts/$(TARGET) $(DRV_FLAGS) -funroll-loops -Wall
++endif
++endif
+ 
+ #ifneq ($(FLEX_VSN),)
+ #CFLAGS += -DFLEX_VERSION="$(FLEX_VSN)"
+Index: otp_src_R15B02/lib/runtime_tools/c_src/Makefile.in
+===================================================================
+--- otp_src_R15B02.orig/lib/runtime_tools/c_src/Makefile.in	2012-09-03 11:58:05.000000000 +0200
++++ otp_src_R15B02/lib/runtime_tools/c_src/Makefile.in	2012-12-11 15:43:34.000000000 +0100
+@@ -38,7 +38,11 @@
+ # ----------------------------------------------------
+ CC = $(DED_CC)
+ CFLAGS = $(DED_CFLAGS)
++ifdef Aix64
++LD = $(DED_LD) -b64
++else
+ LD = $(DED_LD)
++endif
+ SHELL = /bin/sh
+ LIBS = $(DED_LIBS)
+ LDFLAGS += $(DED_LDFLAGS)

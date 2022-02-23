@@ -1,0 +1,36 @@
+*** ./src/apps/Makefile.in.ORIG	Fri Sep 11 16:19:36 2009
+--- ./src/apps/Makefile.in	Fri Sep 11 16:21:36 2009
+***************
+*** 287,293 ****
+  SUBDIRS = fisql
+  DIST_SUBDIRS = $(SUBDIRS)
+  dist_bin_SCRIPTS = osql
+! freebcp_LDADD = ../dblib/libsybdb.la $(NETWORK_LIBS)
+  freebcp_SOURCES = freebcp.c freebcp.h
+  tsql_LDADD = ../tds/libtds.la \
+  		  ../replacements/libreplacements.la \
+--- 287,293 ----
+  SUBDIRS = fisql
+  DIST_SUBDIRS = $(SUBDIRS)
+  dist_bin_SCRIPTS = osql
+! freebcp_LDADD = ../dblib/libsybdb.la ../tds/libtds.la $(NETWORK_LIBS)
+  freebcp_SOURCES = freebcp.c freebcp.h
+  tsql_LDADD = ../tds/libtds.la \
+  		  ../replacements/libreplacements.la \
+***************
+*** 306,312 ****
+  		  $(NETWORK_LIBS)
+  
+  datacopy_SOURCES = datacopy.c
+! datacopy_LDADD = ../dblib/libsybdb.la ../replacements/libreplacements.la $(NETWORK_LIBS)
+  all: all-recursive
+  
+  .SUFFIXES:
+--- 306,312 ----
+  		  $(NETWORK_LIBS)
+  
+  datacopy_SOURCES = datacopy.c
+! datacopy_LDADD = ../dblib/libsybdb.la ../tds/libtds.la ../replacements/libreplacements.la $(NETWORK_LIBS)
+  all: all-recursive
+  
+  .SUFFIXES:

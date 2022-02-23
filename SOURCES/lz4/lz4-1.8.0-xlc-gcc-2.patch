@@ -1,0 +1,18 @@
+--- ./lib/Makefile.ORIGIN	2019-11-25 17:18:44 +0100
++++ ./lib/Makefile	2019-11-25 17:19:32 +0100
+@@ -99,8 +99,13 @@
+ 	dlltool -D dll\liblz4.dll -d dll\liblz4.def -l dll\liblz4.lib
+ else
+ ifeq ($(shell uname), AIX)
+-	CreateExportList liblz4.exp liblz4.a
+-	$(CC) -qmkshrobj liblz4.a -o $@ -bE:liblz4.exp -bernotok
++	$(XLCCPATH)/CreateExportList liblz4.exp liblz4.a
++	echo "CC: ${CC}"
++ifeq ($(CC),gcc)
++		$(CC)  $(CFLAGS) -shared    liblz4.a -o $@ -Wl,-bE:liblz4.exp -Wl,-bernotok
++else
++		$(CC)            -qmkshrobj liblz4.a -o $@     -bE:liblz4.exp     -bernotok
++endif
+ 	/usr/bin/rm -f liblz4.exp
+ 	/usr/bin/rm -f liblz4.a
+ else

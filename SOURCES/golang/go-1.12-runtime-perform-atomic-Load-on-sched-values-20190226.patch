@@ -1,0 +1,62 @@
+diff --git a/src/runtime/proc.go b/src/runtime/proc.go
+index 6e56b4b1d1..b5e27c3e02 100644
+--- a/src/runtime/proc.go
++++ b/src/runtime/proc.go
+@@ -1013,7 +1013,7 @@ func stopTheWorldWithSema() {
+ 	}
+ 
+ 	lock(&sched.lock)
+-	sched.stopwait = gomaxprocs
++	sched.stopwait = uint32(gomaxprocs)
+ 	atomic.Store(&sched.gcwaiting, 1)
+ 	preemptall()
+ 	// stop current P
+@@ -1057,7 +1057,7 @@ func stopTheWorldWithSema() {
+ 
+ 	// sanity checks
+ 	bad := ""
+-	if sched.stopwait != 0 {
++	if atomic.Load(&sched.stopwait) != 0 {
+ 		bad = "stopTheWorld: not stopped (stopwait != 0)"
+ 	} else {
+ 		for _, p := range allp {
+@@ -1342,7 +1342,7 @@ func forEachP(fn func(*p)) {
+ 	if sched.safePointWait != 0 {
+ 		throw("forEachP: sched.safePointWait != 0")
+ 	}
+-	sched.safePointWait = gomaxprocs - 1
++	sched.safePointWait = uint32(gomaxprocs - 1)
+ 	sched.safePointFn = fn
+ 
+ 	// Ask all Ps to run the safe point function.
+@@ -1400,7 +1400,7 @@ func forEachP(fn func(*p)) {
+ 			preemptall()
+ 		}
+ 	}
+-	if sched.safePointWait != 0 {
++	if atomic.Load(&sched.safePointWait) != 0 {
+ 		throw("forEachP: not done")
+ 	}
+ 	for _, p := range allp {
+diff --git a/src/runtime/runtime2.go b/src/runtime/runtime2.go
+index df9cbaef20..1cd5aa9a79 100644
+--- a/src/runtime/runtime2.go
++++ b/src/runtime/runtime2.go
+@@ -613,7 +613,7 @@ type schedt struct {
+ 	freem *m
+ 
+ 	gcwaiting  uint32 // gc is waiting to run
+-	stopwait   int32
++	stopwait   uint32
+ 	stopnote   note
+ 	sysmonwait uint32
+ 	sysmonnote note
+@@ -621,7 +621,7 @@ type schedt struct {
+ 	// safepointFn should be called on each P at the next GC
+ 	// safepoint if p.runSafePointFn is set.
+ 	safePointFn   func(*p)
+-	safePointWait int32
++	safePointWait uint32
+ 	safePointNote note
+ 
+ 	profilehz int32 // cpu profiling rate

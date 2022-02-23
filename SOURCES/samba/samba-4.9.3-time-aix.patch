@@ -1,0 +1,10 @@
+--- ./source3/include/libsmbclient.h_orig	2018-12-18 12:31:54 +0000
++++ ./source3/include/libsmbclient.h	2018-12-18 12:32:29 +0000
+@@ -79,6 +79,7 @@
+ #include <stdint.h>
+ #include <fcntl.h>
+ #include <utime.h>
++#include <time.h>
+ 
+ #define SMBC_BASE_FD        10000 /* smallest file descriptor returned */
+ 

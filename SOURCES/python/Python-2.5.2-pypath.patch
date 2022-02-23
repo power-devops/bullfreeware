@@ -1,0 +1,30 @@
+Index: Python-2.5.2/Lib/cgi.py
+===================================================================
+--- Python-2.5.2.orig/Lib/cgi.py	2006-08-10 19:41:07.000000000 +0200
++++ Python-2.5.2/Lib/cgi.py	2008-07-31 16:50:28.122833896 +0200
+@@ -1,4 +1,4 @@
+-#! /usr/local/bin/python
++#! /opt/freeware/bin/python
+ 
+ # NOTE: the above "/usr/local/bin/python" is NOT a mistake.  It is
+ # intentionally NOT "/usr/bin/env python".  On many systems
+Index: Python-2.5.2/Tools/faqwiz/faqw.py
+===================================================================
+--- Python-2.5.2.orig/Tools/faqwiz/faqw.py	2006-07-26 20:03:12.000000000 +0200
++++ Python-2.5.2/Tools/faqwiz/faqw.py	2008-07-31 16:51:08.-587779552 +0200
+@@ -1,4 +1,4 @@
+-#! /usr/local/bin/python
++#! /opt/freeware/bin/python
+ 
+ """FAQ wizard bootstrap."""
+ 
+Index: Python-2.5.2/Tools/scripts/parseentities.py
+===================================================================
+--- Python-2.5.2.orig/Tools/scripts/parseentities.py	2001-01-17 09:48:39.000000000 +0100
++++ Python-2.5.2/Tools/scripts/parseentities.py	2008-07-31 16:51:39.-1566797416 +0200
+@@ -1,4 +1,4 @@
+-#!/usr/local/bin/python
++#!/opt/freeware/bin/python
+ """ Utility for parsing HTML entity definitions available from:
+ 
+       http://www.w3.org/ as e.g.

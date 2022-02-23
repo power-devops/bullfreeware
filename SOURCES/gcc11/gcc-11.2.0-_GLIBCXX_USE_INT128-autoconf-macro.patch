@@ -1,0 +1,201 @@
+From ad0a3be4df5eecc79075d899fd79179d0f61270e Mon Sep 17 00:00:00 2001
+From: Jonathan Wakely <jwakely@redhat.com>
+Date: Tue, 4 May 2021 12:07:09 +0100
+Subject: [PATCH] libstdc++: Remove _GLIBCXX_USE_INT128 autoconf macro
+
+We don't need to decide whether to use __int128 when running configure,
+we can do so at compilation time by seeing if __SIZEOF_INT128__ is
+defined and if it's greater than __SIZEOF_LONG_LONG__.
+
+This removes another unnecessary architecture-specific config macro in
+<bits/c++config.h>, so the same header can work for 32-bit or 64-bit
+compilation on AIX.
+
+libstdc++-v3/ChangeLog:
+
+	* acinclude.m4 (GLIBCXX_ENABLE_INT128_FLOAT128): Remove
+	checks for __int128 and rename to GLIBCXX_ENABLE_FLOAT128.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* configure.ac: Adjust to use GLIBCXX_ENABLE_FLOAT128.
+	* include/bits/random.h (_Select_uint_least_t<s, 1>):
+	Use __SIZEOF_INT128__ to decide whether to use __int128.
+	* include/std/charconv (__to_chars_unsigned_type): Likewise.
+---
+ libstdc++-v3/acinclude.m4          | 36 ++++--------------------------
+ libstdc++-v3/config.h.in           |  3 ---
+ libstdc++-v3/configure             | 36 +-----------------------------
+ libstdc++-v3/configure.ac          |  2 +-
+ libstdc++-v3/include/bits/random.h |  2 +-
+ libstdc++-v3/include/std/charconv  |  2 +-
+ 6 files changed, 8 insertions(+), 73 deletions(-)
+
+diff --git a/libstdc++-v3/acinclude.m4 b/libstdc++-v3/acinclude.m4
+index 7b78e148fbd..94897a654c9 100644
+--- a/libstdc++-v3/acinclude.m4
++++ b/libstdc++-v3/acinclude.m4
+@@ -3049,15 +3049,14 @@ EOF
+ ])
+ 
+ dnl
+-dnl Check for GNU 128-bit integer and floating point types.
++dnl Check for GNU 128-bit floating point type.
+ dnl
+-dnl Note: also checks that the types aren't standard types.
++dnl Note: also checks that the type isn't a standard types.
+ dnl
+ dnl Defines:
+-dnl  _GLIBCXX_USE_INT128
+ dnl  ENABLE_FLOAT128
+ dnl
+-AC_DEFUN([GLIBCXX_ENABLE_INT128_FLOAT128], [
++AC_DEFUN([GLIBCXX_ENABLE_FLOAT128], [
+ 
+   AC_LANG_SAVE
+   AC_LANG_CPLUSPLUS
+@@ -3065,34 +3064,7 @@ AC_DEFUN([GLIBCXX_ENABLE_INT128_FLOAT128], [
+   # Fake what AC_TRY_COMPILE does, without linking as this is
+   # unnecessary for this test.
+ 
+-    cat > conftest.$ac_ext << EOF
+-[#]line __oline__ "configure"
+-template<typename T1, typename T2>
+-  struct same
+-  { typedef T2 type; };
+-
+-template<typename T>
+-  struct same<T, T>;
+-
+-int main()
+-{
+-  typename same<long, __int128>::type                i1;
+-  typename same<long long, __int128>::type           i2;
+-}
+-EOF
+-
+-    AC_MSG_CHECKING([for __int128])
+-    if AC_TRY_EVAL(ac_compile); then
+-      AC_DEFINE(_GLIBCXX_USE_INT128, 1,
+-      [Define if __int128 is supported on this host.])
+-      enable_int128=yes
+-    else
+-      enable_int128=no
+-    fi
+-    AC_MSG_RESULT($enable_int128)
+-    rm -f conftest*
+-
+-    cat > conftest.$ac_ext << EOF
++  cat > conftest.$ac_ext << EOF
+ [#]line __oline__ "configure"
+ template<typename T1, typename T2>
+   struct same
+diff --git a/libstdc++-v3/config.h.in b/libstdc++-v3/config.h.in
+index 197e8e691cb..e545488386a 100644
+--- a/libstdc++-v3/config.h.in
++++ b/libstdc++-v3/config.h.in
+@@ -929,9 +929,6 @@
+ /* Define if get_nprocs is available in <sys/sysinfo.h>. */
+ #undef _GLIBCXX_USE_GET_NPROCS
+ 
+-/* Define if __int128 is supported on this host. */
+-#undef _GLIBCXX_USE_INT128
+-
+ /* Define if LFS support is available. */
+ #undef _GLIBCXX_USE_LFS
+ 
+diff --git a/libstdc++-v3/configure b/libstdc++-v3/configure
+index 272bd993a9c..067b5d1ae8e 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -16218,7 +16218,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+   # Fake what AC_TRY_COMPILE does, without linking as this is
+   # unnecessary for this test.
+ 
+-    cat > conftest.$ac_ext << EOF
++  cat > conftest.$ac_ext << EOF
+ #line 16222 "configure"
+ template<typename T1, typename T2>
+   struct same
+@@ -16227,40 +16227,6 @@ template<typename T1, typename T2>
+ template<typename T>
+   struct same<T, T>;
+ 
+-int main()
+-{
+-  typename same<long, __int128>::type                i1;
+-  typename same<long long, __int128>::type           i2;
+-}
+-EOF
+-
+-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __int128" >&5
+-$as_echo_n "checking for __int128... " >&6; }
+-    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
+-  (eval $ac_compile) 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; }; then
+-
+-$as_echo "#define _GLIBCXX_USE_INT128 1" >>confdefs.h
+-
+-      enable_int128=yes
+-    else
+-      enable_int128=no
+-    fi
+-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_int128" >&5
+-$as_echo "$enable_int128" >&6; }
+-    rm -f conftest*
+-
+-    cat > conftest.$ac_ext << EOF
+-#line 16256 "configure"
+-template<typename T1, typename T2>
+-  struct same
+-  { typedef T2 type; };
+-
+-template<typename T>
+-  struct same<T, T>;
+-
+ int main()
+ {
+   typename same<double, __float128>::type      f1;
+diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
+index 95dd9ce5da5..a816ff79d16 100644
+--- a/libstdc++-v3/configure.ac
++++ b/libstdc++-v3/configure.ac
+@@ -153,7 +153,7 @@ GLIBCXX_ENABLE_THREADS
+ GLIBCXX_ENABLE_ATOMIC_BUILTINS
+ GLIBCXX_ENABLE_LOCK_POLICY
+ GLIBCXX_ENABLE_DECIMAL_FLOAT
+-GLIBCXX_ENABLE_INT128_FLOAT128
++GLIBCXX_ENABLE_FLOAT128
+ if test "$enable_float128" = yes; then
+   port_specific_symbol_files="$port_specific_symbol_files \$(top_srcdir)/config/abi/pre/float128.ver"
+ fi
+diff --git a/libstdc++-v3/include/bits/random.h b/libstdc++-v3/include/bits/random.h
+index 1b9cc5f16a9..0da013c5f45 100644
+--- a/libstdc++-v3/include/bits/random.h
++++ b/libstdc++-v3/include/bits/random.h
+@@ -99,7 +99,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+       struct _Select_uint_least_t<__s, 2>
+       { typedef unsigned long long type; };
+ 
+-#ifdef _GLIBCXX_USE_INT128
++#if __SIZEOF_INT128__ > __SIZEOF_LONG_LONG__
+     template<int __s>
+       struct _Select_uint_least_t<__s, 1>
+       { typedef unsigned __int128 type; };
+diff --git a/libstdc++-v3/include/std/charconv b/libstdc++-v3/include/std/charconv
+index 6e407f31e30..193702e677a 100644
+--- a/libstdc++-v3/include/std/charconv
++++ b/libstdc++-v3/include/std/charconv
+@@ -94,7 +94,7 @@ namespace __detail
+     struct __to_chars_unsigned_type : __make_unsigned_selector_base
+     {
+       using _UInts = _List<unsigned int, unsigned long, unsigned long long
+-#if _GLIBCXX_USE_INT128
++#if __SIZEOF_INT128__ > __SIZEOF_LONG_LONG__
+ 	, unsigned __int128
+ #endif
+ 	>;
+-- 
+2.31.1
+

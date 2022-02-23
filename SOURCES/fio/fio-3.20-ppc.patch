@@ -1,0 +1,14 @@
+--- ./arch/arch-ppc.h.orig	2020-07-16 11:07:38 +0200
++++ ./arch/arch-ppc.h	2020-07-16 11:34:28 +0200
+@@ -58,9 +58,9 @@
+ 	unsigned long long rval;
+ 
+ 	asm volatile(
+-		"90:	mfspr %0, %1;\n"
++		"lab90:	mfspr %0, %1;\n"
+ 		"	cmpwi %0,0;\n"
+-		"	beq-  90b;\n"
++		"	beq-  lab90;\n"
+ 	: "=r" (rval)
+ 	: "i" (SPRN_TBRL)
+ 	: "cr0");

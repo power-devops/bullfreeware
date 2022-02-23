@@ -1,0 +1,11 @@
+--- cpan/ExtUtils-MakeMaker/lib/ExtUtils/MM_AIX_init.pm	2018-10-24 10:25:02 +0200
++++ cpan/ExtUtils-MakeMaker/lib/ExtUtils/MM_AIX.pm	2018-10-24 10:25:35 +0200
+@@ -50,7 +50,7 @@
+ 
+ sub xs_dlsyms_arg {
+     my($self, $file) = @_;
+-    return qq{-bE:${file}};
++    return qq{-Wl,-bE:${file}};
+ }
+ 
+ sub init_others {

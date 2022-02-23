@@ -1,0 +1,71 @@
+From ed2fce2d87ea9aae2e6fcc11610fb64f72e5377e Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 07 Jan 2019 10:22:42 +0100
+Subject: [PATCH] cmd/link: support dwarf64 when writing .debug_frame
+
+Fixes #28558
+
+Change-Id: I0ecd9c47fb017cf4bd44725a83a0016c7bb94633
+Reviewed-on: https://go-review.googlesource.com/c/go/+/156478
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/dwarf.go b/src/cmd/link/internal/ld/dwarf.go
+index a150306..c226886 100644
+--- a/src/cmd/link/internal/ld/dwarf.go
++++ b/src/cmd/link/internal/ld/dwarf.go
+@@ -1391,13 +1391,22 @@
+ 	fs.Type = sym.SDWARFSECT
+ 	syms = append(syms, fs)
+ 
++	// Length field is 4 bytes on Dwarf32 and 12 bytes on Dwarf64
++	lengthFieldSize := int64(4)
++	if isDwarf64(ctxt) {
++		lengthFieldSize += 8
++	}
++
+ 	// Emit the CIE, Section 6.4.1
+ 	cieReserve := uint32(16)
+ 	if haslinkregister(ctxt) {
+ 		cieReserve = 32
+ 	}
++	if isDwarf64(ctxt) {
++		cieReserve += 4 // 4 bytes added for cid
++	}
+ 	createUnitLength(ctxt, fs, uint64(cieReserve))             // initial length, must be multiple of thearch.ptrsize
+-	addDwarfAddrField(ctxt, fs, 0xffffffff)                    // cid.
++	addDwarfAddrField(ctxt, fs, ^uint64(0))                    // cid
+ 	fs.AddUint8(3)                                             // dwarf version (appendix F)
+ 	fs.AddUint8(0)                                             // augmentation ""
+ 	dwarf.Uleb128put(dwarfctxt, fs, 1)                         // code_alignment_factor
+@@ -1423,8 +1432,7 @@
+ 		dwarf.Uleb128put(dwarfctxt, fs, int64(-ctxt.Arch.PtrSize)/dataAlignmentFactor) // ...is saved at [CFA - (PtrSize/4)].
+ 	}
+ 
+-	// 4 is to exclude the length field.
+-	pad := int64(cieReserve) + 4 - fs.Size
++	pad := int64(cieReserve) + lengthFieldSize - fs.Size
+ 
+ 	if pad < 0 {
+ 		Exitf("dwarf: cieReserve too small by %d bytes.", -pad)
+@@ -1480,10 +1488,16 @@
+ 
+ 		// Emit the FDE header, Section 6.4.1.
+ 		//	4 bytes: length, must be multiple of thearch.ptrsize
+-		//	4 bytes: Pointer to the CIE above, at offset 0
++		//	4/8 bytes: Pointer to the CIE above, at offset 0
+ 		//	ptrsize: initial location
+ 		//	ptrsize: address range
+-		fs.AddUint32(ctxt.Arch, uint32(4+2*ctxt.Arch.PtrSize+len(deltaBuf))) // length (excludes itself)
++
++		fdeLength := uint64(4 + 2*ctxt.Arch.PtrSize + len(deltaBuf))
++		if isDwarf64(ctxt) {
++			fdeLength += 4 // 4 bytes added for CIE pointer
++		}
++		createUnitLength(ctxt, fs, fdeLength)
++
+ 		if ctxt.LinkMode == LinkExternal {
+ 			addDwarfAddrRef(ctxt, fs, fs)
+ 		} else {

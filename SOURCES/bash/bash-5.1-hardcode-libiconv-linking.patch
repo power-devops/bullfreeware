@@ -1,0 +1,10 @@
+--- ./configure_orig	2021-05-28 07:27:23 +0000
++++ ./configure	2021-05-28 07:28:30 +0000
+@@ -10037,6 +10037,7 @@
+           fi
+           if test "X$found_dir" != "X"; then
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
++			LTLIBICONV="$found_a"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no \
+                  || test "X$found_dir" = "X/usr/$acl_libdirstem" \

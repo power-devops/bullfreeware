@@ -1,0 +1,46 @@
+diff -up expect-5.44.1.15/configure.in.pkgpath expect-5.44.1.15/configure.in
+--- expect-5.44.1.15/configure.in.pkgpath	2009-11-03 20:27:58.000000000 +0100
++++ expect-5.44.1.15/configure.in	2010-03-09 14:46:47.997377875 +0100
+@@ -1198,6 +1198,7 @@ AC_SUBST(EXP_SHLIB_LD_LIBS)
+ AC_SUBST(SETUID)
+ AC_SUBST(SETPGRP_VOID)
+ AC_SUBST(DEFAULT_STTY_ARGS)
++AC_SUBST(TCL_VERSION)
+ 
+ #--------------------------------------------------------------------
+ #--------------------------------------------------------------------
+diff -up expect-5.44.1.15/Makefile.in.pkgpath expect-5.44.1.15/Makefile.in
+--- expect-5.44.1.15/Makefile.in.pkgpath	2008-10-03 19:05:14.000000000 +0200
++++ expect-5.44.1.15/Makefile.in	2010-03-09 14:47:20.101376873 +0100
+@@ -121,8 +121,8 @@ includedir	= @includedir@
+ DESTDIR		=
+ 
+ PKG_DIR		= $(PACKAGE_NAME)$(PACKAGE_VERSION)
+-pkgdatadir	= $(datadir)/$(PKG_DIR)
+-pkglibdir	= $(libdir)/$(PKG_DIR)
++pkgdatadir	= $(datadir)/tcl@TCL_VERSION@/$(PKG_DIR)
++pkglibdir	= $(libdir)/tcl@TCL_VERSION@/$(PKG_DIR)
+ pkgincludedir	= $(includedir)/$(PKG_DIR)
+ 
+ top_builddir	= .
+@@ -267,7 +267,7 @@ install-doc: doc
+ 	  else true; fi ; \
+ 	done
+ 
+-test: binaries libraries
++test: binaries libraries pkgIndex.tcl-test
+ 	$(TCLSH) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TESTFLAGS)
+ 
+ shell: binaries libraries
+@@ -331,6 +331,11 @@ pkgIndex.tcl:
+ 
+ pkgIndex.tcl-hand:
+ 	(echo 'package ifneeded Expect $(PACKAGE_VERSION) \
++	    [list load [file join $$dir .. .. $(PKG_LIB_FILE)]]'\
++	) > pkgIndex.tcl
++
++pkgIndex.tcl-test:
++	(echo 'package ifneeded Expect $(PACKAGE_VERSION) \
+ 	    [list load [file join $$dir $(PKG_LIB_FILE)]]'\
+ 	) > pkgIndex.tcl
+ 

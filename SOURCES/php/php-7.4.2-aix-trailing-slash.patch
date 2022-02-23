@@ -1,0 +1,257 @@
+diff -Nur php-7.3.10.orig/Zend/zend_virtual_cwd.c php-7.3.10-aix/Zend/zend_virtual_cwd.c
+--- php-7.3.10.orig/Zend/zend_virtual_cwd.c	2019-09-24 11:20:26 +0200
++++ php-7.3.10-aix/Zend/zend_virtual_cwd.c	2019-12-11 14:14:11 +0100
+@@ -58,6 +58,10 @@
+ #include <fsio.h>
+ #endif
+ 
++#ifdef _AIX
++#include <sys/vnode.h>
++#endif
++
+ #ifndef HAVE_REALPATH
+ #define realpath(x,y) strcpy(y,x)
+ #endif
+@@ -404,6 +408,104 @@
+ /* }}} */
+ #endif
+ 
++#ifdef _AIX
++/*
++The AIX file operations accepts a regular fine name appended with a trailing
++slash.
++To ensure a consitent behavior on Linux and AIX, check if a path with a trailing
++slash is a directory and simulate Linux behavior if not.
++*/
++#define ERROR_IF_FILE_WITH_TRAILING_SLASH(path, retval, set_errno, retval_if_not_exists, errno_if_not_exists) \
++	if (path[strlen(path) - 1] == '/') {\
++		if (access(path, F_OK) == 0) {\
++			struct stat buf;\
++			if (stat(path, &buf) == 0 && buf.st_type != VDIR) {\
++				if (set_errno != -1) {\
++					errno = set_errno;\
++				}\
++				return retval;\
++			}\
++		}\
++		else if (errno_if_not_exists > 0) {\
++			errno = errno_if_not_exists;\
++			return retval_if_not_exists;\
++		}\
++	}
++
++CWD_API int stat_aix(const char *path, struct stat *buf) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, -1, ENOTDIR, 0, 0);
++	return stat(path, buf);
++}
++
++CWD_API int lstat_aix(const char *path, struct stat *buf) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, -1, ENOTDIR, 0, 0);
++	return lstat(path, buf);
++}
++
++CWD_API int rename_aix(const char *oldname, const char *newname) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(oldname, -1, ENOTDIR, 0, 0);
++	return rename(oldname, newname);
++}
++
++CWD_API int access_aix(const char *path, int mode) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, -1, ENOTDIR, 0, 0);
++	return access(path, mode);
++}
++
++CWD_API int unlink_aix(const char *path) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, -1, ENOTDIR, 0, 0);
++	return unlink(path);
++}
++
++CWD_API FILE *fopen_aix(const char *path, const char *type) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, 0, ENOTDIR, NULL, EISDIR);
++	return fopen(path, type);
++}
++
++CWD_API FILE *popen_aix(const char *path, const char *type) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, 0, ENOTDIR, NULL, EISDIR);
++	/*
++	On Linux, popen does not allow r and w simultaneously
++	*/
++	if (strchr(type, 'r') != NULL && strchr(type, 'w') != NULL) {
++		errno = EINVAL;
++		return NULL;
++	}
++	return popen(path, type);
++}
++
++CWD_API int open_aix(const char *path, int flag) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, 0, ENOTDIR, -1, EISDIR);
++	return open(path, flag);
++}
++
++CWD_API int open_mode_aix(const char *path, int flag, mode_t mode) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, 0, ENOTDIR, -1, EISDIR);
++	return open(path, flag, mode);
++}
++
++CWD_API int creat_aix(const char *path, mode_t mode) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, 0, ENOTDIR, -1, EISDIR);
++	return creat(path, mode);
++}
++
++CWD_API int utime_aix(const char *path, const struct utimbuf *times) /* {{{ */
++{
++	ERROR_IF_FILE_WITH_TRAILING_SLASH(path, -1, ENOTDIR, 0, 0);
++	return utime(path, times);
++}
++#endif
++
+ static int php_is_dir_ok(const cwd_state *state)  /* {{{ */
+ {
+ 	zend_stat_t buf;
+diff -Nur php.orig/main/streams/plain_wrapper.c php.aix/main/streams/plain_wrapper.c
+--- php.orig/main/streams/plain_wrapper.c	2019-09-24 11:20:18 +0200
++++ php.aix/main/streams/plain_wrapper.c	2019-12-11 14:14:11 +0100
+@@ -1040,6 +1040,20 @@
+ 	}
+ #ifdef PHP_WIN32
+ 	fd = php_win32_ioutil_open(realpath, open_flags, 0666);
++#elif defined _AIX
++	/*
++	On AIX, open() does not raise an error if the file name ends with a slash, it opens/creates
++	the file without the trailing slash.
++	For consistency with Linux, check if the name ends with a slash and simulate Linux behavior
++	in this case.
++	*/
++	if (realpath[strlen(realpath) - 1] == '/') {
++		fd = -1;
++		errno = EISDIR;	
++	}
++	else {
++		fd = open(realpath, open_flags, 0666);
++	}
+ #else
+  	fd = open(realpath, open_flags, 0666);
+ #endif
+--- ./Zend/zend_virtual_cwd.h.ORIG	2020-01-21 12:35:33 +0100
++++ ./Zend/zend_virtual_cwd.h	2020-01-29 17:23:12 +0100
+@@ -130,6 +130,20 @@
+ #	define CWD_API
+ #endif
+ 
++#ifdef _AIX
++CWD_API int stat_aix(const char *path, struct stat *buf);
++CWD_API int lstat_aix(const char *path, struct stat *buf);
++CWD_API int rename_aix(const char *oldname, const char *newname);
++CWD_API int access_aix(const char *path, int mode);
++CWD_API int unlink_aix(const char *path);
++CWD_API FILE *fopen_aix(const char *path, const char *type);
++CWD_API int open_aix(const char *path, int flag);
++CWD_API int open_mode_aix(const char *path, int flag, mode_t mode);
++CWD_API int creat_aix(const char *path, mode_t mode);
++CWD_API int utime_aix(const char *path, const struct utimbuf *times);
++CWD_API FILE *popen_aix(const char *path, const char *type);
++#endif
++
+ #ifdef ZEND_WIN32
+ # define php_sys_stat_ex php_win32_ioutil_stat_ex
+ # define php_sys_stat php_win32_ioutil_stat
+@@ -138,6 +152,17 @@
+ # define php_sys_readlink php_win32_ioutil_readlink
+ # define php_sys_symlink php_win32_ioutil_symlink
+ # define php_sys_link php_win32_ioutil_link
++
++#elif defined(_AIX)
++# define php_sys_stat(path, buf) stat_aix(path, buf)
++# define php_sys_lstat(path, buf) lstat_aix(path, buf)
++# define php_sys_fstat fstat
++# ifdef HAVE_SYMLINK
++# define php_sys_readlink(link, target, target_len) readlink(link, target, target_len)
++# define php_sys_symlink symlink
++# define php_sys_link link
++# endif
++
+ #else
+ # define php_sys_stat stat
+ # define php_sys_lstat lstat
+@@ -286,7 +311,6 @@
+ 
+ #else
+ 
+-#define VCWD_CREAT(path, mode) creat(path, mode)
+ /* rename on windows will fail if newname already exists.
+    MoveFileEx has to be used */
+ #if defined(ZEND_WIN32)
+@@ -302,15 +326,30 @@
+ #define VCWD_GETCWD(buff, size) php_win32_ioutil_getcwd(buff, size)
+ #define VCWD_CHMOD(path, mode) php_win32_ioutil_chmod(path, mode)
+ #else
++
++#ifdef _AIX
++#define VCWD_FOPEN(path, mode)  fopen_aix(path, mode)
++#define VCWD_OPEN(path, flags) open_aix(path, flags)
++#define VCWD_OPEN_MODE(path, flags, mode)	open_mode_aix(path, flags, mode)
++#define VCWD_RENAME(oldname, newname) rename_aix(oldname, newname)
++#define VCWD_UNLINK(path) unlink_aix(path)
++#define VCWD_ACCESS(pathname, mode) access_aix(pathname, mode)
++#else
++
+ #define VCWD_FOPEN(path, mode)  fopen(path, mode)
+ #define VCWD_OPEN(path, flags) open(path, flags)
+ #define VCWD_OPEN_MODE(path, flags, mode)	open(path, flags, mode)
+ # define VCWD_RENAME(oldname, newname) rename(oldname, newname)
++
++#define VCWD_UNLINK(path) unlink(path)
++#define VCWD_ACCESS(pathname, mode) access(pathname, mode)
++#endif
++
+ #define VCWD_MKDIR(pathname, mode) mkdir(pathname, mode)
+ #define VCWD_RMDIR(pathname) rmdir(pathname)
+-#define VCWD_UNLINK(path) unlink(path)
++
+ #define VCWD_CHDIR(path) chdir(path)
+-#define VCWD_ACCESS(pathname, mode) access(pathname, mode)
++
+ #define VCWD_GETCWD(buff, size) getcwd(buff, size)
+ #define VCWD_CHMOD(path, mode) chmod(path, mode)
+ #endif
+@@ -318,15 +357,30 @@
+ #define VCWD_CHDIR_FILE(path) virtual_chdir_file(path, chdir)
+ #define VCWD_GETWD(buf) getwd(buf)
+ #define VCWD_STAT(path, buff) php_sys_stat(path, buff)
++
++#ifdef _AIX
++#define VCWD_CREAT(path, mode) creat_aix(path, mode)
++#define VCWD_LSTAT(path, buff) lstat_aix(path, buff)
++#define VCWD_POPEN(command, type) popen_aix(command, type)
++#else
++#define VCWD_CREAT(path, mode) creat(path, mode)
++
+ #define VCWD_LSTAT(path, buff) lstat(path, buff)
+-#define VCWD_OPENDIR(pathname) opendir(pathname)
++
+ #define VCWD_POPEN(command, type) popen(command, type)
+ 
++#endif
++#define VCWD_OPENDIR(pathname) opendir(pathname)
++
+ #define VCWD_REALPATH(path, real_path) tsrm_realpath(path, real_path)
+ 
+ #if HAVE_UTIME
+ # ifdef ZEND_WIN32
+ #  define VCWD_UTIME(path, time) win32_utime(path, time)
++
++# elif defined(_AIX)
++#  define VCWD_UTIME(path, time) utime_aix(path, time)
++
+ # else
+ #  define VCWD_UTIME(path, time) utime(path, time)
+ # endif

@@ -1,0 +1,11 @@
+--- a/src/cmd/cgo/out.go	2021-01-04 13:34:06 +0100
++++ b/src/cmd/cgo/out.go	2021-01-04 13:36:45 +0100
+@@ -875,7 +875,7 @@
+ 	fmt.Fprintf(fgcc, "#pragma GCC diagnostic ignored \"-Wpragmas\"\n")
+ 	fmt.Fprintf(fgcc, "#pragma GCC diagnostic ignored \"-Waddress-of-packed-member\"\n")
+ 
+-	fmt.Fprintf(fgcc, "extern void crosscall2(void (*fn)(void *), void *, int, __SIZE_TYPE__);\n")
++	fmt.Fprintf(fgcc, "extern void __attribute__((longcall)) crosscall2(void (*fn)(void *), void *, int, __SIZE_TYPE__);\n")
+ 	fmt.Fprintf(fgcc, "extern __SIZE_TYPE__ _cgo_wait_runtime_init_done(void);\n")
+ 	fmt.Fprintf(fgcc, "extern void _cgo_release_context(__SIZE_TYPE__);\n\n")
+ 	fmt.Fprintf(fgcc, "extern char* _cgo_topofstack(void);")

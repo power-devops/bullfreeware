@@ -1,0 +1,17 @@
+--- ./src/lib/krb5/rcache/rc_dfl.c.orig	2020-03-05 14:14:15 +0100
++++ ./src/lib/krb5/rcache/rc_dfl.c	2020-03-05 14:16:31 +0100
+@@ -99,8 +99,13 @@
+     }
+     if (asprintf(&fname, "%s/krb5_%lu.rcache2", dir, (unsigned long)euid) < 0)
+         return ENOMEM;
+-
++#ifdef _AIX61
++    #include <sys/utsname.h>
++    int O_NOFOLLOW_aix = 0x02000000;
++    fd = open(fname, O_CREAT | O_RDWR | O_NOFOLLOW_aix, 0600);
++#else
+     fd = open(fname, O_CREAT | O_RDWR | O_NOFOLLOW, 0600);
++#endif
+     if (fd < 0) {
+         ret = errno;
+         k5_setmsg(context, ret, "%s (filename: %s)",

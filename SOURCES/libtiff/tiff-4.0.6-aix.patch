@@ -1,0 +1,16 @@
+Index: tiff-4.0.1/libtiff/tiffio.h
+===================================================================
+--- tiff-4.0.1.orig/libtiff/tiffio.h	2012-02-18 17:20:26.000000000 +0100
++++ tiff-4.0.1/libtiff/tiffio.h	2012-06-21 13:35:42.000000000 +0200
+@@ -30,6 +30,11 @@
+ /*
+  * TIFF I/O Library Definitions.
+  */
++
++#ifdef _AIX
++#include <sys/types.h>
++#endif
++
+ #include "tiff.h"
+ #include "tiffvers.h"
+ 

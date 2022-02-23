@@ -1,0 +1,111 @@
+From 5237bf00740f75ba391a7192a99eeb274c416c94 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Wed, 23 Jan 2019 16:07:30 -0600
+Subject: [PATCH 10/24] cmd/link: fix cgo_export for aix/ppc64
+
+---
+ src/cmd/link/internal/ld/lib.go   |  4 +++
+ src/cmd/link/internal/ld/xcoff.go | 54 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/src/cmd/link/internal/ld/lib.go b/src/cmd/link/internal/ld/lib.go
+index e99c81aeb7..e84ad3c443 100644
+--- a/src/cmd/link/internal/ld/lib.go
++++ b/src/cmd/link/internal/ld/lib.go
+@@ -1266,6 +1266,10 @@ func (ctxt *Link) hostlink() {
+ 	if ctxt.IsELF {
+ 		argv = append(argv, "-rdynamic")
+ 	}
++	if ctxt.HeadType == objabi.Haix {
++		file_name := xcoffCreateExportFile(ctxt)
++		argv = append(argv, "-Wl,-bE:"+file_name)
++	}
+ 
+ 	if strings.Contains(argv[0], "clang") {
+ 		argv = append(argv, "-Qunused-arguments")
+diff --git a/src/cmd/link/internal/ld/xcoff.go b/src/cmd/link/internal/ld/xcoff.go
+index 2e6cce2925..f94f6693b5 100644
+--- a/src/cmd/link/internal/ld/xcoff.go
++++ b/src/cmd/link/internal/ld/xcoff.go
+@@ -9,6 +9,8 @@ import (
+ 	"cmd/link/internal/sym"
+ 	"encoding/binary"
+ 	"math/bits"
++	"os"
++	"path/filepath"
+ 	"sort"
+ 	"strings"
+ )
+@@ -777,7 +779,7 @@ func (f *xcoffFile) writeSymbolFunc(ctxt *Link, x *sym.Symbol) []xcoffSym {
+ 
+ 	s := &XcoffSymEnt64{
+ 		Nsclass: C_EXT,
+-		Noffset: uint32(xfile.stringTable.add(x.Name)),
++		Noffset: uint32(xfile.stringTable.add(x.Extname())),
+ 		Nvalue:  uint64(x.Value),
+ 		Nscnum:  f.getXCOFFscnum(x.Sect),
+ 		Ntype:   SYM_TYPE_FUNC,
+@@ -1188,6 +1190,26 @@ func (ctxt *Link) doxcoff() {
+ 		// Change main name to match __start code.
+ 		main := ctxt.Syms.ROLookup("_main", 0)
+ 		main.Name = ".main"
++
++		for _, s := range ctxt.Syms.Allsym {
++			if !s.Attr.CgoExport() {
++				continue
++			}
++
++			name := s.Extname()
++			if s.Type == sym.STEXT {
++				// On AIX, a exported function must have two symbols:
++				// - a .text symbol which must start with a ".".
++				// - a .data symbol which is a function descriptor.
++				ctxt.Syms.Rename(s.Name, "."+name, 0, ctxt.Reachparent)
++
++				desc := ctxt.Syms.Lookup(name, 0)
++				desc.Type = sym.SNOPTRDATA
++				desc.AddAddr(ctxt.Arch, s)
++				desc.AddAddr(ctxt.Arch, toc)
++				desc.AddUint64(ctxt.Arch, 0)
++			}
++		}
+ 	}
+ }
+ 
+@@ -1609,3 +1631,33 @@ func (f *xcoffFile) emitRelocations(ctxt *Link, fileoff int64) {
+ 
+ 	// TODO(aix): DWARF relocations
+ }
++
++// xcoffCreateExportFile creates a file with exported symbols for
++// -Wl,-bE option.
++// ld won't export symbols unless they are listed in an export file.
++// As there is no way to tell gcc to create this export file for the exported
++// C symbols, we need to retrieve them here.
++// These symbols can be retrieved with Go symbol named _cgoexp_hashcode_Csymname.
++func xcoffCreateExportFile(ctxt *Link) (fname string) {
++	fname = filepath.Join(*flagTmpdir, "export_file.exp")
++	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
++	if err != nil {
++		Exitf("cannot create export_file: %v", err)
++	}
++
++	for _, s := range ctxt.Syms.Allsym {
++		if !s.Attr.CgoExport() {
++			continue
++		}
++		if !strings.HasPrefix(s.String(), "_cgoexp_") {
++			continue
++		}
++
++		name := strings.SplitN(s.Extname(), "_", 4)[3]
++
++		f.Write([]byte(name + "\n"))
++	}
++
++	return fname
++
++}
+-- 
+2.15.1
+

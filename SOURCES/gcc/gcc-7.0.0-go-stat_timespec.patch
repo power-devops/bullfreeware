@@ -1,0 +1,11 @@
+--- gcc-7-20161106.orig/libgo/mksysinfo.sh	2016-11-05 01:21:33 +0100
++++ gcc-7-20161106.new/libgo/mksysinfo.sh	2016-11-25 15:47:27 +0100
+@@ -1288,4 +1297,8 @@
+     sed -e 's/_in6_addr_t/[16]byte/g' \
+     >> ${OUT}
+ 
++sed -e 's/Atim _st_timespec_t; Mtim _st_timespec_t; Ctim _st_timespec_t/Atim Timespec; Mtim Timespec; Ctim Timespec/' ${OUT} > ${OUT}-2
++sed -e 's/Atime int32; st_atime_n int32; Mtime int32; st_mtime_n int32; Ctime int32; st_ctime_n int32/Atime int32; St_atime_n int32; Mtime int32; St_mtime_n int32; Ctime int32; St_ctime_n int32/' ${OUT}-2 > ${OUT}-3
++sed -e 's/Atime int64; st_atime_n int32; Mtime int64; st_mtime_n int32; Ctime int64; st_ctime_n int32/Atime int64; St_atime_n int32; Mtime int64; St_mtime_n int32; Ctime int64; St_ctime_n int32/' ${OUT}-3 > ${OUT}
++
+ exit $?

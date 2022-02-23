@@ -1,0 +1,14 @@
+--- ./src/libmongoc/src/mongoc/mongoc-socket.c.orig	2018-10-04 10:03:55 +0200
++++ ./src/libmongoc/src/mongoc/mongoc-socket.c	2018-10-04 10:06:51 +0200
+@@ -337,6 +337,11 @@
+    ret = poll (pfds, nsds, timeout);
+    for (i = 0; i < nsds; i++) {
+       sds[i].revents = pfds[i].revents;
++#if defined(_AIX)
++      if (sds[i].socket->errno_ == ECONNREFUSED) {
++          sds[i].revents |= POLLHUP;
++      }
++#endif
+    }
+ 
+    bson_free (pfds);

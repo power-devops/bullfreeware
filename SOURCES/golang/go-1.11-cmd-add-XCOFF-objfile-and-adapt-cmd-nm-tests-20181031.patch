@@ -1,0 +1,232 @@
+From 49dafc70c8558271fc2205061d07eed490f2bc18 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Mon, 22 Oct 2018 17:00:37 +0200
+Subject: [PATCH] cmd: add XCOFF objfile and adapt cmd/nm tests
+
+This commit adds a new file format in cmd/internal/objfile for XCOFF.
+It also adapts tests inside cmd/nm for AIX.
+
+Updates: #25893
+
+Change-Id: I1e55ea0b7f7d08a871343bee27d11e2d3baad254
+Reviewed-on: https://go-review.googlesource.com/c/145397
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/internal/objfile/objfile.go b/src/cmd/internal/objfile/objfile.go
+index 10307be..41c5d9b 100644
+--- a/src/cmd/internal/objfile/objfile.go
++++ b/src/cmd/internal/objfile/objfile.go
+@@ -61,6 +61,7 @@
+ 	openMacho,
+ 	openPE,
+ 	openPlan9,
++	openXcoff,
+ }
+ 
+ // Open opens the named file.
+diff --git a/src/cmd/internal/objfile/xcoff.go b/src/cmd/internal/objfile/xcoff.go
+new file mode 100644
+index 0000000..c36b436
+--- /dev/null
++++ b/src/cmd/internal/objfile/xcoff.go
+@@ -0,0 +1,133 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Parsing of XCOFF executable (AIX)
++
++package objfile
++
++import (
++	"cmd/internal/xcoff"
++	"debug/dwarf"
++	"fmt"
++	"io"
++	"unicode"
++)
++
++type xcoffFile struct {
++	xcoff *xcoff.File
++}
++
++func openXcoff(r io.ReaderAt) (rawFile, error) {
++	f, err := xcoff.NewFile(r)
++	if err != nil {
++		return nil, err
++	}
++	return &xcoffFile{f}, nil
++}
++
++func (f *xcoffFile) symbols() ([]Sym, error) {
++	var syms []Sym
++	for _, s := range f.xcoff.Symbols {
++		const (
++			N_UNDEF = 0  // An undefined (extern) symbol
++			N_ABS   = -1 // An absolute symbol (e_value is a constant, not an address)
++			N_DEBUG = -2 // A debugging symbol
++		)
++		sym := Sym{Name: s.Name, Addr: s.Value, Code: '?'}
++
++		switch s.SectionNumber {
++		case N_UNDEF:
++			sym.Code = 'U'
++		case N_ABS:
++			sym.Code = 'C'
++		case N_DEBUG:
++			sym.Code = '?'
++		default:
++			if s.SectionNumber < 0 || len(f.xcoff.Sections) < int(s.SectionNumber) {
++				return nil, fmt.Errorf("invalid section number in symbol table")
++			}
++			sect := f.xcoff.Sections[s.SectionNumber-1]
++
++			// debug/xcoff returns an offset in the section not the actual address
++			sym.Addr += sect.VirtualAddress
++
++			if s.AuxCSect.SymbolType&0x3 == xcoff.XTY_LD {
++				// The size of a function is contained in the
++				// AUX_FCN entry
++				sym.Size = s.AuxFcn.Size
++			} else {
++				sym.Size = s.AuxCSect.Length
++			}
++
++			sym.Size = s.AuxCSect.Length
++
++			switch sect.Type {
++			case xcoff.STYP_TEXT:
++				if s.AuxCSect.StorageMappingClass == xcoff.XMC_RO {
++					sym.Code = 'R'
++				} else {
++					sym.Code = 'T'
++				}
++			case xcoff.STYP_DATA:
++				sym.Code = 'D'
++			case xcoff.STYP_BSS:
++				sym.Code = 'B'
++			}
++
++			if s.StorageClass == xcoff.C_HIDEXT {
++				// Local symbol
++				sym.Code = unicode.ToLower(sym.Code)
++			}
++
++		}
++		syms = append(syms, sym)
++	}
++
++	return syms, nil
++}
++
++func (f *xcoffFile) pcln() (textStart uint64, symtab, pclntab []byte, err error) {
++	if sect := f.xcoff.Section(".text"); sect != nil {
++		textStart = sect.VirtualAddress
++	}
++	if sect := f.xcoff.Section(".gosymtab"); sect != nil {
++		if symtab, err = sect.Data(); err != nil {
++			return 0, nil, nil, err
++		}
++	}
++	if sect := f.xcoff.Section(".gopclntab"); sect != nil {
++		if pclntab, err = sect.Data(); err != nil {
++			return 0, nil, nil, err
++		}
++	}
++	return textStart, symtab, pclntab, nil
++}
++
++func (f *xcoffFile) text() (textStart uint64, text []byte, err error) {
++	sect := f.xcoff.Section(".text")
++	if sect == nil {
++		return 0, nil, fmt.Errorf("text section not found")
++	}
++	textStart = sect.VirtualAddress
++	text, err = sect.Data()
++	return
++}
++
++func (f *xcoffFile) goarch() string {
++	switch f.xcoff.TargetMachine {
++	case xcoff.U802TOCMAGIC:
++		return "ppc"
++	case xcoff.U64_TOCMAGIC:
++		return "ppc64"
++	}
++	return ""
++}
++
++func (f *xcoffFile) loadAddress() (uint64, error) {
++	return 0, fmt.Errorf("unknown load address")
++}
++
++func (f *xcoffFile) dwarf() (*dwarf.Data, error) {
++	return f.xcoff.DWARF()
++}
+diff --git a/src/cmd/nm/nm_test.go b/src/cmd/nm/nm_test.go
+index ccf5682..87baa09 100644
+--- a/src/cmd/nm/nm_test.go
++++ b/src/cmd/nm/nm_test.go
+@@ -56,17 +56,18 @@
+ 
+ func TestNonGoExecs(t *testing.T) {
+ 	testfiles := []string{
+-		"elf/testdata/gcc-386-freebsd-exec",
+-		"elf/testdata/gcc-amd64-linux-exec",
+-		"macho/testdata/gcc-386-darwin-exec",
+-		"macho/testdata/gcc-amd64-darwin-exec",
+-		// "pe/testdata/gcc-amd64-mingw-exec", // no symbols!
+-		"pe/testdata/gcc-386-mingw-exec",
+-		"plan9obj/testdata/amd64-plan9-exec",
+-		"plan9obj/testdata/386-plan9-exec",
++		"debug/elf/testdata/gcc-386-freebsd-exec",
++		"debug/elf/testdata/gcc-amd64-linux-exec",
++		"debug/macho/testdata/gcc-386-darwin-exec",
++		"debug/macho/testdata/gcc-amd64-darwin-exec",
++		// "debug/pe/testdata/gcc-amd64-mingw-exec", // no symbols!
++		"debug/pe/testdata/gcc-386-mingw-exec",
++		"debug/plan9obj/testdata/amd64-plan9-exec",
++		"debug/plan9obj/testdata/386-plan9-exec",
++		"cmd/internal/xcoff/testdata/gcc-ppc64-aix-dwarf2-exec",
+ 	}
+ 	for _, f := range testfiles {
+-		exepath := filepath.Join(runtime.GOROOT(), "src", "debug", f)
++		exepath := filepath.Join(runtime.GOROOT(), "src", f)
+ 		cmd := exec.Command(testnmpath, exepath)
+ 		out, err := cmd.CombinedOutput()
+ 		if err != nil {
+@@ -139,6 +140,20 @@
+ 	if err != nil {
+ 		t.Fatalf("go tool nm: %v\n%s", err, string(out))
+ 	}
++
++	relocated := func(code string) bool {
++		if runtime.GOOS == "aix" {
++			// On AIX, .data and .bss addresses are changed by the loader.
++			// Therefore, the values returned by the exec aren't the same
++			// than the ones inside the symbol table.
++			switch code {
++			case "D", "d", "B", "b":
++				return true
++			}
++		}
++		return false
++	}
++
+ 	scanner := bufio.NewScanner(bytes.NewBuffer(out))
+ 	dups := make(map[string]bool)
+ 	for scanner.Scan() {
+@@ -149,7 +164,9 @@
+ 		name := f[2]
+ 		if addr, found := names[name]; found {
+ 			if want, have := addr, "0x"+f[0]; have != want {
+-				t.Errorf("want %s address for %s symbol, but have %s", want, name, have)
++				if !relocated(f[1]) {
++					t.Errorf("want %s address for %s symbol, but have %s", want, name, have)
++				}
+ 			}
+ 			delete(names, name)
+ 		}

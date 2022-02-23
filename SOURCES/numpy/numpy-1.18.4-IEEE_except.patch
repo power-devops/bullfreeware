@@ -1,0 +1,11 @@
+--- ./numpy/core/src/npymath/ieee754.c.src.orig	2020-05-29 15:38:15 +0200
++++ ./numpy/core/src/npymath/ieee754.c.src	2020-05-29 15:37:59 +0200
+@@ -634,7 +634,7 @@
+     fpsetsticky(FP_X_INV);
+ }
+ 
+-#elif defined(_AIX)
++#elif defined(_AIX) && !defined(__GNUC__)
+ #include <float.h>
+ #include <fpxcp.h>
+ 

@@ -1,0 +1,49 @@
+From faa7fa03b1e694258d40f8f62076dd96843b861e Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:49:22 +0100
+Subject: [PATCH] cmd/internal/goobj: add XCOFF support to TestParseCGOArchive
+
+Change-Id: I9d14142977b4f2e8cb7ed33582249d0448bae023
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164016
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/internal/goobj/goobj_test.go b/src/cmd/internal/goobj/goobj_test.go
+index 840b45c..4a4d35a 100644
+--- a/src/cmd/internal/goobj/goobj_test.go
++++ b/src/cmd/internal/goobj/goobj_test.go
+@@ -10,6 +10,7 @@
+ 	"debug/pe"
+ 	"fmt"
+ 	"internal/testenv"
++	"internal/xcoff"
+ 	"io"
+ 	"io/ioutil"
+ 	"os"
+@@ -292,6 +293,24 @@
+ 				}
+ 			}
+ 		}
++	case "aix":
++		c1 = "." + c1
++		c2 = "." + c2
++		for _, obj := range p.Native {
++			xf, err := xcoff.NewFile(obj)
++			if err != nil {
++				t.Fatal(err)
++			}
++			for _, s := range xf.Symbols {
++				switch s.Name {
++				case c1:
++					found1 = true
++				case c2:
++					found2 = true
++				}
++			}
++		}
++
+ 	default:
+ 		for _, obj := range p.Native {
+ 			ef, err := elf.NewFile(obj)

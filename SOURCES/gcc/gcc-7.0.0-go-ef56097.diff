@@ -1,0 +1,43 @@
+From ef56097f4ea848d48fbf61eba1c757fe7fce99d3 Mon Sep 17 00:00:00 2001
+From: Matthieu Sarter <matthieu.sarter.external@atos.net>
+Date: Fri, 28 Apr 2017 10:27:32 +0200
+Subject: [PATCH] libgo: pass $(NM) value when running benchmarks
+
+On AIX, we need to use "nm -B" instead of "nm", to have the
+epxected output format, so the configured $(NM) value from
+the Makefile should be exported before running gotest, which
+defaults to "nm" if $NM is not set.
+
+Issue golang/go#19200
+
+Change-Id: If2550d60d0955e664d394c6b90c1afe2b1b8af8d
+Reviewed-on: https://go-review.googlesource.com/42051
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/libgo/Makefile.am b/libgo/Makefile.am
+index f4bf2bc..3c9d1ff 100644
+--- a/libgo/Makefile.am
++++ b/libgo/Makefile.am
+@@ -967,6 +967,8 @@
+ 	export RUNTESTFLAGS; \
+ 	MAKE="$(MAKE)"; \
+ 	export MAKE; \
++	NM="$(NM)"; \
++	export NM; \
+ 	libgccdir=`${GOC} -print-libgcc-file-name | sed -e 's|/[^/]*$$||'`; \
+ 	LD_LIBRARY_PATH="`${PWD_COMMAND}`/.libs:$${libgccdir}:${LD_LIBRARY_PATH}"; \
+ 	LD_LIBRARY_PATH=`echo $${LD_LIBRARY_PATH} | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; \
+diff --git a/libgo/Makefile.in b/libgo/Makefile.in
+index c04dfdd..b9c5b92 100644
+--- a/libgo/Makefile.in
++++ b/libgo/Makefile.in
+@@ -1108,6 +1108,8 @@
+ 	export RUNTESTFLAGS; \
+ 	MAKE="$(MAKE)"; \
+ 	export MAKE; \
++	NM="$(NM)"; \
++	export NM; \
+ 	libgccdir=`${GOC} -print-libgcc-file-name | sed -e 's|/[^/]*$$||'`; \
+ 	LD_LIBRARY_PATH="`${PWD_COMMAND}`/.libs:$${libgccdir}:${LD_LIBRARY_PATH}"; \
+ 	LD_LIBRARY_PATH=`echo $${LD_LIBRARY_PATH} | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; \

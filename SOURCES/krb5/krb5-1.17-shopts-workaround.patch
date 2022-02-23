@@ -1,0 +1,42 @@
+--- ./src/clients/kinit/kinit.c.ORIGIN	2018-05-18 18:17:37 +0200
++++ ./src/clients/kinit/kinit.c	2018-05-18 18:13:49 +0200
+@@ -132,7 +132,7 @@
+  * *(struct[2]), the array index which was specified is stored in *index, and
+  * long_getopt() returns 0.
+  */
+-const char *shopts = "r:fpFPn54aAVl:s:c:kit:T:RS:vX:CEI:";
++//const char *shopts = "r:fpFPn54aAVl:s:c:kit:T:RS:vX:CEI:";
+ 
+ #define USAGE_BREAK "\n\t"
+ 
+@@ -252,7 +252,8 @@
+     int errflg = 0;
+     int i;
+ 
+-    while ((i = getopt_long(argc, argv, shopts, long_options, 0)) != -1) {
++//    while ((i = getopt_long(argc, argv, shopts, long_options, 0)) != -1) {
++    while ((i = getopt_long(argc, argv, "r:fpFPn54aAVl:s:c:kit:T:RS:vX:CEI:", long_options, 0)) != -1) {
+         switch (i) {
+         case 'V':
+             opts->verbose = 1;
+--- ./src/clients/kvno/kvno.c.ORIG	2019-01-08 17:02:37 +0100
++++ ./src/clients/kvno/kvno.c	2019-04-10 15:22:04 +0200
+@@ -60,7 +60,7 @@
+         { "u2u", 1, NULL, OPTION_U2U },
+         { NULL, 0, NULL, 0 }
+     };
+-    const char *shopts = "uCc:e:hk:qPS:U:";
++//    const char *shopts = "uCc:e:hk:qPS:U:";
+     int option;
+     char *etypestr = NULL, *ccachestr = NULL, *keytab_name = NULL;
+     char *sname = NULL, *for_user = NULL, *u2u_ccname = NULL;
+@@ -72,7 +72,8 @@
+     prog = strrchr(argv[0], '/');
+     prog = prog ? (prog + 1) : argv[0];
+ 
+-    while ((option = getopt_long(argc, argv, shopts, lopts, NULL)) != -1) {
++//    while ((option = getopt_long(argc, argv, shopts, lopts, NULL)) != -1) {
++    while ((option = getopt_long(argc, argv, "uCc:e:hk:qPS:U:", lopts, NULL)) != -1) {
+         switch (option) {
+         case 'C':
+             canon = 1;

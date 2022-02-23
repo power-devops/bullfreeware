@@ -1,0 +1,39 @@
+From d7ba4c01dabf9409a6e0e3e761e3c17c5d9cf801 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Fri, 5 Jun 2020 13:15:26 -0500
+Subject: [PATCH] libgo/go/runtime: fix arenaBaseOffset for aix/ppc
+
+---
+ libgo/go/runtime/export_test.go | 2 +-
+ libgo/go/runtime/malloc.go      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/libgo/go/runtime/export_test.go b/libgo/go/runtime/export_test.go
+index 6595fafe368..ab74e34d611 100644
+--- a/libgo/go/runtime/export_test.go
++++ b/libgo/go/runtime/export_test.go
+@@ -866,7 +866,7 @@ func FreePageAlloc(pp *PageAlloc) {
+ //
+ // This should not be higher than 0x100*pallocChunkBytes to support
+ // mips and mipsle, which only have 31-bit address spaces.
+-var BaseChunkIdx = ChunkIdx(chunkIndex(((0xc000*pageAlloc64Bit + 0x100*pageAlloc32Bit) * pallocChunkBytes) + 0x0a00000000000000*sys.GoosAix))
++var BaseChunkIdx = ChunkIdx(chunkIndex(((0xc000*pageAlloc64Bit + 0x100*pageAlloc32Bit) * pallocChunkBytes) + 0x0a00000000000000*sys.GoosAix*sys.GoarchPpc64))
+ 
+ // PageBase returns an address given a chunk index and a page index
+ // relative to that chunk.
+diff --git a/libgo/go/runtime/malloc.go b/libgo/go/runtime/malloc.go
+index 266f5eba747..6df7eaa53bb 100644
+--- a/libgo/go/runtime/malloc.go
++++ b/libgo/go/runtime/malloc.go
+@@ -312,7 +312,7 @@ const (
+ 	//
+ 	// On other platforms, the user address space is contiguous
+ 	// and starts at 0, so no offset is necessary.
+-	arenaBaseOffset = sys.GoarchAmd64*(1<<47) + (^0x0a00000000000000+1)&uintptrMask*sys.GoosAix
++	arenaBaseOffset = sys.GoarchAmd64*(1<<47) + (^0x0a00000000000000+1)&uintptrMask*sys.GoosAix*sys.GoarchPpc64
+ 
+ 	// Max number of threads to run garbage collection.
+ 	// 2, 3, and 4 are all plausible maximums depending
+-- 
+2.25.0
+

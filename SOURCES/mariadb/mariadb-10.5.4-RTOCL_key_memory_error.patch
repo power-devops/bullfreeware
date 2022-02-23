@@ -1,0 +1,22 @@
+--- ./include/mysql/psi/psi_memory.h.orig	2020-07-02 15:47:36 +0200
++++ ./include/mysql/psi/psi_memory.h	2020-07-02 15:47:43 +0200
+@@ -138,6 +138,8 @@
+ 
+ /** @} (end of group Group_PSI_v1) */
+ 
++PSI_memory_key key_memory_log_event;
++
+ #endif /* HAVE_PSI_1 */
+ 
+ #ifdef HAVE_PSI_2
+--- ./sql/log_event.cc.orig	2020-07-02 13:53:55 +0200
++++ ./sql/log_event.cc	2020-07-02 13:58:59 +0200
+@@ -56,7 +56,7 @@
+ 
+ #define my_b_write_string(A, B) my_b_write((A), (uchar*)(B), (uint) (sizeof(B) - 1))
+ 
+-PSI_memory_key key_memory_log_event;
++// PSI_memory_key key_memory_log_event;
+ PSI_memory_key key_memory_Incident_log_event_message;
+ PSI_memory_key key_memory_Rows_query_log_event_rows_query;
+ 

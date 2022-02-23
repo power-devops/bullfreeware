@@ -1,0 +1,11 @@
+--- ./src/lib/krb5/os/expand_path.c.ORIGIN	2017-08-23 14:58:27 +0200
++++ ./src/lib/krb5/os/expand_path.c	2017-08-23 14:59:00 +0200
+@@ -351,7 +351,7 @@
+     return 0;
+ }
+ 
+-static const struct token {
++static const struct krb5_token {
+     const char *tok;
+     PTYPE param;
+     const char *postfix;

@@ -1,0 +1,31 @@
+--- ./mysys/CMakeLists.txt.crc32_altivec	2021-02-19 10:41:02 +0100
++++ ./mysys/CMakeLists.txt	2021-02-24 17:23:30 +0100
+@@ -129,7 +129,7 @@
+         COMPILE_FLAGS "-march=armv8-a+crc+crypto")
+     ENDIF()
+   ENDIF()
+-ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64|powerpc64")
++ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64|powerpc")
+   SET(MYSYS_SOURCES ${MYSYS_SOURCES} crc32/crc32_ppc64.c crc32/crc32c_ppc.c)
+   SET_SOURCE_FILES_PROPERTIES(crc32/crc32_ppc64.c crc32/crc32c_ppc.c PROPERTIES
+         COMPILE_FLAGS "${COMPILE_FLAGS} -maltivec -mvsx -mpower8-vector -mcrypto -mpower8-vector")
+--- ./mysys/crc32/crc32c.cc.crc32_altivec	2021-02-19 10:41:02 +0100
++++ ./mysys/crc32/crc32c.cc	2021-02-25 10:41:31 +0100
+@@ -491,6 +491,17 @@
+ 
+   return arch_ppc_crc32;
+ }
++#elif _AIX
++static int arch_ppc_probe(void) {
++  arch_ppc_crc32 = 0;
++
++#if defined(__powerpc64__)
++  // AIX 7.1+ has altivec, and older AIX are out-of-support
++  arch_ppc_crc32 = 1;
++#endif
++
++  return arch_ppc_crc32;
++}
+ #endif  // __linux__
+ 
+ static bool isAltiVec() {

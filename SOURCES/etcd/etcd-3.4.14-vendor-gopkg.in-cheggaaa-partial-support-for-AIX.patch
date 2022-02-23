@@ -1,0 +1,58 @@
+From bae843bb575c455a93904ace6360d79a6a288d55 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 7 Dec 2020 10:47:59 +0100
+Subject: [PATCH 2/6] vendor/gopkg.in/cheggaaa: partial support for AIX
+
+---
+ vendor/gopkg.in/cheggaaa/pb.v1/pb_x.go         | 2 +-
+ vendor/gopkg.in/cheggaaa/pb.v1/pool.go         | 2 +-
+ vendor/gopkg.in/cheggaaa/pb.v1/pool_x.go       | 2 +-
+ vendor/gopkg.in/cheggaaa/pb.v1/termios_sysv.go | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/vendor/gopkg.in/cheggaaa/pb.v1/pb_x.go b/vendor/gopkg.in/cheggaaa/pb.v1/pb_x.go
+index 8e05770..4c7ef04 100644
+--- a/vendor/gopkg.in/cheggaaa/pb.v1/pb_x.go
++++ b/vendor/gopkg.in/cheggaaa/pb.v1/pb_x.go
+@@ -1,4 +1,4 @@
+-// +build linux darwin freebsd netbsd openbsd solaris dragonfly
++// +build linux darwin freebsd netbsd openbsd solaris dragonfly aix
+ // +build !appengine
+ 
+ package pb
+diff --git a/vendor/gopkg.in/cheggaaa/pb.v1/pool.go b/vendor/gopkg.in/cheggaaa/pb.v1/pool.go
+index f44baa0..7f5b7e6 100644
+--- a/vendor/gopkg.in/cheggaaa/pb.v1/pool.go
++++ b/vendor/gopkg.in/cheggaaa/pb.v1/pool.go
+@@ -1,4 +1,4 @@
+-// +build linux darwin freebsd netbsd openbsd solaris dragonfly windows
++// +build aix linux darwin freebsd netbsd openbsd solaris dragonfly windows
+ 
+ package pb
+ 
+diff --git a/vendor/gopkg.in/cheggaaa/pb.v1/pool_x.go b/vendor/gopkg.in/cheggaaa/pb.v1/pool_x.go
+index a8ae14d..684a236 100644
+--- a/vendor/gopkg.in/cheggaaa/pb.v1/pool_x.go
++++ b/vendor/gopkg.in/cheggaaa/pb.v1/pool_x.go
+@@ -1,4 +1,4 @@
+-// +build linux darwin freebsd netbsd openbsd solaris dragonfly
++// +build aix linux darwin freebsd netbsd openbsd solaris dragonfly
+ 
+ package pb
+ 
+diff --git a/vendor/gopkg.in/cheggaaa/pb.v1/termios_sysv.go b/vendor/gopkg.in/cheggaaa/pb.v1/termios_sysv.go
+index b10f618..662c7e2 100644
+--- a/vendor/gopkg.in/cheggaaa/pb.v1/termios_sysv.go
++++ b/vendor/gopkg.in/cheggaaa/pb.v1/termios_sysv.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build linux solaris
++// +build linux solaris aix
+ // +build !appengine
+ 
+ package pb
+-- 
+2.25.0
+

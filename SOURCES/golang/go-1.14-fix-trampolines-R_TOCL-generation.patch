@@ -1,0 +1,35 @@
+From 025bca87462aa549c97dbd28387604ca50963ede Mon Sep 17 00:00:00 2001
+From: Cherry Zhang <cherryyz@google.com>
+Date: Wed, 15 Apr 2020 23:11:52 -0400
+Subject: [PATCH] [dev.link] cmd/link: fix trampoline generation on AIX
+
+The addend should be applied to the target symbol, not the TOC
+symbol.
+
+Change-Id: I0a14873cdcafc4ede401878882646dade9cd8e3b
+Reviewed-on: https://go-review.googlesource.com/c/go/+/228479
+Run-TryBot: Cherry Zhang <cherryyz@google.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Than McIntosh <thanm@google.com>
+---
+
+diff --git a/src/cmd/link/internal/ppc64/asm.go b/src/cmd/link/internal/ppc64/asm.go
+index d6b6c76..d867385 100644
+--- a/src/cmd/link/internal/ppc64/asm.go
++++ b/src/cmd/link/internal/ppc64/asm.go
+@@ -729,14 +729,13 @@
+ 		toctramp := ctxt.Syms.Lookup("TOC."+tramp.Name, 0)
+ 		toctramp.Type = sym.SXCOFFTOC
+ 		toctramp.Attr |= sym.AttrReachable
+-		toctramp.AddAddr(ctxt.Arch, target)
++		toctramp.AddAddrPlus(ctxt.Arch, target, offset)
+ 
+ 		tr := tramp.AddRel()
+ 		tr.Off = 0
+ 		tr.Type = objabi.R_ADDRPOWER_TOCREL_DS
+ 		tr.Siz = 8 // generates 2 relocations:  HA + LO
+ 		tr.Sym = toctramp
+-		tr.Add = offset
+ 	} else {
+ 		// Used for default build mode for an executable
+ 		// Address of the call target is generated using

@@ -1,0 +1,11 @@
+--- ./src/backend/utils/misc/ps_status.c.ORIGIN	2018-02-27 18:23:39 -0600
++++ ./src/backend/utils/misc/ps_status.c	2018-02-27 18:23:50 -0600
+@@ -294,7 +294,7 @@
+ 	 */
+ #define PROGRAM_NAME_PREFIX ""
+ #else
+-#define PROGRAM_NAME_PREFIX "postgres: "
++#define PROGRAM_NAME_PREFIX "postgres "
+ #endif
+ 
+ 	if (*cluster_name == '\0')

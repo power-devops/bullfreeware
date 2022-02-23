@@ -1,0 +1,32 @@
+Index: nss-3.12/mozilla/security/coreconf/AIX.mk
+===================================================================
+--- nss-3.12.orig/mozilla/security/coreconf/AIX.mk	2005-09-16 19:09:23.000000000 +0200
++++ nss-3.12/mozilla/security/coreconf/AIX.mk	2009-02-25 17:03:09.-1378964016 +0100
+@@ -69,15 +69,19 @@
+ 
+ RANLIB		= ranlib
+ 
+-OS_CFLAGS	= -DAIX -DSYSV
+-OS_LIBS 	+= -blibpath:/usr/lib:/lib -lc -lm
++OS_CFLAGS	= -DAIX -DSYSV -I/opt/freeware/include
++OS_LIBS 	+= -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm \
++		-lpthread -lodm -lcfg
+ 
+ DSO_LDOPTS	= -brtl -bnortllib -bM:SRE -bnoentry
+-MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
++MKSHLIB 	= $(LD) $(DSO_LDOPTS) -blibpath:/opt/freeware/lib:/usr/lib:/lib -lc -lm -lpthread
+ 
+ AIX_WRAP	= $(DIST)/lib/aixwrap.o
+ AIX_TMP		= $(OBJDIR)/_aix_tmp.o
+ 
++NSPR_LIB_DIR	= /opt/freeware/lib
++NSPR_INCLUDE_DIR = /opt/freeware/include
++
+ ifdef MAPFILE
+ DSO_LDOPTS	+= -bexport:$(MAPFILE)
+ else
+@@ -96,4 +100,3 @@
+ 	OBJECT_MODE=64
+ 	export OBJECT_MODE
+ endif
+-

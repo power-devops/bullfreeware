@@ -1,0 +1,536 @@
+From 2bc365f12282cdd83a191478b97f4ea0d9aa60dd Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 19 Feb 2018 21:10:09 -0500
+Subject: [PATCH] Convert Python tests to Python 3
+
+Look for python3 in configure.in and verify that we got it.  Convert
+test code to conform to Python 3.
+
+ticket: 8710 (new)
+(cherry picked from commit e23d24beacb73581bbf4351250f3955e6fd44361)
+[rharwood@redhat.com: Context skew due to not having LMDB in tests]
+---
+ src/Makefile.in                  |  1 +
+ src/configure.in                 |  6 ++--
+ src/kadmin/dbutil/t_tdumputil.py |  4 +--
+ src/tests/jsonwalker.py          | 16 +++++------
+ src/tests/t_cve-2012-1014.py     |  2 +-
+ src/tests/t_cve-2012-1015.py     |  2 +-
+ src/tests/t_hostrealm.py         |  4 ++-
+ src/tests/t_kdb.py               | 11 ++++---
+ src/tests/t_keytab.py            | 34 +++++++++++-----------
+ src/tests/t_mkey.py              |  6 ++--
+ src/tests/t_otp.py               |  7 +++--
+ src/tests/t_tabdump.py           |  4 +--
+ src/util/Makefile.in             |  1 +
+ src/util/k5test.py               | 49 +++++++++++++++++---------------
+ src/util/princflags.py           | 25 ++++++++--------
+ 15 files changed, 88 insertions(+), 84 deletions(-)
+
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 77beff8bc..79b8d5f98 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -533,6 +533,7 @@ runenv.py: pyrunenv.vals
+ 
+ clean-unix::
+ 	$(RM) runenv.py runenv.pyc pyrunenv.vals
++	$(RM) -r __pycache__
+ 
+ COV_BUILD=	cov-build
+ COV_ANALYZE=	cov-analyze
+diff --git a/src/configure.in b/src/configure.in
+index 3f45784b5..00cb297b8 100644
+--- a/src/configure.in
++++ b/src/configure.in
+@@ -1098,15 +1098,13 @@ fi
+ AC_SUBST(HAVE_RUNTEST)
+ 
+ # For Python tests.
+-AC_CHECK_PROG(PYTHON,python2,python2)
++AC_CHECK_PROG(PYTHON,python3,python3)
+ if text x"$PYTHON" = x; then
+ 	AC_CHECK_PROG(PYTHON,python,python)
+ fi
+ HAVE_PYTHON=no
+ if test x"$PYTHON" != x; then
+-	# k5test.py requires python 2.4 (for the subprocess module).
+-	# Some code needs python 2.5 (for syntax like conditional expressions).
+-	wantver="(sys.hexversion >= 0x2050000 and sys.hexversion < 0x3000000)"
++	wantver="(sys.hexversion >= 0x3000000)"
+ 	if "$PYTHON" -c "import sys; sys.exit(not $wantver and 1 or 0)"; then
+ 		HAVE_PYTHON=yes
+ 	fi
+diff --git a/src/kadmin/dbutil/t_tdumputil.py b/src/kadmin/dbutil/t_tdumputil.py
+index 52e356533..47b2aa7a3 100755
+--- a/src/kadmin/dbutil/t_tdumputil.py
++++ b/src/kadmin/dbutil/t_tdumputil.py
+@@ -6,8 +6,8 @@ realm = K5Realm(create_kdb=False)
+ def compare(s, expected, msg):
+     if s == expected:
+         return
+-    print 'expected:', repr(expected)
+-    print 'got:', repr(s)
++    print('expected:', repr(expected))
++    print('got:', repr(s))
+     fail(msg)
+ 
+ out = realm.run(['./t_tdumputil', '2', 'field1', 'field2',
+diff --git a/src/tests/jsonwalker.py b/src/tests/jsonwalker.py
+index 942ca2db7..7a0675e08 100644
+--- a/src/tests/jsonwalker.py
++++ b/src/tests/jsonwalker.py
+@@ -2,8 +2,8 @@ import sys
+ try:
+     import cjson
+ except ImportError:
+-    print "Warning: skipping audit log verification because the cjson module" \
+-          " is unavailable"
++    print("Warning: skipping audit log verification because the cjson module" \
++          " is unavailable")
+     sys.exit(0)
+ from collections import defaultdict
+ from optparse import OptionParser
+@@ -22,10 +22,10 @@ class Parser(object):
+         result = self.parse(logs)
+         if len(result) != len(self.defaults):
+             diff = set(self.defaults.keys()).difference(result.keys())
+-            print 'Test failed.'
+-            print 'The following attributes were not set:'
++            print('Test failed.')
++            print('The following attributes were not set:')
+             for it in diff:
+-                print it
++                print(it)
+             sys.exit(1)
+ 
+     def flatten(self, defaults):
+@@ -42,7 +42,7 @@ class Parser(object):
+         result = dict()
+         for path,value in self._walk(defaults):
+             if path in result:
+-                print 'Warning: attribute path %s already exists' % path
++                print('Warning: attribute path %s already exists' % path)
+             result[path] = value
+ 
+         return result
+@@ -60,7 +60,7 @@ class Parser(object):
+                         if v is not None:
+                             dv = self.DEFAULTS[type(v)]
+                         else:
+-                            print 'Warning: attribute %s is set to None' % a
++                            print('Warning: attribute %s is set to None' % a)
+                             continue
+                     # by now we have default value
+                     if v != dv:
+@@ -96,7 +96,7 @@ if __name__ == '__main__':
+                 content.append(cjson.decode(l.rstrip()))
+         f.close()
+     else:
+-        print 'Input file in jason format is required'
++        print('Input file in jason format is required')
+         exit()
+ 
+     defaults = None
+diff --git a/src/tests/t_cve-2012-1014.py b/src/tests/t_cve-2012-1014.py
+index dcff95f6e..8447e0ee7 100755
+--- a/src/tests/t_cve-2012-1014.py
++++ b/src/tests/t_cve-2012-1014.py
+@@ -20,7 +20,7 @@ x2 = base64.b16decode('A44F304DA007030500FEDCBA90A10E30' +
+                       '01')
+ 
+ for x in range(11, 128):
+-    s.sendto(''.join([x1, chr(x), x2]), a)
++    s.sendto(x1 + bytes([x]) + x2, a)
+ 
+ # Make sure kinit still works.
+ 
+diff --git a/src/tests/t_cve-2012-1015.py b/src/tests/t_cve-2012-1015.py
+index 28b1e619b..ae5678cac 100755
+--- a/src/tests/t_cve-2012-1015.py
++++ b/src/tests/t_cve-2012-1015.py
+@@ -27,7 +27,7 @@ x1 = base64.b16decode('6A81A030819DA103020105A20302010A' +
+ x2 = base64.b16decode('A8083006020106020112')
+ 
+ for x in range(0, 128):
+-    s.sendto(''.join([x1, chr(x), x2]), a)
++    s.sendto(x1 + bytes([x]) + x2, a)
+ 
+ # Make sure kinit still works.
+ 
+diff --git a/src/tests/t_hostrealm.py b/src/tests/t_hostrealm.py
+index 256ba2a38..beea6f3bc 100755
+--- a/src/tests/t_hostrealm.py
++++ b/src/tests/t_hostrealm.py
+@@ -119,7 +119,9 @@ testd(realm, 'KRBTEST.COM', 'default_realm profile', env=notest2)
+ # see the first.  Remove the profile default_realm setting to expose
+ # this behavior.
+ remove_default = {'libdefaults': {'default_realm': None}}
+-nodefault_conf = dict(disable_conf.items() + remove_default.items())
++# Python 3.5+: nodefault_conf = {**disable_conf, **remove_default}
++nodefault_conf = dict(list(disable_conf.items()) +
++                      list(remove_default.items()))
+ nodefault = realm.special_env('nodefault', False, krb5_conf=nodefault_conf)
+ testd(realm, 'one', 'default_realm test1', env=nodefault)
+ 
+diff --git a/src/tests/t_kdb.py b/src/tests/t_kdb.py
+index 983cd93c8..42237f7a1 100755
+--- a/src/tests/t_kdb.py
++++ b/src/tests/t_kdb.py
+@@ -1,6 +1,5 @@
+ from k5test import *
+ import time
+-from itertools import imap
+ 
+ # Run kdbtest against the BDB module.
+ realm = K5Realm(create_kdb=False)
+@@ -51,7 +50,7 @@ else:
+ def slap_add(ldif):
+     proc = subprocess.Popen([slapadd, '-b', 'cn=config', '-F', slapd_conf],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+-                            stderr=subprocess.STDOUT)
++                            stderr=subprocess.STDOUT, universal_newlines=True)
+     (out, dummy) = proc.communicate(ldif)
+     output(out)
+     return proc.wait()
+@@ -98,7 +97,7 @@ if slap_add('include: file://%s\n' % schema) != 0:
+ ldap_homes = ['/etc/ldap', '/etc/openldap', '/usr/local/etc/openldap',
+               '/usr/local/etc/ldap']
+ local_schema_path = '/schema/core.ldif'
+-core_schema = next((i for i in imap(lambda x:x+local_schema_path, ldap_homes)
++core_schema = next((i for i in map(lambda x:x+local_schema_path, ldap_homes)
+                     if os.path.isfile(i)), None)
+ if core_schema:
+     if slap_add('include: file://%s\n' % core_schema) != 0:
+@@ -114,7 +113,7 @@ atexit.register(kill_slapd)
+ 
+ out = open(slapd_out, 'w')
+ subprocess.call([slapd, '-h', ldap_uri, '-F', slapd_conf], stdout=out,
+-                stderr=out)
++                stderr=out, universal_newlines=True)
+ out.close()
+ pidf = open(slapd_pidfile, 'r')
+ slapd_pid = int(pidf.read())
+@@ -158,7 +157,7 @@ def ldap_search(args):
+     proc = subprocess.Popen([ldapsearch, '-H', ldap_uri, '-b', top_dn,
+                              '-D', admin_dn, '-w', admin_pw, args],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+-                            stderr=subprocess.STDOUT)
++                            stderr=subprocess.STDOUT, universal_newlines=True)
+     (out, dummy) = proc.communicate()
+     return out
+ 
+@@ -166,7 +165,7 @@ def ldap_modify(ldif, args=[]):
+     proc = subprocess.Popen([ldapmodify, '-H', ldap_uri, '-D', admin_dn,
+                              '-x', '-w', admin_pw] + args,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+-                            stderr=subprocess.STDOUT)
++                            stderr=subprocess.STDOUT, universal_newlines=True)
+     (out, dummy) = proc.communicate(ldif)
+     output(out)
+ 
+diff --git a/src/tests/t_keytab.py b/src/tests/t_keytab.py
+index 228c36334..8a17ae2eb 100755
+--- a/src/tests/t_keytab.py
++++ b/src/tests/t_keytab.py
+@@ -90,36 +90,36 @@ test_key_rotate(realm, princ, 2)
+ 
+ # Test that klist -k can read a keytab entry without a 32-bit kvno and
+ # reports the 8-bit key version.
+-record = '\x00\x01'             # principal component count
+-record += '\x00\x0bKRBTEST.COM' # realm
+-record += '\x00\x04user'        # principal component
+-record += '\x00\x00\x00\x01'    # name type (NT-PRINCIPAL)
+-record += '\x54\xf7\x4d\x35'    # timestamp
+-record += '\x02'                # key version
+-record += '\x00\x12'            # enctype
+-record += '\x00\x20'            # key length
+-record += '\x00' * 32           # key bytes
+-f = open(realm.keytab, 'w')
+-f.write('\x05\x02\x00\x00\x00' + chr(len(record)))
++record = b'\x00\x01'             # principal component count
++record += b'\x00\x0bKRBTEST.COM' # realm
++record += b'\x00\x04user'        # principal component
++record += b'\x00\x00\x00\x01'    # name type (NT-PRINCIPAL)
++record += b'\x54\xf7\x4d\x35'    # timestamp
++record += b'\x02'                # key version
++record += b'\x00\x12'            # enctype
++record += b'\x00\x20'            # key length
++record += b'\x00' * 32           # key bytes
++f = open(realm.keytab, 'wb')
++f.write(b'\x05\x02\x00\x00\x00' + bytes([len(record)]))
+ f.write(record)
+ f.close()
+ msg = '   2 %s' % realm.user_princ
+ out = realm.run([klist, '-k'], expected_msg=msg)
+ 
+ # Make sure zero-fill isn't treated as a 32-bit kvno.
+-f = open(realm.keytab, 'w')
+-f.write('\x05\x02\x00\x00\x00' + chr(len(record) + 4))
++f = open(realm.keytab, 'wb')
++f.write(b'\x05\x02\x00\x00\x00' + bytes([len(record) + 4]))
+ f.write(record)
+-f.write('\x00\x00\x00\x00')
++f.write(b'\x00\x00\x00\x00')
+ f.close()
+ msg = '   2 %s' % realm.user_princ
+ out = realm.run([klist, '-k'], expected_msg=msg)
+ 
+ # Make sure a hand-crafted 32-bit kvno is recognized.
+-f = open(realm.keytab, 'w')
+-f.write('\x05\x02\x00\x00\x00' + chr(len(record) + 4))
++f = open(realm.keytab, 'wb')
++f.write(b'\x05\x02\x00\x00\x00' + bytes([len(record) + 4]))
+ f.write(record)
+-f.write('\x00\x00\x00\x03')
++f.write(b'\x00\x00\x00\x03')
+ f.close()
+ msg = '   3 %s' % realm.user_princ
+ out = realm.run([klist, '-k'], expected_msg=msg)
+diff --git a/src/tests/t_mkey.py b/src/tests/t_mkey.py
+index 48a533059..cbc830235 100755
+--- a/src/tests/t_mkey.py
++++ b/src/tests/t_mkey.py
+@@ -296,10 +296,10 @@ realm.stop()
+ # 2. list_mkeys displays the same list as for a post-1.7 KDB.
+ dumpfile = os.path.join(srctop, 'tests', 'dumpfiles', 'dump.16')
+ os.remove(stash_file)
+-f = open(stash_file, 'w')
++f = open(stash_file, 'wb')
+ f.write(struct.pack('=HL24s', 16, 24,
+-                    '\xF8\x3E\xFB\xBA\x6D\x80\xD9\x54\xE5\x5D\xF2\xE0'
+-                    '\x94\xAD\x6D\x86\xB5\x16\x37\xEC\x7C\x8A\xBC\x86'))
++                    b'\xF8\x3E\xFB\xBA\x6D\x80\xD9\x54\xE5\x5D\xF2\xE0'
++                    b'\x94\xAD\x6D\x86\xB5\x16\x37\xEC\x7C\x8A\xBC\x86'))
+ f.close()
+ realm.run([kdb5_util, 'load', dumpfile])
+ nprincs = len(realm.run([kadminl, 'listprincs']).splitlines())
+diff --git a/src/tests/t_otp.py b/src/tests/t_otp.py
+index 0fd35d576..617a8ecf5 100755
+--- a/src/tests/t_otp.py
++++ b/src/tests/t_otp.py
+@@ -29,8 +29,8 @@
+ #
+ 
+ from k5test import *
+-from Queue import Empty
+-import StringIO
++from queue import Empty
++from io import StringIO
+ import struct
+ 
+ try:
+@@ -120,7 +120,8 @@ class UnixRadiusDaemon(RadiusDaemon):
+         sock.listen(1)
+         return (sock, addr)
+ 
+-    def recvRequest(self, (sock, addr)):
++    def recvRequest(self, sock_and_addr):
++        sock, addr = sock_and_addr
+         conn = sock.accept()[0]
+         sock.close()
+         os.remove(addr)
+diff --git a/src/tests/t_tabdump.py b/src/tests/t_tabdump.py
+index 2a86136dd..49531bf49 100755
+--- a/src/tests/t_tabdump.py
++++ b/src/tests/t_tabdump.py
+@@ -1,10 +1,10 @@
+ from k5test import *
+ 
+ import csv
+-import StringIO
++from io import StringIO
+ 
+ def tab_csv(s):
+-    io = StringIO.StringIO(s)
++    io = StringIO(s)
+     return list(csv.DictReader(io, dialect=csv.excel_tab))
+ 
+ 
+diff --git a/src/util/Makefile.in b/src/util/Makefile.in
+index 2611581c1..19a6bd312 100644
+--- a/src/util/Makefile.in
++++ b/src/util/Makefile.in
+@@ -26,3 +26,4 @@ install:
+ 
+ clean-unix::
+ 	$(RM) *.pyc
++	$(RM) -r __pycache__
+diff --git a/src/util/k5test.py b/src/util/k5test.py
+index bc32877a7..81fac3063 100644
+--- a/src/util/k5test.py
++++ b/src/util/k5test.py
+@@ -380,16 +380,16 @@ import imp
+ def fail(msg):
+     """Print a message and exit with failure."""
+     global _current_pass
+-    print "*** Failure:", msg
++    print("*** Failure:", msg)
+     if _last_mark:
+-        print "*** Last mark: %s" % _last_mark
++        print("*** Last mark: %s" % _last_mark)
+     if _last_cmd:
+-        print "*** Last command (#%d): %s" % (_cmd_index - 1, _last_cmd)
++        print("*** Last command (#%d): %s" % (_cmd_index - 1, _last_cmd))
+     if _last_cmd_output:
+-        print "*** Output of last command:"
++        print("*** Output of last command:")
+         sys.stdout.write(_last_cmd_output)
+     if _current_pass:
+-        print "*** Failed in test pass:", _current_pass
++        print("*** Failed in test pass:", _current_pass)
+     sys.exit(1)
+ 
+ 
+@@ -465,15 +465,16 @@ def _onexit():
+         if not verbose:
+             testlogfile = os.path.join(os.getcwd(), 'testlog')
+             utildir = os.path.join(srctop, 'util')
+-            print 'For details, see: %s' % testlogfile
+-            print 'Or re-run this test script with the -v flag:'
+-            print '    cd %s' % os.getcwd()
+-            print '    PYTHONPATH=%s %s %s -v' % \
+-                (utildir, sys.executable, sys.argv[0])
+-            print
+-        print 'Use --debug=NUM to run a command under a debugger.  Use'
+-        print '--stop-after=NUM to stop after a daemon is started in order to'
+-        print 'attach to it with a debugger.  Use --help to see other options.'
++            print('For details, see: %s' % testlogfile)
++            print('Or re-run this test script with the -v flag:')
++            print('    cd %s' % os.getcwd())
++            print('    PYTHONPATH=%s %s %s -v' %
++                  (utildir, sys.executable, sys.argv[0]))
++            print()
++        print('Use --debug=NUM to run a command under a debugger.  Use')
++        print('--stop-after=NUM to stop after a daemon is started in order to')
++        print('attach to it with a debugger.  Use --help to see other')
++        print('options.')
+ 
+ 
+ def _onsigint(signum, frame):
+@@ -523,8 +524,8 @@ def _get_hostname():
+     hostname = socket.gethostname()
+     try:
+         ai = socket.getaddrinfo(hostname, None, 0, 0, 0, socket.AI_CANONNAME)
+-    except socket.gaierror, (error, errstr):
+-        fail('Local hostname "%s" does not resolve: %s.' % (hostname, errstr))
++    except socket.gaierror as e:
++        fail('Local hostname "%s" does not resolve: %s.' % (hostname, e[1]))
+     (family, socktype, proto, canonname, sockaddr) = ai[0]
+     try:
+         name = socket.getnameinfo(sockaddr, socket.NI_NAMEREQD)
+@@ -594,7 +595,7 @@ def _match_cmdnum(cmdnum, ind):
+ def _build_env():
+     global buildtop, runenv
+     env = os.environ.copy()
+-    for (k, v) in runenv.env.iteritems():
++    for (k, v) in runenv.env.items():
+         if v.find('./') == 0:
+             env[k] = os.path.join(buildtop, v)
+         else:
+@@ -704,7 +705,8 @@ def _run_cmd(args, env, input=None, expected_code=0, expected_msg=None,
+ 
+     # Run the command and log the result, folding stderr into stdout.
+     proc = subprocess.Popen(args, stdin=infile, stdout=subprocess.PIPE,
+-                            stderr=subprocess.STDOUT, env=env)
++                            stderr=subprocess.STDOUT, env=env,
++                            universal_newlines=True)
+     (outdata, dummy_errdata) = proc.communicate(input)
+     _last_cmd_output = outdata
+     code = proc.returncode
+@@ -734,10 +736,10 @@ def _debug_cmd(args, env, input):
+            (_cmd_index, _shell_equiv(args)), True)
+     if input:
+         print
+-        print '*** Enter the following input when appropriate:'
+-        print 
+-        print input
+-        print
++        print('*** Enter the following input when appropriate:')
++        print()
++        print(input)
++        print()
+     code = subprocess.call(args, env=env)
+     output('*** [%d] Completed in debugger with return code %d\n' %
+            (_cmd_index, code))
+@@ -765,7 +767,8 @@ def _start_daemon(args, env, sentinel):
+ 
+     # Start the daemon and look for the sentinel in stdout or stderr.
+     proc = subprocess.Popen(args, stdin=null_input, stdout=subprocess.PIPE,
+-                            stderr=subprocess.STDOUT, env=env)
++                            stderr=subprocess.STDOUT, env=env,
++                            universal_newlines=True)
+     _last_cmd_output = ''
+     while True:
+         line = proc.stdout.readline()
+diff --git a/src/util/princflags.py b/src/util/princflags.py
+index f568dd2f1..f645e86e4 100644
+--- a/src/util/princflags.py
++++ b/src/util/princflags.py
+@@ -1,5 +1,4 @@
+ import re
+-import string
+ 
+ # Module for translating KDB principal flags between string and
+ # integer forms.
+@@ -81,7 +80,7 @@ _prefixlen = len(_prefix)
+ _flagnames = {}
+ 
+ # Translation table to map hyphens to underscores
+-_squash = string.maketrans('-', '_')
++_squash = str.maketrans('-', '_')
+ 
+ # Combined input-to-flag lookup table, to be filled in by
+ # _setup_tables()
+@@ -176,7 +175,7 @@ def flagnum2str(n):
+ # Return a list of flag names from a flag word.
+ def flags2namelist(flags):
+     a = []
+-    for n in xrange(32):
++    for n in range(32):
+         if flags & (1 << n):
+             a.append(flagnum2str(n))
+     return a
+@@ -225,21 +224,21 @@ def speclist2mask(s):
+ 
+ # Print C table of input flag specifiers for lib/kadm5/str_conv.c.
+ def _print_ftbl():
+-    print 'static const struct flag_table_row ftbl[] = {'
+-    a = sorted(pflags.items(), key=lambda (k, v): (v.flag, -v.invert, k))
++    print('static const struct flag_table_row ftbl[] = {')
++    a = sorted(pflags.items(), key=lambda k, v: (v.flag, -v.invert, k))
+     for k, v in a:
+         s1 = '    {"%s",' % k
+         s2 = '%-31s KRB5_KDB_%s,' % (s1, v.flagname())
+-        print '%-63s %d},' % (s2, 1 if v.invert else 0)
++        print('%-63s %d},' % (s2, 1 if v.invert else 0))
+ 
+-    print '};'
+-    print '#define NFTBL (sizeof(ftbl) / sizeof(ftbl[0]))'
++    print('};')
++    print('#define NFTBL (sizeof(ftbl) / sizeof(ftbl[0]))')
+ 
+ 
+ # Print C table of output flag names for lib/kadm5/str_conv.c.
+ def _print_outflags():
+-    print 'static const char *outflags[] = {'
+-    for i in xrange(32):
++    print('static const char *outflags[] = {')
++    for i in range(32):
+         flag = 1 << i
+         if flag > max(_flagnames.keys()):
+             break
+@@ -247,10 +246,10 @@ def _print_outflags():
+             s = '    "%s",' % _flagnames[flag]
+         except KeyError:
+             s = '    NULL,'
+-        print '%-32s/* 0x%08x */' % (s, flag)
++        print('%-32s/* 0x%08x */' % (s, flag))
+ 
+-    print '};'
+-    print '#define NOUTFLAGS (sizeof(outflags) / sizeof(outflags[0]))'
++    print('};')
++    print('#define NOUTFLAGS (sizeof(outflags) / sizeof(outflags[0]))')
+ 
+ 
+ # Print out C tables to insert into lib/kadm5/str_conv.c.

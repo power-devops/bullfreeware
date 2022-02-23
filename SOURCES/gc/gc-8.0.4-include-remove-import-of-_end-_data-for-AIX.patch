@@ -1,0 +1,33 @@
+From 4c2e6993ea3b81de0f1e5074c8860369e7a46b6c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 31 May 2021 15:12:55 +0200
+Subject: [PATCH] include: remove import of _end, _data for AIX
+
+Having "extern char _end[], _data[]", directly in the
+n include "gc.h" will force all the shared libraries using
+gc to import _end and _data from the executable.
+However, libgc already take care of that so it shouldn't be
+needed.
+---
+ include/gc.h | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/include/gc.h b/include/gc.h
+index fa9ced4..569fb00 100644
+--- a/include/gc.h
++++ b/include/gc.h
+@@ -1891,11 +1891,6 @@ GC_API int GC_CALL GC_get_force_unmap_on_gcollect(void);
+ # define GC_INIT_CONF_ROOTS GC_add_roots(GC_DATASTART, GC_DATAEND); \
+                                  GC_gcollect() /* For blacklisting. */
+         /* Required at least if GC is in a DLL.  And doesn't hurt. */
+-#elif defined(_AIX)
+-  extern int _data[], _end[];
+-# define GC_DATASTART ((void *)_data)
+-# define GC_DATAEND ((void *)_end)
+-# define GC_INIT_CONF_ROOTS GC_add_roots(GC_DATASTART, GC_DATAEND)
+ #elif (defined(HOST_ANDROID) || defined(__ANDROID__)) \
+       && defined(IGNORE_DYNAMIC_LOADING)
+   /* This is ugly but seems the only way to register data roots of the  */
+-- 
+2.31.1
+

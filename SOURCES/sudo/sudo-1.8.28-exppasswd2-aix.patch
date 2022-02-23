@@ -1,0 +1,81 @@
+--- ./plugins/sudoers/auth/aix_auth.c_orig	2019-12-04 07:51:28 +0000
++++ ./plugins/sudoers/auth/aix_auth.c	2019-12-04 08:00:32 +0000
+@@ -236,21 +236,47 @@
+ int
+ sudo_aix_verify(struct passwd *pw, char *prompt, sudo_auth *auth, struct sudo_conv_callback *callback)
+ {
+-    char *pass, *message = NULL;
+-    int result = 1, reenter = 0;
++    char *pass, *message = NULL, *restrict_msg = NULL;
++    int result = 1, reenter = 0, restrict_result = -1, pwdexp_msg = 0;
+     int ret = AUTH_SUCCESS;
++    void *login_state = NULL;
++
+     debug_decl(sudo_aix_verify, SUDOERS_DEBUG_AUTH)
+ 
++    /* Use newer APIs */
++    restrict_result = loginrestrictionsx(pw->pw_name, 0, NULL,
++                               &restrict_msg, &login_state);
++    if (restrict_result != 0)
++    {   
++        if (restrict_msg != NULL && restrict_msg[0] != '\0')
++        {
++            struct sudo_conv_message msg;    
++            struct sudo_conv_reply repl;
++
++            memset(&msg, 0, sizeof(msg));
++            msg.msg_type = SUDO_CONV_ERROR_MSG;
++            msg.msg = restrict_msg;
++            memset(&repl, 0, sizeof(repl));
++            sudo_conv(1, &msg, &repl, NULL);
++            free(restrict_msg);
++            restrict_msg = NULL;
++        }
++        sudo_warn("loginrestrictionsx");
++        debug_return_int(AUTH_FATAL);
++    } 
++
+     do {
+ 	pass = auth_getpass(prompt, SUDO_CONV_PROMPT_ECHO_OFF, callback);
+ 	if (pass == NULL)
+ 	    break;
+ 	free(message);
+ 	message = NULL;
+-	result = authenticate(pw->pw_name, pass, &reenter, &message);
++	result = authenticatex(pw->pw_name, pass, &reenter, &message, &login_state);
+ 	memset_s(pass, SUDO_CONV_REPL_MAX, 0, strlen(pass));
+ 	free(pass);
+ 	prompt = message;
++	if (!reenter && !result && message)
++	    sudo_printf(SUDO_CONV_ERROR_MSG, "%s ", message);
+     } while (reenter);
+ 
+     if (result != 0) {
+@@ -265,8 +291,9 @@
+ 
+     /* Check if password expired and allow user to change it if possible. */
+     if (ret == AUTH_SUCCESS) {
+-	result = passwdexpired(pw->pw_name, &message);
++	result = passwdexpiredx(pw->pw_name, &message, &login_state);
+ 	if (message != NULL && message[0] != '\0') {
++	    pwdexp_msg = 1;
+ 	    int msg_type = SUDO_CONV_PREFER_TTY;
+ 	    msg_type |= result ? SUDO_CONV_ERROR_MSG : SUDO_CONV_INFO_MSG,
+ 	    sudo_printf(msg_type, "%s", message);
+@@ -285,12 +312,15 @@
+ 	    }
+ 	    break;
+ 	case 2:
++	case 3:
+ 	    /* password expired, only admin can change it */
++	    if (!pwdexp_msg)
++		sudo_printf(SUDO_CONV_ERROR_MSG, "Your password expired, only admin can change it.\n");
+ 	    ret = AUTH_FATAL;
+ 	    break;
+ 	default:
+ 	    /* error (-1) */
+-	    sudo_warn("passwdexpired");
++	    sudo_warn("passwdexpiredx");
+ 	    ret = AUTH_FATAL;
+ 	    break;
+ 	}

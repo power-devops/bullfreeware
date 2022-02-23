@@ -1,0 +1,156 @@
+From 92f712eb2626821af1e3b66d947e7557b4fca618 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 17:15:49 +0200
+Subject: [PATCH] cmd/cgo: add AIX operating system
+
+This commit adds AIX operating system to cmd/cgo package for ppc64
+architecture.
+
+It doesn't fully adapt cgo tool to AIX. But it allows to use
+go tool cgo -godefs which is really usefull for others packages.
+
+Update: #25893
+
+Change-Id: I38e289cf0122d143ba100986d08229b51b03ddfc
+---
+
+diff --git a/src/cmd/cgo/gcc.go b/src/cmd/cgo/gcc.go
+index 3058fc5..5622d22 100644
+--- a/src/cmd/cgo/gcc.go
++++ b/src/cmd/cgo/gcc.go
+@@ -9,6 +9,7 @@
+ 
+ import (
+ 	"bytes"
++	"cmd/internal/xcoff"
+ 	"debug/dwarf"
+ 	"debug/elf"
+ 	"debug/macho"
+@@ -1375,6 +1376,9 @@
+ 
+ 	c = append(c, p.GccOptions...)
+ 	c = append(c, p.gccMachine()...)
++	if goos == "aix" {
++		c = append(c, "-maix64")
++	}
+ 	c = append(c, "-") //read input from standard input
+ 	return c
+ }
+@@ -1661,7 +1665,77 @@
+ 		return d, ints, floats, strs
+ 	}
+ 
+-	fatalf("cannot parse gcc output %s as ELF, Mach-O, PE object", gccTmp())
++	if f, err := xcoff.Open(gccTmp()); err == nil {
++		defer f.Close()
++		d, err := f.DWARF()
++		if err != nil {
++			fatalf("cannot load DWARF output from %s: %v", gccTmp(), err)
++		}
++		bo := binary.BigEndian
++		for _, s := range f.Symbols {
++			switch {
++			case isDebugInts(s.Name):
++				if i := int(s.SectionNumber) - 1; 0 <= i && i < len(f.Sections) {
++					sect := f.Sections[i]
++					if s.Value < sect.Size {
++						if sdat, err := sect.Data(); err == nil {
++							data := sdat[s.Value:]
++							ints = make([]int64, len(data)/8)
++							for i := range ints {
++								ints[i] = int64(bo.Uint64(data[i*8:]))
++							}
++						}
++					}
++				}
++			case isDebugFloats(s.Name):
++				if i := int(s.SectionNumber) - 1; 0 <= i && i < len(f.Sections) {
++					sect := f.Sections[i]
++					if s.Value < sect.Size {
++						if sdat, err := sect.Data(); err == nil {
++							data := sdat[s.Value:]
++							floats = make([]float64, len(data)/8)
++							for i := range floats {
++								floats[i] = math.Float64frombits(bo.Uint64(data[i*8:]))
++							}
++						}
++					}
++				}
++			default:
++				if n := indexOfDebugStr(s.Name); n != -1 {
++					if i := int(s.SectionNumber) - 1; 0 <= i && i < len(f.Sections) {
++						sect := f.Sections[i]
++						if s.Value < sect.Size {
++							if sdat, err := sect.Data(); err == nil {
++								data := sdat[s.Value:]
++								strdata[n] = string(data)
++							}
++						}
++					}
++					break
++				}
++				if n := indexOfDebugStrlen(s.Name); n != -1 {
++					if i := int(s.SectionNumber) - 1; 0 <= i && i < len(f.Sections) {
++						sect := f.Sections[i]
++						if s.Value < sect.Size {
++							if sdat, err := sect.Data(); err == nil {
++								data := sdat[s.Value:]
++								strlen := bo.Uint64(data[:8])
++								if strlen > (1<<(uint(p.IntSize*8)-1) - 1) { // greater than MaxInt?
++									fatalf("string literal too big")
++								}
++								strlens[n] = int(strlen)
++							}
++						}
++					}
++					break
++				}
++			}
++		}
++
++		buildStrings()
++		return d, ints, floats, strs
++	}
++	fatalf("cannot parse gcc output %s as ELF, Mach-O, PE, XCOFF object", gccTmp())
+ 	panic("not reached")
+ }
+ 
+diff --git a/src/cmd/cgo/out.go b/src/cmd/cgo/out.go
+index 6217bb1..8a26d5c 100644
+--- a/src/cmd/cgo/out.go
++++ b/src/cmd/cgo/out.go
+@@ -6,6 +6,7 @@
+ 
+ import (
+ 	"bytes"
++	"cmd/internal/xcoff"
+ 	"debug/elf"
+ 	"debug/macho"
+ 	"debug/pe"
+@@ -312,7 +313,25 @@
+ 		return
+ 	}
+ 
+-	fatalf("cannot parse %s as ELF, Mach-O or PE", obj)
++	if f, err := xcoff.Open(obj); err == nil {
++		sym, err := f.ImportedSymbols()
++		if err != nil {
++			fatalf("cannot load imported symbols from XCOFF file %s: %v", obj, err)
++		}
++		for _, s := range sym {
++			fmt.Fprintf(stdout, "//go:cgo_import_dynamic %s %s %q\n", s.Name, s.Name, s.Library)
++		}
++		lib, err := f.ImportedLibraries()
++		if err != nil {
++			fatalf("cannot load imported libraries from XCOFF file %s: %v", obj, err)
++		}
++		for _, l := range lib {
++			fmt.Fprintf(stdout, "//go:cgo_import_dynamic _ _ %q\n", l)
++		}
++		return
++	}
++
++	fatalf("cannot parse %s as ELF, Mach-O, PE or XCOFF", obj)
+ }
+ 
+ // Construct a gcc struct matching the gc argument frame.

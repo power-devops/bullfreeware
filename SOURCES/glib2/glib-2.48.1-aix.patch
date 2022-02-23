@@ -1,0 +1,76 @@
+Index: glib-2.33.2/configure
+===================================================================
+--- glib-2.33.2.orig/configure	2012-06-04 19:18:30.000000000 +0200
++++ glib-2.33.2/configure	2012-06-20 15:00:16.000000000 +0200
+@@ -23628,18 +23628,6 @@
+ fi
+ done
+ 
+-# Check for high-resolution sleep functions
+-for ac_func in splice
+-do :
+-  ac_fn_c_check_func "$LINENO" "splice" "ac_cv_func_splice"
+-if test "x$ac_cv_func_splice" = xyes; then :
+-  cat >>confdefs.h <<_ACEOF
+-#define HAVE_SPLICE 1
+-_ACEOF
+-
+-fi
+-done
+-
+ for ac_func in prlimit
+ do :
+   ac_fn_c_check_func "$LINENO" "prlimit" "ac_cv_func_prlimit"
+@@ -26485,6 +26473,10 @@
+     *-*-cygwin*|*-*-darwin*)
+        # skip cygwin and darwin -pthread or -pthreads test
+        ;;
++    *-aix*)
++       G_THREAD_CFLAGS="-qthreaded -D_THREAD_SAFE"
++       G_THREAD_LIBS="-lpthread"
++       ;;
+     *-solaris*)
+       # These compiler/linker flags work with both Sun Studio and gcc
+       # Sun Studio expands -mt to -D_REENTRANT and -lthread
+Index: glib-2.33.2/gio/gsocket.c
+===================================================================
+--- glib-2.33.2.orig/gio/gsocket.c	2012-06-03 22:45:14.000000000 +0200
++++ glib-2.33.2/gio/gsocket.c	2012-06-20 15:01:32.000000000 +0200
+@@ -61,6 +61,10 @@
+ #include "gcredentials.h"
+ #include "glibintl.h"
+ 
++#if (defined(_AIX51) || defined(_AIX52)) && !(defined(_AIX53) || defined(_AIX61))
++#define ss_family __ss_family
++#endif
++
+ /**
+  * SECTION:gsocket
+  * @short_description: Low-level socket object
+Index: glib-2.33.2/glib/gatomic.c
+===================================================================
+--- glib-2.33.2.orig/glib/gatomic.c	2012-04-13 01:39:20.000000000 +0200
++++ glib-2.33.2/glib/gatomic.c	2012-06-20 15:02:15.000000000 +0200
+@@ -21,6 +21,7 @@
+ 
+ #include "config.h"
+ 
++#include "glib.h"
+ #include "gatomic.h"
+ 
+ /**
+Index: glib-2.33.2/gobject/gobject.c
+===================================================================
+--- glib-2.33.2.orig/gobject/gobject.c	2012-06-03 22:45:14.000000000 +0200
++++ glib-2.33.2/gobject/gobject.c	2012-06-20 15:03:49.000000000 +0200
+@@ -21,6 +21,10 @@
+  * MT safe with regards to reference counting.
+  */
+ 
++#ifdef _AIX
++#define _LINUX_SOURCE_COMPAT
++#endif
++
+ #include "config.h"
+ 
+ #include <string.h>

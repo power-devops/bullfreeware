@@ -1,0 +1,61 @@
+From 500bb7d3490bdd63a81a624bf48d6f44d985a127 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Wed, 30 Jan 2019 16:57:47 -0600
+Subject: [PATCH 17/24] runtime: fix TestSigStackSwapping on aix/ppc64
+
+---
+ src/runtime/testdata/testprogcgo/sigstack.go | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/src/runtime/testdata/testprogcgo/sigstack.go b/src/runtime/testdata/testprogcgo/sigstack.go
+index 492dfeff7f..21b668d6c0 100644
+--- a/src/runtime/testdata/testprogcgo/sigstack.go
++++ b/src/runtime/testdata/testprogcgo/sigstack.go
+@@ -17,11 +17,18 @@ package main
+ #include <stdlib.h>
+ #include <sys/mman.h>
+ 
++#ifdef _AIX
++// On AIX, SIGSTKSZ is too small to handle Go sighandler.
++#define CSIGSTKSZ 0x4000
++#else
++#define CSIGSTKSZ SIGSTKSZ
++#endif
++
+ extern void SigStackCallback();
+ 
+ static void* WithSigStack(void* arg __attribute__((unused))) {
+ 	// Set up an alternate system stack.
+-	void* base = mmap(0, SIGSTKSZ, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
++	void* base = mmap(0, CSIGSTKSZ, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+ 	if (base == MAP_FAILED) {
+ 		perror("mmap failed");
+ 		abort();
+@@ -29,7 +36,7 @@ static void* WithSigStack(void* arg __attribute__((unused))) {
+ 	stack_t st = {}, ost = {};
+ 	st.ss_sp = (char*)base;
+ 	st.ss_flags = 0;
+-	st.ss_size = SIGSTKSZ;
++	st.ss_size = CSIGSTKSZ;
+ 	if (sigaltstack(&st, &ost) < 0) {
+ 		perror("sigaltstack failed");
+ 		abort();
+@@ -42,13 +49,13 @@ static void* WithSigStack(void* arg __attribute__((unused))) {
+ 	if (ost.ss_flags & SS_DISABLE) {
+ 		// Darwin libsystem has a bug where it checks ss_size
+ 		// even if SS_DISABLE is set. (The kernel gets it right.)
+-		ost.ss_size = SIGSTKSZ;
++		ost.ss_size = CSIGSTKSZ;
+ 	}
+ 	if (sigaltstack(&ost, NULL) < 0) {
+ 		perror("sigaltstack restore failed");
+ 		abort();
+ 	}
+-	mprotect(base, SIGSTKSZ, PROT_NONE);
++	mprotect(base, CSIGSTKSZ, PROT_NONE);
+ 	return NULL;
+ }
+ 
+-- 
+2.15.1
+

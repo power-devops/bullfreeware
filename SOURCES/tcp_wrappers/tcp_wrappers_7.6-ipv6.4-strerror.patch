@@ -1,0 +1,13 @@
+Index: tcp_wrappers_7.6-ipv6.4/percent_m.c
+===================================================================
+--- tcp_wrappers_7.6-ipv6.4.orig/percent_m.c	2003-04-16 16:12:24.000000000 +0200
++++ tcp_wrappers_7.6-ipv6.4/percent_m.c	2013-03-26 10:04:32.000000000 +0100
+@@ -14,7 +14,7 @@
+ 
+ extern int errno;
+ #ifndef USE_STRERROR
+-#ifndef SYS_ERRLIST_DEFINED
++#if !defined(SYS_ERRLIST_DEFINED) && !defined(HAVE_STRERROR)
+ extern char *sys_errlist[];
+ extern int sys_nerr;
+ #endif

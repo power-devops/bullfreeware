@@ -1,0 +1,53 @@
+--- ./libmysql/CMakeLists.txt.ORIGIN	2019-06-05 10:26:49 -0500
++++ ./libmysql/CMakeLists.txt	2019-06-05 14:52:30 -0500
+@@ -152,6 +152,11 @@
+ 
+ )
+ 
++ADD_CUSTOM_TARGET(libmysql_exp
++  COMMAND echo "${CLIENT_API_FUNCTIONS}" | /opt/freeware/bin/sed -f ../../libmysql/libmysql.exp.sed > ./libmysql.exp
++  VERBATIM
++)
++
+ # Below list will have all the undocumented C API symbols but still exported.
+ # Once the decision is taken to have documentation we need to move them to
+ # CLIENT_API_FUNCTIONS list.
+@@ -288,6 +293,7 @@
+     EXPORTS ${CLIENT_API_FUNCTIONS} ${CLIENT_API_FUNCTIONS_UNDOCUMENTED}
+     COMPONENT SharedLibraries)
+   TARGET_LINK_LIBRARIES(libmysql PRIVATE ${LIBS_TO_LINK})
++  ADD_DEPENDENCIES(libmysql libmysql_exp)
+ 
+   IF(WIN32)
+     # So that libmysql_api_test below can find the .dll
+--- ./cmake/libutils.cmake.ORIGIN	2019-06-04 17:52:58 -0500
++++ ./cmake/libutils.cmake	2019-06-05 14:48:33 -0500
+@@ -150,13 +150,17 @@
+     # Mark every export as explicitly needed, so that ld won't remove the .a files
+     # containing them. This has a similar effect as --Wl,--no-whole-archive,
+     # but is more focused.
+-    FOREACH(SYMBOL ${ARG_EXPORTS})
+-      IF(APPLE)
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
+-      ELSE()
+-        SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
+-      ENDIF()
+-    ENDFOREACH()
++    IF(AIX)
++        SET(export_link_flags "${export_link_flags} -Wl,-bE:./libmysql.exp")
++    ELSE()
++      FOREACH(SYMBOL ${ARG_EXPORTS})
++        IF(APPLE)
++          SET(export_link_flags "${export_link_flags} -Wl,-u,_${SYMBOL}")
++        ELSE()
++          SET(export_link_flags "${export_link_flags} -Wl,-u,${SYMBOL}")
++        ENDIF()
++      ENDFOREACH()
++    ENDIF()
+   ENDIF()
+ 
+   IF(NOT ARG_SKIP_INSTALL)
+--- /dev/null	2019-06-05 14:45:01 -0500
++++ ./libmysql/libmysql.exp.sed	2019-06-05 14:51:01 -0500
+@@ -0,0 +1 @@
++s/;/\n/g

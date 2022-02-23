@@ -1,0 +1,60 @@
+From 8c7564deadedda87097e0eedd3e8f85bcd895ff0 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 12 Apr 2019 14:23:13 +0200
+Subject: [PATCH] runtime: add //go:cgo_unsafe_args to AIX syscallX functions
+
+On AIX, syscallX functions are using the first argument to retrieve the
+next arguments when calling asmcgocall. Therefore,//go:cgo_unsafe_args
+is needed.
+
+Change-Id: I7fe0fbf0c961250a6573c66a8b0eb897dff94bfe
+Reviewed-on: https://go-review.googlesource.com/c/go/+/171723
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/os2_aix.go b/src/runtime/os2_aix.go
+index 2ec32fe..47cb129 100644
+--- a/src/runtime/os2_aix.go
++++ b/src/runtime/os2_aix.go
+@@ -215,6 +215,7 @@
+ 
+ //go:nowritebarrier
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall2(fn *libFunc, a0, a1 uintptr) (r, err uintptr) {
+ 	gp := getg()
+ 	mp := gp.m
+@@ -245,6 +246,7 @@
+ 
+ //go:nowritebarrier
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall3(fn *libFunc, a0, a1, a2 uintptr) (r, err uintptr) {
+ 	gp := getg()
+ 	mp := gp.m
+@@ -275,6 +277,7 @@
+ 
+ //go:nowritebarrier
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall4(fn *libFunc, a0, a1, a2, a3 uintptr) (r, err uintptr) {
+ 	gp := getg()
+ 	mp := gp.m
+@@ -305,6 +308,7 @@
+ 
+ //go:nowritebarrier
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall5(fn *libFunc, a0, a1, a2, a3, a4 uintptr) (r, err uintptr) {
+ 	gp := getg()
+ 	mp := gp.m
+@@ -335,6 +339,7 @@
+ 
+ //go:nowritebarrier
+ //go:nosplit
++//go:cgo_unsafe_args
+ func syscall6(fn *libFunc, a0, a1, a2, a3, a4, a5 uintptr) (r, err uintptr) {
+ 	gp := getg()
+ 	mp := gp.m

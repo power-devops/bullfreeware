@@ -1,0 +1,618 @@
+Index: gcc-4.2.0-aix/gcc/config.gcc
+===================================================================
+--- gcc-4.2.0-aix.orig/gcc/config.gcc	2008-03-14 14:13:46.-1997449536 +0100
++++ gcc-4.2.0-aix/gcc/config.gcc	2008-03-14 14:15:22.1461551000 +0100
+@@ -1926,7 +1926,7 @@
+ 	thread_file='aix'
+ 	extra_headers=
+ 	;;
+-rs6000-ibm-aix[56789].* | powerpc-ibm-aix[56789].*)
++rs6000-ibm-aix5.2.* | powerpc-ibm-aix5.2.*)
+ 	tm_file="${tm_file} rs6000/aix.h rs6000/aix52.h rs6000/xcoff.h"
+ 	tmake_file=rs6000/t-aix52
+ 	extra_options="${extra_options} rs6000/aix64.opt"
+@@ -1934,6 +1934,22 @@
+ 	thread_file='aix'
+ 	extra_headers=
+ 	;;
++rs6000-ibm-aix5.* | powerpc-ibm-aix5.*)
++	tm_file="${tm_file} rs6000/aix.h rs6000/aix53.h rs6000/xcoff.h"
++	tmake_file=rs6000/t-aix52
++	extra_options="${extra_options} rs6000/aix64.opt"
++	use_collect2=yes
++	thread_file='aix'
++	extra_headers=
++	;;
++rs6000-ibm-aix[6789].* | powerpc-ibm-aix[6789].*)
++	tm_file="${tm_file} rs6000/aix.h rs6000/aix61.h rs6000/xcoff.h"
++	tmake_file=rs6000/t-aix52
++	extra_options="${extra_options} rs6000/aix64.opt"
++	use_collect2=yes
++	thread_file='aix'
++	extra_headers=altivec.h
++	;;
+ s390-*-linux*)
+ 	tm_file="s390/s390.h dbxelf.h elfos.h svr4.h linux.h s390/linux.h"
+ 	tmake_file="${tmake_file} t-dfprules s390/t-crtstuff s390/t-linux"
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix53.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix53.h	2008-03-14 14:15:22.-14037480 +0100
+@@ -0,0 +1,194 @@
++/* Definitions of target machine for GNU compiler,
++   for IBM RS/6000 POWER running AIX V5.3.
++   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
++   Free Software Foundation, Inc.
++   Contributed by David Edelsohn (edelsohn@gnu.org).
++
++   This file is part of GCC.
++
++   GCC is free software; you can redistribute it and/or modify it
++   under the terms of the GNU General Public License as published
++   by the Free Software Foundation; either version 3, or (at your
++   option) any later version.
++
++   GCC is distributed in the hope that it will be useful, but WITHOUT
++   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++   License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with GCC; see the file COPYING3.  If not see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Sometimes certain combinations of command options do not make sense
++   on a particular target machine.  You can define a macro
++   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
++   defined, is executed once just after all the command options have
++   been parsed.
++
++   The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
++   get control.  */
++
++#define NON_POWERPC_MASKS (MASK_POWER | MASK_POWER2)
++#define SUBTARGET_OVERRIDE_OPTIONS					\
++do {									\
++  if (TARGET_64BIT && (target_flags & NON_POWERPC_MASKS))		\
++    {									\
++      target_flags &= ~NON_POWERPC_MASKS;				\
++      warning (0, "-maix64 and POWER architecture are incompatible");	\
++    }									\
++  if (TARGET_64BIT && ! TARGET_POWERPC64)				\
++    {									\
++      target_flags |= MASK_POWERPC64;					\
++      warning (0, "-maix64 requires PowerPC64 architecture remain enabled"); \
++    }									\
++  if (TARGET_SOFT_FLOAT && TARGET_LONG_DOUBLE_128)			\
++    {									\
++      rs6000_long_double_type_size = 64;				\
++      if (rs6000_explicit_options.long_double)				\
++	warning (0, "soft-float and long-double-128 are incompatible");	\
++    }									\
++  if (TARGET_POWERPC64 && ! TARGET_64BIT)				\
++    {									\
++      error ("-maix64 required: 64-bit computation with 32-bit addressing not yet supported"); \
++    }									\
++} while (0);
++
++#undef ASM_SPEC
++#define ASM_SPEC "-u %{maix64:-a64 %{!mcpu*:-mppc64}} %(asm_cpu)"
++
++/* Common ASM definitions used by ASM_SPEC amongst the various targets
++   for handling -mcpu=xxx switches.  */
++#undef ASM_CPU_SPEC
++#define ASM_CPU_SPEC \
++"%{!mcpu*: %{!maix64: \
++  %{mpowerpc64: -mppc64} \
++  %{maltivec: -m970} \
++  %{!maltivec: %{!mpower64: %(asm_default)}}}} \
++%{mcpu=power3: -m620} \
++%{mcpu=power4: -mpwr4} \
++%{mcpu=power5: -mpwr5} \
++%{mcpu=power5+: -mpwr5x} \
++%{mcpu=power6: -mpwr6} \
++%{mcpu=power6x: -mpwr6} \
++%{mcpu=powerpc: -mppc} \
++%{mcpu=rs64a: -mppc} \
++%{mcpu=603: -m603} \
++%{mcpu=603e: -m603} \
++%{mcpu=604: -m604} \
++%{mcpu=604e: -m604} \
++%{mcpu=620: -m620} \
++%{mcpu=630: -m620} \
++%{mcpu=970: -m970} \
++%{mcpu=G5: -m970}"
++
++#undef	ASM_DEFAULT_SPEC
++#define ASM_DEFAULT_SPEC "-mppc"
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()     \
++  do                                 \
++    {                                \
++      builtin_define ("_AIX43");     \
++      builtin_define ("_AIX51");     \
++      builtin_define ("_AIX52");     \
++      builtin_define ("_AIX53");     \
++      TARGET_OS_AIX_CPP_BUILTINS (); \
++    }                                \
++  while (0)
++
++#undef CPP_SPEC
++#define CPP_SPEC "%{posix: -D_POSIX_SOURCE}	\
++  %{ansi: -D_ANSI_C_SOURCE}			\
++  %{maix64: -D__64BIT__}			\
++  %{mpe: -I/usr/lpp/ppe.poe/include}		\
++  %{pthread: -D_THREAD_SAFE}"
++
++/* The GNU C++ standard library requires that these macros be
++   defined.  Synchronize with libstdc++ os_defines.h.  */
++#undef CPLUSPLUS_CPP_SPEC
++#define CPLUSPLUS_CPP_SPEC			\
++  "-D_ALL_SOURCE				\
++   %{maix64: -D__64BIT__}			\
++   %{mpe: -I/usr/lpp/ppe.poe/include}		\
++   %{pthread: -D_THREAD_SAFE}"
++
++#undef  TARGET_DEFAULT
++#define TARGET_DEFAULT (MASK_POWERPC | MASK_NEW_MNEMONICS)
++
++#undef  PROCESSOR_DEFAULT
++#define PROCESSOR_DEFAULT PROCESSOR_POWER5
++#undef  PROCESSOR_DEFAULT64
++#define PROCESSOR_DEFAULT64 PROCESSOR_POWER5
++
++#undef  TARGET_POWER
++#define TARGET_POWER 0
++
++/* Define this macro as a C expression for the initializer of an
++   array of string to tell the driver program which options are
++   defaults for this target and thus do not need to be handled
++   specially when using `MULTILIB_OPTIONS'.
++
++   Do not define this macro if `MULTILIB_OPTIONS' is not defined in
++   the target makefile fragment or if none of the options listed in
++   `MULTILIB_OPTIONS' are set by default.  *Note Target Fragment::.  */
++
++#undef	MULTILIB_DEFAULTS
++
++#undef LIB_SPEC
++#define LIB_SPEC "%{pg:-L/lib/profiled -L/usr/lib/profiled}\
++   %{p:-L/lib/profiled -L/usr/lib/profiled}\
++   %{!maix64:%{!shared:%{g*:-lg}}}\
++   %{mpe:-L/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
++   %{pthread:-lpthreads} -lc"
++
++#undef LINK_SPEC
++#define LINK_SPEC "-bpT:0x10000000 -bpD:0x20000000 %{!r:-btextro} -bnodelcsect\
++   %{static:-bnso %(link_syscalls) } %{shared:-bM:SRE %{!e:-bnoentry}}\
++   %{!maix64:%{!shared:%{g*: %(link_libg) }}} %{maix64:-b64}\
++   %{mpe:-binitfini:poe_remote_main}"
++
++#undef STARTFILE_SPEC
++#define STARTFILE_SPEC "%{!shared:\
++   %{maix64:%{pg:gcrt0_64%O%s}%{!pg:%{p:mcrt0_64%O%s}%{!p:crt0_64%O%s}}}\
++   %{!maix64:\
++     %{pthread:%{pg:gcrt0_r%O%s}%{!pg:%{p:mcrt0_r%O%s}%{!p:crt0_r%O%s}}}\
++     %{!pthread:%{pg:gcrt0%O%s}%{!pg:%{p:mcrt0%O%s}%{!p:crt0%O%s}}}}}"
++
++/* AIX V5 typedefs ptrdiff_t as "long" while earlier releases used "int".  */
++
++#undef PTRDIFF_TYPE
++#define PTRDIFF_TYPE "long int"
++
++/* Type used for wchar_t, as a string used in a declaration.  */
++#undef  WCHAR_TYPE
++#define WCHAR_TYPE (!TARGET_64BIT ? "short unsigned int" : "unsigned int")
++
++/* Width of wchar_t in bits.  */
++#undef  WCHAR_TYPE_SIZE
++#define WCHAR_TYPE_SIZE (!TARGET_64BIT ? 16 : 32)
++
++/* AIX V5 uses PowerPC nop (ori 0,0,0) instruction as call glue for PowerPC
++   and "cror 31,31,31" for POWER architecture.  */
++
++#undef RS6000_CALL_GLUE
++#define RS6000_CALL_GLUE "{cror 31,31,31|nop}"
++
++/* AIX 4.2 and above provides initialization and finalization function
++   support from linker command line.  */
++#undef HAS_INIT_SECTION
++#define HAS_INIT_SECTION
++
++#undef LD_INIT_SWITCH
++#define LD_INIT_SWITCH "-binitfini"
++
++/* AIX 5.2 has the float and long double forms of math functions.  */
++#undef TARGET_C99_FUNCTIONS
++#define TARGET_C99_FUNCTIONS  1
++
++#ifndef _AIX52
++extern long long int    atoll(const char *);
++#endif
++
++/* This target uses the aix64.opt file.  */
++#define TARGET_USES_AIX64_OPT 1
+Index: gcc-4.2.0-aix/gcc/config/rs6000/aix61.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.2.0-aix/gcc/config/rs6000/aix61.h	2008-03-14 14:15:22.-1488760960 +0100
+@@ -0,0 +1,197 @@
++/* Definitions of target machine for GNU compiler,
++   for IBM RS/6000 POWER running AIX V5.3.
++   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
++   Free Software Foundation, Inc.
++   Contributed by David Edelsohn (edelsohn@gnu.org).
++
++   This file is part of GCC.
++
++   GCC is free software; you can redistribute it and/or modify it
++   under the terms of the GNU General Public License as published
++   by the Free Software Foundation; either version 3, or (at your
++   option) any later version.
++
++   GCC is distributed in the hope that it will be useful, but WITHOUT
++   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++   License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with GCC; see the file COPYING3.  If not see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Sometimes certain combinations of command options do not make sense
++   on a particular target machine.  You can define a macro
++   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
++   defined, is executed once just after all the command options have
++   been parsed.
++
++   The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
++   get control.  */
++
++#define NON_POWERPC_MASKS (MASK_POWER | MASK_POWER2)
++#define SUBTARGET_OVERRIDE_OPTIONS					\
++do {									\
++  if (TARGET_64BIT && (target_flags & NON_POWERPC_MASKS))		\
++    {									\
++      target_flags &= ~NON_POWERPC_MASKS;				\
++      warning (0, "-maix64 and POWER architecture are incompatible");	\
++    }									\
++  if (TARGET_64BIT && ! TARGET_POWERPC64)				\
++    {									\
++      target_flags |= MASK_POWERPC64;					\
++      warning (0, "-maix64 requires PowerPC64 architecture remain enabled"); \
++    }									\
++  if (TARGET_SOFT_FLOAT && TARGET_LONG_DOUBLE_128)			\
++    {									\
++      rs6000_long_double_type_size = 64;				\
++      if (rs6000_explicit_options.long_double)				\
++	warning (0, "soft-float and long-double-128 are incompatible");	\
++    }									\
++  if (TARGET_POWERPC64 && ! TARGET_64BIT)				\
++    {									\
++      error ("-maix64 required: 64-bit computation with 32-bit addressing not yet supported"); \
++    }									\
++} while (0);
++
++#undef ASM_SPEC
++#define ASM_SPEC "-u %{maix64:-a64 %{!mcpu*:-mppc64}} %(asm_cpu)"
++
++/* Common ASM definitions used by ASM_SPEC amongst the various targets
++   for handling -mcpu=xxx switches.  */
++#undef ASM_CPU_SPEC
++#define ASM_CPU_SPEC \
++"%{!mcpu*: %{!maix64: \
++  %{mpowerpc64: -mppc64} \
++  %{maltivec: -m970} \
++  %{!maltivec: %{!mpower64: %(asm_default)}}}} \
++%{mcpu=power3: -m620} \
++%{mcpu=power4: -mpwr4} \
++%{mcpu=power5: -mpwr5} \
++%{mcpu=power5+: -mpwr5x} \
++%{mcpu=power6: -mpwr6} \
++%{mcpu=power6x: -mpwr6} \
++%{mcpu=powerpc: -mppc} \
++%{mcpu=rs64a: -mppc} \
++%{mcpu=603: -m603} \
++%{mcpu=603e: -m603} \
++%{mcpu=604: -m604} \
++%{mcpu=604e: -m604} \
++%{mcpu=620: -m620} \
++%{mcpu=630: -m620} \
++%{mcpu=970: -m970} \
++%{mcpu=G5: -m970}"
++
++#undef	ASM_DEFAULT_SPEC
++#define ASM_DEFAULT_SPEC "-mppc"
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()     \
++  do                                 \
++    {                                \
++      builtin_define ("_AIX43");     \
++      builtin_define ("_AIX51");     \
++      builtin_define ("_AIX52");     \
++      builtin_define ("_AIX53");     \
++      builtin_define ("_AIX61");     \
++      TARGET_OS_AIX_CPP_BUILTINS (); \
++    }                                \
++  while (0)
++
++#undef CPP_SPEC
++#define CPP_SPEC "%{posix: -D_POSIX_SOURCE}	\
++  %{ansi: -D_ANSI_C_SOURCE}			\
++  %{maix64: -D__64BIT__}			\
++  %{mpe: -I/usr/lpp/ppe.poe/include}		\
++  %{pthread: -D_THREAD_SAFE}"
++
++/* The GNU C++ standard library requires that these macros be
++   defined.  Synchronize with libstdc++ os_defines.h.  */
++#undef CPLUSPLUS_CPP_SPEC
++#define CPLUSPLUS_CPP_SPEC			\
++  "-D_ALL_SOURCE -D__COMPATMATH__		\
++   %{maix64: -D__64BIT__}			\
++   %{mpe: -I/usr/lpp/ppe.poe/include}		\
++   %{pthread: -D_THREAD_SAFE}"
++
++#undef  TARGET_DEFAULT
++#define TARGET_DEFAULT (MASK_POWERPC | MASK_NEW_MNEMONICS)
++
++#undef  PROCESSOR_DEFAULT
++#define PROCESSOR_DEFAULT PROCESSOR_POWER5
++#undef  PROCESSOR_DEFAULT64
++#define PROCESSOR_DEFAULT64 PROCESSOR_POWER5
++
++#undef  TARGET_POWER
++#define TARGET_POWER 0
++
++/* Define this macro as a C expression for the initializer of an
++   array of string to tell the driver program which options are
++   defaults for this target and thus do not need to be handled
++   specially when using `MULTILIB_OPTIONS'.
++
++   Do not define this macro if `MULTILIB_OPTIONS' is not defined in
++   the target makefile fragment or if none of the options listed in
++   `MULTILIB_OPTIONS' are set by default.  *Note Target Fragment::.  */
++
++#undef	MULTILIB_DEFAULTS
++
++#undef LIB_SPEC
++#define LIB_SPEC "%{pg:-L/lib/profiled -L/usr/lib/profiled}\
++   %{p:-L/lib/profiled -L/usr/lib/profiled}\
++   %{!maix64:%{!shared:%{g*:-lg}}}\
++   %{mpe:-L/usr/lpp/ppe.poe/lib -lmpi -lvtd}\
++   %{pthread:-lpthreads} -lc"
++
++#undef LINK_SPEC
++#define LINK_SPEC "-bpT:0x10000000 -bpD:0x20000000 %{!r:-btextro} -bnodelcsect\
++   %{static:-bnso %(link_syscalls) } %{shared:-bM:SRE %{!e:-bnoentry}}\
++   %{!maix64:%{!shared:%{g*: %(link_libg) }}} %{maix64:-b64}\
++   %{mpe:-binitfini:poe_remote_main}"
++
++#undef STARTFILE_SPEC
++#define STARTFILE_SPEC "%{!shared:\
++   %{maix64:%{pg:gcrt0_64%O%s}%{!pg:%{p:mcrt0_64%O%s}%{!p:crt0_64%O%s}}}\
++   %{!maix64:\
++     %{pthread:%{pg:gcrt0_r%O%s}%{!pg:%{p:mcrt0_r%O%s}%{!p:crt0_r%O%s}}}\
++     %{!pthread:%{pg:gcrt0%O%s}%{!pg:%{p:mcrt0%O%s}%{!p:crt0%O%s}}}}}"
++
++/* AIX V5 typedefs ptrdiff_t as "long" while earlier releases used "int".  */
++
++#undef PTRDIFF_TYPE
++#define PTRDIFF_TYPE "long int"
++
++/* Type used for wchar_t, as a string used in a declaration.  */
++#undef  WCHAR_TYPE
++#define WCHAR_TYPE (!TARGET_64BIT ? "short unsigned int" : "unsigned int")
++
++/* Width of wchar_t in bits.  */
++#undef  WCHAR_TYPE_SIZE
++#define WCHAR_TYPE_SIZE (!TARGET_64BIT ? 16 : 32)
++
++/* AIX V5 uses PowerPC nop (ori 0,0,0) instruction as call glue for PowerPC
++   and "cror 31,31,31" for POWER architecture.  */
++
++#undef RS6000_CALL_GLUE
++#define RS6000_CALL_GLUE "{cror 31,31,31|nop}"
++
++/* AIX 4.2 and above provides initialization and finalization function
++   support from linker command line.  */
++#undef HAS_INIT_SECTION
++#define HAS_INIT_SECTION
++
++#undef LD_INIT_SWITCH
++#define LD_INIT_SWITCH "-binitfini"
++
++/* AIX 5.2 has the float and long double forms of math functions.  */
++#undef TARGET_C99_FUNCTIONS
++#define TARGET_C99_FUNCTIONS  1
++
++#ifndef _AIX52
++extern long long int    atoll(const char *);
++#endif
++
++/* This target uses the aix64.opt file.  */
++#define TARGET_USES_AIX64_OPT 1
++
++#define RS6000_DEFAULT_LONG_DOUBLE_SIZE 128
+Index: gcc-4.2.0-aix/config.rpath
+===================================================================
+--- gcc-4.2.0-aix.orig/config.rpath	2008-03-14 14:13:46.359249776 +0100
++++ gcc-4.2.0-aix/config.rpath	2008-03-14 14:15:22.-78481552 +0100
+@@ -125,7 +125,7 @@
+ ld_shlibs=yes
+ if test "$with_gnu_ld" = yes; then
+   case "$host_os" in
+-    aix3* | aix4* | aix5*)
++    aix3* | aix4* | aix5* | aix6*)
+       # On AIX/PPC, the GNU linker is very broken
+       if test "$host_cpu" != ia64; then
+         ld_shlibs=no
+@@ -198,7 +198,7 @@
+         hardcode_direct=unsupported
+       fi
+       ;;
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6*)
+       if test "$host_cpu" = ia64; then
+         # On IA64, the linker does run time linking by default, so we don't
+         # have to do anything special.
+@@ -208,7 +208,7 @@
+         # Test if we are trying to use run time linking or normal
+         # AIX style linking. If -brtl is somewhere in LDFLAGS, we
+         # need to do runtime linking.
+-        case $host_os in aix4.[23]|aix4.[23].*|aix5*)
++        case $host_os in aix4.[23]|aix4.[23].*|aix5*|aix6*)
+           for ld_flag in $LDFLAGS; do
+             if (test $ld_flag = "-brtl" || test $ld_flag = "-Wl,-brtl"); then
+               aix_use_runtimelinking=yes
+@@ -432,7 +432,7 @@
+ case "$host_os" in
+   aix3*)
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     ;;
+   amigaos*)
+     ;;
+Index: gcc-4.2.0-aix/ltcf-c.sh
+===================================================================
+--- gcc-4.2.0-aix.orig/ltcf-c.sh	2008-03-14 14:13:46.1708868112 +0100
++++ gcc-4.2.0-aix/ltcf-c.sh	2008-03-14 14:15:22.-143550624 +0100
+@@ -57,7 +57,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6*)
+     # On AIX/PPC, the GNU linker is very broken
+     if test "$host_cpu" != ia64; then
+       ld_shlibs=no
+@@ -263,7 +263,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+     link_all_deplibs=yes
+Index: gcc-4.2.0-aix/ltcf-cxx.sh
+===================================================================
+--- gcc-4.2.0-aix.orig/ltcf-cxx.sh	2008-03-14 14:13:46.1578892968 +0100
++++ gcc-4.2.0-aix/ltcf-cxx.sh	2008-03-14 14:15:22.-1618074104 +0100
+@@ -123,7 +123,7 @@
+     # FIXME: insert proper C++ library support
+     ld_shlibs=no
+     ;;
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     archive_cmds=''
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+@@ -778,7 +778,7 @@
+   esac
+ else
+   case $host_os in
+-    aix4* | aix5*)
++    aix4* | aix5* | aix6*)
+       # All AIX code is PIC.
+       if test "$host_cpu" = ia64; then
+         # AIX 5 now supports IA64 processor
+Index: gcc-4.2.0-aix/ltcf-gcj.sh
+===================================================================
+--- gcc-4.2.0-aix.orig/ltcf-gcj.sh	2008-03-14 14:13:46.-1438822064 +0100
++++ gcc-4.2.0-aix/ltcf-gcj.sh	2008-03-14 14:15:22.-208121696 +0100
+@@ -60,7 +60,7 @@
+ 
+   # See if GNU ld supports shared libraries.
+   case $host_os in
+-  aix3* | aix4* | aix5*)
++  aix3* | aix4* | aix5* | aix6*)
+     # On AIX/PPC, the GNU linker is very broken
+     if test "$host_cpu" != ia64; then
+       ld_shlibs=no
+@@ -262,7 +262,7 @@
+     fi
+     ;;
+ 
+-  aix4* | aix5*)
++  aix4* | aix5* | aix6*)
+     hardcode_direct=yes
+     hardcode_libdir_separator=':'
+     link_all_deplibs=yes
+Index: gcc-4.2.0-aix/ltconfig
+===================================================================
+--- gcc-4.2.0-aix.orig/ltconfig	2008-03-14 14:13:46.1252878608 +0100
++++ gcc-4.2.0-aix/ltconfig	2008-03-14 14:15:22.-272386768 +0100
+@@ -989,7 +989,7 @@
+   soname_spec='${libname}${release}.so$major'
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   version_type=linux
+   if test "$host_cpu" = ia64; then
+     # AIX 5 supports IA64
+@@ -1616,7 +1616,7 @@
+   fi
+   ;;
+ 
+-aix4* | aix5*)
++aix4* | aix5* | aix6*)
+   test "$enable_shared" = yes && enable_static=no
+   ;;
+ esac
+Index: gcc-4.2.0-aix/Makefile.in
+===================================================================
+--- gcc-4.2.0-aix.orig/Makefile.in	2008-03-14 14:13:46.-1695495352 +0100
++++ gcc-4.2.0-aix/Makefile.in	2008-03-14 14:15:22.-1871153392 +0100
+@@ -486,7 +486,9 @@
+ 	"`echo 'LANGUAGES=$(LANGUAGES)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
+ 	"LEAN=$(LEAN)" \
+ 	"CONFIG_SHELL=$(SHELL)" \
+-	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" 
++	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)"  \
++	"$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
++
+ 
+ # We leave this in just in case, but it is not needed anymore.
+ RECURSE_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS)
+Index: gcc-4.2.0-aix/Makefile.tpl
+===================================================================
+--- gcc-4.2.0-aix.orig/Makefile.tpl	2008-03-14 14:13:46.-1826396496 +0100
++++ gcc-4.2.0-aix/Makefile.tpl	2008-03-14 14:15:22.878511352 +0100
+@@ -403,7 +403,8 @@
+ 	"`echo '[+flag+]=$([+flag+])' | sed -e s'/[^=][^=]*=$$/XFOO=/'`"[+ ELSE optional +] \
+ 	"[+flag+]=$([+flag+])"[+ ENDIF optional+][+ ENDFOR flags_to_pass +] \
+ 	"CONFIG_SHELL=$(SHELL)" \
+-	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" 
++	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" \
++        "$(RPATH_ENVVAR)=$$$(RPATH_ENVVAR)"
+ 
+ # We leave this in just in case, but it is not needed anymore.
+ RECURSE_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS)
+Index: gcc-4.2.0-aix/configure
+===================================================================
+--- gcc-4.2.0-aix.orig/configure	2008-03-14 14:13:47.043189416 +0100
++++ gcc-4.2.0-aix/configure	2008-03-14 14:15:22.814128280 +0100
+@@ -3071,6 +3071,7 @@
+ case "${host}" in
+   *-*-hpux*) RPATH_ENVVAR=SHLIB_PATH ;;
+   *-*-darwin* | *-*-rhapsody* ) RPATH_ENVVAR=DYLD_LIBRARY_PATH ;;
++  *-ibm-aix*) RPATH_ENVVAR=LIBPATH ;;
+   *) RPATH_ENVVAR=LD_LIBRARY_PATH ;;
+ esac
+ 
+Index: gcc-4.2.0-aix/configure.in
+===================================================================
+--- gcc-4.2.0-aix.orig/configure.in	2008-03-14 14:13:46.-677100376 +0100
++++ gcc-4.2.0-aix/configure.in	2008-03-14 14:15:22.748585208 +0100
+@@ -1784,6 +1784,7 @@
+ case "${host}" in
+   *-*-hpux*) RPATH_ENVVAR=SHLIB_PATH ;;
+   *-*-darwin* | *-*-rhapsody* ) RPATH_ENVVAR=DYLD_LIBRARY_PATH ;;
++  *-ibm-aix* ) RPATH_ENVVAR=LIBPATH ;;
+   *) RPATH_ENVVAR=LD_LIBRARY_PATH ;;
+ esac
+ 

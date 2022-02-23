@@ -1,0 +1,11 @@
+--- ./src/debug.c.orig	2017-12-12 12:01:14 +0100
++++ ./src/debug.c	2018-12-05 15:11:17 +0100
+@@ -70,7 +70,7 @@
+ 
+ #ifdef HAVE_TLS
+ #define FRAME_NR
+-static __thread int frame_nr = 0;
++static __thread int frame_nr  __attribute__((tls_model("initial-exec"))) = 0;
+ #endif
+ 
+ void

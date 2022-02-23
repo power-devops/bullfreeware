@@ -1,0 +1,62 @@
+From 0c2324e3f88f5ba3dbe7c9053017549f13e1f995 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 26 Mar 2018 11:24:49 -0400
+Subject: [PATCH] Use k5_buf_init_dynamic_zap where appropriate
+
+(cherry picked from commit 9172599008f3a6790d4a9a67acff58049742dcb6)
+---
+ src/lib/krb5/ccache/cc_file.c    | 4 ++--
+ src/lib/krb5/ccache/cc_keyring.c | 2 +-
+ src/util/support/utf8_conv.c     | 4 +++-
+ 3 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/lib/krb5/ccache/cc_file.c b/src/lib/krb5/ccache/cc_file.c
+index 6789c09e1..9263a0054 100644
+--- a/src/lib/krb5/ccache/cc_file.c
++++ b/src/lib/krb5/ccache/cc_file.c
+@@ -758,7 +758,7 @@ fcc_next_cred(krb5_context context, krb5_ccache id, krb5_cc_cursor *cursor,
+ 
+     memset(creds, 0, sizeof(*creds));
+     k5_cc_mutex_lock(context, &data->lock);
+-    k5_buf_init_dynamic(&buf);
++    k5_buf_init_dynamic_zap(&buf);
+ 
+     ret = krb5_lock_file(context, fileno(fcursor->fp), KRB5_LOCKMODE_SHARED);
+     if (ret)
+@@ -982,7 +982,7 @@ fcc_store(krb5_context context, krb5_ccache id, krb5_creds *creds)
+         goto cleanup;
+ 
+     /* Marshal the cred and write it to the file with a single append write. */
+-    k5_buf_init_dynamic(&buf);
++    k5_buf_init_dynamic_zap(&buf);
+     k5_marshal_cred(&buf, version, creds);
+     ret = k5_buf_status(&buf);
+     if (ret)
+diff --git a/src/lib/krb5/ccache/cc_keyring.c b/src/lib/krb5/ccache/cc_keyring.c
+index fba710b1b..8419f6ebf 100644
+--- a/src/lib/krb5/ccache/cc_keyring.c
++++ b/src/lib/krb5/ccache/cc_keyring.c
+@@ -1295,7 +1295,7 @@ krcc_store(krb5_context context, krb5_ccache id, krb5_creds *creds)
+         goto errout;
+ 
+     /* Serialize credential using the file ccache version 4 format. */
+-    k5_buf_init_dynamic(&buf);
++    k5_buf_init_dynamic_zap(&buf);
+     k5_marshal_cred(&buf, 4, creds);
+     ret = k5_buf_status(&buf);
+     if (ret)
+diff --git a/src/util/support/utf8_conv.c b/src/util/support/utf8_conv.c
+index 5cfc2c512..08cef4168 100644
+--- a/src/util/support/utf8_conv.c
++++ b/src/util/support/utf8_conv.c
+@@ -99,7 +99,9 @@ k5_utf8_to_utf16le(const char *utf8, uint8_t **utf16_out, size_t *nbytes_out)
+     *utf16_out = NULL;
+     *nbytes_out = 0;
+ 
+-    k5_buf_init_dynamic(&buf);
++    /* UTF-16 conversion is used for RC4 string-to-key, so treat this data as
++     * sensitive. */
++    k5_buf_init_dynamic_zap(&buf);
+ 
+     /* Examine next UTF-8 character. */
+     while (*utf8 != '\0') {

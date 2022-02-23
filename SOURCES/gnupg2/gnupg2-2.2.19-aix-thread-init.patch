@@ -1,0 +1,56 @@
+--- ./dirmngr/dirmngr.c.orig	2019-11-12 20:14:44 +0100
++++ ./dirmngr/dirmngr.c	2020-07-27 18:24:04 +0200
+@@ -799,7 +799,7 @@
+ 
+ 
+ static void
+-thread_init (void)
++Thread_init (void)
+ {
+   npth_init ();
+   assuan_set_system_hooks (ASSUAN_SYSTEM_NPTH);
+@@ -1140,7 +1140,7 @@
+         }
+ 
+ 
+-      thread_init ();
++      Thread_init ();
+       cert_cache_init (hkp_cacert_filenames);
+       crl_cache_init ();
+       http_register_netactivity_cb (netactivity_action);
+@@ -1175,7 +1175,7 @@
+       else
+         log_set_prefix (NULL, 0);
+ 
+-      thread_init ();
++      Thread_init ();
+       cert_cache_init (hkp_cacert_filenames);
+       crl_cache_init ();
+       http_register_netactivity_cb (netactivity_action);
+@@ -1396,7 +1396,7 @@
+             }
+         }
+ 
+-      thread_init ();
++      Thread_init ();
+       cert_cache_init (hkp_cacert_filenames);
+       crl_cache_init ();
+       http_register_netactivity_cb (netactivity_action);
+@@ -1418,7 +1418,7 @@
+       memset (&ctrlbuf, 0, sizeof ctrlbuf);
+       dirmngr_init_default_ctrl (&ctrlbuf);
+ 
+-      thread_init ();
++      Thread_init ();
+       cert_cache_init (hkp_cacert_filenames);
+       crl_cache_init ();
+       if (!argc)
+@@ -1441,7 +1441,7 @@
+       memset (&ctrlbuf, 0, sizeof ctrlbuf);
+       dirmngr_init_default_ctrl (&ctrlbuf);
+ 
+-      thread_init ();
++      Thread_init ();
+       cert_cache_init (hkp_cacert_filenames);
+       crl_cache_init ();
+       rc = crl_fetch (&ctrlbuf, argv[0], &reader);

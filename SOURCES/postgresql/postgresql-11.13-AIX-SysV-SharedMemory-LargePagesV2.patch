@@ -1,0 +1,62 @@
+--- ./src/backend/port/sysv_shmem.c.ORIGIN	2018-11-23 11:05:31 +0100
++++ ./src/backend/port/sysv_shmem.c	2018-11-23 11:16:04 +0100
+@@ -63,9 +63,14 @@
+  * developer use, this shouldn't be a big problem.  Because of this, we do
+  * not worry about supporting anonymous shmem in the EXEC_BACKEND cases below.
+  */
++#if !defined(_AIX)
+ #ifndef EXEC_BACKEND
+ #define USE_ANONYMOUS_SHMEM
+ #endif
++// On AIX, 64K pages can be used only with SysV shared memory.
++// Not defining USE_ANONYMOUS_SHMEM on AIX leads to SysV shared memory.
++#endif
++
+ 
+ 
+ typedef key_t IpcMemoryKey;		/* shared memory key passed to shmget(2) */
+@@ -125,7 +130,13 @@
+ 	}
+ #endif
+ 
+-	shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection);
++	shmid = shmget(memKey, size, IPC_CREAT | IPC_EXCL | IPCProtection
++#if !defined(_AIX)
++										);
++#else
++	// On AIX, SHM_LGPAGE & SHM_PIN are required in order to be able to use Large Pages
++									  | SHM_LGPAGE | SHM_PIN | S_IRUSR | S_IWUSR);
++#endif
+ 
+ 	if (shmid < 0)
+ 	{
+@@ -155,7 +166,13 @@
+ 		 */
+ 		if (shmget_errno == EINVAL)
+ 		{
+-			shmid = shmget(memKey, 0, IPC_CREAT | IPC_EXCL | IPCProtection);
++			shmid = shmget(memKey, 0, IPC_CREAT | IPC_EXCL | IPCProtection
++#if !defined(_AIX)
++											);
++#else
++	// On AIX, SHM_LGPAGE & SHM_PIN are required in order to be able to use Large Pages
++											| SHM_LGPAGE | SHM_PIN | S_IRUSR | S_IWUSR);
++#endif
+ 
+ 			if (shmid < 0)
+ 			{
+--- ./src/include/storage/dsm_impl.h.ORIGIN	2018-11-23 11:33:45 +0100
++++ ./src/include/storage/dsm_impl.h	2018-11-23 11:34:40 +0100
+@@ -30,7 +30,12 @@
+ #else
+ #ifdef HAVE_SHM_OPEN
+ #define USE_DSM_POSIX
++#if !defined(_AIX)
+ #define DEFAULT_DYNAMIC_SHARED_MEMORY_TYPE		DSM_IMPL_POSIX
++#else
++// On AIX, 64K pages can be used only with SysV shared memory
++#define DEFAULT_DYNAMIC_SHARED_MEMORY_TYPE		DSM_IMPL_SYSV
++#endif // AIX
+ #endif
+ #define USE_DSM_SYSV
+ #ifndef DEFAULT_DYNAMIC_SHARED_MEMORY_TYPE

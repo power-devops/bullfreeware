@@ -1,0 +1,11 @@
+--- gcc-7-20161106.orig/libgo/runtime/go-caller.c	2016-10-14 19:20:40 +0200
++++ gcc-7-20161106.new/libgo/runtime/go-caller.c	2016-11-24 15:41:16 +0100
+@@ -151,7 +151,7 @@
+ /* Set *VAL to the value of the symbol for PC.  */
+ 
+ static _Bool
+-__go_symbol_value (uintptr_t pc, uintptr_t *val)
++__go_symbol_value (uintptr pc, uintptr *val)
+ {
+   *val = 0;
+   backtrace_syminfo (__go_get_backtrace_state (), pc, syminfo_callback,

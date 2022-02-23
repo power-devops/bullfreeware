@@ -1,0 +1,74 @@
+--- ./sql/CMakeLists.txt.ORIGIN	2019-10-10 18:31:25 -0500
++++ ./sql/CMakeLists.txt	2019-10-10 18:33:10 -0500
+@@ -242,25 +242,29 @@
+   dd/upgrade_57/upgrade.cc
+ )
+ 
+-SET(SQL_GIS_SOURCES
++SET(SQL_GIS_SOURCES_AIX
++  gis/crosses.cc
++  gis/difference.cc
++  gis/equals.cc
++  gis/intersects.cc
++  gis/is_simple.cc
++  gis/is_valid.cc
++  gis/overlaps.cc
++  gis/within.cc
++)
++
++SET(SQL_GIS_SOURCES_BASE
+   geometry_rtree.cc
+   gis/area.cc
+   gis/covered_by.cc
+-  gis/crosses.cc
+-  gis/difference.cc
+   gis/disjoint.cc
+   gis/distance.cc
+   gis/distance_functor.cc
+   gis/distance_sphere.cc
+-  gis/equals.cc
+   gis/gc_utils.cc
+   gis/geometries.cc
+-  gis/intersects.cc
+-  gis/is_simple.cc
+-  gis/is_valid.cc
+   gis/length.cc
+   gis/mbr_utils.cc
+-  gis/overlaps.cc
+   gis/ring_flip_visitor.cc
+   gis/rtree_support.cc
+   gis/simplify.cc
+@@ -270,7 +274,6 @@
+   gis/touches.cc
+   gis/transform.cc
+   gis/union.cc
+-  gis/within.cc
+   gis/wkb.cc
+   gis/wkb_size_visitor.cc
+   gis/wkb_visitor.cc
+@@ -283,6 +286,11 @@
+   options_parser.cc
+ )
+ 
++SET(SQL_GIS_SOURCES
++  ${SQL_GIS_SOURCES_AIX}
++  ${SQL_GIS_SOURCES_BASE}
++)
++
+ SET(MYSQL_SERVER_SUB_COMPONENT_SOURCES
+   server_component/backup_lock_service.cc
+   server_component/clone_protocol_service.cc
+@@ -646,6 +654,13 @@
+     resourcegroups/platform/thread_attrs_api_win.cc)
+ ENDIF()
+ 
++IF(AIX)
++  ADD_COMPILE_FLAGS(
++    ${SQL_GIS_SOURCES}
++    ${SQL_GIS_SOURCES_AIX}
++    COMPILE_FLAGS " -fno-inline")
++ENDIF()
++
+ SET(SQL_SOURCE
+   ${GEN_SOURCES}
+   ${GEN_DIGEST_SOURCES}

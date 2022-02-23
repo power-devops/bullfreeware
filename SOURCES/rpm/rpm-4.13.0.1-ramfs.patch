@@ -1,0 +1,18 @@
+Index: rpm-4.9.1.2/rpmio/rpmfileutil.c
+===================================================================
+--- rpm-4.9.1.2.orig/rpmio/rpmfileutil.c	2011-07-15 11:32:41.000000000 +0200
++++ rpm-4.9.1.2/rpmio/rpmfileutil.c	2012-06-05 13:06:37.000000000 +0200
+@@ -420,6 +420,13 @@
+ 		te = se;
+ /*fprintf(stderr, "*** next pdir \"%.*s\"\n", (te-path), path); */
+ 	    }
++	    /* AIX RAM filesystem is special */
++	    if (t==path && s[1] == '.' && s[2] == '.' && s[3] == '/') {
++		*t++ = *s++;
++		*t++ = *s++;
++		*t++ = *s++;
++		break;
++	    }
+ 	    while (s[1] == '/')
+ 		s++;
+ 	    while (t > path && t[-1] == '/')

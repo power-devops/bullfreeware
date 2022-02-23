@@ -1,0 +1,36 @@
+From f5df0a95751e92efcc5adb301603781035eac5b3 Mon Sep 17 00:00:00 2001
+From: Tobias Klauser <tklauser@distanz.ch>
+Date: Fri, 19 Oct 2018 18:09:42 +0200
+Subject: [PATCH] cmd/internal/xcoff: don't use io.SeekCurrent for go1.4 compatibility
+
+This fixes the build with go1.4 during bootstrap.
+
+Change-Id: I35fa1dc3d877d31d5ffe515f5f19188f4a8b77f4
+Reviewed-on: https://go-review.googlesource.com/c/143377
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/internal/xcoff/file.go b/src/cmd/internal/xcoff/file.go
+index 86a85c3..0923b9f 100644
+--- a/src/cmd/internal/xcoff/file.go
++++ b/src/cmd/internal/xcoff/file.go
+@@ -355,7 +355,7 @@
+ 
+ 		// Read csect auxiliary entry (by convention, it is the last).
+ 		if !needAuxFcn {
+-			if _, err := sr.Seek(int64(numaux-1)*SYMESZ, io.SeekCurrent); err != nil {
++			if _, err := sr.Seek(int64(numaux-1)*SYMESZ, os.SEEK_CUR); err != nil {
+ 				return nil, err
+ 			}
+ 		}
+@@ -382,7 +382,7 @@
+ 		f.Symbols = append(f.Symbols, sym)
+ 	skip:
+ 		i += numaux // Skip auxiliary entries
+-		if _, err := sr.Seek(int64(numaux)*SYMESZ, io.SeekCurrent); err != nil {
++		if _, err := sr.Seek(int64(numaux)*SYMESZ, os.SEEK_CUR); err != nil {
+ 			return nil, err
+ 		}
+ 	}

@@ -1,0 +1,12 @@
+--- ./cmake/maintainer.cmake.orig	2019-06-17 11:51:11.979520130 +0200
++++ ./cmake/maintainer.cmake	2019-06-17 11:50:43.925500131 +0200
+@@ -33,8 +33,8 @@
+   -Wnon-virtual-dtor
+   -Wvla
+   -Wwrite-strings
+-  -Werror
+   )
++# -Werror
+ 
+ IF(CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_LESS "6.0.0")
+   SET(MY_WARNING_FLAGS ${MY_WARNING_FLAGS} -Wno-error=maybe-uninitialized)

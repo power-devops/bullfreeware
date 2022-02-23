@@ -1,0 +1,34 @@
+--- ./support-files/rpm/server.cnf.orig	2019-10-09 13:10:06.546696020 +0200
++++ ./support-files/rpm/server.cnf	2019-10-09 12:14:25.204849508 +0200
+@@ -10,26 +10,12 @@
+ 
+ # this is only for the mysqld standalone daemon
+ [mysqld]
++datadir=/opt/freeware/var/lib/mysql/data
++socket=/opt/freeware/var/lib/mysql/mysql.sock
++pid-file=/opt/freeware/var/lib/mysql/mysql.pid
++
++log-error=/opt/freeware/var/log/mysql/mysql.log
+ 
+-#
+-# * Galera-related settings
+-#
+-[galera]
+-# Mandatory settings
+-#wsrep_on=ON
+-#wsrep_provider=
+-#wsrep_cluster_address=
+-#binlog_format=row
+-#default_storage_engine=InnoDB
+-#innodb_autoinc_lock_mode=2
+-#
+-# Allow server to accept connections on all interfaces.
+-#
+-#bind-address=0.0.0.0
+-#
+-# Optional setting
+-#wsrep_slave_threads=1
+-#innodb_flush_log_at_trx_commit=0
+ 
+ # this is only for embedded server
+ [embedded]

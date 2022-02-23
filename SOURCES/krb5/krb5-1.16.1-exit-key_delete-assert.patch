@@ -1,0 +1,39 @@
+--- ./src/util/support/base64.c.ORIG	2018-05-03 16:34:47 +0200
++++ ./src/util/support/base64.c	2018-05-31 15:07:56 +0200
+@@ -121,6 +121,11 @@
+     if (len % 4)
+         return NULL;
+     q = data = malloc(len / 4 * 3);
++#ifdef _AIX
++    if((len /4 *3 ) == 0){
++        q = data = malloc(1);
++    }
++#endif
+     if (data == NULL) {
+         *len_out = 0;
+         return NULL;
+--- ./src/lib/kdb/kdb5.c.ORIG	2018-05-03 16:34:47 +0200
++++ ./src/lib/kdb/kdb5.c	2018-05-31 15:16:25 +0200
+@@ -2243,6 +2243,10 @@
+      * fails.
+      */
+     tmp = malloc(new_tl_data->tl_data_length);
++#ifdef _AIX
++    if(!new_tl_data->tl_data_length)
++        tmp=malloc(1);
++#endif
+     if (tmp == NULL)
+         return (ENOMEM);
+ 
+--- ./src/util/et/error_message.c.ORIG	2017-03-02 23:06:02 +0100
++++ ./src/util/et/error_message.c	2017-10-25 17:48:13 +0200
+@@ -52,6 +52,9 @@
+ void com_err_terminate(void)
+ {
+     struct et_list *e, *enext;
++    /* AIX work around for k5_mutex problem */
++    (void) fflush(NULL);
++    _exit(0);
+     if (! INITIALIZER_RAN(com_err_initialize) || PROGRAM_EXITING()) {
+ #ifdef SHOW_INITFINI_FUNCS
+         printf("com_err_terminate: skipping\n");

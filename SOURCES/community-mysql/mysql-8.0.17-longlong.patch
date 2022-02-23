@@ -1,0 +1,16 @@
+--- ./include/my_inttypes.h.ORIGIN	2019-08-27 15:24:20 -0500
++++ ./include/my_inttypes.h	2019-08-27 15:35:56 -0500
+@@ -65,8 +65,13 @@
+ // These are not defined as [u]int64_t, since we have code that assumes that
+ // [u]int64 == [unsigned] long long. This is also legacy behavior; use
+ // [u]int64_t when possible.
++#ifndef _AIX
+ typedef long long int64;
+ typedef unsigned long long uint64;
++#else
++typedef long int64;
++typedef unsigned long uint64;
++#endif
+ 
+ // We have both ulonglong and my_ulonglong, which can be different. Don't use
+ // any of them in new code; use [u]int64_t.

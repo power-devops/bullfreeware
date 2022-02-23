@@ -1,0 +1,49 @@
+From 95f944c0854cbcbebb7bc784618d324c59a70699 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Mon, 10 Feb 2020 15:52:41 +0100
+Subject: [PATCH] fix --disable-rpath
+
+---
+ configure | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/configure b/configure
+index fcda9fd..3e5d827 100755
+--- a/configure
++++ b/configure
+@@ -7861,7 +7861,10 @@ fi
+                         LTLIBICONV="${LTLIBICONV}${LTLIBICONV:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBICONV="${LIBICONV}${LIBICONV:+ }-L$found_dir -l$name" ;;
++                  *) LIBICONV="${LIBICONV}${LIBICONV:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -8651,7 +8654,10 @@ fi
+                         LTLIBINTL="${LTLIBINTL}${LTLIBINTL:+ }-L$found_dir -l$name"
+             if test "X$found_so" != "X"; then
+                                                         if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/lib"; then
+-                                LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so"
++                                case $host_os in
++                                                      aix*) LIBINTL="${LIBINTL}${LIBINTL:+ }-L$found_dir -l$name" ;;
++                  *) LIBINTL="${LIBINTL}${LIBINTL:+ }$found_so" ;;
++                esac
+               else
+                                                                                 haveit=
+                 for x in $ltrpathdirs; do
+@@ -11466,7 +11472,7 @@ char    **v;
+ {
+         int     w;
+ 
+-        setlocale(LC_ALL, "EN_US.UTF-8");
++        setlocale(LC_ALL, "en_US.UTF-8");
+         w = wcwidth (0x0301);
+         exit (w == 0);  /* exit 0 if wcwidth broken */
+ }
+-- 
+2.25.0
+

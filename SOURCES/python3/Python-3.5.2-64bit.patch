@@ -1,0 +1,205 @@
+diff -Nur Python-3.5.1-orig/Lib/distutils/command/build_ext.py Python-3.5.1-aix/Lib/distutils/command/build_ext.py
+--- Python-3.5.1-orig/Lib/distutils/command/build_ext.py	2015-12-07 02:39:07 +0100
++++ Python-3.5.1-aix/Lib/distutils/command/build_ext.py	2016-06-23 11:35:31 +0200
+@@ -260,9 +260,13 @@
+         # Finally add the user include and library directories if requested
+         if self.user:
+             user_include = os.path.join(USER_BASE, "include")
++            user_lib64 = os.path.join(USER_BASE, "lib64")
+             user_lib = os.path.join(USER_BASE, "lib")
+             if os.path.isdir(user_include):
+                 self.include_dirs.append(user_include)
++            if os.path.isdir(user_lib64):
++                self.library_dirs.append(user_lib64)
++                self.rpath.append(user_lib64)
+             if os.path.isdir(user_lib):
+                 self.library_dirs.append(user_lib)
+                 self.rpath.append(user_lib)
+diff -Nur Python-3.5.1-orig/Lib/distutils/command/install.py Python-3.5.1-aix/Lib/distutils/command/install.py
+--- Python-3.5.1-orig/Lib/distutils/command/install.py	2015-12-07 02:39:07 +0100
++++ Python-3.5.1-aix/Lib/distutils/command/install.py	2016-06-23 11:23:56 +0200
+@@ -30,14 +30,14 @@
+ INSTALL_SCHEMES = {
+     'unix_prefix': {
+         'purelib': '$base/lib/python$py_version_short/site-packages',
+-        'platlib': '$platbase/lib/python$py_version_short/site-packages',
++        'platlib': '$platbase/lib64/python$py_version_short/site-packages',
+         'headers': '$base/include/python$py_version_short$abiflags/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+         },
+     'unix_home': {
+         'purelib': '$base/lib/python',
+-        'platlib': '$base/lib/python',
++        'platlib': '$base/lib64/python',
+         'headers': '$base/include/python/$dist_name',
+         'scripts': '$base/bin',
+         'data'   : '$base',
+diff -Nur Python-3.5.1-orig/Lib/distutils/sysconfig.py Python-3.5.1-aix/Lib/distutils/sysconfig.py
+--- Python-3.5.1-orig/Lib/distutils/sysconfig.py	2015-12-07 02:39:07 +0100
++++ Python-3.5.1-aix/Lib/distutils/sysconfig.py	2016-06-23 11:25:35 +0200
+@@ -132,8 +132,12 @@
+             prefix = plat_specific and EXEC_PREFIX or PREFIX
+ 
+     if os.name == "posix":
++        if plat_specific:
++            lib = "lib64"
++        else:
++            lib = "lib"
+         libpython = os.path.join(prefix,
+-                                 "lib", "python" + get_python_version())
++                                 lib, "python" + get_python_version())
+         if standard_lib:
+             return libpython
+         else:
+diff -Nur Python-3.5.1-orig/Lib/site.py Python-3.5.1-aix/Lib/site.py
+--- Python-3.5.1-orig/Lib/site.py	2015-12-07 02:39:08 +0100
++++ Python-3.5.1-aix/Lib/site.py	2016-06-23 11:27:00 +0200
+@@ -303,11 +303,15 @@
+         seen.add(prefix)
+ 
+         if os.sep == '/':
++            sitepackages.append(os.path.join(prefix, "lib64",
++                                        "python" + sys.version[:3],
++                                        "site-packages"))
+             sitepackages.append(os.path.join(prefix, "lib",
+                                         "python" + sys.version[:3],
+                                         "site-packages"))
+         else:
+             sitepackages.append(prefix)
++            sitepackages.append(os.path.join(prefix, "lib64", "site-packages"))
+             sitepackages.append(os.path.join(prefix, "lib", "site-packages"))
+         if sys.platform == "darwin":
+             # for framework builds *only* we add the standard Apple
+diff -Nur Python-3.5.1-orig/Lib/sysconfig.py Python-3.5.1-aix/Lib/sysconfig.py
+--- Python-3.5.1-orig/Lib/sysconfig.py	2015-12-07 02:39:08 +0100
++++ Python-3.5.1-aix/Lib/sysconfig.py	2016-06-23 11:32:21 +0200
+@@ -21,9 +21,9 @@
+ _INSTALL_SCHEMES = {
+     'posix_prefix': {
+         'stdlib': '{installed_base}/lib/python{py_version_short}',
+-        'platstdlib': '{platbase}/lib/python{py_version_short}',
++        'platstdlib': '{platbase}/lib64/python{py_version_short}',
+         'purelib': '{base}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{platbase}/lib/python{py_version_short}/site-packages',
++        'platlib': '{platbase}/lib64/python{py_version_short}/site-packages',
+         'include':
+             '{installed_base}/include/python{py_version_short}{abiflags}',
+         'platinclude':
+@@ -33,9 +33,9 @@
+         },
+     'posix_home': {
+         'stdlib': '{installed_base}/lib/python',
+-        'platstdlib': '{base}/lib/python',
++        'platstdlib': '{base}/lib64/python',
+         'purelib': '{base}/lib/python',
+-        'platlib': '{base}/lib/python',
++        'platlib': '{base}/lib64/python',
+         'include': '{installed_base}/include/python',
+         'platinclude': '{installed_base}/include/python',
+         'scripts': '{base}/bin',
+@@ -62,9 +62,9 @@
+         },
+     'posix_user': {
+         'stdlib': '{userbase}/lib/python{py_version_short}',
+-        'platstdlib': '{userbase}/lib/python{py_version_short}',
++        'platstdlib': '{userbase}/lib64/python{py_version_short}',
+         'purelib': '{userbase}/lib/python{py_version_short}/site-packages',
+-        'platlib': '{userbase}/lib/python{py_version_short}/site-packages',
++        'platlib': '{userbase}/lib64/python{py_version_short}/site-packages',
+         'include': '{userbase}/include/python{py_version_short}',
+         'scripts': '{userbase}/bin',
+         'data': '{userbase}',
+diff -Nur Python-3.5.1-orig/Lib/test/test_site.py Python-3.5.1-aix/Lib/test/test_site.py
+--- Python-3.5.1-orig/Lib/test/test_site.py	2015-12-07 02:39:09 +0100
++++ Python-3.5.1-aix/Lib/test/test_site.py	2016-06-23 11:34:24 +0200
+@@ -244,7 +244,7 @@
+         elif os.sep == '/':
+             # OS X non-framwework builds, Linux, FreeBSD, etc
+             self.assertEqual(len(dirs), 1)
+-            wanted = os.path.join('xoxo', 'lib', 'python' + sys.version[:3],
++            wanted = os.path.join('xoxo', 'lib64', 'python' + sys.version[:3],
+                                   'site-packages')
+             self.assertEqual(dirs[0], wanted)
+         else:
+diff -Nur Python-3.5.1-orig/Makefile.pre.in Python-3.5.1-aix/Makefile.pre.in
+--- Python-3.5.1-orig/Makefile.pre.in	2015-12-07 02:39:09 +0100
++++ Python-3.5.1-aix/Makefile.pre.in	2016-06-23 11:28:13 +0200
+@@ -120,12 +120,12 @@
+ datarootdir=    @datarootdir@
+ 
+ # Expanded directories
+-BINDIR=		@bindir@
+-LIBDIR=		@libdir@
++BINDIR=		$(exec_prefix)/bin
++LIBDIR=	        $(exec_prefix)/lib64
+ MANDIR=		@mandir@
+ INCLUDEDIR=	@includedir@
+ CONFINCLUDEDIR=	$(exec_prefix)/include
+-SCRIPTDIR=	$(prefix)/lib
++SCRIPTDIR=	$(prefix)/lib64
+ ABIFLAGS=	@ABIFLAGS@
+ 
+ # Detailed destination directories
+diff -Nur Python-3.5.1-orig/Modules/getpath.c Python-3.5.1-aix/Modules/getpath.c
+--- Python-3.5.1-orig/Modules/getpath.c	2015-12-07 02:39:10 +0100
++++ Python-3.5.1-aix/Modules/getpath.c	2016-06-23 11:31:18 +0200
+@@ -118,8 +118,8 @@
+ #endif
+ 
+ #ifndef PYTHONPATH
+-#define PYTHONPATH PREFIX "/lib/python" VERSION ":" \
+-              EXEC_PREFIX "/lib/python" VERSION "/lib-dynload"
++#define PYTHONPATH PREFIX "/lib64/python" VERSION ":" \
++              EXEC_PREFIX "/lib64/python" VERSION "/lib-dynload"
+ #endif
+ 
+ #ifndef LANDMARK
+@@ -511,7 +511,7 @@
+     _pythonpath = Py_DecodeLocale(PYTHONPATH, NULL);
+     _prefix = Py_DecodeLocale(PREFIX, NULL);
+     _exec_prefix = Py_DecodeLocale(EXEC_PREFIX, NULL);
+-    lib_python = Py_DecodeLocale("lib/python" VERSION, NULL);
++    lib_python = Py_DecodeLocale("lib64/python" VERSION, NULL);
+ 
+     if (!_pythonpath || !_prefix || !_exec_prefix || !lib_python) {
+         Py_FatalError(
+@@ -700,7 +700,7 @@
+     }
+     else
+         wcsncpy(zip_path, _prefix, MAXPATHLEN);
+-    joinpath(zip_path, L"lib/python00.zip");
++    joinpath(zip_path, L"lib64/python00.zip");
+     bufsz = wcslen(zip_path);   /* Replace "00" with version */
+     zip_path[bufsz - 6] = VERSION[0];
+     zip_path[bufsz - 5] = VERSION[2];
+@@ -712,7 +712,7 @@
+             fprintf(stderr,
+                 "Could not find platform dependent libraries <exec_prefix>\n");
+         wcsncpy(exec_prefix, _exec_prefix, MAXPATHLEN);
+-        joinpath(exec_prefix, L"lib/lib-dynload");
++        joinpath(exec_prefix, L"lib64/lib-dynload");
+     }
+     /* If we found EXEC_PREFIX do *not* reduce it!  (Yet.) */
+ 
+diff -Nur Python-3.5.1-orig/setup.py Python-3.5.1-aix/setup.py
+--- Python-3.5.1-orig/setup.py	2015-12-07 02:39:11 +0100
++++ Python-3.5.1-aix/setup.py	2016-06-23 11:36:50 +0200
+@@ -405,7 +405,7 @@
+ 
+         if multiarch_path_component != '':
+             add_dir_to_list(self.compiler.library_dirs,
+-                            '/usr/lib/' + multiarch_path_component)
++                            '/usr/lib64/' + multiarch_path_component)
+             add_dir_to_list(self.compiler.include_dirs,
+                             '/usr/include/' + multiarch_path_component)
+             return
+@@ -426,7 +426,7 @@
+                 with open(tmpfile) as fp:
+                     multiarch_path_component = fp.readline().strip()
+                 add_dir_to_list(self.compiler.library_dirs,
+-                                '/usr/lib/' + multiarch_path_component)
++                                '/usr/lib64/' + multiarch_path_component)
+                 add_dir_to_list(self.compiler.include_dirs,
+                                 '/usr/include/' + multiarch_path_component)
+         finally:

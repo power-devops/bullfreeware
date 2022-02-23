@@ -1,0 +1,44 @@
+Index: emacs-24.5/doc/misc/Makefile.in
+===================================================================
+--- emacs-24.5.orig/doc/misc/Makefile.in	2016-03-02 18:13:08.000000000 +0100
++++ emacs-24.5/doc/misc/Makefile.in	2016-03-02 18:13:54.000000000 +0100
+@@ -64,7 +64,7 @@
+ INFO_COMMON = ada-mode auth autotype bovine calc ccmode cl \
+ 	dbus dired-x ebrowse ede ediff edt eieio \
+ 	emacs-mime epa erc ert eshell eudc efaq eww \
+-	flymake forms gnus emacs-gnutls htmlfontify idlwave ido info.info \
++	flymake forms gnus emacs-gnutls htmlfontify idlwave ido emacs.info.info \
+ 	mairix-el message mh-e newsticker nxml-mode octave-mode \
+ 	org pcl-cvs pgg rcirc remember reftex sasl \
+ 	sc semantic ses sieve smtpmail speedbar srecode todo-mode tramp \
+@@ -81,7 +81,7 @@
+ # There are some naming differences between the info targets and the other
+ # targets, so let's resolve them here.
+ TARGETS_1 = $(INFO_INSTALL:ccmode=cc-mode)
+-TARGETS = $(TARGETS_1:info.info=info)
++TARGETS = $(TARGETS_1:emacs.info.info=info)
+ 
+ DVI_TARGETS  = $(TARGETS:=.dvi)
+ HTML_TARGETS = $(TARGETS:=.html)
+@@ -502,7 +502,7 @@
+ 
+ info_deps = ${srcdir}/info.texi ${gfdl}
+ # Avoid name clash with overall "info" target.
+-info.info : $(buildinfodir)/info$(INFO_EXT)
++emacs.info.info : $(buildinfodir)/info$(INFO_EXT)
+ # NB this one needs --no-split even without a .info extension.
+ $(buildinfodir)/info$(INFO_EXT): $(info_deps)
+ 	$(mkinfodir)
+Index: emacs-24.5/doc/misc/info.texi
+===================================================================
+--- emacs-24.5.orig/doc/misc/info.texi	2016-03-02 18:12:47.000000000 +0100
++++ emacs-24.5/doc/misc/info.texi	2016-03-02 18:13:58.000000000 +0100
+@@ -3,7 +3,7 @@
+ @c distcheck in the Texinfo distribution fails, because the texinfo Info
+ @c file is made first, and texi2dvi must include . first in the path.
+ @comment %**start of header
+-@setfilename info.info
++@setfilename emacs.info.info
+ @settitle Info
+ @syncodeindex fn cp
+ @syncodeindex vr cp

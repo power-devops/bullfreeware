@@ -1,0 +1,41 @@
+--- ./CMakeLists.txt    2020-02-19 15:16:46.000000000 +0100
++++ ./CMakeLists.txt     2019-09-30 16:39:22.000000000 +0200
+@@ -2060,9 +2060,11 @@
+             )
+         endif(APPLE)
+     endif(BUILD_SHARED_LIBS)
++    IF(NOT CMAKE_SYSTEM_NAME  MATCHES AIX)
+     set_target_properties(${LIBRARY_NAME}_static PROPERTIES
+         OUTPUT_NAME "${LIBRARY_NAME}"
+     )
++    ENDIF()
+ endif(WIN32)
+ 
+ if(BUILD_SHARED_LIBS)
+@@ -2220,20 +2222,20 @@
+     endif(MINGW)
+ 
+     install(CODE
+-        "message(STATUS \"Symlinking: ${CMAKE_INSTALL_PREFIX}/${MANDIR}/${SOURCE} to ${TARGET}\")
++        "message(STATUS \"Symlinking: ${DESTDIR}${CMAKE_INSTALL_PREFIX}/${MANDIR}/${SOURCE} to ${TARGET}\")
+          execute_process(
+             COMMAND \"${CMAKE_COMMAND}\" \"-E\" \"remove\" \"${TARGET}\"
+-            WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${MANDIR}
++           WORKING_DIRECTORY ${DESTDIR}${CMAKE_INSTALL_PREFIX}/${MANDIR}
+           )
+          execute_process(
+             COMMAND ${LINK_COMMAND}
+-            WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${MANDIR}
++            WORKING_DIRECTORY ${DESTDIR}${CMAKE_INSTALL_PREFIX}/${MANDIR}
+             RESULT_VARIABLE EXIT_STATUS
+           )
+           if(NOT EXIT_STATUS EQUAL 0)
+-              message(FATAL_ERROR \"Could not create symbolic link from ${CMAKE_INSTALL_PREFIX}/${MANDIR}/${SOURCE} to ${TARGET}\")
++              message(FATAL_ERROR \"Could not create symbolic link from ${DESTDIR}${CMAKE_INSTALL_PREFIX}/${MANDIR}/${SOURCE} to ${TARGET}\")
+           endif()
+-          set(CMAKE_INSTALL_MANIFEST_FILES \${CMAKE_INSTALL_MANIFEST_FILES} ${CMAKE_INSTALL_PREFIX}/${MANDIR}/${TARGET})")
++          set(CMAKE_INSTALL_MANIFEST_FILES \${CMAKE_INSTALL_MANIFEST_FILES} ${DESTDIR}${CMAKE_INSTALL_PREFIX}/${MANDIR}/${TARGET})")
+ endfunction(install_manpage_symlink)
+ 
+ set(MAN1_NOEXPAND pcap-config.1)
+

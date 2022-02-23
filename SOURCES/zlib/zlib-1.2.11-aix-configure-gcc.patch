@@ -1,0 +1,22 @@
+--- configure.OLD	2019-07-05 15:33:28 +0200
++++ configure	2019-07-05 15:35:12 +0200
+@@ -247,6 +247,19 @@
+                  AR="/usr/bin/libtool"
+              fi
+              ARFLAGS="-o" ;;
++  AIX*)
++         # Archive must always be made with /usr/bin/ar even if
++         # /opt/freeware/ar exists.
++         AR="/usr/bin/ar -X32_64"
++         # Replace m64 by maix64
++         if test $build64 -eq 1; then
++           CFLAGS=`echo ${CFLAGS} | sed "s/-m64/-maix64/g`
++           SFLAGS=`echo ${SFLAGS} | sed "s/-m64/-maix64/g`
++         fi
++         LDSHARED=${LDSHARED-"$cc -shared"}
++         # Always add /opt/freeware/lib in libpath
++         LDFLAGS="-L/opt/freeware/lib $LDFLAGS"
++         ;;
+   *)             LDSHARED=${LDSHARED-"$cc -shared"} ;;
+   esac
+ else

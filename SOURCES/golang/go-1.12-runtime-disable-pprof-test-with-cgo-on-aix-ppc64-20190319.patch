@@ -1,0 +1,88 @@
+From 205d62d58b16afbb4e6232a0591e3e8f4153a591 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Thu, 21 Feb 2019 10:14:46 +0100
+Subject: [PATCH] runtime: disable pprof test with cgo on aix/ppc64
+
+This commit disables new cgo pprof tests and adds an handler in sigtramp
+to refuse SIGPROF signal.
+
+Updates #28555
+
+Change-Id: I152a871f8636e93328d411329104c6f023bd1691
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164013
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/runtime/crash_cgo_test.go b/src/runtime/crash_cgo_test.go
+index c1dd757..e0c8955 100644
+--- a/src/runtime/crash_cgo_test.go
++++ b/src/runtime/crash_cgo_test.go
+@@ -229,6 +229,9 @@
+ }
+ 
+ func TestCgoCCodeSIGPROF(t *testing.T) {
++	if runtime.GOOS == "aix" {
++		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
++	}
+ 	t.Parallel()
+ 	got := runTestProg(t, "testprogcgo", "CgoCCodeSIGPROF")
+ 	want := "OK\n"
+diff --git a/src/runtime/pprof/proto_test.go b/src/runtime/pprof/proto_test.go
+index 4452d51..cb38150 100644
+--- a/src/runtime/pprof/proto_test.go
++++ b/src/runtime/pprof/proto_test.go
+@@ -312,6 +312,10 @@
+ 	testenv.MustHaveGoRun(t)
+ 	testenv.MustHaveCGO(t)
+ 
++	if runtime.GOOS == "aix" {
++		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
++	}
++
+ 	prog := "./testdata/mappingtest/main.go"
+ 
+ 	// GoOnly includes only Go symbols that runtime will symbolize.
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index d691b76..d9e97ac 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -109,6 +109,9 @@
+ 
+ 	BL	runtime·load_g(SB)
+ 
++	CMP	$0, g
++	BEQ	sigtrampnog // g == nil
++
+ 	// Save m->libcall. We need to do this because we
+ 	// might get interrupted by a signal in runtime·asmcgocall.
+ 
+@@ -155,6 +158,7 @@
+ 	MOVD	120(R1), R8
+ 	MOVD	R8, 0(R7)
+ 
++exit:
+ 	// restore registers
+ 	MOVD	56(R1),R31
+ 	MOVD	64(R1),g
+@@ -166,6 +170,19 @@
+ 	MOVD	R0, LR
+ 	BR (LR)
+ 
++sigtrampnog:
++	// Signal arrived on a non-Go thread.
++	// SIGPROF handler is not yet available so simply call badsignal,
++	// after having created *sigctxt.
++	MOVD	R4, 80(R1)
++	MOVD	R5, 88(R1)
++	MOVD	R1, R4
++	ADD		$80, R4
++	MOVD	R4, FIXED_FRAME+8(R1)
++	MOVD	R3, FIXED_FRAME+0(R1)
++	BL runtime·badsignal(SB)
++	JMP	exit
++
+ // runtime.tstart is a function descriptor to the real tstart.
+ DATA	runtime·tstart+0(SB)/8, $runtime·_tstart(SB)
+ DATA	runtime·tstart+8(SB)/8, $TOC(SB)

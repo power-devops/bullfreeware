@@ -1,0 +1,126 @@
+From 85525c56ab5fdb214fee70b4b4cce8700344258b Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 02 Nov 2018 10:09:30 +0100
+Subject: [PATCH] all: skip unsupported tests on AIX
+
+This commit skips tests which aren't yet supported on AIX.
+
+nosplit.go is disabled because stackGuardMultiplier is increased for
+syscalls.
+
+Change-Id: Ib5ff9a4539c7646bcb6caee159f105ff8a160ad7
+Reviewed-on: https://go-review.googlesource.com/c/146939
+Reviewed-by: Brad Fitzpatrick <bradfitz@golang.org>
+Run-TryBot: Brad Fitzpatrick <bradfitz@golang.org>
+---
+
+diff --git a/src/cmd/internal/obj/x86/issue19518_test.go b/src/cmd/internal/obj/x86/issue19518_test.go
+index 2fe227e..fa2beb8 100644
+--- a/src/cmd/internal/obj/x86/issue19518_test.go
++++ b/src/cmd/internal/obj/x86/issue19518_test.go
+@@ -11,7 +11,6 @@
+ 	"os"
+ 	"os/exec"
+ 	"path/filepath"
+-	"strings"
+ 	"testing"
+ )
+ 
+@@ -68,13 +67,8 @@
+ 		testenv.GoToolPath(t), "build", "-o",
+ 		filepath.Join(tmpdir, "output"))
+ 
+-	var env []string
+-	for _, v := range os.Environ() {
+-		if !strings.HasPrefix(v, "GOARCH=") {
+-			env = append(env, v)
+-		}
+-	}
+-	cmd.Env = append(env, "GOARCH=amd64")
++	cmd.Env = append(os.Environ(), "GOARCH=amd64", "GOOS=linux")
++
+ 	out, err := cmd.CombinedOutput()
+ 	if err != nil {
+ 		t.Fatalf("error %s output %s", err, out)
+diff --git a/src/cmd/internal/obj/x86/obj6_test.go b/src/cmd/internal/obj/x86/obj6_test.go
+index 2f6296c..c539974 100644
+--- a/src/cmd/internal/obj/x86/obj6_test.go
++++ b/src/cmd/internal/obj/x86/obj6_test.go
+@@ -99,13 +99,7 @@
+ 		testenv.GoToolPath(t), "tool", "asm", "-S", "-dynlink",
+ 		"-o", filepath.Join(tmpdir, "output.6"), tmpfile.Name())
+ 
+-	var env []string
+-	for _, v := range os.Environ() {
+-		if !strings.HasPrefix(v, "GOARCH=") {
+-			env = append(env, v)
+-		}
+-	}
+-	cmd.Env = append(env, "GOARCH=amd64")
++	cmd.Env = append(os.Environ(), "GOARCH=amd64", "GOOS=linux")
+ 	asmout, err := cmd.CombinedOutput()
+ 	if err != nil {
+ 		t.Fatalf("error %s output %s", err, asmout)
+diff --git a/src/debug/elf/file_test.go b/src/debug/elf/file_test.go
+index 11d8992..d7c1e9f 100644
+--- a/src/debug/elf/file_test.go
++++ b/src/debug/elf/file_test.go
+@@ -784,7 +784,7 @@
+ func TestNoSectionOverlaps(t *testing.T) {
+ 	// Ensure cmd/link outputs sections without overlaps.
+ 	switch runtime.GOOS {
+-	case "android", "darwin", "js", "nacl", "plan9", "windows":
++	case "aix", "android", "darwin", "js", "nacl", "plan9", "windows":
+ 		t.Skipf("cmd/link doesn't produce ELF binaries on %s", runtime.GOOS)
+ 	}
+ 	_ = net.ResolveIPAddr // force dynamic linkage
+diff --git a/src/runtime/crash_test.go b/src/runtime/crash_test.go
+index 6835cac..6fba4dd 100644
+--- a/src/runtime/crash_test.go
++++ b/src/runtime/crash_test.go
+@@ -623,6 +623,9 @@
+ }
+ 
+ func TestTimePprof(t *testing.T) {
++	if runtime.GOOS == "aix" {
++		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
++	}
+ 	fn := runTestProg(t, "testprog", "TimeProf")
+ 	fn = strings.TrimSpace(fn)
+ 	defer os.Remove(fn)
+diff --git a/src/runtime/pprof/pprof_test.go b/src/runtime/pprof/pprof_test.go
+index 5939241..a1089c8 100644
+--- a/src/runtime/pprof/pprof_test.go
++++ b/src/runtime/pprof/pprof_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build !nacl,!js
++// +build !aix,!nacl,!js
+ 
+ package pprof
+ 
+diff --git a/src/runtime/runtime-gdb_test.go b/src/runtime/runtime-gdb_test.go
+index 7672e45..5d35813 100644
+--- a/src/runtime/runtime-gdb_test.go
++++ b/src/runtime/runtime-gdb_test.go
+@@ -36,6 +36,8 @@
+ 		if runtime.GOARCH == "mips" {
+ 			t.Skip("skipping gdb tests on linux/mips; see https://golang.org/issue/25939")
+ 		}
++	case "aix":
++		t.Skip("gdb does not work on AIX; see golang.org/issue/28558")
+ 	}
+ 	if final := os.Getenv("GOROOT_FINAL"); final != "" && runtime.GOROOT() != final {
+ 		t.Skip("gdb test can fail with GOROOT_FINAL pending")
+diff --git a/test/nosplit.go b/test/nosplit.go
+index 1855c01..734f456 100644
+--- a/test/nosplit.go
++++ b/test/nosplit.go
+@@ -1,4 +1,4 @@
+-// +build !nacl,!js
++// +build !nacl,!js,!aix
+ // run
+ 
+ // Copyright 2014 The Go Authors. All rights reserved.

@@ -1,0 +1,70 @@
+From 1867b1e727910aeeb7bf14d5da2d6880cd8b3947 Mon Sep 17 00:00:00 2001
+From: Clement <clement.chigot@atos.net>
+Date: Wed, 30 Jan 2019 17:48:57 -0600
+Subject: [PATCH 18/24] runtime: disable pprof test with cgo on aix/ppc64
+
+REF ISSUE
+---
+ src/runtime/crash_cgo_test.go |  3 +++
+ src/runtime/sys_aix_ppc64.s   | 17 +++++++++++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/src/runtime/crash_cgo_test.go b/src/runtime/crash_cgo_test.go
+index c1dd757797..e0c8955e7d 100644
+--- a/src/runtime/crash_cgo_test.go
++++ b/src/runtime/crash_cgo_test.go
+@@ -229,6 +229,9 @@ func TestCgoPanicDeadlock(t *testing.T) {
+ }
+ 
+ func TestCgoCCodeSIGPROF(t *testing.T) {
++	if runtime.GOOS == "aix" {
++		t.Skip("pprof not yet available on AIX (see golang.org/issue/28555)")
++	}
+ 	t.Parallel()
+ 	got := runTestProg(t, "testprogcgo", "CgoCCodeSIGPROF")
+ 	want := "OK\n"
+diff --git a/src/runtime/sys_aix_ppc64.s b/src/runtime/sys_aix_ppc64.s
+index d691b76cc7..d9e97ac8b7 100644
+--- a/src/runtime/sys_aix_ppc64.s
++++ b/src/runtime/sys_aix_ppc64.s
+@@ -109,6 +109,9 @@ TEXT runtime·_sigtramp(SB),NOSPLIT|NOFRAME,$0
+ 
+ 	BL	runtime·load_g(SB)
+ 
++	CMP	$0, g
++	BEQ	sigtrampnog // g == nil
++
+ 	// Save m->libcall. We need to do this because we
+ 	// might get interrupted by a signal in runtime·asmcgocall.
+ 
+@@ -155,6 +158,7 @@ TEXT runtime·_sigtramp(SB),NOSPLIT|NOFRAME,$0
+ 	MOVD	120(R1), R8
+ 	MOVD	R8, 0(R7)
+ 
++exit:
+ 	// restore registers
+ 	MOVD	56(R1),R31
+ 	MOVD	64(R1),g
+@@ -166,6 +170,19 @@ TEXT runtime·_sigtramp(SB),NOSPLIT|NOFRAME,$0
+ 	MOVD	R0, LR
+ 	BR (LR)
+ 
++sigtrampnog:
++	// Signal arrived on a non-Go thread.
++	// SIGPROF handler is not yet available so simply call badsignal,
++	// after having created *sigctxt.
++	MOVD	R4, 80(R1)
++	MOVD	R5, 88(R1)
++	MOVD	R1, R4
++	ADD		$80, R4
++	MOVD	R4, FIXED_FRAME+8(R1)
++	MOVD	R3, FIXED_FRAME+0(R1)
++	BL runtime·badsignal(SB)
++	JMP	exit
++
+ // runtime.tstart is a function descriptor to the real tstart.
+ DATA	runtime·tstart+0(SB)/8, $runtime·_tstart(SB)
+ DATA	runtime·tstart+8(SB)/8, $TOC(SB)
+-- 
+2.15.1
+

@@ -1,0 +1,56 @@
+From b49a158b12e98b3466111656dc90c699c16325be Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Tue, 7 May 2019 11:05:39 +0200
+Subject: [PATCH 4/4] libgo/testsuite: only retrieve T symbols on AIX
+
+On AIX, a function has two symbols, a T symbol and a D one.
+As the tests must be run only once, we only need to retrieve its T
+symbol.
+We could have choose the D symbol but there are much more D symbols
+overall and that's more logical to retrieve T symbols in order to launch
+a function.
+
+Change-Id: I01da659a2407373e2d107f633b152c8500985540
+---
+ libgo/testsuite/gotest | 18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/libgo/testsuite/gotest b/libgo/testsuite/gotest
+index d0b002bf..d480b5e8 100755
+--- a/libgo/testsuite/gotest
++++ b/libgo/testsuite/gotest
+@@ -517,6 +517,11 @@ localname() {
+ symtogo() {
+   result=""
+   for tp in $*; do
++    if test "$goos" == "aix"; then
++      # every text symbols on aix start with a ".", it must be removed
++      # in order to match go symbols name.
++      tp=$(echo "$tp" | sed 's/^\.//')
++    fi
+     s=$(echo "$tp" | sed -e 's/\.\.z2f/%/g' | sed -e 's/.*%//')
+     # Screen out methods (X.Y.Z).
+     if ! expr "$s" : '^[^.]*\.[^.]*$' >/dev/null 2>&1; then
+@@ -536,9 +541,16 @@ symtogo() {
+ }
+ 
+ {
+-	# On systems using PPC64 ELF ABI v1 function symbols show up
+-	# as descriptors in the data section.
+-	text="[TD]"
++	if test "$goos" == "aix"; then
++		# On AIX, a function has two symbols. A T symbol with a leading "."
++		# and a D symbol. If both are retrieved, tests will be run twice.
++		# Use T symbols because with D symbols all types/variables are also taken.
++		text="[T]"
++	else
++		# On systems using PPC64 ELF ABI v1 function symbols show up
++		# as descriptors in the data section.
++		text="[TD]"
++	fi
+ 
+ 	# test functions are named TestFoo
+ 	# the grep -v eliminates methods and other special names
+-- 
+2.17.1
+

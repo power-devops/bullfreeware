@@ -1,0 +1,144 @@
+From fbc05949ef52c8a8d69233eed77f6636dffec280 Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Wed, 26 Feb 2020 15:42:21 +0900
+Subject: [PATCH] Fix assertion in FcFini()
+
+Due to the unproper initialization of `latest_mtime', the duplicate caches
+was still in fcCacheChains with no references. which means no one frees
+them. thus, the memory leak was happened.
+
+Fixes https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/227
+---
+ src/fccache.c | 9 +++++----
+ src/fcinit.c  | 4 ++--
+ 2 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/src/fccache.c b/src/fccache.c
+index 4744a84..035458e 100644
+--- a/src/fccache.c
++++ b/src/fccache.c
+@@ -365,7 +365,6 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
+     struct stat file_stat, dir_stat;
+     FcBool	ret = FcFalse;
+     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+-    struct timeval latest_mtime = (struct timeval){ 0 };
+ 
+     if (sysroot)
+ 	d = FcStrBuildFilename (sysroot, dir, NULL);
+@@ -390,6 +389,8 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
+ #ifndef _WIN32
+ 	FcBool retried = FcFalse;
+ #endif
++	struct timeval latest_mtime = (struct timeval){ 0 };
++
+ 	if (sysroot)
+ 	    cache_hashed = FcStrBuildFilename (sysroot, cache_dir, cache_base, NULL);
+ 	else
+@@ -1081,12 +1082,12 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
+ 
+     if (!file_stat)
+ 	file_stat = &my_file_stat;
+-    fd = FcDirCacheOpenFile (cache_file, file_stat);
+-    if (fd < 0)
+-	return NULL;
+     config = FcConfigReference (NULL);
+     if (!config)
+ 	return NULL;
++    fd = FcDirCacheOpenFile (cache_file, file_stat);
++    if (fd < 0)
++	return NULL;
+     cache = FcDirCacheMapFd (config, fd, file_stat, NULL);
+     FcConfigDestroy (config);
+     close (fd);
+diff --git a/src/fcinit.c b/src/fcinit.c
+index 6f82ebd..0e1421e 100644
+--- a/src/fcinit.c
++++ b/src/fcinit.c
+@@ -199,10 +199,10 @@ void
+ FcFini (void)
+ {
+     FcConfigFini ();
+-    FcCacheFini ();
++    FcConfigPathFini ();
+     FcDefaultFini ();
+     FcObjectFini ();
+-    FcConfigPathFini ();
++    FcCacheFini ();
+ }
+ 
+ /*
+-- 
+2.24.1
+
+From 6f6b39780215714386606ca1c5457a7106639ff4 Mon Sep 17 00:00:00 2001
+From: Akira TAGOH <akira@tagoh.org>
+Date: Mon, 23 Mar 2020 14:03:47 +0900
+Subject: [PATCH] Fix assertion in FcCacheFini() again
+
+The previous fix in fbc05949ef52c8a8d69233eed77f6636dffec280 was wrong. reverting.
+
+When reading older caches, FcDirCacheMapHelper() returns FcFalse and
+it became the return value from FcDirCacheProcess() too, which is wrong.
+Actually one of calls for FcDirCacheMapHelper() should be successfully
+finished and closure should have a valid pointer for cache.
+
+Due to this, the proper finalization process wasn't running against
+cache in closure.
+
+Fixes https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/227
+---
+ src/fccache.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/src/fccache.c b/src/fccache.c
+index 035458e..2d398c7 100644
+--- a/src/fccache.c
++++ b/src/fccache.c
+@@ -365,6 +365,7 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
+     struct stat file_stat, dir_stat;
+     FcBool	ret = FcFalse;
+     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
++    struct timeval latest_mtime = (struct timeval){ 0 };
+ 
+     if (sysroot)
+ 	d = FcStrBuildFilename (sysroot, dir, NULL);
+@@ -389,7 +390,6 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
+ #ifndef _WIN32
+ 	FcBool retried = FcFalse;
+ #endif
+-	struct timeval latest_mtime = (struct timeval){ 0 };
+ 
+ 	if (sysroot)
+ 	    cache_hashed = FcStrBuildFilename (sysroot, cache_dir, cache_base, NULL);
+@@ -445,6 +445,8 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
+     }
+     FcStrListDone (list);
+ 
++    if (closure)
++	return !!(*((FcCache **)closure) != NULL);
+     return ret;
+ }
+ 
+@@ -792,7 +794,18 @@ FcCacheFini (void)
+     int		    i;
+ 
+     for (i = 0; i < FC_CACHE_MAX_LEVEL; i++)
+-	assert (fcCacheChains[i] == NULL);
++    {
++	if (FcDebug() & FC_DBG_CACHE)
++	{
++	    if (fcCacheChains[i] != NULL)
++	    {
++		FcCacheSkip *s = fcCacheChains[i];
++		printf("Fontconfig error: not freed %p (dir: %s, refcount %d)\n", s->cache, FcCacheDir(s->cache), s->ref.count);
++	    }
++	}
++	else
++	    assert (fcCacheChains[i] == NULL);
++    }
+     assert (fcCacheMaxLevel == 0);
+ 
+     free_lock ();
+-- 
+2.24.1
+

@@ -1,0 +1,109 @@
+From d4a0245af07bda4e50ea061d018324ef6c5da66a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Chigot?= <clement.chigot@atos.net>
+Date: Wed, 17 Apr 2019 16:45:16 -0500
+Subject: [PATCH 2/7] Makefile: add a root handler for access on AIX
+
+---
+ Makefile          |  8 ++++++++
+ compat/access.c   | 30 ++++++++++++++++++++++++++++++
+ config.mak.uname  |  1 +
+ git-compat-util.h |  8 ++++++++
+ 4 files changed, 47 insertions(+)
+ create mode 100644 compat/access.c
+
+diff --git a/Makefile b/Makefile
+index 9f1b6e8926..513d835d01 100644
+--- a/Makefile
++++ b/Makefile
+@@ -439,6 +439,9 @@ all::
+ #
+ # Define FILENO_IS_A_MACRO if fileno() is a macro, not a real function.
+ #
++# Define NEED_ACCESS_ROOT_HANDLER if access() with X_OK returns always true
++# when launched as root.
++#
+ # Define PAGER_ENV to a SP separated VAR=VAL pairs to define
+ # default environment variables to be passed when a pager is spawned, e.g.
+ #
+@@ -1833,6 +1836,11 @@ ifdef FILENO_IS_A_MACRO
+ 	COMPAT_OBJS += compat/fileno.o
+ endif
+ 
++ifdef NEED_ACCESS_ROOT_HANDLER
++	COMPAT_CFLAGS += -DNEED_ACCESS_ROOT_HANDLER
++	COMPAT_OBJS += compat/access.o
++endif
++
+ ifeq ($(TCLTK_PATH),)
+ NO_TCLTK = NoThanks
+ endif
+diff --git a/compat/access.c b/compat/access.c
+new file mode 100644
+index 0000000000..fcfaefb0c0
+--- /dev/null
++++ b/compat/access.c
+@@ -0,0 +1,30 @@
++#define COMPAT_CODE_ACCESS
++#include "../git-compat-util.h"
++
++/* Do the same thing access(2) does, but use the effective uid,
++ * and don't make the mistake of telling root that any file is
++ * executable.  This version uses stat(2).
++ */
++int git_access(const char *path, int mode)
++{
++	struct stat st;
++
++	/* do not interfere a normal user */
++	if (geteuid())
++		return access(path, mode);
++
++	if (stat(path, &st) < 0)
++		return -1;
++
++	/* Root can read or write any file. */
++	if (!(mode & X_OK))
++		return 0;
++
++	/* Root can execute any file that has any one of the execute
++	   bits set. */
++	if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
++		return 0;
++
++	errno = EACCES;
++	return -1;
++}
+diff --git a/config.mak.uname b/config.mak.uname
+index 86cbe47627..ce13ab8295 100644
+--- a/config.mak.uname
++++ b/config.mak.uname
+@@ -270,6 +270,7 @@ ifeq ($(uname_S),AIX)
+ 	NEEDS_LIBICONV = YesPlease
+ 	BASIC_CFLAGS += -D_LARGE_FILES
+ 	FILENO_IS_A_MACRO = UnfortunatelyYes
++	NEED_ACCESS_ROOT_HANDLER = UnfortunatelyYes
+ 	ifeq ($(shell expr "$(uname_V)" : '[1234]'),1)
+ 		NO_PTHREADS = YesPlease
+ 	else
+diff --git a/git-compat-util.h b/git-compat-util.h
+index 31b47932bd..3440b1bc24 100644
+--- a/git-compat-util.h
++++ b/git-compat-util.h
+@@ -1242,6 +1242,14 @@ int git_fileno(FILE *stream);
+ # endif
+ #endif
+ 
++#ifdef NEED_ACCESS_ROOT_HANDLER
++int git_access(const char *path, int mode);
++# ifndef COMPAT_CODE_ACCESS
++#  undef access
++#  define access(path, mode) git_access(path, mode)
++# endif
++#endif
++
+ /*
+  * Our code often opens a path to an optional file, to work on its
+  * contents when we can successfully open it.  We can ignore a failure
+-- 
+2.21.0
+

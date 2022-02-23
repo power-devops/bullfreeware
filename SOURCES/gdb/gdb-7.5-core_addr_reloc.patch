@@ -1,0 +1,13 @@
+Index: gdb-7.5/gdb/config/rs6000/nm-rs6000.h
+===================================================================
+--- ./gdb/config/rs6000/nm-rs6000.h.orig	2013-07-04 12:14:26.000000000 +0600
++++ ./gdb/config/rs6000/nm-rs6000.h	2013-07-04 12:21:30.000000000 +0600
+@@ -30,7 +30,7 @@
+    and figure out where the shared libraries have got to.  */
+ 
+ #define	SOLIB_ADD(a, b, c, d)	\
+-  if (PIDGET (inferior_ptid))	\
++  if (PIDGET (inferior_ptid) != 1)	\
+     /* Attach to process.  */  \
+     xcoff_relocate_symtab (PIDGET (inferior_ptid)); \
+   else		\

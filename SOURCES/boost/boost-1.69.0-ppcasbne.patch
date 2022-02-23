@@ -1,0 +1,651 @@
+--- ./boost/atomic/detail/extra_ops_gcc_ppc.hpp.ORIGIN	2020-04-15 19:41:35 -0500
++++ ./boost/atomic/detail/extra_ops_gcc_ppc.hpp	2020-04-22 18:38:28 -0500
+@@ -102,11 +102,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -127,11 +127,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -146,11 +152,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "add %1,%0,%3\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -165,11 +177,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "sub %1,%0,%3\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -184,11 +202,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "and %1,%0,%3\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -203,11 +227,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "or %1,%0,%3\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -222,11 +252,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "xor %1,%0,%3\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -241,11 +277,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -260,11 +302,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lbarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stbcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -297,11 +345,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -316,11 +370,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -335,11 +395,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "add %1,%0,%3\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -354,11 +420,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "sub %1,%0,%3\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -373,11 +445,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "and %1,%0,%3\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -392,11 +470,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "or %1,%0,%3\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -411,11 +495,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "xor %1,%0,%3\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -430,11 +520,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -449,11 +545,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lharx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "sthcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -478,11 +580,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -497,11 +605,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -516,11 +630,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "add %1,%0,%3\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -535,11 +655,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "sub %1,%0,%3\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -554,11 +680,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "and %1,%0,%3\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -573,11 +705,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "or %1,%0,%3\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -592,11 +730,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "xor %1,%0,%3\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -611,11 +755,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -630,11 +780,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "lwarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stwcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -665,11 +821,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -684,11 +846,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "neg %1,%0\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -703,11 +871,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "add %1,%0,%3\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -722,11 +896,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "sub %1,%0,%3\n\t"
+             "stdcx. %1,%y2\n\t"
+-            "bne- 1b\n\t"
++#ifndef _AIX
++            "bne- -1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -741,11 +921,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "and %1,%0,%3\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -760,11 +946,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "or %1,%0,%3\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -779,11 +971,17 @@
+         gcc_ppc_operations_base::fence_before(order);
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "xor %1,%0,%3\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             : "b" (v)
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -798,11 +996,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC
+@@ -817,11 +1021,17 @@
+         storage_type original, result;
+         __asm__ __volatile__
+         (
++#ifndef _AIX
+             "1:\n\t"
++#endif
+             "ldarx %0,%y2\n\t"
+             "nor %1,%0,%0\n\t"
+             "stdcx. %1,%y2\n\t"
++#ifndef _AIX
+             "bne- 1b\n\t"
++#else
++            "bne- $-12\n\t"
++#endif
+             : "=&b" (original), "=&b" (result), "+Z" (storage)
+             :
+             : BOOST_ATOMIC_DETAIL_ASM_CLOBBER_CC

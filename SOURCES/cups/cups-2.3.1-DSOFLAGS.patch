@@ -1,0 +1,18 @@
+--- ./configure.orig	2020-03-18 16:28:51.000000000 +0100
++++ ./configure	2020-03-18 16:29:51.000000000 +0100
+@@ -6529,6 +6529,15 @@
+ 			DSOXX="\$(CXX)"
+ 			DSOFLAGS="$DSOFLAGS -Wl,-no_warn_inits -dynamiclib -single_module -lc"
+ 			;;
++                aix*)
++                        LIBCUPS="lib$cupsbase.so.2"
++                        if test "x$cupsimagebase" != x; then
++                                LIBCUPSIMAGE="lib$cupsimagebase.so.2"
++                        fi
++                        DSO="\$(CC)"
++                        DSOXX="\$(CXX)"
++                        DSOFLAGS="$DSOFLAGS -shared $LDFLAGS"
++                        ;;
+ 		*)
+ 			echo "Warning: shared libraries may not be supported.  Trying -shared"
+ 			echo "         option with compiler."

@@ -1,0 +1,13 @@
+--- ./libgo/go/cmd/go/build.go.ORIGIN	2017-09-29 10:42:12 -0500
++++ ./libgo/go/cmd/go/build.go	2017-09-29 10:43:48 -0500
+@@ -3311,6 +3311,10 @@
+ 		return []string{"-mabi=64"}
+ 	case "mips", "mipsle":
+ 		return []string{"-mabi=32", "-march=mips32"}
++	case "ppc64":
++		if goos == "aix" {
++			return []string{"-maix64"}
++		}
+ 	}
+ 	return nil
+ }

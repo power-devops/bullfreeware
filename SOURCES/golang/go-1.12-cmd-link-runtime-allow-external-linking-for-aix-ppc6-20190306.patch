@@ -1,0 +1,696 @@
+From 80f10965ee9f6063f587baffce9c1fa8fc80a5ba Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 20 Feb 2019 16:16:38 +0100
+Subject: [PATCH] cmd/link, runtime: allow external linking for aix/ppc64
+
+This commit adds external linking in cmd/link for aix/ppc64.
+As relocations on .text data aren't possible on AIX, Segrelrodata is
+used to move all these datas to .data section.
+
+Change-Id: I4d1361c1fc9290e11e6f5560864460c76551dbeb
+Reviewed-on: https://go-review.googlesource.com/c/go/+/164003
+Run-TryBot: Tobias Klauser <tobias.klauser@gmail.com>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/link/internal/ld/config.go b/src/cmd/link/internal/ld/config.go
+index 60b6491..40be3a5 100644
+--- a/src/cmd/link/internal/ld/config.go
++++ b/src/cmd/link/internal/ld/config.go
+@@ -247,7 +247,7 @@
+ 			}
+ 			ctxt.LinkMode = LinkInternal
+ 		case "1":
+-			if objabi.GOARCH == "ppc64" {
++			if objabi.GOARCH == "ppc64" && objabi.GOOS != "aix" {
+ 				Exitf("external linking requested via GO_EXTLINK_ENABLED but not supported for %s/ppc64", objabi.GOOS)
+ 			}
+ 			ctxt.LinkMode = LinkExternal
+@@ -261,7 +261,7 @@
+ 			} else {
+ 				ctxt.LinkMode = LinkInternal
+ 			}
+-			if objabi.GOARCH == "ppc64" && ctxt.LinkMode == LinkExternal {
++			if objabi.GOARCH == "ppc64" && objabi.GOOS != "aix" && ctxt.LinkMode == LinkExternal {
+ 				Exitf("external linking is not supported for %s/ppc64", objabi.GOOS)
+ 			}
+ 		}
+@@ -270,7 +270,7 @@
+ 			Exitf("internal linking requested but external linking required: %s", reason)
+ 		}
+ 	case LinkExternal:
+-		if objabi.GOARCH == "ppc64" {
++		if objabi.GOARCH == "ppc64" && objabi.GOOS != "aix" {
+ 			Exitf("external linking not supported for %s/ppc64", objabi.GOOS)
+ 		}
+ 	}
+diff --git a/src/cmd/link/internal/ld/data.go b/src/cmd/link/internal/ld/data.go
+index 46d85f0..2f99404 100644
+--- a/src/cmd/link/internal/ld/data.go
++++ b/src/cmd/link/internal/ld/data.go
+@@ -308,6 +308,8 @@
+ 					}
+ 				} else if ctxt.HeadType == objabi.Hwindows {
+ 					// nothing to do
++				} else if ctxt.HeadType == objabi.Haix {
++					o = Symaddr(r.Sym) + r.Add
+ 				} else {
+ 					Errorf(s, "unhandled pcrel relocation to %s on %v", rs.Name, ctxt.HeadType)
+ 				}
+@@ -1400,7 +1402,7 @@
+ 
+ 	if len(data[sym.STLSBSS]) > 0 {
+ 		var sect *sym.Section
+-		if ctxt.IsELF && (ctxt.LinkMode == LinkExternal || !*FlagD) {
++		if (ctxt.IsELF || ctxt.HeadType == objabi.Haix) && (ctxt.LinkMode == LinkExternal || !*FlagD) {
+ 			sect = addsection(ctxt.Arch, &Segdata, ".tbss", 06)
+ 			sect.Align = int32(ctxt.Arch.PtrSize)
+ 			sect.Vaddr = 0
+@@ -1538,7 +1540,7 @@
+ 	if ctxt.UseRelro() {
+ 		addrelrosection = func(suffix string) *sym.Section {
+ 			seg := &Segrelrodata
+-			if ctxt.LinkMode == LinkExternal {
++			if ctxt.LinkMode == LinkExternal && ctxt.HeadType != objabi.Haix {
+ 				// Using a separate segment with an external
+ 				// linker results in some programs moving
+ 				// their data sections unexpectedly, which
+@@ -2046,6 +2048,10 @@
+ 		// align to page boundary so as not to mix
+ 		// rodata, rel-ro data, and executable text.
+ 		va = uint64(Rnd(int64(va), int64(*FlagRound)))
++		if ctxt.HeadType == objabi.Haix {
++			// Relro data are inside data segment on AIX.
++			va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
++		}
+ 
+ 		order = append(order, &Segrelrodata)
+ 		Segrelrodata.Rwx = 06
+@@ -2060,9 +2066,10 @@
+ 	}
+ 
+ 	va = uint64(Rnd(int64(va), int64(*FlagRound)))
+-	if ctxt.HeadType == objabi.Haix {
++	if ctxt.HeadType == objabi.Haix && len(Segrelrodata.Sections) == 0 {
+ 		// Data sections are moved to an unreachable segment
+ 		// to ensure that they are position-independent.
++		// Already done if relro sections exist.
+ 		va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
+ 	}
+ 	order = append(order, &Segdata)
+@@ -2073,11 +2080,11 @@
+ 	var bss *sym.Section
+ 	var noptrbss *sym.Section
+ 	for i, s := range Segdata.Sections {
+-		if ctxt.IsELF && s.Name == ".tbss" {
++		if (ctxt.IsELF || ctxt.HeadType == objabi.Haix) && s.Name == ".tbss" {
+ 			continue
+ 		}
+ 		vlen := int64(s.Length)
+-		if i+1 < len(Segdata.Sections) && !(ctxt.IsELF && Segdata.Sections[i+1].Name == ".tbss") {
++		if i+1 < len(Segdata.Sections) && !((ctxt.IsELF || ctxt.HeadType == objabi.Haix) && Segdata.Sections[i+1].Name == ".tbss") {
+ 			vlen = int64(Segdata.Sections[i+1].Vaddr - s.Vaddr)
+ 		}
+ 		s.Vaddr = va
+diff --git a/src/cmd/link/internal/ld/dwarf.go b/src/cmd/link/internal/ld/dwarf.go
+index c226886..0b17985 100644
+--- a/src/cmd/link/internal/ld/dwarf.go
++++ b/src/cmd/link/internal/ld/dwarf.go
+@@ -1683,6 +1683,7 @@
+ 	}
+ 
+ 	if ctxt.LinkMode == LinkExternal {
++		// TODO(aix): enable DWARF
+ 		switch {
+ 		case ctxt.IsELF:
+ 		case ctxt.HeadType == objabi.Hdarwin:
+diff --git a/src/cmd/link/internal/ld/lib.go b/src/cmd/link/internal/ld/lib.go
+index 2cb7ae7..06fa071 100644
+--- a/src/cmd/link/internal/ld/lib.go
++++ b/src/cmd/link/internal/ld/lib.go
+@@ -133,6 +133,7 @@
+ 	Gentext     func(*Link)
+ 	Machoreloc1 func(*sys.Arch, *OutBuf, *sym.Symbol, *sym.Reloc, int64) bool
+ 	PEreloc1    func(*sys.Arch, *OutBuf, *sym.Symbol, *sym.Reloc, int64) bool
++	Xcoffreloc1 func(*sys.Arch, *OutBuf, *sym.Symbol, *sym.Reloc, int64) bool
+ 
+ 	// TLSIEtoLE converts a TLS Initial Executable relocation to
+ 	// a TLS Local Executable relocation.
+@@ -179,7 +180,7 @@
+ 	case BuildModeCArchive, BuildModeCShared, BuildModeShared, BuildModePIE, BuildModePlugin:
+ 		return ctxt.IsELF
+ 	default:
+-		return ctxt.linkShared
++		return ctxt.linkShared || (ctxt.HeadType == objabi.Haix && ctxt.LinkMode == LinkExternal)
+ 	}
+ }
+ 
+@@ -405,7 +406,7 @@
+ 		*FlagTextAddr = 0
+ 	}
+ 
+-	if ctxt.LinkMode == LinkExternal && ctxt.Arch.Family == sys.PPC64 {
++	if ctxt.LinkMode == LinkExternal && ctxt.Arch.Family == sys.PPC64 && objabi.GOOS != "aix" {
+ 		toc := ctxt.Syms.Lookup(".TOC.", 0)
+ 		toc.Type = sym.SDYNIMPORT
+ 	}
+@@ -1145,6 +1146,11 @@
+ 		} else {
+ 			argv = append(argv, "-mconsole")
+ 		}
++	case objabi.Haix:
++		argv = append(argv, "-pthread")
++		// prevent ld to reorder .text functions to keep the same
++		// first/last functions for moduledata.
++		argv = append(argv, "-Wl,-bnoobjreorder")
+ 	}
+ 
+ 	switch ctxt.BuildMode {
+@@ -1493,7 +1499,7 @@
+ 	switch arch.Family {
+ 	case sys.I386:
+ 		return []string{"-m32"}
+-	case sys.AMD64, sys.PPC64, sys.S390X:
++	case sys.AMD64, sys.S390X:
+ 		return []string{"-m64"}
+ 	case sys.ARM:
+ 		return []string{"-marm"}
+@@ -1503,6 +1509,13 @@
+ 		return []string{"-mabi=64"}
+ 	case sys.MIPS:
+ 		return []string{"-mabi=32"}
++	case sys.PPC64:
++		if objabi.GOOS == "aix" {
++			return []string{"-maix64"}
++		} else {
++			return []string{"-m64"}
++		}
++
+ 	}
+ 	return nil
+ }
+diff --git a/src/cmd/link/internal/ld/xcoff.go b/src/cmd/link/internal/ld/xcoff.go
+index 4535b1a..7826e1b 100644
+--- a/src/cmd/link/internal/ld/xcoff.go
++++ b/src/cmd/link/internal/ld/xcoff.go
+@@ -10,6 +10,7 @@
+ 	"cmd/link/internal/sym"
+ 	"encoding/binary"
+ 	"math/bits"
++	"sort"
+ 	"strings"
+ )
+ 
+@@ -153,6 +154,7 @@
+ 	LDHDRSZ_32     = 32
+ 	LDHDRSZ_64     = 56
+ 	LDSYMSZ_64     = 24
++	RELSZ_64       = 14
+ )
+ 
+ // Type representing all XCOFF symbols.
+@@ -362,6 +364,31 @@
+ 
+ const (
+ 	XCOFF_R_POS = 0x00 // A(sym) Positive Relocation
++	XCOFF_R_NEG = 0x01 // -A(sym) Negative Relocation
++	XCOFF_R_REL = 0x02 // A(sym-*) Relative to self
++	XCOFF_R_TOC = 0x03 // A(sym-TOC) Relative to TOC
++	XCOFF_R_TRL = 0x12 // A(sym-TOC) TOC Relative indirect load.
++
++	XCOFF_R_TRLA = 0x13 // A(sym-TOC) TOC Rel load address. modifiable inst
++	XCOFF_R_GL   = 0x05 // A(external TOC of sym) Global Linkage
++	XCOFF_R_TCL  = 0x06 // A(local TOC of sym) Local object TOC address
++	XCOFF_R_RL   = 0x0C // A(sym) Pos indirect load. modifiable instruction
++	XCOFF_R_RLA  = 0x0D // A(sym) Pos Load Address. modifiable instruction
++	XCOFF_R_REF  = 0x0F // AL0(sym) Non relocating ref. No garbage collect
++	XCOFF_R_BA   = 0x08 // A(sym) Branch absolute. Cannot modify instruction
++	XCOFF_R_RBA  = 0x18 // A(sym) Branch absolute. modifiable instruction
++	XCOFF_R_BR   = 0x0A // A(sym-*) Branch rel to self. non modifiable
++	XCOFF_R_RBR  = 0x1A // A(sym-*) Branch rel to self. modifiable instr
++
++	XCOFF_R_TLS    = 0x20 // General-dynamic reference to TLS symbol
++	XCOFF_R_TLS_IE = 0x21 // Initial-exec reference to TLS symbol
++	XCOFF_R_TLS_LD = 0x22 // Local-dynamic reference to TLS symbol
++	XCOFF_R_TLS_LE = 0x23 // Local-exec reference to TLS symbol
++	XCOFF_R_TLSM   = 0x24 // Module reference to TLS symbol
++	XCOFF_R_TLSML  = 0x25 // Module reference to local (own) module
++
++	XCOFF_R_TOCU = 0x30 // Relative to TOC - high order bits
++	XCOFF_R_TOCL = 0x31 // Relative to TOC - low order bits
+ )
+ 
+ type XcoffLdStr64 struct {
+@@ -374,6 +401,9 @@
+ 	xfhdr           XcoffFileHdr64
+ 	xahdr           XcoffAoutHdr64
+ 	sections        []*XcoffScnHdr64
++	sectText        *XcoffScnHdr64
++	sectData        *XcoffScnHdr64
++	sectBss         *XcoffScnHdr64
+ 	stringTable     xcoffStringTable
+ 	sectNameToScnum map[string]int16
+ 	loaderSize      uint64
+@@ -487,10 +517,15 @@
+ 		if sect.Name == ".noptrbss" || sect.Name == ".bss" {
+ 			return f.sectNameToScnum[".bss"]
+ 		}
++		if sect.Name == ".tbss" {
++			return f.sectNameToScnum[".tbss"]
++		}
+ 		Errorf(nil, "unknown XCOFF segment data section: %s", sect.Name)
+ 	case &Segdwarf:
+ 		name, _ := xcoffGetDwarfSubtype(sect.Name)
+ 		return f.sectNameToScnum[name]
++	case &Segrelrodata:
++		return f.sectNameToScnum[".data"]
+ 	}
+ 	Errorf(nil, "getXCOFFscnum not implemented for section %s", sect.Name)
+ 	return -1
+@@ -746,6 +781,7 @@
+ 		s.Nsclass = C_HIDEXT
+ 	}
+ 
++	x.Dynid = int32(xfile.symbolCount)
+ 	syms = append(syms, s)
+ 
+ 	// Update current csect size
+@@ -801,6 +837,7 @@
+ 				Ntype:   SYM_TYPE_FUNC,
+ 				Nnumaux: 1,
+ 			}
++			x.Dynid = int32(xfile.symbolCount)
+ 			syms = append(syms, s)
+ 
+ 			size := uint64(x.Size)
+@@ -835,6 +872,7 @@
+ 			s.Nsclass = C_HIDEXT
+ 		}
+ 
++		x.Dynid = int32(xfile.symbolCount)
+ 		syms = append(syms, s)
+ 
+ 		// Create auxiliary entry
+@@ -849,9 +887,18 @@
+ 			Xscnlenlo: uint32(size & 0xFFFFFFFF),
+ 			Xscnlenhi: uint32(size >> 32),
+ 		}
+-		// Read only data
++
+ 		if x.Type >= sym.STYPE && x.Type <= sym.SPCLNTAB {
+-			a4.Xsmclas = XMC_RO
++			if ctxt.LinkMode == LinkExternal && strings.HasPrefix(x.Sect.Name, ".data.rel.ro") {
++				// During external linking, read-only datas with relocation
++				// must be in .data.
++				a4.Xsmclas = XMC_RW
++			} else {
++				// Read only data
++				a4.Xsmclas = XMC_RO
++			}
++		} else if x.Type == sym.SDATA && strings.HasPrefix(x.Name, "TOC.") && ctxt.LinkMode == LinkExternal {
++			a4.Xsmclas = XMC_TC
+ 		} else if x.Name == "TOC" {
+ 			a4.Xsmclas = XMC_TC0
+ 		} else {
+@@ -876,6 +923,7 @@
+ 			Noffset: uint32(xfile.stringTable.add(str)),
+ 			Nnumaux: 1,
+ 		}
++		x.Dynid = int32(xfile.symbolCount)
+ 		syms = append(syms, s)
+ 
+ 		a4 := &XcoffAuxCSect64{
+@@ -971,7 +1019,7 @@
+ func (f *xcoffFile) adddynimpsym(ctxt *Link, s *sym.Symbol) {
+ 	// Check that library name is given.
+ 	// Pattern is already checked when compiling.
+-	if s.Dynimplib() == "" {
++	if ctxt.LinkMode == LinkInternal && s.Dynimplib() == "" {
+ 		Errorf(s, "imported symbol must have a given library")
+ 	}
+ 
+@@ -1008,6 +1056,9 @@
+ // Xcoffadddynrel adds a dynamic relocation in a XCOFF file.
+ // This relocation will be made by the loader.
+ func Xcoffadddynrel(ctxt *Link, s *sym.Symbol, r *sym.Reloc) bool {
++	if ctxt.LinkMode == LinkExternal {
++		return true
++	}
+ 	if s.Type <= sym.SPCLNTAB {
+ 		Errorf(s, "cannot have a relocation to %s in a text section symbol", r.Sym.Name)
+ 		return false
+@@ -1072,6 +1123,7 @@
+ 	toc := ctxt.Syms.Lookup("TOC", 0)
+ 	toc.Type = sym.SXCOFFTOC
+ 	toc.Attr |= sym.AttrReachable
++	toc.Attr |= sym.AttrVisibilityHidden
+ 
+ 	// XCOFF does not allow relocations of data symbol address to a text symbol.
+ 	// Such case occurs when a RODATA symbol retrieves a data symbol address.
+@@ -1110,6 +1162,7 @@
+ 	if !ep.Attr.Reachable() {
+ 		Exitf("wrong entry point")
+ 	}
++
+ 	xfile.loaderSymbols = append(xfile.loaderSymbols, &xcoffLoaderSymbol{
+ 		sym:    ep,
+ 		smtype: XTY_ENT | XTY_SD,
+@@ -1123,6 +1176,12 @@
+ 			s.Type = sym.SXCOFFTOC
+ 		}
+ 	}
++
++	if ctxt.LinkMode == LinkExternal {
++		// Change main name to match __start code.
++		main := ctxt.Syms.ROLookup("_main", 0)
++		main.Name = ".main"
++	}
+ }
+ 
+ // Loader section
+@@ -1337,7 +1396,7 @@
+ 		f.xfhdr.Fnsyms = int32(f.symbolCount)
+ 	}
+ 
+-	if ctxt.BuildMode == BuildModeExe {
++	if ctxt.BuildMode == BuildModeExe && ctxt.LinkMode == LinkInternal {
+ 		f.xfhdr.Fopthdr = AOUTHSZ_EXEC64
+ 		f.xfhdr.Fflags = F_EXEC
+ 
+@@ -1383,15 +1442,41 @@
+ 	xfile.xahdr.Otextstart = s.Svaddr
+ 	xfile.xahdr.Osntext = xfile.sectNameToScnum[".text"]
+ 	xfile.xahdr.Otsize = s.Ssize
++	xfile.sectText = s
+ 
+-	s = xfile.addSection(".data", Segdata.Vaddr, Segdata.Filelen, Segdata.Fileoff, STYP_DATA)
++	segdataVaddr := Segdata.Vaddr
++	segdataFilelen := Segdata.Filelen
++	segdataFileoff := Segdata.Fileoff
++	segbssFilelen := Segdata.Length - Segdata.Filelen
++	if len(Segrelrodata.Sections) > 0 {
++		// Merge relro segment to data segment as
++		// relro data are inside data segment on AIX.
++		segdataVaddr = Segrelrodata.Vaddr
++		segdataFileoff = Segrelrodata.Fileoff
++		segdataFilelen = Segdata.Vaddr + Segdata.Filelen - Segrelrodata.Vaddr
++	}
++
++	s = xfile.addSection(".data", segdataVaddr, segdataFilelen, segdataFileoff, STYP_DATA)
+ 	xfile.xahdr.Odatastart = s.Svaddr
+ 	xfile.xahdr.Osndata = xfile.sectNameToScnum[".data"]
+ 	xfile.xahdr.Odsize = s.Ssize
++	xfile.sectData = s
+ 
+-	s = xfile.addSection(".bss", Segdata.Vaddr+Segdata.Filelen, Segdata.Length-Segdata.Filelen, 0, STYP_BSS)
++	s = xfile.addSection(".bss", segdataVaddr+segdataFilelen, segbssFilelen, 0, STYP_BSS)
+ 	xfile.xahdr.Osnbss = xfile.sectNameToScnum[".bss"]
+ 	xfile.xahdr.Obsize = s.Ssize
++	xfile.sectBss = s
++
++	if ctxt.LinkMode == LinkExternal {
++		var tbss *sym.Section
++		for _, s := range Segdata.Sections {
++			if s.Name == ".tbss" {
++				tbss = s
++				break
++			}
++		}
++		s = xfile.addSection(".tbss", tbss.Vaddr, tbss.Length, 0, STYP_TBSS)
++	}
+ 
+ 	// add dwarf sections
+ 	for _, sect := range Segdwarf.Sections {
+@@ -1405,13 +1490,20 @@
+ 			Loaderblk(ctxt, uint64(fileoff))
+ 			s = xfile.addSection(".loader", 0, xfile.loaderSize, uint64(fileoff), STYP_LOADER)
+ 			xfile.xahdr.Osnloader = xfile.sectNameToScnum[".loader"]
++
++			// Update fileoff for symbol table
++			fileoff += int64(xfile.loaderSize)
+ 		}
+-	} else {
+-		// TODO: Relocation
+ 	}
+ 
+-	// Write symtab
++	// Create Symbol table
+ 	xfile.asmaixsym(ctxt)
++
++	if ctxt.LinkMode == LinkExternal {
++		xfile.emitRelocations(ctxt, fileoff)
++	}
++
++	// Write Symbol table
+ 	xfile.symtabOffset = ctxt.Out.Offset()
+ 	for _, s := range xfile.symtabSym {
+ 		binary.Write(ctxt.Out, ctxt.Arch.ByteOrder, s)
+@@ -1424,3 +1516,101 @@
+ 	// write headers
+ 	xcoffwrite(ctxt)
+ }
++
++// byOffset is used to sort relocations by offset
++type byOffset []sym.Reloc
++
++func (x byOffset) Len() int { return len(x) }
++
++func (x byOffset) Swap(i, j int) {
++	x[i], x[j] = x[j], x[i]
++}
++
++func (x byOffset) Less(i, j int) bool {
++	return x[i].Off < x[j].Off
++}
++
++// emitRelocations emits relocation entries for go.o in external linking.
++func (f *xcoffFile) emitRelocations(ctxt *Link, fileoff int64) {
++	ctxt.Out.SeekSet(fileoff)
++	for ctxt.Out.Offset()&7 != 0 {
++		ctxt.Out.Write8(0)
++	}
++
++	// relocsect relocates symbols from first in section sect, and returns
++	// the total number of relocations emitted.
++	relocsect := func(sect *sym.Section, syms []*sym.Symbol, base uint64) uint32 {
++		// ctxt.Logf("%s 0x%x\n", sect.Name, sect.Vaddr)
++		// If main section has no bits, nothing to relocate.
++		if sect.Vaddr >= sect.Seg.Vaddr+sect.Seg.Filelen {
++			return 0
++		}
++		sect.Reloff = uint64(ctxt.Out.Offset())
++		for i, s := range syms {
++			if !s.Attr.Reachable() {
++				continue
++			}
++			if uint64(s.Value) >= sect.Vaddr {
++				syms = syms[i:]
++				break
++			}
++		}
++		eaddr := int64(sect.Vaddr + sect.Length)
++		for _, s := range syms {
++			if !s.Attr.Reachable() {
++				continue
++			}
++			if s.Value >= int64(eaddr) {
++				break
++			}
++
++			// Relocation must be ordered by address, so s.R is ordered by Off.
++			sort.Sort(byOffset(s.R))
++
++			for ri := range s.R {
++
++				r := &s.R[ri]
++
++				// ctxt.Logf("%s reloc %d(%s)/%d to %s\n", s, r.Type, r.Type.String(), r.Siz, r.Sym.Name)
++				if r.Done {
++					continue
++				}
++				if r.Xsym == nil {
++					Errorf(s, "missing xsym in relocation")
++					continue
++				}
++				if r.Xsym.Dynid < 0 {
++					Errorf(s, "reloc %s to non-coff symbol %s (outer=%s) %d %d", r.Type.String(), r.Sym.Name, r.Xsym.Name, r.Sym.Type, r.Xsym.Dynid)
++				}
++				if !thearch.Xcoffreloc1(ctxt.Arch, ctxt.Out, s, r, int64(uint64(s.Value+int64(r.Off))-base)) {
++					Errorf(s, "unsupported obj reloc %d(%s)/%d to %s", r.Type, r.Type.String(), r.Siz, r.Sym.Name)
++				}
++			}
++		}
++		sect.Rellen = uint64(ctxt.Out.Offset()) - sect.Reloff
++		return uint32(sect.Rellen) / RELSZ_64
++	}
++	sects := []struct {
++		xcoffSect *XcoffScnHdr64
++		segs      []*sym.Segment
++	}{
++		{f.sectText, []*sym.Segment{&Segtext}},
++		{f.sectData, []*sym.Segment{&Segrelrodata, &Segdata}},
++	}
++	for _, s := range sects {
++		s.xcoffSect.Srelptr = uint64(ctxt.Out.Offset())
++		n := uint32(0)
++		for _, seg := range s.segs {
++			for _, sect := range seg.Sections {
++				if sect.Name == ".text" {
++					n += relocsect(sect, ctxt.Textp, 0)
++				} else {
++					n += relocsect(sect, datap, 0)
++				}
++			}
++		}
++		s.xcoffSect.Snreloc += n
++	}
++
++	// TODO(aix): DWARF relocations
++}
+diff --git a/src/cmd/link/internal/ppc64/asm.go b/src/cmd/link/internal/ppc64/asm.go
+index 6e31668..000a838 100644
+--- a/src/cmd/link/internal/ppc64/asm.go
++++ b/src/cmd/link/internal/ppc64/asm.go
+@@ -382,6 +382,43 @@
+ 	return false
+ }
+ 
++func xcoffreloc1(arch *sys.Arch, out *ld.OutBuf, s *sym.Symbol, r *sym.Reloc, sectoff int64) bool {
++	rs := r.Xsym
++
++	emitReloc := func(v uint16, off uint64) {
++		out.Write64(uint64(sectoff) + off)
++		out.Write32(uint32(rs.Dynid))
++		out.Write16(v)
++	}
++
++	var v uint16
++	switch r.Type {
++	default:
++		return false
++	case objabi.R_ADDR:
++		v = ld.XCOFF_R_POS
++		if r.Siz == 4 {
++			v |= 0x1F << 8
++		} else {
++			v |= 0x3F << 8
++		}
++		emitReloc(v, 0)
++	case objabi.R_ADDRPOWER_TOCREL:
++	case objabi.R_ADDRPOWER_TOCREL_DS:
++		emitReloc(ld.XCOFF_R_TOCU|(0x0F<<8), 2)
++		emitReloc(ld.XCOFF_R_TOCL|(0x0F<<8), 6)
++	case objabi.R_POWER_TLS_LE:
++		emitReloc(ld.XCOFF_R_TLS_LE|0x0F<<8, 2)
++	case objabi.R_CALLPOWER:
++		if r.Siz != 4 {
++			return false
++		}
++		emitReloc(ld.XCOFF_R_RBR|0x19<<8, 0)
++	}
++	return true
++
++}
++
+ func elfreloc1(ctxt *ld.Link, r *sym.Reloc, sectoff int64) bool {
+ 	// Beware that bit0~bit15 start from the third byte of a instruction in Big-Endian machines.
+ 	if r.Type == objabi.R_ADDR || r.Type == objabi.R_POWER_TLS || r.Type == objabi.R_CALLPOWER {
+@@ -514,7 +551,7 @@
+ 		ld.Errorf(s, "archreloctoc called for a symbol without TOC anchor")
+ 	}
+ 
+-	if tarSym != nil && tarSym.Attr.Reachable() && (tarSym.Sect.Seg == &ld.Segdata) {
++	if ctxt.LinkMode == ld.LinkInternal && tarSym != nil && tarSym.Attr.Reachable() && (tarSym.Sect.Seg == &ld.Segdata) {
+ 		t = ld.Symaddr(tarSym) + r.Add - ctxt.Syms.ROLookup("TOC", 0).Value
+ 		// change ld to addi in the second instruction
+ 		o2 = (o2 & 0x03FF0000) | 0xE<<26
+@@ -704,9 +741,13 @@
+ 
+ func archreloc(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, val int64) (int64, bool) {
+ 	if ctxt.LinkMode == ld.LinkExternal {
++		// On AIX, relocations (except TLS ones) must be also done to the
++		// value with the current addresses.
+ 		switch r.Type {
+ 		default:
+-			return val, false
++			if ctxt.HeadType != objabi.Haix {
++				return val, false
++			}
+ 		case objabi.R_POWER_TLS, objabi.R_POWER_TLS_LE, objabi.R_POWER_TLS_IE:
+ 			r.Done = false
+ 			// check Outer is nil, Type is TLSBSS?
+@@ -734,12 +775,16 @@
+ 			}
+ 			r.Xsym = rs
+ 
+-			return val, true
++			if ctxt.HeadType != objabi.Haix {
++				return val, true
++			}
+ 		case objabi.R_CALLPOWER:
+ 			r.Done = false
+ 			r.Xsym = r.Sym
+ 			r.Xadd = r.Add
+-			return val, true
++			if ctxt.HeadType != objabi.Haix {
++				return val, true
++			}
+ 		}
+ 	}
+ 
+diff --git a/src/cmd/link/internal/ppc64/obj.go b/src/cmd/link/internal/ppc64/obj.go
+index ef84031..bd85856 100644
+--- a/src/cmd/link/internal/ppc64/obj.go
++++ b/src/cmd/link/internal/ppc64/obj.go
+@@ -59,6 +59,7 @@
+ 		Gentext:          gentext,
+ 		Trampoline:       trampoline,
+ 		Machoreloc1:      machoreloc1,
++		Xcoffreloc1:      xcoffreloc1,
+ 
+ 		// TODO(austin): ABI v1 uses /usr/lib/ld.so.1,
+ 		Linuxdynld: "/lib64/ld64.so.1",
+diff --git a/src/runtime/asm_ppc64x.s b/src/runtime/asm_ppc64x.s
+index a1d7ce1..9b5da3d 100644
+--- a/src/runtime/asm_ppc64x.s
++++ b/src/runtime/asm_ppc64x.s
+@@ -784,11 +784,18 @@
+ 	RET
+ 
+ #ifdef GOARCH_ppc64
++#ifdef GOOS_aix
++DATA    setg_gcc<>+0(SB)/8, $_setg_gcc<>(SB)
++DATA    setg_gcc<>+8(SB)/8, $TOC(SB)
++DATA    setg_gcc<>+16(SB)/8, $0
++GLOBL   setg_gcc<>(SB), NOPTR, $24
++#else
+ TEXT setg_gcc<>(SB),NOSPLIT|NOFRAME,$0-0
+ 	DWORD	$_setg_gcc<>(SB)
+ 	DWORD	$0
+ 	DWORD	$0
+ #endif
++#endif
+ 
+ // void setg_gcc(G*); set g in C TLS.
+ // Must obey the gcc calling convention.
+diff --git a/src/runtime/rt0_aix_ppc64.s b/src/runtime/rt0_aix_ppc64.s
+index 0e3d582..843494b 100644
+--- a/src/runtime/rt0_aix_ppc64.s
++++ b/src/runtime/rt0_aix_ppc64.s
+@@ -34,6 +34,15 @@
+ 	MOVD 40(R1), R2
+ 	MOVD R14, R3 // argc
+ 	MOVD R15, R4 // argv
++	BL _main(SB)
++
++
++DATA	main+0(SB)/8, $_main(SB)
++DATA	main+8(SB)/8, $TOC(SB)
++DATA	main+16(SB)/8, $0
++GLOBL	main(SB), NOPTR, $24
++
++TEXT _main(SB),NOSPLIT,$-8
+ 	MOVD $runtime·rt0_go(SB), R12
+ 	MOVD R12, CTR
+ 	BR (CTR)

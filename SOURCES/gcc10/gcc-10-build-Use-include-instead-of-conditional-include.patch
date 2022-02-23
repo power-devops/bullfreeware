@@ -1,0 +1,168 @@
+From 0164e59835de81d758fd4c56248ad7a46435fbfa Mon Sep 17 00:00:00 2001
+From: David Edelsohn <dje.gcc@gmail.com>
+Date: Mon, 22 Jun 2020 21:27:18 +0000
+Subject: [PATCH] build: Use -include instead of conditional include.
+
+Automake and GNU Make both use the endif keyword, which conflicts and
+elicits an error for matching if/ifdef and endif.
+
+This patch changes the conditional include to use "-include" to prevent
+a warning about a possible empty tmake_file.
+
+libgomp/ChangeLog
+
+2020-06-22  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am: Use -include.
+	* Makefile.in: Regenerate.
+
+libatomic/ChangeLog
+
+2020-06-22  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am: Use -include.
+	* Makefile.in: Regenerate.
+
+libstdc++-v3/ChangeLog
+
+2020-06-22  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am: Use -include.
+	* Makefile.in: Regenerate.
+
+libgfortran/ChangeLog
+
+2020-06-22  David Edelsohn  <dje.gcc@gmail.com>
+
+	* Makefile.am: Use -include.
+	* Makefile.in: Regenerate.
+---
+ libatomic/Makefile.am    | 4 +---
+ libatomic/Makefile.in    | 4 +---
+ libgfortran/Makefile.am  | 4 +---
+ libgfortran/Makefile.in  | 4 +---
+ libgomp/Makefile.am      | 4 +---
+ libgomp/Makefile.in      | 4 +---
+ libstdc++-v3/Makefile.am | 4 +---
+ libstdc++-v3/Makefile.in | 4 +---
+ 8 files changed, 8 insertions(+), 24 deletions(-)
+
+diff --git a/libatomic/Makefile.am b/libatomic/Makefile.am
+index f169d505227..f540d59992b 100644
+--- a/libatomic/Makefile.am
++++ b/libatomic/Makefile.am
+@@ -154,8 +154,6 @@ all-multi: $(libatomic_la_LIBADD)
+ 	$(MULTIDO) $(AM_MAKEFLAGS) DO=all multi-do # $(MAKE)
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ include $(top_srcdir)/../multilib.am
+diff --git a/libatomic/Makefile.in b/libatomic/Makefile.in
+index e8d47f28364..0a51bd55f01 100644
+--- a/libatomic/Makefile.in
++++ b/libatomic/Makefile.in
+@@ -864,9 +864,7 @@ all-multi: $(libatomic_la_LIBADD)
+ 	$(MULTIDO) $(AM_MAKEFLAGS) DO=all multi-do # $(MAKE)
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+diff --git a/libgfortran/Makefile.am b/libgfortran/Makefile.am
+index 69e94eea550..36b204e1aa3 100644
+--- a/libgfortran/Makefile.am
++++ b/libgfortran/Makefile.am
+@@ -1237,8 +1237,6 @@ endif
+ EXTRA_DIST = $(m4_files)
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ include $(top_srcdir)/../multilib.am
+diff --git a/libgfortran/Makefile.in b/libgfortran/Makefile.in
+index 1de35db54be..fe063e7ff91 100644
+--- a/libgfortran/Makefile.in
++++ b/libgfortran/Makefile.in
+@@ -7192,9 +7192,7 @@ fpu-target.inc: fpu-target.h $(srcdir)/libgfortran.h
+ @MAINTAINER_MODE_TRUE@	$(M4) -Dfile=$@ -I$(srcdir)/m4 misc_specifics.m4 > $@
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+diff --git a/libgomp/Makefile.am b/libgomp/Makefile.am
+index 16b69956949..586c930a4d7 100644
+--- a/libgomp/Makefile.am
++++ b/libgomp/Makefile.am
+@@ -142,8 +142,6 @@ CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO)
+ MAINTAINERCLEANFILES = $(srcdir)/libgomp.info
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ include $(top_srcdir)/../multilib.am
+diff --git a/libgomp/Makefile.in b/libgomp/Makefile.in
+index 5455951cded..b570a942cff 100644
+--- a/libgomp/Makefile.in
++++ b/libgomp/Makefile.in
+@@ -1440,9 +1440,7 @@ stamp-build-info: libgomp.texi
+ 	@touch $@
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+diff --git a/libstdc++-v3/Makefile.am b/libstdc++-v3/Makefile.am
+index 62c2c324082..f11a13d274d 100644
+--- a/libstdc++-v3/Makefile.am
++++ b/libstdc++-v3/Makefile.am
+@@ -174,8 +174,6 @@ AM_MAKEFLAGS = \
+ FLAGS_TO_PASS = $(AM_MAKEFLAGS)
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ include $(top_srcdir)/../multilib.am
+diff --git a/libstdc++-v3/Makefile.in b/libstdc++-v3/Makefile.in
+index e8987d45916..f5287248770 100644
+--- a/libstdc++-v3/Makefile.in
++++ b/libstdc++-v3/Makefile.in
+@@ -819,9 +819,7 @@ install-dvi:
+ TAGS: tags-recursive $(LISP)
+ 
+ # target overrides
+-ifneq ($(tmake_file),)
+-include $(tmake_file)
+-endif
++-include $(tmake_file)
+ 
+ # GNU Make needs to see an explicit $(MAKE) variable in the command it
+ # runs to enable its job server during parallel builds.  Hence the
+-- 
+2.25.0
+

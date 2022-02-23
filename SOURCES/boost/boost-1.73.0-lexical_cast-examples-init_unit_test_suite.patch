@@ -1,0 +1,11 @@
+--- ./libs/lexical_cast/test/Jamfile.v2.ORIGIN	2020-06-30 16:55:23 -0500
++++ ./libs/lexical_cast/test/Jamfile.v2	2020-06-30 17:09:10 -0500
+@@ -72,7 +72,7 @@
+ # Assuring that examples compile and run. Adding sources from `example` directory to the `conversion` test suite. 
+ for local p in [ glob ../example/*.cpp ]
+ {
+-    conversion += [ run $(p) ] ;
++    conversion += [ run $(p) : : : <target-os>aix:<linkflags>-Wl,-berok ] ;
+ }
+ 
+ 

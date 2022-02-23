@@ -1,0 +1,4011 @@
+From ad160418893d73ff915b6dd83e576901eb0c19d8 Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Fri, 28 Sep 2018 15:29:58 +0200
+Subject: [PATCH] syscall: add AIX operating system
+
+This commit adds AIX operating system to syscall package for ppc64
+architecture.
+It also adds the file syscall_aix.go in the runtime package for
+syscalls needed during fork and exec.
+
+Updates: #25893
+
+Change-Id: I301b1051b178a3efb7bbc39cdbd8e00b594d65ef
+---
+
+diff --git a/src/runtime/syscall_aix.go b/src/runtime/syscall_aix.go
+new file mode 100644
+index 0000000..376e22d
+--- /dev/null
++++ b/src/runtime/syscall_aix.go
+@@ -0,0 +1,212 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package runtime
++
++import "unsafe"
++
++// This file handles some syscalls from the syscall package
++// Especially, syscalls use during forkAndExecInChild which must not split the stack
++
++//go:cgo_import_dynamic libc_chdir chdir "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_chroot chroot "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_dup2 dup2 "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_execve execve "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_fcntl fcntl "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_fork fork "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_ioctl ioctl "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setgid setgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setgroups setgroups "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setsid setsid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setuid setuid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setpgid setpgid "libc.a/shr_64.o"
++
++//go:linkname libc_chdir libc_chdir
++//go:linkname libc_chroot libc_chroot
++//go:linkname libc_dup2 libc_dup2
++//go:linkname libc_execve libc_execve
++//go:linkname libc_fcntl libc_fcntl
++//go:linkname libc_fork libc_fork
++//go:linkname libc_ioctl libc_ioctl
++//go:linkname libc_setgid libc_setgid
++//go:linkname libc_setgroups libc_setgroups
++//go:linkname libc_setsid libc_setsid
++//go:linkname libc_setuid libc_setuid
++//go:linkname libc_setpgid libc_setpgid
++
++var (
++	libc_chdir,
++	libc_chroot,
++	libc_dup2,
++	libc_execve,
++	libc_fcntl,
++	libc_fork,
++	libc_ioctl,
++	libc_setgid,
++	libc_setgroups,
++	libc_setsid,
++	libc_setuid,
++	libc_setpgid libFunc
++)
++
++// In syscall_syscall6 and syscall_rawsyscall6, r2 is always 0
++// as it's never used on AIX
++// TODO: remove r2 from zsyscall_aix_$GOARCH.go
++
++// Syscall is needed because some packages (like net) need it too.
++// The best way is to return EINVAL and let Golang handles its failure
++// If the syscall can't fail, this function can redirect it to a real syscall.
++//go:linkname syscall_Syscall syscall.Syscall
++//go:nosplit
++func syscall_Syscall(fn, a1, a2, a3 uintptr) (r1, r2, err uintptr) {
++	return 0, 0, _EINVAL
++}
++
++// This is syscall.RawSyscall, it exists to satisfy some build dependency,
++// but it doesn't work.
++//go:linkname syscall_RawSyscall syscall.RawSyscall
++func syscall_RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr) {
++	panic("RawSyscall not available on AIX")
++}
++
++//go:linkname syscall_syscall6 syscall.syscall6
++//go:nosplit
++func syscall_syscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
++	c := getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = nargs
++	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++
++	entersyscallblock()
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
++	exitsyscall()
++	return c.r1, 0, c.err
++}
++
++//go:linkname syscall_rawSyscall6 syscall.rawSyscall6
++//go:nosplit
++func syscall_rawSyscall6(fn, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr) {
++	c := getg().m.libcall
++	c.fn = uintptr(unsafe.Pointer(fn))
++	c.n = nargs
++	c.args = uintptr(noescape(unsafe.Pointer(&a1)))
++
++	asmcgocall(unsafe.Pointer(&asmsyscall6), unsafe.Pointer(&c))
++
++	return c.r1, 0, c.err
++}
++
++//go:linkname syscall_chdir syscall.chdir
++//go:nosplit
++func syscall_chdir(path uintptr) (err uintptr) {
++	_, err = syscall1(&libc_chdir, path)
++	return
++}
++
++//go:linkname syscall_chroot1 syscall.chroot1
++//go:nosplit
++func syscall_chroot1(path uintptr) (err uintptr) {
++	_, err = syscall1(&libc_chroot, path)
++	return
++}
++
++// like close, but must not split stack, for fork.
++//go:linkname syscall_close syscall.close
++//go:nosplit
++func syscall_close(fd int32) int32 {
++	_, err := syscall1(&libc_close, uintptr(fd))
++	return int32(err)
++}
++
++//go:linkname syscall_dup2child syscall.dup2child
++//go:nosplit
++func syscall_dup2child(old, new uintptr) (val, err uintptr) {
++	val, err = syscall2(&libc_dup2, old, new)
++	return
++}
++
++//go:linkname syscall_execve syscall.execve
++//go:nosplit
++func syscall_execve(path, argv, envp uintptr) (err uintptr) {
++	_, err = syscall3(&libc_execve, path, argv, envp)
++	return
++}
++
++// like exit, but must not split stack, for fork.
++//go:linkname syscall_exit syscall.exit
++//go:nosplit
++func syscall_exit(code uintptr) {
++	syscall1(&libc_exit, code)
++}
++
++//go:linkname syscall_fcntl1 syscall.fcntl1
++//go:nosplit
++func syscall_fcntl1(fd, cmd, arg uintptr) (val, err uintptr) {
++	val, err = syscall3(&libc_fcntl, fd, cmd, arg)
++	return
++
++}
++
++//go:linkname syscall_forkx syscall.forkx
++//go:nosplit
++func syscall_forkx(flags uintptr) (pid uintptr, err uintptr) {
++	pid, err = syscall1(&libc_fork, flags)
++	return
++}
++
++//go:linkname syscall_getpid syscall.getpid
++//go:nosplit
++func syscall_getpid() (pid, err uintptr) {
++	pid, err = syscall0(&libc_getpid)
++	return
++}
++
++//go:linkname syscall_ioctl syscall.ioctl
++//go:nosplit
++func syscall_ioctl(fd, req, arg uintptr) (err uintptr) {
++	_, err = syscall3(&libc_ioctl, fd, req, arg)
++	return
++}
++
++//go:linkname syscall_setgid syscall.setgid
++//go:nosplit
++func syscall_setgid(gid uintptr) (err uintptr) {
++	_, err = syscall1(&libc_setgid, gid)
++	return
++}
++
++//go:linkname syscall_setgroups1 syscall.setgroups1
++//go:nosplit
++func syscall_setgroups1(ngid, gid uintptr) (err uintptr) {
++	_, err = syscall2(&libc_setgroups, ngid, gid)
++	return
++}
++
++//go:linkname syscall_setsid syscall.setsid
++//go:nosplit
++func syscall_setsid() (pid, err uintptr) {
++	pid, err = syscall0(&libc_setsid)
++	return
++}
++
++//go:linkname syscall_setuid syscall.setuid
++//go:nosplit
++func syscall_setuid(uid uintptr) (err uintptr) {
++	_, err = syscall1(&libc_setuid, uid)
++	return
++}
++
++//go:linkname syscall_setpgid syscall.setpgid
++//go:nosplit
++func syscall_setpgid(pid, pgid uintptr) (err uintptr) {
++	_, err = syscall2(&libc_setpgid, pid, pgid)
++	return
++}
++
++//go:linkname syscall_write1 syscall.write1
++//go:nosplit
++func syscall_write1(fd, buf, nbyte uintptr) (n, err uintptr) {
++	n, err = syscall3(&libc_write, fd, buf, nbyte)
++	return
++}
+diff --git a/src/syscall/dirent.go b/src/syscall/dirent.go
+index 26cbbbc..5c7af42 100644
+--- a/src/syscall/dirent.go
++++ b/src/syscall/dirent.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff --git a/src/syscall/env_unix.go b/src/syscall/env_unix.go
+index 1ebc0b1..0b6b711 100644
+--- a/src/syscall/env_unix.go
++++ b/src/syscall/env_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ // Unix environment variables.
+ 
+diff --git a/src/syscall/exec_aix_test.go b/src/syscall/exec_aix_test.go
+new file mode 100644
+index 0000000..22b752c
+--- /dev/null
++++ b/src/syscall/exec_aix_test.go
+@@ -0,0 +1,37 @@
++// Copyright 2015 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build aix
++
++package syscall
++
++import "unsafe"
++
++//go:cgo_import_dynamic libc_Getpgid getpgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getpgrp getpgrp "libc.a/shr_64.o"
++
++//go:linkname libc_Getpgid libc_Getpgid
++//go:linkname libc_Getpgrp libc_Getpgrp
++
++var (
++	libc_Getpgid,
++	libc_Getpgrp libcFunc
++)
++
++func Getpgid(pid int) (pgid int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Getpgid)), 1, uintptr(pid), 0, 0, 0, 0, 0)
++	pgid = int(r0)
++	if e1 != 0 {
++		err = e1
++	}
++	return
++}
++
++func Getpgrp() (pgrp int) {
++	r0, _, _ := syscall6(uintptr(unsafe.Pointer(&libc_Getpgrp)), 0, 0, 0, 0, 0, 0, 0)
++	pgrp = int(r0)
++	return
++}
++
++var Ioctl = ioctl
+diff --git a/src/syscall/exec_unix_test.go b/src/syscall/exec_unix_test.go
+index 9bb95c0..33614f5 100644
+--- a/src/syscall/exec_unix_test.go
++++ b/src/syscall/exec_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall_test
+ 
+diff --git a/src/syscall/flock_aix.go b/src/syscall/flock_aix.go
+new file mode 100644
+index 0000000..9745236
+--- /dev/null
++++ b/src/syscall/flock_aix.go
+@@ -0,0 +1,41 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package syscall
++
++import "unsafe"
++
++// On AIX, there is no flock() system call, we emulate it.
++// Moreover, we can't call the default fcntl syscall because the arguments
++// must be integer and it's not possible to transform a pointer (lk)
++// to a int value.
++// It's easier to call syscall6 than to transform fcntl for every GOOS.
++func fcntlFlock(fd, cmd int, lk *Flock_t) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_fcntl)), 3, uintptr(fd), uintptr(cmd), uintptr(unsafe.Pointer(lk)), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Flock(fd int, op int) (err error) {
++	lk := &Flock_t{}
++	if (op & LOCK_UN) != 0 {
++		lk.Type = F_UNLCK
++	} else if (op & LOCK_EX) != 0 {
++		lk.Type = F_WRLCK
++	} else if (op & LOCK_SH) != 0 {
++		lk.Type = F_RDLCK
++	} else {
++		return nil
++	}
++	if (op & LOCK_NB) != 0 {
++		err = fcntlFlock(fd, F_SETLK, lk)
++		if err != nil && (err == EAGAIN || err == EACCES) {
++			return EWOULDBLOCK
++		}
++		return err
++	}
++	return fcntlFlock(fd, F_SETLKW, lk)
++}
+diff --git a/src/syscall/forkpipe.go b/src/syscall/forkpipe.go
+index 71890a2..d9999cb 100644
+--- a/src/syscall/forkpipe.go
++++ b/src/syscall/forkpipe.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly solaris
++// +build aix darwin dragonfly solaris
+ 
+ package syscall
+ 
+diff --git a/src/syscall/mkerrors.sh b/src/syscall/mkerrors.sh
+index 93d6f7d..d5880dc 100755
+--- a/src/syscall/mkerrors.sh
++++ b/src/syscall/mkerrors.sh
+@@ -20,6 +20,16 @@
+ 
+ uname=$(uname)
+ 
++includes_AIX='
++#include <net/if.h>
++#include <net/netopt.h>
++#include <netinet/ip_mroute.h>
++#include <sys/mman.h>
++#include <sys/protosw.h>
++#include <sys/ptrace.h>
++#include <sys/stropts.h>
++'
++
+ includes_Darwin='
+ #define _DARWIN_C_SOURCE
+ #define KERNEL
+diff --git a/src/syscall/mmap_unix_test.go b/src/syscall/mmap_unix_test.go
+index 01f7783..d0b3644 100644
+--- a/src/syscall/mmap_unix_test.go
++++ b/src/syscall/mmap_unix_test.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd
++// +build aix darwin dragonfly freebsd linux netbsd openbsd
+ 
+ package syscall_test
+ 
+diff --git a/src/syscall/sockcmsg_unix.go b/src/syscall/sockcmsg_unix.go
+index 5712bf1..5020033 100644
+--- a/src/syscall/sockcmsg_unix.go
++++ b/src/syscall/sockcmsg_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ // Socket control messages
+ 
+diff --git a/src/syscall/syscall_aix.go b/src/syscall/syscall_aix.go
+new file mode 100644
+index 0000000..bddc590
+--- /dev/null
++++ b/src/syscall/syscall_aix.go
+@@ -0,0 +1,651 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// Aix system calls.
++// This file is compiled as ordinary Go code,
++// but it is also input to mksyscall,
++// which parses the //sys lines and generates system call stubs.
++// Note that sometimes we use a lowercase //sys name and
++// wrap it in our own nicer implementation.
++
++package syscall
++
++import (
++	"unsafe"
++)
++
++// Implemented in runtime/syscall_aix.go.
++func rawSyscall6(trap, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
++func syscall6(trap, nargs, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
++
++// Constant expected by package but not supported
++const (
++	_ = iota
++	TIOCSCTTY
++	F_DUPFD_CLOEXEC
++	SYS_EXECVE
++	SYS_FCNTL
++)
++
++/*
++ * Wrapped
++ */
++
++// fcntl must never be called with cmd=F_DUP2FD because it doesn't work on AIX
++// There is no way to create a custom fcntl and to keep //sys fcntl easily,
++// because we need fcntl name for its libc symbol. This is linked with the script.
++// But, as fcntl is currently not exported and isn't called with F_DUP2FD,
++// it doesn't matter.
++//sys	fcntl(fd int, cmd int, arg int) (val int, err error)
++//sys	dup2(old int, new int) (val int, err error)
++
++//sysnb pipe(p *[2]_C_int) (err error)
++func Pipe(p []int) (err error) {
++	if len(p) != 2 {
++		return EINVAL
++	}
++	var pp [2]_C_int
++	err = pipe(&pp)
++	p[0] = int(pp[0])
++	p[1] = int(pp[1])
++	return
++}
++
++//sys	readlink(path string, buf []byte, bufSize uint64) (n int, err error)
++func Readlink(path string, buf []byte) (n int, err error) {
++	s := uint64(len(buf))
++	return readlink(path, buf, s)
++}
++
++//sys	utimes(path string, times *[2]Timeval) (err error)
++func Utimes(path string, tv []Timeval) error {
++	if len(tv) != 2 {
++		return EINVAL
++	}
++	return utimes(path, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
++}
++
++//sys	utimensat(dirfd int, path string, times *[2]Timespec, flag int) (err error)
++func UtimesNano(path string, ts []Timespec) error {
++	if len(ts) != 2 {
++		return EINVAL
++	}
++	return utimensat(_AT_FDCWD, path, (*[2]Timespec)(unsafe.Pointer(&ts[0])), 0)
++}
++
++//sys	unlinkat(dirfd int, path string, flags int) (err error)
++func Unlinkat(dirfd int, path string) (err error) {
++	return unlinkat(dirfd, path, 0)
++}
++
++//sys	getcwd(buf *byte, size uint64) (err error)
++
++const ImplementsGetwd = true
++
++func Getwd() (ret string, err error) {
++	for len := uint64(4096); ; len *= 2 {
++		b := make([]byte, len)
++		err := getcwd(&b[0], len)
++		if err == nil {
++			i := 0
++			for b[i] != 0 {
++				i++
++			}
++			return string(b[0:i]), nil
++		}
++		if err != ERANGE {
++			return "", err
++		}
++	}
++}
++
++func Getcwd(buf []byte) (n int, err error) {
++	err = getcwd(&buf[0], uint64(len(buf)))
++	if err == nil {
++		i := 0
++		for buf[i] != 0 {
++			i++
++		}
++		n = i + 1
++	}
++	return
++}
++
++//sysnb	getgroups(ngid int, gid *_Gid_t) (n int, err error)
++//sysnb	setgroups(ngid int, gid *_Gid_t) (err error)
++
++func Getgroups() (gids []int, err error) {
++	n, err := getgroups(0, nil)
++	if err != nil {
++		return nil, err
++	}
++	if n == 0 {
++		return nil, nil
++	}
++
++	// Sanity check group count. Max is 16 on BSD.
++	if n < 0 || n > 1000 {
++		return nil, EINVAL
++	}
++
++	a := make([]_Gid_t, n)
++	n, err = getgroups(n, &a[0])
++	if err != nil {
++		return nil, err
++	}
++	gids = make([]int, n)
++	for i, v := range a[0:n] {
++		gids[i] = int(v)
++	}
++	return
++}
++
++func Setgroups(gids []int) (err error) {
++	if len(gids) == 0 {
++		return setgroups(0, nil)
++	}
++
++	a := make([]_Gid_t, len(gids))
++	for i, v := range gids {
++		a[i] = _Gid_t(v)
++	}
++	return setgroups(len(a), &a[0])
++}
++
++func direntIno(buf []byte) (uint64, bool) {
++	return readInt(buf, unsafe.Offsetof(Dirent{}.Ino), unsafe.Sizeof(Dirent{}.Ino))
++}
++
++func direntReclen(buf []byte) (uint64, bool) {
++	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
++}
++
++func direntNamlen(buf []byte) (uint64, bool) {
++	reclen, ok := direntReclen(buf)
++	if !ok {
++		return 0, false
++	}
++	return reclen - uint64(unsafe.Offsetof(Dirent{}.Name)), true
++}
++
++func Gettimeofday(tv *Timeval) (err error) {
++	err = gettimeofday(tv, nil)
++	return
++}
++
++// TODO
++func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
++	return -1, ENOSYS
++}
++
++//sys	getdirent(fd int, buf []byte) (n int, err error)
++func ReadDirent(fd int, buf []byte) (n int, err error) {
++	return getdirent(fd, buf)
++}
++
++//sys  wait4(pid Pid_t, status *_C_int, options int, rusage *Rusage) (wpid Pid_t, err error)
++func Wait4(pid int, wstatus *WaitStatus, options int, rusage *Rusage) (wpid int, err error) {
++	var status _C_int
++	var r Pid_t
++	err = ERESTART
++	// AIX wait4 may return with ERESTART errno, while the processus is still
++	// active.
++	for err == ERESTART {
++		r, err = wait4(Pid_t(pid), &status, options, rusage)
++	}
++	wpid = int(r)
++	if wstatus != nil {
++		*wstatus = WaitStatus(status)
++	}
++	return
++}
++
++/*
++ * Socket
++ */
++//sys	bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error)
++//sys	connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error)
++//sys   Getkerninfo(op int32, where uintptr, size uintptr, arg int64) (i int32, err error)
++//sys	getsockopt(s int, level int, name int, val unsafe.Pointer, vallen *_Socklen) (err error)
++//sys	Listen(s int, backlog int) (err error)
++//sys	setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error)
++//sys	socket(domain int, typ int, proto int) (fd int, err error)
++//sysnb	socketpair(domain int, typ int, proto int, fd *[2]int32) (err error)
++//sysnb	getpeername(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error)
++//sys	getsockname(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error)
++//sys	recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error)
++//sys	sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error)
++//sys	Shutdown(s int, how int) (err error)
++//sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error)
++//sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error)
++
++func (sa *SockaddrInet4) sockaddr() (unsafe.Pointer, _Socklen, error) {
++	if sa.Port < 0 || sa.Port > 0xFFFF {
++		return nil, 0, EINVAL
++	}
++	sa.raw.Family = AF_INET
++	p := (*[2]byte)(unsafe.Pointer(&sa.raw.Port))
++	p[0] = byte(sa.Port >> 8)
++	p[1] = byte(sa.Port)
++	for i := 0; i < len(sa.Addr); i++ {
++		sa.raw.Addr[i] = sa.Addr[i]
++	}
++	return unsafe.Pointer(&sa.raw), SizeofSockaddrInet4, nil
++}
++
++func (sa *SockaddrInet6) sockaddr() (unsafe.Pointer, _Socklen, error) {
++	if sa.Port < 0 || sa.Port > 0xFFFF {
++		return nil, 0, EINVAL
++	}
++	sa.raw.Family = AF_INET6
++	p := (*[2]byte)(unsafe.Pointer(&sa.raw.Port))
++	p[0] = byte(sa.Port >> 8)
++	p[1] = byte(sa.Port)
++	sa.raw.Scope_id = sa.ZoneId
++	for i := 0; i < len(sa.Addr); i++ {
++		sa.raw.Addr[i] = sa.Addr[i]
++	}
++	return unsafe.Pointer(&sa.raw), SizeofSockaddrInet6, nil
++}
++
++func (sa *RawSockaddrUnix) setLen(n int) {
++	sa.Len = uint8(3 + n) // 2 for Family, Len; 1 for NUL.
++}
++
++func (sa *SockaddrUnix) sockaddr() (unsafe.Pointer, _Socklen, error) {
++	name := sa.Name
++	n := len(name)
++	if n > len(sa.raw.Path) {
++		return nil, 0, EINVAL
++	}
++	sa.raw.Family = AF_UNIX
++	sa.raw.setLen(n)
++	for i := 0; i < n; i++ {
++		sa.raw.Path[i] = uint8(name[i])
++	}
++	// length is family (uint16), name, NUL.
++	sl := _Socklen(2)
++	if n > 0 {
++		sl += _Socklen(n) + 1
++	}
++
++	return unsafe.Pointer(&sa.raw), sl, nil
++}
++
++func Getsockname(fd int) (sa Sockaddr, err error) {
++	var rsa RawSockaddrAny
++	var len _Socklen = SizeofSockaddrAny
++	if err = getsockname(fd, &rsa, &len); err != nil {
++		return
++	}
++	return anyToSockaddr(&rsa)
++}
++
++//sys	accept(s int, rsa *RawSockaddrAny, addrlen *_Socklen) (fd int, err error)
++func Accept(fd int) (nfd int, sa Sockaddr, err error) {
++	var rsa RawSockaddrAny
++	var len _Socklen = SizeofSockaddrAny
++	nfd, err = accept(fd, &rsa, &len)
++	if err != nil {
++		return
++	}
++	sa, err = anyToSockaddr(&rsa)
++	if err != nil {
++		Close(nfd)
++		nfd = 0
++	}
++	return
++}
++
++func Recvmsg(fd int, p, oob []byte, flags int) (n, oobn int, recvflags int, from Sockaddr, err error) {
++	var msg Msghdr
++	var rsa RawSockaddrAny
++	msg.Name = (*byte)(unsafe.Pointer(&rsa))
++	msg.Namelen = uint32(SizeofSockaddrAny)
++	var iov Iovec
++	if len(p) > 0 {
++		iov.Base = (*byte)(unsafe.Pointer(&p[0]))
++		iov.SetLen(len(p))
++	}
++	var dummy byte
++	if len(oob) > 0 {
++		var sockType int
++		sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
++		if err != nil {
++			return
++		}
++		// receive at least one normal byte
++		if sockType != SOCK_DGRAM && len(p) == 0 {
++			iov.Base = &dummy
++			iov.SetLen(1)
++		}
++		msg.Control = (*byte)(unsafe.Pointer(&oob[0]))
++		msg.SetControllen(len(oob))
++	}
++	msg.Iov = &iov
++	msg.Iovlen = 1
++	if n, err = recvmsg(fd, &msg, flags); err != nil {
++		return
++	}
++	oobn = int(msg.Controllen)
++	recvflags = int(msg.Flags)
++	// source address is only specified if the socket is unconnected
++	if rsa.Addr.Family != AF_UNSPEC {
++		from, err = anyToSockaddr(&rsa)
++	}
++	return
++}
++
++func Sendmsg(fd int, p, oob []byte, to Sockaddr, flags int) (err error) {
++	_, err = SendmsgN(fd, p, oob, to, flags)
++	return
++}
++
++func SendmsgN(fd int, p, oob []byte, to Sockaddr, flags int) (n int, err error) {
++	var ptr unsafe.Pointer
++	var salen _Socklen
++	if to != nil {
++		ptr, salen, err = to.sockaddr()
++		if err != nil {
++			return 0, err
++		}
++	}
++	var msg Msghdr
++	msg.Name = (*byte)(unsafe.Pointer(ptr))
++	msg.Namelen = uint32(salen)
++	var iov Iovec
++	if len(p) > 0 {
++		iov.Base = (*byte)(unsafe.Pointer(&p[0]))
++		iov.SetLen(len(p))
++	}
++	var dummy byte
++	if len(oob) > 0 {
++		var sockType int
++		sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
++		if err != nil {
++			return 0, err
++		}
++		// send at least one normal byte
++		if sockType != SOCK_DGRAM && len(p) == 0 {
++			iov.Base = &dummy
++			iov.SetLen(1)
++		}
++		msg.Control = (*byte)(unsafe.Pointer(&oob[0]))
++		msg.SetControllen(len(oob))
++	}
++	msg.Iov = &iov
++	msg.Iovlen = 1
++	if n, err = sendmsg(fd, &msg, flags); err != nil {
++		return 0, err
++	}
++	if len(oob) > 0 && len(p) == 0 {
++		n = 0
++	}
++	return n, nil
++}
++
++func (sa *RawSockaddrUnix) getLen() (int, error) {
++	// Some versions of AIX have a bug in getsockname (see IV78655).
++	// We can't rely on sa.Len being set correctly.
++	n := SizeofSockaddrUnix - 3 // substract leading Family, Len, terminating NUL.
++	for i := 0; i < n; i++ {
++		if sa.Path[i] == 0 {
++			n = i
++			break
++		}
++	}
++	return n, nil
++}
++
++func anyToSockaddr(rsa *RawSockaddrAny) (Sockaddr, error) {
++	switch rsa.Addr.Family {
++	case AF_UNIX:
++		pp := (*RawSockaddrUnix)(unsafe.Pointer(rsa))
++		sa := new(SockaddrUnix)
++		n, err := pp.getLen()
++		if err != nil {
++			return nil, err
++		}
++		bytes := (*[len(pp.Path)]byte)(unsafe.Pointer(&pp.Path[0]))
++		sa.Name = string(bytes[0:n])
++		return sa, nil
++
++	case AF_INET:
++		pp := (*RawSockaddrInet4)(unsafe.Pointer(rsa))
++		sa := new(SockaddrInet4)
++		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
++		sa.Port = int(p[0])<<8 + int(p[1])
++		for i := 0; i < len(sa.Addr); i++ {
++			sa.Addr[i] = pp.Addr[i]
++		}
++		return sa, nil
++
++	case AF_INET6:
++		pp := (*RawSockaddrInet6)(unsafe.Pointer(rsa))
++		sa := new(SockaddrInet6)
++		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
++		sa.Port = int(p[0])<<8 + int(p[1])
++		for i := 0; i < len(sa.Addr); i++ {
++			sa.Addr[i] = pp.Addr[i]
++		}
++		return sa, nil
++	}
++	return nil, EAFNOSUPPORT
++}
++
++/*
++ * Wait
++ */
++
++type WaitStatus uint32
++
++func (w WaitStatus) Stopped() bool { return w&0x40 != 0 }
++func (w WaitStatus) StopSignal() Signal {
++	if !w.Stopped() {
++		return -1
++	}
++	return Signal(w>>8) & 0xFF
++}
++
++func (w WaitStatus) Exited() bool { return w&0xFF == 0 }
++func (w WaitStatus) ExitStatus() int {
++	if !w.Exited() {
++		return -1
++	}
++	return int((w >> 8) & 0xFF)
++}
++
++func (w WaitStatus) Signaled() bool { return w&0x40 == 0 && w&0xFF != 0 }
++func (w WaitStatus) Signal() Signal {
++	if !w.Signaled() {
++		return -1
++	}
++	return Signal(w>>16) & 0xFF
++}
++
++func (w WaitStatus) Continued() bool { return w&0x01000000 != 0 }
++
++func (w WaitStatus) CoreDump() bool { return w&0x200 == 0 }
++
++func (w WaitStatus) TrapCause() int { return -1 }
++
++/*
++ * ptrace
++ */
++
++//sys	Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error)
++//sys	ptrace64(request int, id int64, addr int64, data int, buff uintptr) (err error)
++
++func raw_ptrace(request int, pid int, addr *byte, data *byte) Errno {
++	if request == PTRACE_TRACEME {
++		// Convert to AIX ptrace call.
++		err := ptrace64(PT_TRACE_ME, 0, 0, 0, 0)
++		if err != nil {
++			return err.(Errno)
++		}
++		return 0
++	}
++	return ENOSYS
++}
++
++func ptracePeek(pid int, addr uintptr, out []byte) (count int, err error) {
++	n := 0
++	for len(out) > 0 {
++		bsize := len(out)
++		if bsize > 1024 {
++			bsize = 1024
++		}
++		err = ptrace64(PT_READ_BLOCK, int64(pid), int64(addr), bsize, uintptr(unsafe.Pointer(&out[0])))
++		if err != nil {
++			return 0, err
++		}
++		addr += uintptr(bsize)
++		n += bsize
++		out = out[n:]
++	}
++	return n, nil
++}
++
++func PtracePeekText(pid int, addr uintptr, out []byte) (count int, err error) {
++	return ptracePeek(pid, addr, out)
++}
++
++func PtracePeekData(pid int, addr uintptr, out []byte) (count int, err error) {
++	return ptracePeek(pid, addr, out)
++}
++
++func ptracePoke(pid int, addr uintptr, data []byte) (count int, err error) {
++	n := 0
++	for len(data) > 0 {
++		bsize := len(data)
++		if bsize > 1024 {
++			bsize = 1024
++		}
++		err = ptrace64(PT_WRITE_BLOCK, int64(pid), int64(addr), bsize, uintptr(unsafe.Pointer(&data[0])))
++		if err != nil {
++			return 0, err
++		}
++		addr += uintptr(bsize)
++		n += bsize
++		data = data[n:]
++	}
++	return n, nil
++}
++
++func PtracePokeText(pid int, addr uintptr, data []byte) (count int, err error) {
++	return ptracePoke(pid, addr, data)
++}
++
++func PtracePokeData(pid int, addr uintptr, data []byte) (count int, err error) {
++	return ptracePoke(pid, addr, data)
++}
++
++func PtraceCont(pid int, signal int) (err error) {
++	return ptrace64(PT_CONTINUE, int64(pid), 1, signal, 0)
++}
++
++func PtraceSingleStep(pid int) (err error) { return ptrace64(PT_STEP, int64(pid), 1, 0, 0) }
++
++func PtraceAttach(pid int) (err error) { return ptrace64(PT_ATTACH, int64(pid), 0, 0, 0) }
++
++func PtraceDetach(pid int) (err error) { return ptrace64(PT_DETACH, int64(pid), 0, 0, 0) }
++
++/*
++ * Direct access
++ */
++
++//sys	Acct(path string) (err error)
++//sys	Chdir(path string) (err error)
++//sys	Chmod(path string, mode uint32) (err error)
++//sys	Chown(path string, uid int, gid int) (err error)
++//sys	Close(fd int) (err error)
++//sys	Dup(fd int) (nfd int, err error)
++//sys	Faccessat(dirfd int, path string, mode uint32, flags int) (err error)
++//sys	Fchdir(fd int) (err error)
++//sys	Fchmod(fd int, mode uint32) (err error)
++//sys	Fchmodat(dirfd int, path string, mode uint32, flags int) (err error)
++//sys	Fchown(fd int, uid int, gid int) (err error)
++//sys	Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error)
++//sys	Fpathconf(fd int, name int) (val int, err error)
++//sys	Fstat(fd int, stat *Stat_t) (err error)
++//sys	Fstatfs(fd int, buf *Statfs_t) (err error)
++//sys	Ftruncate(fd int, length int64) (err error)
++//sys	Fsync(fd int) (err error)
++//sysnb	Getgid() (gid int)
++//sysnb	Getpid() (pid int)
++//sys	Geteuid() (euid int)
++//sys	Getegid() (egid int)
++//sys	Getppid() (ppid int)
++//sysnb	Getrlimit(which int, lim *Rlimit) (err error)
++//sysnb	Getuid() (uid int)
++//sys	Kill(pid int, signum Signal) (err error)
++//sys	Lchown(path string, uid int, gid int) (err error)
++//sys	Link(path string, link string) (err error)
++//sys	Lstat(path string, stat *Stat_t) (err error)
++//sys	Mkdir(path string, mode uint32) (err error)
++//sys	Mkdirat(dirfd int, path string, mode uint32) (err error)
++//sys	Mknodat(dirfd int, path string, mode uint32, dev int) (err error)
++//sys	Open(path string, mode int, perm uint32) (fd int, err error)
++//sys	Pread(fd int, p []byte, offset int64) (n int, err error)
++//sys	Pwrite(fd int, p []byte, offset int64) (n int, err error)
++//sys	read(fd int, p []byte) (n int, err error)
++//sys	Reboot(how int) (err error)
++//sys	Rename(from string, to string) (err error)
++//sys	Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error)
++//sys	Rmdir(path string) (err error)
++//sys	Seek(fd int, offset int64, whence int) (newoffset int64, err error) = lseek
++//sysnb	Setegid(egid int) (err error)
++//sysnb	Seteuid(euid int) (err error)
++//sysnb	Setgid(gid int) (err error)
++//sysnb	Setpgid(pid int, pgid int) (err error)
++//sysnb	Setregid(rgid int, egid int) (err error)
++//sysnb	Setreuid(ruid int, euid int) (err error)
++//sys	Stat(path string, stat *Stat_t) (err error)
++//sys	Statfs(path string, buf *Statfs_t) (err error)
++//sys	Symlink(path string, link string) (err error)
++//sys	Truncate(path string, length int64) (err error)
++//sys	Umask(newmask int) (oldmask int)
++//sys	Unlink(path string) (err error)
++//sysnb	Uname(buf *Utsname) (err error)
++//sys	write(fd int, p []byte) (n int, err error)
++
++//sys	gettimeofday(tv *Timeval, tzp *Timezone) (err error)
++
++func setTimespec(sec, nsec int64) Timespec {
++	return Timespec{Sec: sec, Nsec: nsec}
++}
++
++func setTimeval(sec, usec int64) Timeval {
++	return Timeval{Sec: sec, Usec: int32(usec)}
++}
++
++func readlen(fd int, buf *byte, nbuf int) (n int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_read)), 3, uintptr(fd), uintptr(unsafe.Pointer(buf)), uintptr(nbuf), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = e1
++	}
++	return
++}
++
++/*
++ * Map
++ */
++
++var mapper = &mmapper{
++	active: make(map[*byte][]byte),
++	mmap:   mmap,
++	munmap: munmap,
++}
++
++//sys	mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (ret uintptr, err error)
++//sys	munmap(addr uintptr, length uintptr) (err error)
++
++func Mmap(fd int, offset int64, length int, prot int, flags int) (data []byte, err error) {
++	return mapper.Mmap(fd, offset, length, prot, flags)
++}
++
++func Munmap(b []byte) (err error) {
++	return mapper.Munmap(b)
++}
+diff --git a/src/syscall/syscall_aix_ppc64.go b/src/syscall/syscall_aix_ppc64.go
+new file mode 100644
+index 0000000..21ad5bc
+--- /dev/null
++++ b/src/syscall/syscall_aix_ppc64.go
+@@ -0,0 +1,17 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++package syscall
++
++func (iov *Iovec) SetLen(length int) {
++	iov.Len = uint64(length)
++}
++
++func (msghdr *Msghdr) SetControllen(length int) {
++	msghdr.Controllen = uint32(length)
++}
++
++func (cmsg *Cmsghdr) SetLen(length int) {
++	cmsg.Len = uint32(length)
++}
+diff --git a/src/syscall/syscall_unix.go b/src/syscall/syscall_unix.go
+index c9c0f62..4336851 100644
+--- a/src/syscall/syscall_unix.go
++++ b/src/syscall/syscall_unix.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff --git a/src/syscall/timestruct.go b/src/syscall/timestruct.go
+index 84a00a7..d17811c 100644
+--- a/src/syscall/timestruct.go
++++ b/src/syscall/timestruct.go
+@@ -2,7 +2,7 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
+-// +build darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
++// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+ 
+ package syscall
+ 
+diff --git a/src/syscall/types_aix.go b/src/syscall/types_aix.go
+new file mode 100644
+index 0000000..f9f05af
+--- /dev/null
++++ b/src/syscall/types_aix.go
+@@ -0,0 +1,172 @@
++// Copyright 2018 The Go Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style
++// license that can be found in the LICENSE file.
++
++// +build ignore
++
++/*
++Input to cgo -godefs.  See also mkerrors.sh and mkall.sh
++*/
++
++// +godefs map struct_in_addr [4]byte /* in_addr */
++// +godefs map struct_in6_addr [16]byte /* in6_addr */
++
++package syscall
++
++/*
++#include <sys/types.h>
++#include <sys/time.h>
++#include <sys/limits.h>
++#include <sys/un.h>
++#include <sys/utsname.h>
++#include <sys/ptrace.h>
++#include <sys/statfs.h>
++
++#include <net/if.h>
++#include <netinet/in.h>
++#include <netinet/icmp6.h>
++
++
++#include <dirent.h>
++#include <fcntl.h>
++#include <gcrypt.h>
++
++enum {
++	sizeofPtr = sizeof(void*),
++};
++
++union sockaddr_all {
++	struct sockaddr s1;	// this one gets used for fields
++	struct sockaddr_in s2;	// these pad it out
++	struct sockaddr_in6 s3;
++	struct sockaddr_un s4;
++};
++
++struct sockaddr_any {
++	struct sockaddr addr;
++	char pad[sizeof(union sockaddr_all) - sizeof(struct sockaddr)];
++};
++
++*/
++import "C"
++
++// Machine characteristics; for internal use.
++
++const (
++	sizeofPtr      = C.sizeofPtr
++	sizeofShort    = C.sizeof_short
++	sizeofInt      = C.sizeof_int
++	sizeofLong     = C.sizeof_long
++	sizeofLongLong = C.sizeof_longlong
++	PathMax        = C.PATH_MAX
++)
++
++// Basic types
++
++type (
++	_C_short     C.short
++	_C_int       C.int
++	_C_long      C.long
++	_C_long_long C.longlong
++)
++
++// Time
++
++type Timespec C.struct_timespec
++
++type Timeval C.struct_timeval
++
++type Timeval32 C.struct_timeval32
++
++type Timezone C.struct_timezone
++
++// Processes
++
++type Rusage C.struct_rusage
++
++type Rlimit C.struct_rlimit
++
++type Pid_t C.pid_t
++
++type _Gid_t C.gid_t
++
++// Files
++
++type Flock_t C.struct_flock
++
++type Stat_t C.struct_stat
++
++type Statfs_t C.struct_statfs
++
++type Fsid64_t C.fsid64_t
++
++type StTimespec_t C.st_timespec_t
++
++type Dirent C.struct_dirent
++
++// Sockets
++
++type RawSockaddrInet4 C.struct_sockaddr_in
++
++type RawSockaddrInet6 C.struct_sockaddr_in6
++
++type RawSockaddrUnix C.struct_sockaddr_un
++
++type RawSockaddr C.struct_sockaddr
++
++type RawSockaddrAny C.struct_sockaddr_any
++
++type _Socklen C.socklen_t
++
++type Cmsghdr C.struct_cmsghdr
++
++type ICMPv6Filter C.struct_icmp6_filter
++
++type Iovec C.struct_iovec
++
++type IPMreq C.struct_ip_mreq
++
++type IPv6Mreq C.struct_ipv6_mreq
++
++type Linger C.struct_linger
++
++type Msghdr C.struct_msghdr
++
++const (
++	SizeofSockaddrInet4 = C.sizeof_struct_sockaddr_in
++	SizeofSockaddrInet6 = C.sizeof_struct_sockaddr_in6
++	SizeofSockaddrAny   = C.sizeof_struct_sockaddr_any
++	SizeofSockaddrUnix  = C.sizeof_struct_sockaddr_un
++	SizeofLinger        = C.sizeof_struct_linger
++	SizeofIPMreq        = C.sizeof_struct_ip_mreq
++	SizeofIPv6Mreq      = C.sizeof_struct_ipv6_mreq
++	SizeofMsghdr        = C.sizeof_struct_msghdr
++	SizeofCmsghdr       = C.sizeof_struct_cmsghdr
++	SizeofICMPv6Filter  = C.sizeof_struct_icmp6_filter
++)
++
++// Ptrace requests
++
++const (
++	PTRACE_TRACEME = C.PT_TRACE_ME
++	PTRACE_CONT    = C.PT_CONTINUE
++	PTRACE_KILL    = C.PT_KILL
++)
++
++// Routing and interface messages
++
++const (
++	SizeofIfMsghdr = C.sizeof_struct_if_msghdr
++)
++
++type IfMsgHdr C.struct_if_msghdr
++
++// Misc
++
++type Utsname C.struct_utsname
++
++const (
++	_AT_FDCWD            = C.AT_FDCWD
++	_AT_REMOVEDIR        = C.AT_REMOVEDIR
++	_AT_SYMLINK_NOFOLLOW = C.AT_SYMLINK_NOFOLLOW
++)
+diff --git a/src/syscall/zerrors_aix_ppc64.go b/src/syscall/zerrors_aix_ppc64.go
+new file mode 100644
+index 0000000..6013009
+--- /dev/null
++++ b/src/syscall/zerrors_aix_ppc64.go
+@@ -0,0 +1,1248 @@
++// mkerrors.sh -maix64
++// Code generated by the command above; DO NOT EDIT.
++
++// Code generated by cmd/cgo -godefs; DO NOT EDIT.
++// cgo -godefs -- -maix64 _const.go
++
++package syscall
++
++const (
++	AF_APPLETALK                  = 0x10
++	AF_BYPASS                     = 0x19
++	AF_CCITT                      = 0xa
++	AF_CHAOS                      = 0x5
++	AF_DATAKIT                    = 0x9
++	AF_DECnet                     = 0xc
++	AF_DLI                        = 0xd
++	AF_ECMA                       = 0x8
++	AF_HYLINK                     = 0xf
++	AF_IMPLINK                    = 0x3
++	AF_INET                       = 0x2
++	AF_INET6                      = 0x18
++	AF_INTF                       = 0x14
++	AF_ISO                        = 0x7
++	AF_LAT                        = 0xe
++	AF_LINK                       = 0x12
++	AF_MAX                        = 0x1e
++	AF_NDD                        = 0x17
++	AF_NETWARE                    = 0x16
++	AF_NS                         = 0x6
++	AF_OSI                        = 0x7
++	AF_PUP                        = 0x4
++	AF_RIF                        = 0x15
++	AF_ROUTE                      = 0x11
++	AF_SNA                        = 0xb
++	AF_UNIX                       = 0x1
++	AF_UNSPEC                     = 0x0
++	ARPHRD_802_3                  = 0x6
++	ARPHRD_802_5                  = 0x6
++	ARPHRD_ETHER                  = 0x1
++	ARPHRD_FDDI                   = 0x1
++	B0                            = 0x0
++	B110                          = 0x3
++	B1200                         = 0x9
++	B134                          = 0x4
++	B150                          = 0x5
++	B1800                         = 0xa
++	B19200                        = 0xe
++	B200                          = 0x6
++	B2400                         = 0xb
++	B300                          = 0x7
++	B38400                        = 0xf
++	B4800                         = 0xc
++	B50                           = 0x1
++	B600                          = 0x8
++	B75                           = 0x2
++	B9600                         = 0xd
++	CFLUSH                        = 0xf
++	CSIOCGIFCONF                  = -0x3fef96dc
++	CSTART                        = '\021'
++	CSTOP                         = '\023'
++	CSUSP                         = 0x1a
++	ECHO                          = 0x8
++	ECH_ICMPID                    = 0x2
++	ETHERNET_CSMACD               = 0x6
++	EVENP                         = 0x80
++	EXCONTINUE                    = 0x0
++	EXDLOK                        = 0x3
++	EXIO                          = 0x2
++	EXPGIO                        = 0x0
++	EXRESUME                      = 0x2
++	EXRETURN                      = 0x1
++	EXSIG                         = 0x4
++	EXTA                          = 0xe
++	EXTB                          = 0xf
++	EXTRAP                        = 0x1
++	EYEC_RTENTRYA                 = 0x257274656e747241
++	EYEC_RTENTRYF                 = 0x257274656e747246
++	E_ACC                         = 0x0
++	FD_CLOEXEC                    = 0x1
++	FD_SETSIZE                    = 0xfffe
++	FLUSHBAND                     = 0x40
++	FLUSHLOW                      = 0x8
++	FLUSHO                        = 0x100000
++	FLUSHR                        = 0x1
++	FLUSHRW                       = 0x3
++	FLUSHW                        = 0x2
++	F_CLOSEM                      = 0xa
++	F_DUP2FD                      = 0xe
++	F_DUPFD                       = 0x0
++	F_GETFD                       = 0x1
++	F_GETFL                       = 0x3
++	F_GETLK                       = 0xb
++	F_GETLK64                     = 0xb
++	F_GETOWN                      = 0x8
++	F_LOCK                        = 0x1
++	F_OK                          = 0x0
++	F_RDLCK                       = 0x1
++	F_SETFD                       = 0x2
++	F_SETFL                       = 0x4
++	F_SETLK                       = 0xc
++	F_SETLK64                     = 0xc
++	F_SETLKW                      = 0xd
++	F_SETLKW64                    = 0xd
++	F_SETOWN                      = 0x9
++	F_TEST                        = 0x3
++	F_TLOCK                       = 0x2
++	F_TSTLK                       = 0xf
++	F_ULOCK                       = 0x0
++	F_UNLCK                       = 0x3
++	F_WRLCK                       = 0x2
++	ICMP6_FILTER                  = 0x26
++	ICMP6_SEC_SEND_DEL            = 0x46
++	ICMP6_SEC_SEND_GET            = 0x47
++	ICMP6_SEC_SEND_SET            = 0x44
++	ICMP6_SEC_SEND_SET_CGA_ADDR   = 0x45
++	IFA_FIRSTALIAS                = 0x2000
++	IFA_ROUTE                     = 0x1
++	IFF_64BIT                     = 0x4000000
++	IFF_ALLCAST                   = 0x20000
++	IFF_ALLMULTI                  = 0x200
++	IFF_BPF                       = 0x8000000
++	IFF_BRIDGE                    = 0x40000
++	IFF_BROADCAST                 = 0x2
++	IFF_CANTCHANGE                = 0x80c52
++	IFF_CHECKSUM_OFFLOAD          = 0x10000000
++	IFF_D1                        = 0x8000
++	IFF_D2                        = 0x4000
++	IFF_D3                        = 0x2000
++	IFF_D4                        = 0x1000
++	IFF_DEBUG                     = 0x4
++	IFF_DEVHEALTH                 = 0x4000
++	IFF_DO_HW_LOOPBACK            = 0x10000
++	IFF_GROUP_ROUTING             = 0x2000000
++	IFF_IFBUFMGT                  = 0x800000
++	IFF_LINK0                     = 0x100000
++	IFF_LINK1                     = 0x200000
++	IFF_LINK2                     = 0x400000
++	IFF_LOOPBACK                  = 0x8
++	IFF_MULTICAST                 = 0x80000
++	IFF_NOARP                     = 0x80
++	IFF_NOECHO                    = 0x800
++	IFF_NOTRAILERS                = 0x20
++	IFF_OACTIVE                   = 0x400
++	IFF_POINTOPOINT               = 0x10
++	IFF_PROMISC                   = 0x100
++	IFF_PSEG                      = 0x40000000
++	IFF_RUNNING                   = 0x40
++	IFF_SIMPLEX                   = 0x800
++	IFF_SNAP                      = 0x8000
++	IFF_TCP_DISABLE_CKSUM         = 0x20000000
++	IFF_TCP_NOCKSUM               = 0x1000000
++	IFF_UP                        = 0x1
++	IFF_VIPA                      = 0x80000000
++	IFNAMSIZ                      = 0x10
++	IFO_FLUSH                     = 0x1
++	IFT_1822                      = 0x2
++	IFT_AAL5                      = 0x31
++	IFT_ARCNET                    = 0x23
++	IFT_ARCNETPLUS                = 0x24
++	IFT_ATM                       = 0x25
++	IFT_CEPT                      = 0x13
++	IFT_CLUSTER                   = 0x3e
++	IFT_DS3                       = 0x1e
++	IFT_EON                       = 0x19
++	IFT_ETHER                     = 0x6
++	IFT_FCS                       = 0x3a
++	IFT_FDDI                      = 0xf
++	IFT_FRELAY                    = 0x20
++	IFT_FRELAYDCE                 = 0x2c
++	IFT_GIFTUNNEL                 = 0x3c
++	IFT_HDH1822                   = 0x3
++	IFT_HF                        = 0x3d
++	IFT_HIPPI                     = 0x2f
++	IFT_HSSI                      = 0x2e
++	IFT_HY                        = 0xe
++	IFT_IB                        = 0xc7
++	IFT_ISDNBASIC                 = 0x14
++	IFT_ISDNPRIMARY               = 0x15
++	IFT_ISO88022LLC               = 0x29
++	IFT_ISO88023                  = 0x7
++	IFT_ISO88024                  = 0x8
++	IFT_ISO88025                  = 0x9
++	IFT_ISO88026                  = 0xa
++	IFT_LAPB                      = 0x10
++	IFT_LOCALTALK                 = 0x2a
++	IFT_LOOP                      = 0x18
++	IFT_MIOX25                    = 0x26
++	IFT_MODEM                     = 0x30
++	IFT_NSIP                      = 0x1b
++	IFT_OTHER                     = 0x1
++	IFT_P10                       = 0xc
++	IFT_P80                       = 0xd
++	IFT_PARA                      = 0x22
++	IFT_PPP                       = 0x17
++	IFT_PROPMUX                   = 0x36
++	IFT_PROPVIRTUAL               = 0x35
++	IFT_PTPSERIAL                 = 0x16
++	IFT_RS232                     = 0x21
++	IFT_SDLC                      = 0x11
++	IFT_SIP                       = 0x1f
++	IFT_SLIP                      = 0x1c
++	IFT_SMDSDXI                   = 0x2b
++	IFT_SMDSICIP                  = 0x34
++	IFT_SN                        = 0x38
++	IFT_SONET                     = 0x27
++	IFT_SONETPATH                 = 0x32
++	IFT_SONETVT                   = 0x33
++	IFT_SP                        = 0x39
++	IFT_STARLAN                   = 0xb
++	IFT_T1                        = 0x12
++	IFT_TUNNEL                    = 0x3b
++	IFT_ULTRA                     = 0x1d
++	IFT_V35                       = 0x2d
++	IFT_VIPA                      = 0x37
++	IFT_X25                       = 0x5
++	IFT_X25DDN                    = 0x4
++	IFT_X25PLE                    = 0x28
++	IFT_XETHER                    = 0x1a
++	IN_CLASSA_HOST                = 0xffffff
++	IN_CLASSA_MAX                 = 0x80
++	IN_CLASSA_NET                 = 0xff000000
++	IN_CLASSA_NSHIFT              = 0x18
++	IN_CLASSB_HOST                = 0xffff
++	IN_CLASSB_MAX                 = 0x10000
++	IN_CLASSB_NET                 = 0xffff0000
++	IN_CLASSB_NSHIFT              = 0x10
++	IN_CLASSC_HOST                = 0xff
++	IN_CLASSC_NET                 = 0xffffff00
++	IN_CLASSC_NSHIFT              = 0x8
++	IN_CLASSD_HOST                = 0xfffffff
++	IN_CLASSD_NET                 = 0xf0000000
++	IN_CLASSD_NSHIFT              = 0x1c
++	IN_LOOPBACKNET                = 0x7f
++	IN_USE                        = 0x1
++	IPPROTO_AH                    = 0x33
++	IPPROTO_BIP                   = 0x53
++	IPPROTO_DSTOPTS               = 0x3c
++	IPPROTO_EGP                   = 0x8
++	IPPROTO_EON                   = 0x50
++	IPPROTO_ESP                   = 0x32
++	IPPROTO_FRAGMENT              = 0x2c
++	IPPROTO_GGP                   = 0x3
++	IPPROTO_GIF                   = 0x8c
++	IPPROTO_GRE                   = 0x2f
++	IPPROTO_HOPOPTS               = 0x0
++	IPPROTO_ICMP                  = 0x1
++	IPPROTO_ICMPV6                = 0x3a
++	IPPROTO_IDP                   = 0x16
++	IPPROTO_IGMP                  = 0x2
++	IPPROTO_IP                    = 0x0
++	IPPROTO_IPIP                  = 0x4
++	IPPROTO_IPV6                  = 0x29
++	IPPROTO_LOCAL                 = 0x3f
++	IPPROTO_MAX                   = 0x100
++	IPPROTO_MH                    = 0x87
++	IPPROTO_NONE                  = 0x3b
++	IPPROTO_PUP                   = 0xc
++	IPPROTO_QOS                   = 0x2d
++	IPPROTO_RAW                   = 0xff
++	IPPROTO_ROUTING               = 0x2b
++	IPPROTO_RSVP                  = 0x2e
++	IPPROTO_SCTP                  = 0x84
++	IPPROTO_TCP                   = 0x6
++	IPPROTO_TP                    = 0x1d
++	IPPROTO_UDP                   = 0x11
++	IPV6_ADDRFORM                 = 0x16
++	IPV6_ADDR_PREFERENCES         = 0x4a
++	IPV6_ADD_MEMBERSHIP           = 0xc
++	IPV6_AIXRAWSOCKET             = 0x39
++	IPV6_CHECKSUM                 = 0x27
++	IPV6_DONTFRAG                 = 0x2d
++	IPV6_DROP_MEMBERSHIP          = 0xd
++	IPV6_DSTOPTS                  = 0x36
++	IPV6_FLOWINFO_FLOWLABEL       = 0xffffff
++	IPV6_FLOWINFO_PRIFLOW         = 0xfffffff
++	IPV6_FLOWINFO_PRIORITY        = 0xf000000
++	IPV6_FLOWINFO_SRFLAG          = 0x10000000
++	IPV6_FLOWINFO_VERSION         = 0xf0000000
++	IPV6_HOPLIMIT                 = 0x28
++	IPV6_HOPOPTS                  = 0x34
++	IPV6_JOIN_GROUP               = 0xc
++	IPV6_LEAVE_GROUP              = 0xd
++	IPV6_MIPDSTOPTS               = 0x36
++	IPV6_MULTICAST_HOPS           = 0xa
++	IPV6_MULTICAST_IF             = 0x9
++	IPV6_MULTICAST_LOOP           = 0xb
++	IPV6_NEXTHOP                  = 0x30
++	IPV6_NOPROBE                  = 0x1c
++	IPV6_PATHMTU                  = 0x2e
++	IPV6_PKTINFO                  = 0x21
++	IPV6_PKTOPTIONS               = 0x24
++	IPV6_PRIORITY_10              = 0xa000000
++	IPV6_PRIORITY_11              = 0xb000000
++	IPV6_PRIORITY_12              = 0xc000000
++	IPV6_PRIORITY_13              = 0xd000000
++	IPV6_PRIORITY_14              = 0xe000000
++	IPV6_PRIORITY_15              = 0xf000000
++	IPV6_PRIORITY_8               = 0x8000000
++	IPV6_PRIORITY_9               = 0x9000000
++	IPV6_PRIORITY_BULK            = 0x4000000
++	IPV6_PRIORITY_CONTROL         = 0x7000000
++	IPV6_PRIORITY_FILLER          = 0x1000000
++	IPV6_PRIORITY_INTERACTIVE     = 0x6000000
++	IPV6_PRIORITY_RESERVED1       = 0x3000000
++	IPV6_PRIORITY_RESERVED2       = 0x5000000
++	IPV6_PRIORITY_UNATTENDED      = 0x2000000
++	IPV6_PRIORITY_UNCHARACTERIZED = 0x0
++	IPV6_RECVDSTOPTS              = 0x38
++	IPV6_RECVHOPLIMIT             = 0x29
++	IPV6_RECVHOPOPTS              = 0x35
++	IPV6_RECVHOPS                 = 0x22
++	IPV6_RECVIF                   = 0x1e
++	IPV6_RECVPATHMTU              = 0x2f
++	IPV6_RECVPKTINFO              = 0x23
++	IPV6_RECVRTHDR                = 0x33
++	IPV6_RECVSRCRT                = 0x1d
++	IPV6_RECVTCLASS               = 0x2a
++	IPV6_RTHDR                    = 0x32
++	IPV6_RTHDRDSTOPTS             = 0x37
++	IPV6_RTHDR_TYPE_0             = 0x0
++	IPV6_RTHDR_TYPE_2             = 0x2
++	IPV6_SENDIF                   = 0x1f
++	IPV6_SRFLAG_LOOSE             = 0x0
++	IPV6_SRFLAG_STRICT            = 0x10000000
++	IPV6_TCLASS                   = 0x2b
++	IPV6_TOKEN_LENGTH             = 0x40
++	IPV6_UNICAST_HOPS             = 0x4
++	IPV6_USE_MIN_MTU              = 0x2c
++	IPV6_V6ONLY                   = 0x25
++	IPV6_VERSION                  = 0x60000000
++	IP_ADDRFORM                   = 0x16
++	IP_ADD_MEMBERSHIP             = 0xc
++	IP_ADD_SOURCE_MEMBERSHIP      = 0x3c
++	IP_BLOCK_SOURCE               = 0x3a
++	IP_BROADCAST_IF               = 0x10
++	IP_CACHE_LINE_SIZE            = 0x80
++	IP_DEFAULT_MULTICAST_LOOP     = 0x1
++	IP_DEFAULT_MULTICAST_TTL      = 0x1
++	IP_DF                         = 0x4000
++	IP_DHCPMODE                   = 0x11
++	IP_DONTFRAG                   = 0x19
++	IP_DROP_MEMBERSHIP            = 0xd
++	IP_DROP_SOURCE_MEMBERSHIP     = 0x3d
++	IP_FINDPMTU                   = 0x1a
++	IP_HDRINCL                    = 0x2
++	IP_INC_MEMBERSHIPS            = 0x14
++	IP_INIT_MEMBERSHIP            = 0x14
++	IP_MAXPACKET                  = 0xffff
++	IP_MF                         = 0x2000
++	IP_MSS                        = 0x240
++	IP_MULTICAST_HOPS             = 0xa
++	IP_MULTICAST_IF               = 0x9
++	IP_MULTICAST_LOOP             = 0xb
++	IP_MULTICAST_TTL              = 0xa
++	IP_OPT                        = 0x1b
++	IP_OPTIONS                    = 0x1
++	IP_PMTUAGE                    = 0x1b
++	IP_RECVDSTADDR                = 0x7
++	IP_RECVIF                     = 0x14
++	IP_RECVIFINFO                 = 0xf
++	IP_RECVINTERFACE              = 0x20
++	IP_RECVMACHDR                 = 0xe
++	IP_RECVOPTS                   = 0x5
++	IP_RECVRETOPTS                = 0x6
++	IP_RECVTTL                    = 0x22
++	IP_RETOPTS                    = 0x8
++	IP_SOURCE_FILTER              = 0x48
++	IP_TOS                        = 0x3
++	IP_TTL                        = 0x4
++	IP_UNBLOCK_SOURCE             = 0x3b
++	IP_UNICAST_HOPS               = 0x4
++	I_FLUSH                       = 0x20005305
++	LNOFLSH                       = 0x8000
++	LOCK_EX                       = 0x2
++	LOCK_NB                       = 0x4
++	LOCK_SH                       = 0x1
++	LOCK_UN                       = 0x8
++	MADV_DONTNEED                 = 0x4
++	MADV_NORMAL                   = 0x0
++	MADV_RANDOM                   = 0x1
++	MADV_SEQUENTIAL               = 0x2
++	MADV_SPACEAVAIL               = 0x5
++	MADV_WILLNEED                 = 0x3
++	MAP_ANON                      = 0x10
++	MAP_ANONYMOUS                 = 0x10
++	MAP_FILE                      = 0x0
++	MAP_FIXED                     = 0x100
++	MAP_PRIVATE                   = 0x2
++	MAP_SHARED                    = 0x1
++	MAP_TYPE                      = 0xf0
++	MAP_VARIABLE                  = 0x0
++	MCL_CURRENT                   = 0x100
++	MCL_FUTURE                    = 0x200
++	MSG_ANY                       = 0x4
++	MSG_ARGEXT                    = 0x400
++	MSG_BAND                      = 0x2
++	MSG_COMPAT                    = 0x8000
++	MSG_CTRUNC                    = 0x20
++	MSG_DONTROUTE                 = 0x4
++	MSG_EOR                       = 0x8
++	MSG_HIPRI                     = 0x1
++	MSG_MAXIOVLEN                 = 0x10
++	MSG_MPEG2                     = 0x80
++	MSG_NONBLOCK                  = 0x4000
++	MSG_NOSIGNAL                  = 0x100
++	MSG_OOB                       = 0x1
++	MSG_PEEK                      = 0x2
++	MSG_TRUNC                     = 0x10
++	MSG_WAITALL                   = 0x40
++	MSG_WAITFORONE                = 0x200
++	MS_ASYNC                      = 0x10
++	MS_EINTR                      = 0x80
++	MS_INVALIDATE                 = 0x40
++	MS_PER_SEC                    = 0x3e8
++	MS_SYNC                       = 0x20
++	NOFLUSH                       = 0x80000000
++	O_ACCMODE                     = 0x23
++	O_APPEND                      = 0x8
++	O_CIO                         = 0x80
++	O_CIOR                        = 0x800000000
++	O_CLOEXEC                     = 0x800000
++	O_CREAT                       = 0x100
++	O_DEFER                       = 0x2000
++	O_DELAY                       = 0x4000
++	O_DIRECT                      = 0x8000000
++	O_DIRECTORY                   = 0x80000
++	O_DSYNC                       = 0x400000
++	O_EFSOFF                      = 0x400000000
++	O_EFSON                       = 0x200000000
++	O_EXCL                        = 0x400
++	O_EXEC                        = 0x20
++	O_LARGEFILE                   = 0x4000000
++	O_NDELAY                      = 0x8000
++	O_NOCACHE                     = 0x100000
++	O_NOCTTY                      = 0x800
++	O_NOFOLLOW                    = 0x1000000
++	O_NONBLOCK                    = 0x4
++	O_NONE                        = 0x3
++	O_NSHARE                      = 0x10000
++	O_RAW                         = 0x100000000
++	O_RDONLY                      = 0x0
++	O_RDWR                        = 0x2
++	O_RSHARE                      = 0x1000
++	O_RSYNC                       = 0x200000
++	O_SEARCH                      = 0x20
++	O_SNAPSHOT                    = 0x40
++	O_SYNC                        = 0x10
++	O_TRUNC                       = 0x200
++	O_TTY_INIT                    = 0x0
++	O_WRONLY                      = 0x1
++	PENDIN                        = 0x20000000
++	PRIO_PGRP                     = 0x1
++	PRIO_PROCESS                  = 0x0
++	PRIO_USER                     = 0x2
++	PROT_EXEC                     = 0x4
++	PROT_NONE                     = 0x0
++	PROT_READ                     = 0x1
++	PROT_WRITE                    = 0x2
++	PR_64BIT                      = 0x20
++	PR_ADDR                       = 0x2
++	PR_ARGEXT                     = 0x400
++	PR_ATOMIC                     = 0x1
++	PR_CONNREQUIRED               = 0x4
++	PR_FASTHZ                     = 0x5
++	PR_INP                        = 0x40
++	PR_INTRLEVEL                  = 0x8000
++	PR_MLS                        = 0x100
++	PR_MLS_1_LABEL                = 0x200
++	PR_NOEOR                      = 0x4000
++	PR_RIGHTS                     = 0x10
++	PR_SLOWHZ                     = 0x2
++	PR_WANTRCVD                   = 0x8
++	PT_ATTACH                     = 0x1e
++	PT_CLEAR                      = 0x26
++	PT_COMMAND_MAX                = 0x45
++	PT_CONTINUE                   = 0x7
++	PT_DETACH                     = 0x1f
++	PT_GET_UKEY                   = 0x40
++	PT_KILL                       = 0x8
++	PT_LDINFO                     = 0x22
++	PT_LDXINFO                    = 0x27
++	PT_MULTI                      = 0x23
++	PT_NEXT                       = 0x24
++	PT_QUERY                      = 0x28
++	PT_READ_BLOCK                 = 0x11
++	PT_READ_D                     = 0x2
++	PT_READ_FPR                   = 0xc
++	PT_READ_GPR                   = 0xb
++	PT_READ_I                     = 0x1
++	PT_REATT                      = 0x21
++	PT_REGSET                     = 0x20
++	PT_SET                        = 0x25
++	PT_STEP                       = 0x9
++	PT_TRACE_ME                   = 0x0
++	PT_WATCH                      = 0x29
++	PT_WRITE_BLOCK                = 0x13
++	PT_WRITE_D                    = 0x5
++	PT_WRITE_FPR                  = 0xf
++	PT_WRITE_GPR                  = 0xe
++	PT_WRITE_I                    = 0x4
++	RLIMIT_AS                     = 0x6
++	RLIMIT_CORE                   = 0x4
++	RLIMIT_CPU                    = 0x0
++	RLIMIT_DATA                   = 0x2
++	RLIMIT_FSIZE                  = 0x1
++	RLIMIT_NOFILE                 = 0x7
++	RLIMIT_STACK                  = 0x3
++	RLIM_INFINITY                 = 0x7fffffffffffffff
++	RTAX_AUTHOR                   = 0x6
++	RTAX_BRD                      = 0x7
++	RTAX_DST                      = 0x0
++	RTAX_GATEWAY                  = 0x1
++	RTAX_GENMASK                  = 0x3
++	RTAX_IFA                      = 0x5
++	RTAX_IFP                      = 0x4
++	RTAX_MAX                      = 0x8
++	RTAX_NETMASK                  = 0x2
++	RTA_AUTHOR                    = 0x40
++	RTA_BRD                       = 0x80
++	RTA_DOWNSTREAM                = 0x100
++	RTA_DST                       = 0x1
++	RTA_GATEWAY                   = 0x2
++	RTA_GENMASK                   = 0x8
++	RTA_IFA                       = 0x20
++	RTA_IFP                       = 0x10
++	RTA_NETMASK                   = 0x4
++	RTF_ACTIVE_DGD                = 0x1000000
++	RTF_BCE                       = 0x80000
++	RTF_BLACKHOLE                 = 0x1000
++	RTF_BROADCAST                 = 0x400000
++	RTF_BUL                       = 0x2000
++	RTF_CLONE                     = 0x10000
++	RTF_CLONED                    = 0x20000
++	RTF_CLONING                   = 0x100
++	RTF_DONE                      = 0x40
++	RTF_DYNAMIC                   = 0x10
++	RTF_FREE_IN_PROG              = 0x4000000
++	RTF_GATEWAY                   = 0x2
++	RTF_HOST                      = 0x4
++	RTF_LLINFO                    = 0x400
++	RTF_LOCAL                     = 0x200000
++	RTF_MASK                      = 0x80
++	RTF_MODIFIED                  = 0x20
++	RTF_MULTICAST                 = 0x800000
++	RTF_PERMANENT6                = 0x8000000
++	RTF_PINNED                    = 0x100000
++	RTF_PROTO1                    = 0x8000
++	RTF_PROTO2                    = 0x4000
++	RTF_PROTO3                    = 0x40000
++	RTF_REJECT                    = 0x8
++	RTF_SMALLMTU                  = 0x40000
++	RTF_STATIC                    = 0x800
++	RTF_STOPSRCH                  = 0x2000000
++	RTF_UNREACHABLE               = 0x10000000
++	RTF_UP                        = 0x1
++	RTF_XRESOLVE                  = 0x200
++	RTM_ADD                       = 0x1
++	RTM_CHANGE                    = 0x3
++	RTM_DELADDR                   = 0xd
++	RTM_DELETE                    = 0x2
++	RTM_EXPIRE                    = 0xf
++	RTM_GET                       = 0x4
++	RTM_GETNEXT                   = 0x11
++	RTM_IFINFO                    = 0xe
++	RTM_LOCK                      = 0x8
++	RTM_LOSING                    = 0x5
++	RTM_MISS                      = 0x7
++	RTM_NEWADDR                   = 0xc
++	RTM_OLDADD                    = 0x9
++	RTM_OLDDEL                    = 0xa
++	RTM_REDIRECT                  = 0x6
++	RTM_RESOLVE                   = 0xb
++	RTM_RTLOST                    = 0x10
++	RTM_RTTUNIT                   = 0xf4240
++	RTM_SAMEADDR                  = 0x12
++	RTM_SET                       = 0x13
++	RTM_VERSION                   = 0x2
++	RTM_VERSION_GR                = 0x4
++	RTM_VERSION_GR_COMPAT         = 0x3
++	RTM_VERSION_POLICY            = 0x5
++	RTM_VERSION_POLICY_EXT        = 0x6
++	RTM_VERSION_POLICY_PRFN       = 0x7
++	RTV_EXPIRE                    = 0x4
++	RTV_HOPCOUNT                  = 0x2
++	RTV_MTU                       = 0x1
++	RTV_RPIPE                     = 0x8
++	RTV_RTT                       = 0x40
++	RTV_RTTVAR                    = 0x80
++	RTV_SPIPE                     = 0x10
++	RTV_SSTHRESH                  = 0x20
++	RUSAGE_CHILDREN               = -0x1
++	RUSAGE_SELF                   = 0x0
++	RUSAGE_THREAD                 = 0x1
++	SCM_RIGHTS                    = 0x1
++	SHUT_RD                       = 0x0
++	SHUT_RDWR                     = 0x2
++	SHUT_WR                       = 0x1
++	SIGQUEUE_MAX                  = 0x20
++	SIOCADDIFVIPA                 = 0x20006942
++	SIOCADDMTU                    = -0x7ffb9690
++	SIOCADDMULTI                  = -0x7fdf96cf
++	SIOCADDNETID                  = -0x7fd796a9
++	SIOCADDRT                     = -0x7fc78df6
++	SIOCAIFADDR                   = -0x7fbf96e6
++	SIOCATMARK                    = 0x40047307
++	SIOCDARP                      = -0x7fb396e0
++	SIOCDELIFVIPA                 = 0x20006943
++	SIOCDELMTU                    = -0x7ffb968f
++	SIOCDELMULTI                  = -0x7fdf96ce
++	SIOCDELPMTU                   = -0x7fd78ff6
++	SIOCDELRT                     = -0x7fc78df5
++	SIOCDIFADDR                   = -0x7fd796e7
++	SIOCDNETOPT                   = -0x3ffe9680
++	SIOCDX25XLATE                 = -0x7fd7969b
++	SIOCFIFADDR                   = -0x7fdf966d
++	SIOCGARP                      = -0x3fb396da
++	SIOCGETMTUS                   = 0x2000696f
++	SIOCGETSGCNT                  = -0x3feb8acc
++	SIOCGETVIFCNT                 = -0x3feb8acd
++	SIOCGHIWAT                    = 0x40047301
++	SIOCGIFADDR                   = -0x3fd796df
++	SIOCGIFADDRS                  = 0x2000698c
++	SIOCGIFBAUDRATE               = -0x3fd79693
++	SIOCGIFBRDADDR                = -0x3fd796dd
++	SIOCGIFCONF                   = -0x3fef96bb
++	SIOCGIFCONFGLOB               = -0x3fef9670
++	SIOCGIFDSTADDR                = -0x3fd796de
++	SIOCGIFFLAGS                  = -0x3fd796ef
++	SIOCGIFGIDLIST                = 0x20006968
++	SIOCGIFHWADDR                 = -0x3fab966b
++	SIOCGIFMETRIC                 = -0x3fd796e9
++	SIOCGIFMTU                    = -0x3fd796aa
++	SIOCGIFNETMASK                = -0x3fd796db
++	SIOCGIFOPTIONS                = -0x3fd796d6
++	SIOCGISNO                     = -0x3fd79695
++	SIOCGLOADF                    = -0x3ffb967e
++	SIOCGLOWAT                    = 0x40047303
++	SIOCGNETOPT                   = -0x3ffe96a5
++	SIOCGNETOPT1                  = -0x3fdf967f
++	SIOCGNMTUS                    = 0x2000696e
++	SIOCGPGRP                     = 0x40047309
++	SIOCGSIZIFCONF                = 0x4004696a
++	SIOCGSRCFILTER                = -0x3fe796cb
++	SIOCGTUNEPHASE                = -0x3ffb9676
++	SIOCGX25XLATE                 = -0x3fd7969c
++	SIOCIFATTACH                  = -0x7fdf9699
++	SIOCIFDETACH                  = -0x7fdf969a
++	SIOCIFGETPKEY                 = -0x7fdf969b
++	SIOCIF_ATM_DARP               = -0x7fdf9683
++	SIOCIF_ATM_DUMPARP            = -0x7fdf9685
++	SIOCIF_ATM_GARP               = -0x7fdf9682
++	SIOCIF_ATM_IDLE               = -0x7fdf9686
++	SIOCIF_ATM_SARP               = -0x7fdf9681
++	SIOCIF_ATM_SNMPARP            = -0x7fdf9687
++	SIOCIF_ATM_SVC                = -0x7fdf9684
++	SIOCIF_ATM_UBR                = -0x7fdf9688
++	SIOCIF_DEVHEALTH              = -0x7ffb966c
++	SIOCIF_IB_ARP_INCOMP          = -0x7fdf9677
++	SIOCIF_IB_ARP_TIMER           = -0x7fdf9678
++	SIOCIF_IB_CLEAR_PINFO         = -0x3fdf966f
++	SIOCIF_IB_DEL_ARP             = -0x7fdf967f
++	SIOCIF_IB_DEL_PINFO           = -0x3fdf9670
++	SIOCIF_IB_DUMP_ARP            = -0x7fdf9680
++	SIOCIF_IB_GET_ARP             = -0x7fdf967e
++	SIOCIF_IB_GET_INFO            = -0x3f879675
++	SIOCIF_IB_GET_STATS           = -0x3f879672
++	SIOCIF_IB_NOTIFY_ADDR_REM     = -0x3f87966a
++	SIOCIF_IB_RESET_STATS         = -0x3f879671
++	SIOCIF_IB_RESIZE_CQ           = -0x7fdf9679
++	SIOCIF_IB_SET_ARP             = -0x7fdf967d
++	SIOCIF_IB_SET_PKEY            = -0x7fdf967c
++	SIOCIF_IB_SET_PORT            = -0x7fdf967b
++	SIOCIF_IB_SET_QKEY            = -0x7fdf9676
++	SIOCIF_IB_SET_QSIZE           = -0x7fdf967a
++	SIOCLISTIFVIPA                = 0x20006944
++	SIOCSARP                      = -0x7fb396e2
++	SIOCSHIWAT                    = 0xffffffff80047300
++	SIOCSIFADDR                   = -0x7fd796f4
++	SIOCSIFADDRORI                = -0x7fdb9673
++	SIOCSIFBRDADDR                = -0x7fd796ed
++	SIOCSIFDSTADDR                = -0x7fd796f2
++	SIOCSIFFLAGS                  = -0x7fd796f0
++	SIOCSIFGIDLIST                = 0x20006969
++	SIOCSIFMETRIC                 = -0x7fd796e8
++	SIOCSIFMTU                    = -0x7fd796a8
++	SIOCSIFNETDUMP                = -0x7fd796e4
++	SIOCSIFNETMASK                = -0x7fd796ea
++	SIOCSIFOPTIONS                = -0x7fd796d7
++	SIOCSIFSUBCHAN                = -0x7fd796e5
++	SIOCSISNO                     = -0x7fd79694
++	SIOCSLOADF                    = -0x3ffb967d
++	SIOCSLOWAT                    = 0xffffffff80047302
++	SIOCSNETOPT                   = -0x7ffe96a6
++	SIOCSPGRP                     = 0xffffffff80047308
++	SIOCSX25XLATE                 = -0x7fd7969d
++	SOCK_CONN_DGRAM               = 0x6
++	SOCK_DGRAM                    = 0x2
++	SOCK_RAW                      = 0x3
++	SOCK_RDM                      = 0x4
++	SOCK_SEQPACKET                = 0x5
++	SOCK_STREAM                   = 0x1
++	SOL_SOCKET                    = 0xffff
++	SOMAXCONN                     = 0x400
++	SO_ACCEPTCONN                 = 0x2
++	SO_AUDIT                      = 0x8000
++	SO_BROADCAST                  = 0x20
++	SO_CKSUMRECV                  = 0x800
++	SO_DEBUG                      = 0x1
++	SO_DONTROUTE                  = 0x10
++	SO_ERROR                      = 0x1007
++	SO_KEEPALIVE                  = 0x8
++	SO_KERNACCEPT                 = 0x2000
++	SO_LINGER                     = 0x80
++	SO_NOMULTIPATH                = 0x4000
++	SO_NOREUSEADDR                = 0x1000
++	SO_OOBINLINE                  = 0x100
++	SO_PEERID                     = 0x1009
++	SO_RCVBUF                     = 0x1002
++	SO_RCVLOWAT                   = 0x1004
++	SO_RCVTIMEO                   = 0x1006
++	SO_REUSEADDR                  = 0x4
++	SO_REUSEPORT                  = 0x200
++	SO_SNDBUF                     = 0x1001
++	SO_SNDLOWAT                   = 0x1003
++	SO_SNDTIMEO                   = 0x1005
++	SO_TIMESTAMPNS                = 0x100a
++	SO_TYPE                       = 0x1008
++	SO_USELOOPBACK                = 0x40
++	SO_USE_IFBUFS                 = 0x400
++	S_BANDURG                     = 0x400
++	S_EMODFMT                     = 0x3c000000
++	S_ENFMT                       = 0x400
++	S_ERROR                       = 0x100
++	S_HANGUP                      = 0x200
++	S_HIPRI                       = 0x2
++	S_ICRYPTO                     = 0x80000
++	S_IEXEC                       = 0x40
++	S_IFBLK                       = 0x6000
++	S_IFCHR                       = 0x2000
++	S_IFDIR                       = 0x4000
++	S_IFIFO                       = 0x1000
++	S_IFJOURNAL                   = 0x10000
++	S_IFLNK                       = 0xa000
++	S_IFMPX                       = 0x2200
++	S_IFMT                        = 0xf000
++	S_IFPDIR                      = 0x4000000
++	S_IFPSDIR                     = 0x8000000
++	S_IFPSSDIR                    = 0xc000000
++	S_IFREG                       = 0x8000
++	S_IFSOCK                      = 0xc000
++	S_IFSYSEA                     = 0x30000000
++	S_INPUT                       = 0x1
++	S_IREAD                       = 0x100
++	S_IRGRP                       = 0x20
++	S_IROTH                       = 0x4
++	S_IRUSR                       = 0x100
++	S_IRWXG                       = 0x38
++	S_IRWXO                       = 0x7
++	S_IRWXU                       = 0x1c0
++	S_ISGID                       = 0x400
++	S_ISUID                       = 0x800
++	S_ISVTX                       = 0x200
++	S_ITCB                        = 0x1000000
++	S_ITP                         = 0x800000
++	S_IWGRP                       = 0x10
++	S_IWOTH                       = 0x2
++	S_IWRITE                      = 0x80
++	S_IWUSR                       = 0x80
++	S_IXACL                       = 0x2000000
++	S_IXATTR                      = 0x40000
++	S_IXGRP                       = 0x8
++	S_IXINTERFACE                 = 0x100000
++	S_IXMOD                       = 0x40000000
++	S_IXOTH                       = 0x1
++	S_IXUSR                       = 0x40
++	S_MSG                         = 0x8
++	S_OUTPUT                      = 0x4
++	S_RDBAND                      = 0x20
++	S_RDNORM                      = 0x10
++	S_RESERVED1                   = 0x20000
++	S_RESERVED2                   = 0x200000
++	S_RESERVED3                   = 0x400000
++	S_RESERVED4                   = 0x80000000
++	S_RESFMT1                     = 0x10000000
++	S_RESFMT10                    = 0x34000000
++	S_RESFMT11                    = 0x38000000
++	S_RESFMT12                    = 0x3c000000
++	S_RESFMT2                     = 0x14000000
++	S_RESFMT3                     = 0x18000000
++	S_RESFMT4                     = 0x1c000000
++	S_RESFMT5                     = 0x20000000
++	S_RESFMT6                     = 0x24000000
++	S_RESFMT7                     = 0x28000000
++	S_RESFMT8                     = 0x2c000000
++	S_WRBAND                      = 0x80
++	S_WRNORM                      = 0x40
++	TCP_24DAYS_WORTH_OF_SLOWTICKS = 0x3f4800
++	TCP_ACLADD                    = 0x23
++	TCP_ACLBIND                   = 0x26
++	TCP_ACLCLEAR                  = 0x22
++	TCP_ACLDEL                    = 0x24
++	TCP_ACLDENY                   = 0x8
++	TCP_ACLFLUSH                  = 0x21
++	TCP_ACLGID                    = 0x1
++	TCP_ACLLS                     = 0x25
++	TCP_ACLSUBNET                 = 0x4
++	TCP_ACLUID                    = 0x2
++	TCP_CWND_DF                   = 0x16
++	TCP_CWND_IF                   = 0x15
++	TCP_DELAY_ACK_FIN             = 0x2
++	TCP_DELAY_ACK_SYN             = 0x1
++	TCP_FASTNAME                  = 0x101080a
++	TCP_KEEPCNT                   = 0x13
++	TCP_KEEPIDLE                  = 0x11
++	TCP_KEEPINTVL                 = 0x12
++	TCP_LSPRIV                    = 0x29
++	TCP_LUID                      = 0x20
++	TCP_MAXBURST                  = 0x8
++	TCP_MAXDF                     = 0x64
++	TCP_MAXIF                     = 0x64
++	TCP_MAXSEG                    = 0x2
++	TCP_MAXWIN                    = 0xffff
++	TCP_MAXWINDOWSCALE            = 0xe
++	TCP_MAX_SACK                  = 0x4
++	TCP_MSS                       = 0x5b4
++	TCP_NODELAY                   = 0x1
++	TCP_NODELAYACK                = 0x14
++	TCP_NOREDUCE_CWND_EXIT_FRXMT  = 0x19
++	TCP_NOREDUCE_CWND_IN_FRXMT    = 0x18
++	TCP_NOTENTER_SSTART           = 0x17
++	TCP_OPT                       = 0x19
++	TCP_RFC1323                   = 0x4
++	TCP_SETPRIV                   = 0x27
++	TCP_STDURG                    = 0x10
++	TCP_TIMESTAMP_OPTLEN          = 0xc
++	TCP_UNSETPRIV                 = 0x28
++	TIOCCBRK                      = 0x2000747a
++	TIOCCDTR                      = 0x20007478
++	TIOCCONS                      = 0xffffffff80047462
++	TIOCEXCL                      = 0x2000740d
++	TIOCFLUSH                     = 0xffffffff80047410
++	TIOCGETC                      = 0x40067412
++	TIOCGETD                      = 0x40047400
++	TIOCGETP                      = 0x40067408
++	TIOCGLTC                      = 0x40067474
++	TIOCGPGRP                     = 0x40047477
++	TIOCGSID                      = 0x40047448
++	TIOCGSIZE                     = 0x40087468
++	TIOCGWINSZ                    = 0x40087468
++	TIOCHPCL                      = 0x20007402
++	TIOCLBIC                      = 0xffffffff8004747e
++	TIOCLBIS                      = 0xffffffff8004747f
++	TIOCLGET                      = 0x4004747c
++	TIOCLSET                      = 0xffffffff8004747d
++	TIOCMBIC                      = 0xffffffff8004746b
++	TIOCMBIS                      = 0xffffffff8004746c
++	TIOCMGET                      = 0x4004746a
++	TIOCMIWAIT                    = 0xffffffff80047464
++	TIOCMODG                      = 0x40047403
++	TIOCMODS                      = 0xffffffff80047404
++	TIOCMSET                      = 0xffffffff8004746d
++	TIOCM_CAR                     = 0x40
++	TIOCM_CD                      = 0x40
++	TIOCM_CTS                     = 0x20
++	TIOCM_DSR                     = 0x100
++	TIOCM_DTR                     = 0x2
++	TIOCM_LE                      = 0x1
++	TIOCM_RI                      = 0x80
++	TIOCM_RNG                     = 0x80
++	TIOCM_RTS                     = 0x4
++	TIOCM_SR                      = 0x10
++	TIOCM_ST                      = 0x8
++	TIOCNOTTY                     = 0x20007471
++	TIOCNXCL                      = 0x2000740e
++	TIOCOUTQ                      = 0x40047473
++	TIOCPKT                       = 0xffffffff80047470
++	TIOCPKT_DATA                  = 0x0
++	TIOCPKT_DOSTOP                = 0x20
++	TIOCPKT_FLUSHREAD             = 0x1
++	TIOCPKT_FLUSHWRITE            = 0x2
++	TIOCPKT_NOSTOP                = 0x10
++	TIOCPKT_START                 = 0x8
++	TIOCPKT_STOP                  = 0x4
++	TIOCREMOTE                    = 0xffffffff80047469
++	TIOCSBRK                      = 0x2000747b
++	TIOCSDTR                      = 0x20007479
++	TIOCSETC                      = 0xffffffff80067411
++	TIOCSETD                      = 0xffffffff80047401
++	TIOCSETN                      = 0xffffffff8006740a
++	TIOCSETP                      = 0xffffffff80067409
++	TIOCSLTC                      = 0xffffffff80067475
++	TIOCSPGRP                     = 0xffffffff80047476
++	TIOCSSIZE                     = 0xffffffff80087467
++	TIOCSTART                     = 0x2000746e
++	TIOCSTI                       = 0xffffffff80017472
++	TIOCSTOP                      = 0x2000746f
++	TIOCSWINSZ                    = 0xffffffff80087467
++	TIOCUCNTL                     = 0xffffffff80047466
++	TOSTOP                        = 0x10000
++	VTDELAY                       = 0x2000
++	WPARSTART                     = 0x1
++	WPARSTOP                      = 0x2
++	WPARTTYNAME                   = "Global"
++	_FDATAFLUSH                   = 0x2000000000
++)
++
++// Errors
++const (
++	E2BIG           = Errno(0x7)
++	EACCES          = Errno(0xd)
++	EADDRINUSE      = Errno(0x43)
++	EADDRNOTAVAIL   = Errno(0x44)
++	EAFNOSUPPORT    = Errno(0x42)
++	EAGAIN          = Errno(0xb)
++	EALREADY        = Errno(0x38)
++	EBADF           = Errno(0x9)
++	EBADMSG         = Errno(0x78)
++	EBUSY           = Errno(0x10)
++	ECANCELED       = Errno(0x75)
++	ECHILD          = Errno(0xa)
++	ECHRNG          = Errno(0x25)
++	ECLONEME        = Errno(0x52)
++	ECONNABORTED    = Errno(0x48)
++	ECONNREFUSED    = Errno(0x4f)
++	ECONNRESET      = Errno(0x49)
++	ECORRUPT        = Errno(0x59)
++	EDEADLK         = Errno(0x2d)
++	EDESTADDREQ     = Errno(0x3a)
++	EDESTADDRREQ    = Errno(0x3a)
++	EDIST           = Errno(0x35)
++	EDOM            = Errno(0x21)
++	EDQUOT          = Errno(0x58)
++	EEXIST          = Errno(0x11)
++	EFAULT          = Errno(0xe)
++	EFBIG           = Errno(0x1b)
++	EFORMAT         = Errno(0x30)
++	EHOSTDOWN       = Errno(0x50)
++	EHOSTUNREACH    = Errno(0x51)
++	EIDRM           = Errno(0x24)
++	EILSEQ          = Errno(0x74)
++	EINPROGRESS     = Errno(0x37)
++	EINTR           = Errno(0x4)
++	EINVAL          = Errno(0x16)
++	EIO             = Errno(0x5)
++	EISCONN         = Errno(0x4b)
++	EISDIR          = Errno(0x15)
++	EL2HLT          = Errno(0x2c)
++	EL2NSYNC        = Errno(0x26)
++	EL3HLT          = Errno(0x27)
++	EL3RST          = Errno(0x28)
++	ELNRNG          = Errno(0x29)
++	ELOOP           = Errno(0x55)
++	EMEDIA          = Errno(0x6e)
++	EMFILE          = Errno(0x18)
++	EMLINK          = Errno(0x1f)
++	EMSGSIZE        = Errno(0x3b)
++	EMULTIHOP       = Errno(0x7d)
++	ENAMETOOLONG    = Errno(0x56)
++	ENETDOWN        = Errno(0x45)
++	ENETRESET       = Errno(0x47)
++	ENETUNREACH     = Errno(0x46)
++	ENFILE          = Errno(0x17)
++	ENOATTR         = Errno(0x70)
++	ENOBUFS         = Errno(0x4a)
++	ENOCONNECT      = Errno(0x32)
++	ENOCSI          = Errno(0x2b)
++	ENODATA         = Errno(0x7a)
++	ENODEV          = Errno(0x13)
++	ENOENT          = Errno(0x2)
++	ENOEXEC         = Errno(0x8)
++	ENOLCK          = Errno(0x31)
++	ENOLINK         = Errno(0x7e)
++	ENOMEM          = Errno(0xc)
++	ENOMSG          = Errno(0x23)
++	ENOPROTOOPT     = Errno(0x3d)
++	ENOSPC          = Errno(0x1c)
++	ENOSR           = Errno(0x76)
++	ENOSTR          = Errno(0x7b)
++	ENOSYS          = Errno(0x6d)
++	ENOTBLK         = Errno(0xf)
++	ENOTCONN        = Errno(0x4c)
++	ENOTDIR         = Errno(0x14)
++	ENOTEMPTY       = Errno(0x11)
++	ENOTREADY       = Errno(0x2e)
++	ENOTRECOVERABLE = Errno(0x5e)
++	ENOTRUST        = Errno(0x72)
++	ENOTSOCK        = Errno(0x39)
++	ENOTSUP         = Errno(0x7c)
++	ENOTTY          = Errno(0x19)
++	ENXIO           = Errno(0x6)
++	EOPNOTSUPP      = Errno(0x40)
++	EOVERFLOW       = Errno(0x7f)
++	EOWNERDEAD      = Errno(0x5f)
++	EPERM           = Errno(0x1)
++	EPFNOSUPPORT    = Errno(0x41)
++	EPIPE           = Errno(0x20)
++	EPROCLIM        = Errno(0x53)
++	EPROTO          = Errno(0x79)
++	EPROTONOSUPPORT = Errno(0x3e)
++	EPROTOTYPE      = Errno(0x3c)
++	ERANGE          = Errno(0x22)
++	EREMOTE         = Errno(0x5d)
++	ERESTART        = Errno(0x52)
++	EROFS           = Errno(0x1e)
++	ESAD            = Errno(0x71)
++	ESHUTDOWN       = Errno(0x4d)
++	ESOCKTNOSUPPORT = Errno(0x3f)
++	ESOFT           = Errno(0x6f)
++	ESPIPE          = Errno(0x1d)
++	ESRCH           = Errno(0x3)
++	ESTALE          = Errno(0x34)
++	ESYSERROR       = Errno(0x5a)
++	ETIME           = Errno(0x77)
++	ETIMEDOUT       = Errno(0x4e)
++	ETOOMANYREFS    = Errno(0x73)
++	ETXTBSY         = Errno(0x1a)
++	EUNATCH         = Errno(0x2a)
++	EUSERS          = Errno(0x54)
++	EWOULDBLOCK     = Errno(0xb)
++	EWRPROTECT      = Errno(0x2f)
++	EXDEV           = Errno(0x12)
++)
++
++// Signals
++const (
++	SIGABRT     = Signal(0x6)
++	SIGAIO      = Signal(0x17)
++	SIGALRM     = Signal(0xe)
++	SIGALRM1    = Signal(0x26)
++	SIGBUS      = Signal(0xa)
++	SIGCAPI     = Signal(0x31)
++	SIGCHLD     = Signal(0x14)
++	SIGCLD      = Signal(0x14)
++	SIGCONT     = Signal(0x13)
++	SIGCPUFAIL  = Signal(0x3b)
++	SIGDANGER   = Signal(0x21)
++	SIGEMT      = Signal(0x7)
++	SIGFPE      = Signal(0x8)
++	SIGGRANT    = Signal(0x3c)
++	SIGHUP      = Signal(0x1)
++	SIGILL      = Signal(0x4)
++	SIGINT      = Signal(0x2)
++	SIGIO       = Signal(0x17)
++	SIGIOINT    = Signal(0x10)
++	SIGIOT      = Signal(0x6)
++	SIGKAP      = Signal(0x3c)
++	SIGKILL     = Signal(0x9)
++	SIGLOST     = Signal(0x6)
++	SIGMAX      = Signal(0xff)
++	SIGMAX32    = Signal(0x3f)
++	SIGMAX64    = Signal(0xff)
++	SIGMIGRATE  = Signal(0x23)
++	SIGMSG      = Signal(0x1b)
++	SIGPIPE     = Signal(0xd)
++	SIGPOLL     = Signal(0x17)
++	SIGPRE      = Signal(0x24)
++	SIGPROF     = Signal(0x20)
++	SIGPTY      = Signal(0x17)
++	SIGPWR      = Signal(0x1d)
++	SIGQUIT     = Signal(0x3)
++	SIGRECONFIG = Signal(0x3a)
++	SIGRETRACT  = Signal(0x3d)
++	SIGSAK      = Signal(0x3f)
++	SIGSEGV     = Signal(0xb)
++	SIGSOUND    = Signal(0x3e)
++	SIGSTOP     = Signal(0x11)
++	SIGSYS      = Signal(0xc)
++	SIGSYSERROR = Signal(0x30)
++	SIGTALRM    = Signal(0x26)
++	SIGTERM     = Signal(0xf)
++	SIGTRAP     = Signal(0x5)
++	SIGTSTP     = Signal(0x12)
++	SIGTTIN     = Signal(0x15)
++	SIGTTOU     = Signal(0x16)
++	SIGURG      = Signal(0x10)
++	SIGUSR1     = Signal(0x1e)
++	SIGUSR2     = Signal(0x1f)
++	SIGVIRT     = Signal(0x25)
++	SIGVTALRM   = Signal(0x22)
++	SIGWAITING  = Signal(0x27)
++	SIGWINCH    = Signal(0x1c)
++	SIGXCPU     = Signal(0x18)
++	SIGXFSZ     = Signal(0x19)
++)
++
++// Error table
++var errors = [...]string{
++	1:   "not owner",
++	2:   "no such file or directory",
++	3:   "no such process",
++	4:   "interrupted system call",
++	5:   "I/O error",
++	6:   "no such device or address",
++	7:   "arg list too long",
++	8:   "exec format error",
++	9:   "bad file number",
++	10:  "no child processes",
++	11:  "resource temporarily unavailable",
++	12:  "not enough space",
++	13:  "permission denied",
++	14:  "bad address",
++	15:  "block device required",
++	16:  "device busy",
++	17:  "file exists",
++	18:  "cross-device link",
++	19:  "no such device",
++	20:  "not a directory",
++	21:  "is a directory",
++	22:  "invalid argument",
++	23:  "file table overflow",
++	24:  "too many open files",
++	25:  "not a typewriter",
++	26:  "text file busy",
++	27:  "file too large",
++	28:  "no space left on device",
++	29:  "illegal seek",
++	30:  "read-only file system",
++	31:  "too many links",
++	32:  "broken pipe",
++	33:  "argument out of domain",
++	34:  "result too large",
++	35:  "no message of desired type",
++	36:  "identifier removed",
++	37:  "channel number out of range",
++	38:  "level 2 not synchronized",
++	39:  "level 3 halted",
++	40:  "level 3 reset",
++	41:  "link number out of range",
++	42:  "protocol driver not attached",
++	43:  "no CSI structure available",
++	44:  "level 2 halted",
++	45:  "deadlock condition if locked",
++	46:  "device not ready",
++	47:  "write-protected media",
++	48:  "unformatted or incompatible media",
++	49:  "no locks available",
++	50:  "cannot Establish Connection",
++	52:  "missing file or filesystem",
++	53:  "requests blocked by Administrator",
++	55:  "operation now in progress",
++	56:  "operation already in progress",
++	57:  "socket operation on non-socket",
++	58:  "destination address required",
++	59:  "message too long",
++	60:  "protocol wrong type for socket",
++	61:  "protocol not available",
++	62:  "protocol not supported",
++	63:  "socket type not supported",
++	64:  "operation not supported on socket",
++	65:  "protocol family not supported",
++	66:  "addr family not supported by protocol",
++	67:  "address already in use",
++	68:  "can't assign requested address",
++	69:  "network is down",
++	70:  "network is unreachable",
++	71:  "network dropped connection on reset",
++	72:  "software caused connection abort",
++	73:  "connection reset by peer",
++	74:  "no buffer space available",
++	75:  "socket is already connected",
++	76:  "socket is not connected",
++	77:  "can't send after socket shutdown",
++	78:  "connection timed out",
++	79:  "connection refused",
++	80:  "host is down",
++	81:  "no route to host",
++	82:  "restart the system call",
++	83:  "too many processes",
++	84:  "too many users",
++	85:  "too many levels of symbolic links",
++	86:  "file name too long",
++	88:  "disk quota exceeded",
++	89:  "invalid file system control data detected",
++	90:  "for future use ",
++	93:  "item is not local to host",
++	94:  "state not recoverable ",
++	95:  "previous owner died ",
++	109: "function not implemented",
++	110: "media surface error",
++	111: "I/O completed, but needs relocation",
++	112: "no attribute found",
++	113: "security Authentication Denied",
++	114: "not a Trusted Program",
++	115: "too many references: can't splice",
++	116: "invalid wide character",
++	117: "asynchronous I/O cancelled",
++	118: "out of STREAMS resources",
++	119: "system call timed out",
++	120: "next message has wrong type",
++	121: "error in protocol",
++	122: "no message on stream head read q",
++	123: "fd not associated with a stream",
++	124: "unsupported attribute value",
++	125: "multihop is not allowed",
++	126: "the server link has been severed",
++	127: "value too large to be stored in data type",
++}
++
++// Signal table
++var signals = [...]string{
++	1:   "hangup",
++	2:   "interrupt",
++	3:   "quit",
++	4:   "illegal instruction",
++	5:   "trace/BPT trap",
++	6:   "IOT/Abort trap",
++	7:   "EMT trap",
++	8:   "floating point exception",
++	9:   "killed",
++	10:  "bus error",
++	11:  "segmentation fault",
++	12:  "bad system call",
++	13:  "broken pipe",
++	14:  "alarm clock",
++	15:  "terminated",
++	16:  "urgent I/O condition",
++	17:  "stopped (signal)",
++	18:  "stopped",
++	19:  "continued",
++	20:  "child exited",
++	21:  "stopped (tty input)",
++	22:  "stopped (tty output)",
++	23:  "I/O possible/complete",
++	24:  "cputime limit exceeded",
++	25:  "filesize limit exceeded",
++	27:  "input device data",
++	28:  "window size changes",
++	29:  "power-failure",
++	30:  "user defined signal 1",
++	31:  "user defined signal 2",
++	32:  "profiling timer expired",
++	33:  "paging space low",
++	34:  "virtual timer expired",
++	35:  "signal 35",
++	36:  "signal 36",
++	37:  "signal 37",
++	38:  "signal 38",
++	39:  "signal 39",
++	48:  "signal 48",
++	49:  "signal 49",
++	58:  "signal 58",
++	59:  "CPU Failure Predicted",
++	60:  "monitor mode granted",
++	61:  "monitor mode retracted",
++	62:  "sound completed",
++	63:  "secure attention",
++	255: "signal 255",
++}
+diff --git a/src/syscall/zsyscall_aix_ppc64.go b/src/syscall/zsyscall_aix_ppc64.go
+new file mode 100644
+index 0000000..d9f0099
+--- /dev/null
++++ b/src/syscall/zsyscall_aix_ppc64.go
+@@ -0,0 +1,1167 @@
++// mksyscall_lib.pl -aix -tags aix,ppc64 syscall_aix.go syscall_aix_ppc64.go
++// Code generated by the command above; DO NOT EDIT.
++
++// +build aix,ppc64
++
++package syscall
++
++import "unsafe"
++
++//go:cgo_import_dynamic libc_fcntl fcntl "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_dup2 dup2 "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_pipe pipe "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_readlink readlink "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_utimes utimes "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_utimensat utimensat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_unlinkat unlinkat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getcwd getcwd "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getgroups getgroups "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setgroups setgroups "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getdirent getdirent "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_wait4 wait4 "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_bind bind "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_connect connect "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getkerninfo getkerninfo "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getsockopt getsockopt "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Listen listen "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_setsockopt setsockopt "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_socket socket "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_socketpair socketpair "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getpeername getpeername "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_getsockname getsockname "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_recvfrom recvfrom "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sendto sendto "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Shutdown shutdown "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_recvmsg recvmsg "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_sendmsg sendmsg "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_accept accept "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Openat openat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_ptrace64 ptrace64 "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Acct acct "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Chdir chdir "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Chmod chmod "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Chown chown "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Close close "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Dup dup "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Faccessat faccessat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fchdir fchdir "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fchmod fchmod "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fchmodat fchmodat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fchown fchown "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fchownat fchownat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fpathconf fpathconf "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fstat fstat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fstatfs fstatfs "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Ftruncate ftruncate "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Fsync fsync "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getgid getgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getpid getpid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Geteuid geteuid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getegid getegid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getppid getppid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getrlimit getrlimit "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Getuid getuid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Kill kill "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Lchown lchown "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Link link "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Lstat lstat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Mkdir mkdir "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Mkdirat mkdirat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Mknodat mknodat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Open open "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Pread pread "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Pwrite pwrite "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_read read "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Reboot reboot "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Rename rename "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Renameat renameat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Rmdir rmdir "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_lseek lseek "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setegid setegid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Seteuid seteuid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setgid setgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setpgid setpgid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setregid setregid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Setreuid setreuid "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Stat stat "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Statfs statfs "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Symlink symlink "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Truncate truncate "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Umask umask "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Unlink unlink "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_Uname uname "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_write write "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_gettimeofday gettimeofday "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_mmap mmap "libc.a/shr_64.o"
++//go:cgo_import_dynamic libc_munmap munmap "libc.a/shr_64.o"
++
++//go:linkname libc_fcntl libc_fcntl
++//go:linkname libc_dup2 libc_dup2
++//go:linkname libc_pipe libc_pipe
++//go:linkname libc_readlink libc_readlink
++//go:linkname libc_utimes libc_utimes
++//go:linkname libc_utimensat libc_utimensat
++//go:linkname libc_unlinkat libc_unlinkat
++//go:linkname libc_getcwd libc_getcwd
++//go:linkname libc_getgroups libc_getgroups
++//go:linkname libc_setgroups libc_setgroups
++//go:linkname libc_getdirent libc_getdirent
++//go:linkname libc_wait4 libc_wait4
++//go:linkname libc_bind libc_bind
++//go:linkname libc_connect libc_connect
++//go:linkname libc_Getkerninfo libc_Getkerninfo
++//go:linkname libc_getsockopt libc_getsockopt
++//go:linkname libc_Listen libc_Listen
++//go:linkname libc_setsockopt libc_setsockopt
++//go:linkname libc_socket libc_socket
++//go:linkname libc_socketpair libc_socketpair
++//go:linkname libc_getpeername libc_getpeername
++//go:linkname libc_getsockname libc_getsockname
++//go:linkname libc_recvfrom libc_recvfrom
++//go:linkname libc_sendto libc_sendto
++//go:linkname libc_Shutdown libc_Shutdown
++//go:linkname libc_recvmsg libc_recvmsg
++//go:linkname libc_sendmsg libc_sendmsg
++//go:linkname libc_accept libc_accept
++//go:linkname libc_Openat libc_Openat
++//go:linkname libc_ptrace64 libc_ptrace64
++//go:linkname libc_Acct libc_Acct
++//go:linkname libc_Chdir libc_Chdir
++//go:linkname libc_Chmod libc_Chmod
++//go:linkname libc_Chown libc_Chown
++//go:linkname libc_Close libc_Close
++//go:linkname libc_Dup libc_Dup
++//go:linkname libc_Faccessat libc_Faccessat
++//go:linkname libc_Fchdir libc_Fchdir
++//go:linkname libc_Fchmod libc_Fchmod
++//go:linkname libc_Fchmodat libc_Fchmodat
++//go:linkname libc_Fchown libc_Fchown
++//go:linkname libc_Fchownat libc_Fchownat
++//go:linkname libc_Fpathconf libc_Fpathconf
++//go:linkname libc_Fstat libc_Fstat
++//go:linkname libc_Fstatfs libc_Fstatfs
++//go:linkname libc_Ftruncate libc_Ftruncate
++//go:linkname libc_Fsync libc_Fsync
++//go:linkname libc_Getgid libc_Getgid
++//go:linkname libc_Getpid libc_Getpid
++//go:linkname libc_Geteuid libc_Geteuid
++//go:linkname libc_Getegid libc_Getegid
++//go:linkname libc_Getppid libc_Getppid
++//go:linkname libc_Getrlimit libc_Getrlimit
++//go:linkname libc_Getuid libc_Getuid
++//go:linkname libc_Kill libc_Kill
++//go:linkname libc_Lchown libc_Lchown
++//go:linkname libc_Link libc_Link
++//go:linkname libc_Lstat libc_Lstat
++//go:linkname libc_Mkdir libc_Mkdir
++//go:linkname libc_Mkdirat libc_Mkdirat
++//go:linkname libc_Mknodat libc_Mknodat
++//go:linkname libc_Open libc_Open
++//go:linkname libc_Pread libc_Pread
++//go:linkname libc_Pwrite libc_Pwrite
++//go:linkname libc_read libc_read
++//go:linkname libc_Reboot libc_Reboot
++//go:linkname libc_Rename libc_Rename
++//go:linkname libc_Renameat libc_Renameat
++//go:linkname libc_Rmdir libc_Rmdir
++//go:linkname libc_lseek libc_lseek
++//go:linkname libc_Setegid libc_Setegid
++//go:linkname libc_Seteuid libc_Seteuid
++//go:linkname libc_Setgid libc_Setgid
++//go:linkname libc_Setpgid libc_Setpgid
++//go:linkname libc_Setregid libc_Setregid
++//go:linkname libc_Setreuid libc_Setreuid
++//go:linkname libc_Stat libc_Stat
++//go:linkname libc_Statfs libc_Statfs
++//go:linkname libc_Symlink libc_Symlink
++//go:linkname libc_Truncate libc_Truncate
++//go:linkname libc_Umask libc_Umask
++//go:linkname libc_Unlink libc_Unlink
++//go:linkname libc_Uname libc_Uname
++//go:linkname libc_write libc_write
++//go:linkname libc_gettimeofday libc_gettimeofday
++//go:linkname libc_mmap libc_mmap
++//go:linkname libc_munmap libc_munmap
++
++type libcFunc uintptr
++
++var (
++	libc_fcntl,
++	libc_dup2,
++	libc_pipe,
++	libc_readlink,
++	libc_utimes,
++	libc_utimensat,
++	libc_unlinkat,
++	libc_getcwd,
++	libc_getgroups,
++	libc_setgroups,
++	libc_getdirent,
++	libc_wait4,
++	libc_bind,
++	libc_connect,
++	libc_Getkerninfo,
++	libc_getsockopt,
++	libc_Listen,
++	libc_setsockopt,
++	libc_socket,
++	libc_socketpair,
++	libc_getpeername,
++	libc_getsockname,
++	libc_recvfrom,
++	libc_sendto,
++	libc_Shutdown,
++	libc_recvmsg,
++	libc_sendmsg,
++	libc_accept,
++	libc_Openat,
++	libc_ptrace64,
++	libc_Acct,
++	libc_Chdir,
++	libc_Chmod,
++	libc_Chown,
++	libc_Close,
++	libc_Dup,
++	libc_Faccessat,
++	libc_Fchdir,
++	libc_Fchmod,
++	libc_Fchmodat,
++	libc_Fchown,
++	libc_Fchownat,
++	libc_Fpathconf,
++	libc_Fstat,
++	libc_Fstatfs,
++	libc_Ftruncate,
++	libc_Fsync,
++	libc_Getgid,
++	libc_Getpid,
++	libc_Geteuid,
++	libc_Getegid,
++	libc_Getppid,
++	libc_Getrlimit,
++	libc_Getuid,
++	libc_Kill,
++	libc_Lchown,
++	libc_Link,
++	libc_Lstat,
++	libc_Mkdir,
++	libc_Mkdirat,
++	libc_Mknodat,
++	libc_Open,
++	libc_Pread,
++	libc_Pwrite,
++	libc_read,
++	libc_Reboot,
++	libc_Rename,
++	libc_Renameat,
++	libc_Rmdir,
++	libc_lseek,
++	libc_Setegid,
++	libc_Seteuid,
++	libc_Setgid,
++	libc_Setpgid,
++	libc_Setregid,
++	libc_Setreuid,
++	libc_Stat,
++	libc_Statfs,
++	libc_Symlink,
++	libc_Truncate,
++	libc_Umask,
++	libc_Unlink,
++	libc_Uname,
++	libc_write,
++	libc_gettimeofday,
++	libc_mmap,
++	libc_munmap libcFunc
++)
++
++func fcntl(fd int, cmd int, arg int) (val int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_fcntl)), 3, uintptr(fd), uintptr(cmd), uintptr(arg), 0, 0, 0)
++	val = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func dup2(old int, new int) (val int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_dup2)), 2, uintptr(old), uintptr(new), 0, 0, 0, 0)
++	val = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func pipe(p *[2]_C_int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_pipe)), 1, uintptr(unsafe.Pointer(p)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func readlink(path string, buf []byte, bufSize uint64) (n int, err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	var _p1 *byte
++	if len(buf) > 0 {
++		_p1 = &buf[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_readlink)), 4, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(_p1)), uintptr(len(buf)), uintptr(bufSize), 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func utimes(path string, times *[2]Timeval) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_utimes)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(times)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func utimensat(dirfd int, path string, times *[2]Timespec, flag int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_utimensat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(times)), uintptr(flag), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func unlinkat(dirfd int, path string, flags int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_unlinkat)), 3, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(flags), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getcwd(buf *byte, size uint64) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_getcwd)), 2, uintptr(unsafe.Pointer(buf)), uintptr(size), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getgroups(ngid int, gid *_Gid_t) (n int, err error) {
++	r0, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_getgroups)), 2, uintptr(ngid), uintptr(unsafe.Pointer(gid)), 0, 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func setgroups(ngid int, gid *_Gid_t) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_setgroups)), 2, uintptr(ngid), uintptr(unsafe.Pointer(gid)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getdirent(fd int, buf []byte) (n int, err error) {
++	var _p0 *byte
++	if len(buf) > 0 {
++		_p0 = &buf[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_getdirent)), 3, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func wait4(pid Pid_t, status *_C_int, options int, rusage *Rusage) (wpid Pid_t, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_wait4)), 4, uintptr(pid), uintptr(unsafe.Pointer(status)), uintptr(options), uintptr(unsafe.Pointer(rusage)), 0, 0)
++	wpid = Pid_t(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_bind)), 3, uintptr(s), uintptr(addr), uintptr(addrlen), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_connect)), 3, uintptr(s), uintptr(addr), uintptr(addrlen), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Getkerninfo(op int32, where uintptr, size uintptr, arg int64) (i int32, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Getkerninfo)), 4, uintptr(op), uintptr(where), uintptr(size), uintptr(arg), 0, 0)
++	i = int32(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getsockopt(s int, level int, name int, val unsafe.Pointer, vallen *_Socklen) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_getsockopt)), 5, uintptr(s), uintptr(level), uintptr(name), uintptr(val), uintptr(unsafe.Pointer(vallen)), 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Listen(s int, backlog int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Listen)), 2, uintptr(s), uintptr(backlog), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_setsockopt)), 5, uintptr(s), uintptr(level), uintptr(name), uintptr(val), uintptr(vallen), 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func socket(domain int, typ int, proto int) (fd int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_socket)), 3, uintptr(domain), uintptr(typ), uintptr(proto), 0, 0, 0)
++	fd = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func socketpair(domain int, typ int, proto int, fd *[2]int32) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_socketpair)), 4, uintptr(domain), uintptr(typ), uintptr(proto), uintptr(unsafe.Pointer(fd)), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getpeername(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_getpeername)), 3, uintptr(fd), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func getsockname(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_getsockname)), 3, uintptr(fd), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error) {
++	var _p0 *byte
++	if len(p) > 0 {
++		_p0 = &p[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_recvfrom)), 6, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), uintptr(flags), uintptr(unsafe.Pointer(from)), uintptr(unsafe.Pointer(fromlen)))
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error) {
++	var _p0 *byte
++	if len(buf) > 0 {
++		_p0 = &buf[0]
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_sendto)), 6, uintptr(s), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), uintptr(flags), uintptr(to), uintptr(addrlen))
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Shutdown(s int, how int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Shutdown)), 2, uintptr(s), uintptr(how), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func recvmsg(s int, msg *Msghdr, flags int) (n int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_recvmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func sendmsg(s int, msg *Msghdr, flags int) (n int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_sendmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func accept(s int, rsa *RawSockaddrAny, addrlen *_Socklen) (fd int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_accept)), 3, uintptr(s), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
++	fd = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Openat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(flags), uintptr(mode), 0, 0)
++	fd = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func ptrace64(request int, id int64, addr int64, data int, buff uintptr) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_ptrace64)), 5, uintptr(request), uintptr(id), uintptr(addr), uintptr(data), uintptr(buff), 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Acct(path string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Acct)), 1, uintptr(unsafe.Pointer(_p0)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Chdir(path string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Chdir)), 1, uintptr(unsafe.Pointer(_p0)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Chmod(path string, mode uint32) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Chmod)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(mode), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Chown(path string, uid int, gid int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Chown)), 3, uintptr(unsafe.Pointer(_p0)), uintptr(uid), uintptr(gid), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Close(fd int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Close)), 1, uintptr(fd), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Dup(fd int) (nfd int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Dup)), 1, uintptr(fd), 0, 0, 0, 0, 0)
++	nfd = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Faccessat(dirfd int, path string, mode uint32, flags int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Faccessat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(mode), uintptr(flags), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fchdir(fd int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fchdir)), 1, uintptr(fd), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fchmod(fd int, mode uint32) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fchmod)), 2, uintptr(fd), uintptr(mode), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fchmodat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(mode), uintptr(flags), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fchown(fd int, uid int, gid int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fchown)), 3, uintptr(fd), uintptr(uid), uintptr(gid), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fchownat)), 5, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(uid), uintptr(gid), uintptr(flags), 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fpathconf(fd int, name int) (val int, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fpathconf)), 2, uintptr(fd), uintptr(name), 0, 0, 0, 0)
++	val = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fstat(fd int, stat *Stat_t) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fstat)), 2, uintptr(fd), uintptr(unsafe.Pointer(stat)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fstatfs(fd int, buf *Statfs_t) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fstatfs)), 2, uintptr(fd), uintptr(unsafe.Pointer(buf)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Ftruncate(fd int, length int64) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Ftruncate)), 2, uintptr(fd), uintptr(length), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Fsync(fd int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Fsync)), 1, uintptr(fd), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Getgid() (gid int) {
++	r0, _, _ := rawSyscall6(uintptr(unsafe.Pointer(&libc_Getgid)), 0, 0, 0, 0, 0, 0, 0)
++	gid = int(r0)
++	return
++}
++
++func Getpid() (pid int) {
++	r0, _, _ := rawSyscall6(uintptr(unsafe.Pointer(&libc_Getpid)), 0, 0, 0, 0, 0, 0, 0)
++	pid = int(r0)
++	return
++}
++
++func Geteuid() (euid int) {
++	r0, _, _ := syscall6(uintptr(unsafe.Pointer(&libc_Geteuid)), 0, 0, 0, 0, 0, 0, 0)
++	euid = int(r0)
++	return
++}
++
++func Getegid() (egid int) {
++	r0, _, _ := syscall6(uintptr(unsafe.Pointer(&libc_Getegid)), 0, 0, 0, 0, 0, 0, 0)
++	egid = int(r0)
++	return
++}
++
++func Getppid() (ppid int) {
++	r0, _, _ := syscall6(uintptr(unsafe.Pointer(&libc_Getppid)), 0, 0, 0, 0, 0, 0, 0)
++	ppid = int(r0)
++	return
++}
++
++func Getrlimit(which int, lim *Rlimit) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Getrlimit)), 2, uintptr(which), uintptr(unsafe.Pointer(lim)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Getuid() (uid int) {
++	r0, _, _ := rawSyscall6(uintptr(unsafe.Pointer(&libc_Getuid)), 0, 0, 0, 0, 0, 0, 0)
++	uid = int(r0)
++	return
++}
++
++func Kill(pid int, signum Signal) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Kill)), 2, uintptr(pid), uintptr(signum), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Lchown(path string, uid int, gid int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Lchown)), 3, uintptr(unsafe.Pointer(_p0)), uintptr(uid), uintptr(gid), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Link(path string, link string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	var _p1 *byte
++	_p1, err = BytePtrFromString(link)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Link)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(_p1)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Lstat(path string, stat *Stat_t) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Lstat)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(stat)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Mkdir(path string, mode uint32) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Mkdir)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(mode), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Mkdirat(dirfd int, path string, mode uint32) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Mkdirat)), 3, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(mode), 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Mknodat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(mode), uintptr(dev), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Open(path string, mode int, perm uint32) (fd int, err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Open)), 3, uintptr(unsafe.Pointer(_p0)), uintptr(mode), uintptr(perm), 0, 0, 0)
++	fd = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Pread(fd int, p []byte, offset int64) (n int, err error) {
++	var _p0 *byte
++	if len(p) > 0 {
++		_p0 = &p[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Pread)), 4, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), uintptr(offset), 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Pwrite(fd int, p []byte, offset int64) (n int, err error) {
++	var _p0 *byte
++	if len(p) > 0 {
++		_p0 = &p[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Pwrite)), 4, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), uintptr(offset), 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func read(fd int, p []byte) (n int, err error) {
++	var _p0 *byte
++	if len(p) > 0 {
++		_p0 = &p[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_read)), 3, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Reboot(how int) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Reboot)), 1, uintptr(how), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Rename(from string, to string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(from)
++	if err != nil {
++		return
++	}
++	var _p1 *byte
++	_p1, err = BytePtrFromString(to)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Rename)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(_p1)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(oldpath)
++	if err != nil {
++		return
++	}
++	var _p1 *byte
++	_p1, err = BytePtrFromString(newpath)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Renameat)), 4, uintptr(olddirfd), uintptr(unsafe.Pointer(_p0)), uintptr(newdirfd), uintptr(unsafe.Pointer(_p1)), 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Rmdir(path string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Rmdir)), 1, uintptr(unsafe.Pointer(_p0)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_lseek)), 3, uintptr(fd), uintptr(offset), uintptr(whence), 0, 0, 0)
++	newoffset = int64(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Setegid(egid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setegid)), 1, uintptr(egid), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Seteuid(euid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Seteuid)), 1, uintptr(euid), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Setgid(gid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setgid)), 1, uintptr(gid), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Setpgid(pid int, pgid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setpgid)), 2, uintptr(pid), uintptr(pgid), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Setregid(rgid int, egid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setregid)), 2, uintptr(rgid), uintptr(egid), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Setreuid(ruid int, euid int) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Setreuid)), 2, uintptr(ruid), uintptr(euid), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Stat(path string, stat *Stat_t) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Stat)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(stat)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Statfs(path string, buf *Statfs_t) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Statfs)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(buf)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Symlink(path string, link string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	var _p1 *byte
++	_p1, err = BytePtrFromString(link)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Symlink)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(_p1)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Truncate(path string, length int64) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Truncate)), 2, uintptr(unsafe.Pointer(_p0)), uintptr(length), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Umask(newmask int) (oldmask int) {
++	r0, _, _ := syscall6(uintptr(unsafe.Pointer(&libc_Umask)), 1, uintptr(newmask), 0, 0, 0, 0, 0)
++	oldmask = int(r0)
++	return
++}
++
++func Unlink(path string) (err error) {
++	var _p0 *byte
++	_p0, err = BytePtrFromString(path)
++	if err != nil {
++		return
++	}
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_Unlink)), 1, uintptr(unsafe.Pointer(_p0)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func Uname(buf *Utsname) (err error) {
++	_, _, e1 := rawSyscall6(uintptr(unsafe.Pointer(&libc_Uname)), 1, uintptr(unsafe.Pointer(buf)), 0, 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func write(fd int, p []byte) (n int, err error) {
++	var _p0 *byte
++	if len(p) > 0 {
++		_p0 = &p[0]
++	}
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_write)), 3, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), 0, 0, 0)
++	n = int(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func gettimeofday(tv *Timeval, tzp *Timezone) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_gettimeofday)), 2, uintptr(unsafe.Pointer(tv)), uintptr(unsafe.Pointer(tzp)), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (ret uintptr, err error) {
++	r0, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_mmap)), 6, uintptr(addr), uintptr(length), uintptr(prot), uintptr(flag), uintptr(fd), uintptr(pos))
++	ret = uintptr(r0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
++
++func munmap(addr uintptr, length uintptr) (err error) {
++	_, _, e1 := syscall6(uintptr(unsafe.Pointer(&libc_munmap)), 2, uintptr(addr), uintptr(length), 0, 0, 0, 0)
++	if e1 != 0 {
++		err = errnoErr(e1)
++	}
++	return
++}
+diff --git a/src/syscall/ztypes_aix_ppc64.go b/src/syscall/ztypes_aix_ppc64.go
+new file mode 100644
+index 0000000..4fbbe23
+--- /dev/null
++++ b/src/syscall/ztypes_aix_ppc64.go
+@@ -0,0 +1,272 @@
++// Code generated by cmd/cgo -godefs; DO NOT EDIT.
++// cgo -godefs types_aix.go | go run mkpost.go
++
++package syscall
++
++const (
++	sizeofPtr      = 0x8
++	sizeofShort    = 0x2
++	sizeofInt      = 0x4
++	sizeofLong     = 0x8
++	sizeofLongLong = 0x8
++	PathMax        = 0x3ff
++)
++
++type (
++	_C_short     int16
++	_C_int       int32
++	_C_long      int64
++	_C_long_long int64
++)
++
++type Timespec struct {
++	Sec  int64
++	Nsec int64
++}
++
++type Timeval struct {
++	Sec       int64
++	Usec      int32
++	Pad_cgo_0 [4]byte
++}
++
++type Timeval32 struct {
++	Sec  int32
++	Usec int32
++}
++
++type Timezone struct {
++	Minuteswest int32
++	Dsttime     int32
++}
++
++type Rusage struct {
++	Utime    Timeval
++	Stime    Timeval
++	Maxrss   int64
++	Ixrss    int64
++	Idrss    int64
++	Isrss    int64
++	Minflt   int64
++	Majflt   int64
++	Nswap    int64
++	Inblock  int64
++	Oublock  int64
++	Msgsnd   int64
++	Msgrcv   int64
++	Nsignals int64
++	Nvcsw    int64
++	Nivcsw   int64
++}
++
++type Rlimit struct {
++	Cur uint64
++	Max uint64
++}
++
++type Pid_t int32
++
++type _Gid_t uint32
++
++type Flock_t struct {
++	Type   int16
++	Whence int16
++	Sysid  uint32
++	Pid    int32
++	Vfs    int32
++	Start  int64
++	Len    int64
++}
++
++type Stat_t struct {
++	Dev       uint64
++	Ino       uint64
++	Mode      uint32
++	Nlink     int16
++	Flag      uint16
++	Uid       uint32
++	Gid       uint32
++	Rdev      uint64
++	Ssize     int32
++	Pad_cgo_0 [4]byte
++	Atim      StTimespec_t
++	Mtim      StTimespec_t
++	Ctim      StTimespec_t
++	Blksize   int64
++	Blocks    int64
++	Vfstype   int32
++	Vfs       uint32
++	Type      uint32
++	Gen       uint32
++	Reserved  [9]uint32
++	Padto_ll  uint32
++	Size      int64
++}
++
++type Statfs_t struct {
++	Version   int32
++	Type      int32
++	Bsize     uint64
++	Blocks    uint64
++	Bfree     uint64
++	Bavail    uint64
++	Files     uint64
++	Ffree     uint64
++	Fsid      Fsid64_t
++	Vfstype   int32
++	Pad_cgo_0 [4]byte
++	Fsize     uint64
++	Vfsnumber int32
++	Vfsoff    int32
++	Vfslen    int32
++	Vfsvers   int32
++	Fname     [32]uint8
++	Fpack     [32]uint8
++	Name_max  int32
++	Pad_cgo_1 [4]byte
++}
++
++type Fsid64_t struct {
++	Val [2]uint64
++}
++
++type StTimespec_t struct {
++	Sec       int64
++	Nsec      int32
++	Pad_cgo_0 [4]byte
++}
++
++type Dirent struct {
++	Offset    uint64
++	Ino       uint64
++	Reclen    uint16
++	Namlen    uint16
++	Name      [256]uint8
++	Pad_cgo_0 [4]byte
++}
++
++type RawSockaddrInet4 struct {
++	Len    uint8
++	Family uint8
++	Port   uint16
++	Addr   [4]byte /* in_addr */
++	Zero   [8]uint8
++}
++
++type RawSockaddrInet6 struct {
++	Len      uint8
++	Family   uint8
++	Port     uint16
++	Flowinfo uint32
++	Addr     [16]byte /* in6_addr */
++	Scope_id uint32
++}
++
++type RawSockaddrUnix struct {
++	Len    uint8
++	Family uint8
++	Path   [1023]uint8
++}
++
++type RawSockaddr struct {
++	Len    uint8
++	Family uint8
++	Data   [14]uint8
++}
++
++type RawSockaddrAny struct {
++	Addr RawSockaddr
++	Pad  [1012]uint8
++}
++
++type _Socklen uint32
++
++type Cmsghdr struct {
++	Len   uint32
++	Level int32
++	Type  int32
++}
++
++type ICMPv6Filter struct {
++	Filt [8]uint32
++}
++
++type Iovec struct {
++	Base *byte
++	Len  uint64
++}
++
++type IPMreq struct {
++	Multiaddr [4]byte /* in_addr */
++	Interface [4]byte /* in_addr */
++}
++
++type IPv6Mreq struct {
++	Multiaddr [16]byte /* in6_addr */
++	Interface uint32
++}
++
++type Linger struct {
++	Onoff  int32
++	Linger int32
++}
++
++type Msghdr struct {
++	Name       *byte
++	Namelen    uint32
++	Pad_cgo_0  [4]byte
++	Iov        *Iovec
++	Iovlen     int32
++	Pad_cgo_1  [4]byte
++	Control    *byte
++	Controllen uint32
++	Flags      int32
++}
++
++const (
++	SizeofSockaddrInet4 = 0x10
++	SizeofSockaddrInet6 = 0x1c
++	SizeofSockaddrAny   = 0x404
++	SizeofSockaddrUnix  = 0x401
++	SizeofLinger        = 0x8
++	SizeofIPMreq        = 0x8
++	SizeofIPv6Mreq      = 0x14
++	SizeofMsghdr        = 0x30
++	SizeofCmsghdr       = 0xc
++	SizeofICMPv6Filter  = 0x20
++)
++
++const (
++	PTRACE_TRACEME = 0x0
++	PTRACE_CONT    = 0x7
++	PTRACE_KILL    = 0x8
++)
++
++const (
++	SizeofIfMsghdr = 0x10
++)
++
++type IfMsgHdr struct {
++	Msglen    uint16
++	Version   uint8
++	Type      uint8
++	Addrs     int32
++	Flags     int32
++	Index     uint16
++	Addrlen   uint8
++	Pad_cgo_0 [1]byte
++}
++
++type Utsname struct {
++	Sysname  [32]uint8
++	Nodename [32]uint8
++	Release  [32]uint8
++	Version  [32]uint8
++	Machine  [32]uint8
++}
++
++const (
++	_AT_FDCWD            = -0x2
++	_AT_REMOVEDIR        = 0x1
++	_AT_SYMLINK_NOFOLLOW = 0x1
++)

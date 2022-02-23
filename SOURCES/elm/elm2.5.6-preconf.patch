@@ -1,0 +1,3647 @@
+Index: elm2.5.5/doc/Makefile
+diff -c /dev/null elm2.5.5/doc/Makefile:1.1
+*** /dev/null	Tue May 22 20:58:00 2001
+--- elm2.5.5/doc/Makefile	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,385 ----
++ #
++ # : Makefile.SH,v 1.13 1999/03/24 14:03:38 wfp5p Exp $
++ #
++ #  Makefile for the documentation of the ELM mail system
++ #
++ #         (C) Copyright 1988-1992, USENET Community Trust
++ #
++ #  $Log: Makefile,v $
++ #  Revision 1.1  2001/05/23 01:55:18  marc
++ #  Preconfigured answers
++ #
++ # Revision 1.13  1999/03/24  14:03:38  wfp5p
++ # elm 2.5PL0
++ # 
++ # Revision 1.12  1996/05/09  15:50:40  wfp5p
++ # Alpha 10
++ #
++ # Revision 1.11  1996/03/14  17:27:17  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.10  1995/09/29  17:40:35  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.9  1995/09/11  15:18:41  wfp5p
++ # Alpha 7
++ #
++ # Revision 1.8  1995/07/18  18:59:41  wfp5p
++ # Alpha 6
++ #
++ # Revision 1.7  1995/06/30  14:56:13  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.6  1995/06/09  22:06:31  wfp5p
++ # mlist wasn't getting installed correctly
++ #
++ # Revision 1.5  1995/06/08  15:44:48  wfp5p
++ # Changes to configure for AIX
++ #
++ # Revision 1.4  1995/05/10  13:34:14  wfp5p
++ # Added mailing list stuff by Paul Close <pdc@sgi.com>
++ #
++ # Revision 1.2  1995/04/20  21:01:00  wfp5p
++ # Removed filter
++ # Added the showreply feature and emacs key bindings
++ #
++ # Revision 1.1.1.1  1995/04/19  20:38:28  wfp5p
++ # Initial import of elm 2.4 PL0 as base for elm 2.5.
++ #
++ #
++ # Variables
++ #	Variables established by Configure
++ SRCDIR		=	..
++ #VPATH		=	$(SRCDIR)/doc
++ CHMOD		=	/bin/chmod
++ CP		=	/bin/cp
++ DEST		=	/opt/freeware/bin
++ ECHO		=	/bin/echo
++ FORMATTER	=	/bin/troff
++ FORMATTER_OPTS	=	
++ LIB		=	/opt/freeware/lib/elm
++ LN		=	/bin/ln
++ MAN		=	/usr/man/man1
++ MANEXT		=	.1
++ CATMAN		=	/usr/man/cat1
++ CATMANEXT	=	.1
++ RM		= 	/bin/rm -f
++ TBL       	=	/bin/tbl
++ MANROFF		=	/bin/nroff
++ MANROFF_OPTS	=	
++ MV		=	/bin/mv
++ TEST		=	test
++ SUFFIX		=	
++ PACKED		=	n
++ PACKER		=	
++ 
++ 
++ #	Other variables
++ SHELL		=	/bin/sh
++ 
++ # List of installed man pages (except for wnemail.1 - handled differently)
++ MAN_LIST	=	$(MAN)/answer$(MANEXT)		\
++ 			$(MAN)/checkalias$(MANEXT)	\
++ 			$(MAN)/elm$(MANEXT)		\
++ 			$(MAN)/elmalias$(MANEXT)	\
++ 			$(MAN)/fastmail$(MANEXT)	\
++ 			$(MAN)/frm$(MANEXT)		\
++ 			$(MAN)/listalias$(MANEXT)	\
++ 			$(MAN)/messages$(MANEXT)	\
++ 			$(MAN)/mmencode$(MANEXT)	\
++ 			$(MAN)/newalias$(MANEXT)	\
++ 			$(MAN)/newmail$(MANEXT)	\
++ 			$(MAN)/printmail$(MANEXT)	\
++ 			$(MAN)/readmsg$(MANEXT)
++ 
++ # List of installed catman pages (except for wnemail.1 - handled differently)
++ CATMAN_LIST	=	$(CATMAN)/answer$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/checkalias$(CATMANEXT)$(SUFFIX)\
++ 			$(CATMAN)/elm$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/elmalias$(CATMANEXT)$(SUFFIX)\
++ 			$(CATMAN)/fastmail$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/frm$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/listalias$(CATMANEXT)$(SUFFIX) \
++ 			$(CATMAN)/messages$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/mmencode$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/newalias$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/newmail$(CATMANEXT)$(SUFFIX)	\
++ 			$(CATMAN)/printmail$(CATMANEXT)$(SUFFIX) \
++ 			$(CATMAN)/readmsg$(CATMANEXT)$(SUFFIX)
++ 
++ # List of formatted pages for catman
++ FORMATTED_PAGES_LIST =	catman/answer$(CATMANEXT)$(SUFFIX)	\
++ 			catman/checkalias$(CATMANEXT)$(SUFFIX)	\
++ 			catman/elm$(CATMANEXT)$(SUFFIX)		\
++ 			catman/elmalias$(CATMANEXT)$(SUFFIX)	\
++ 			catman/fastmail$(CATMANEXT)$(SUFFIX)	\
++ 			catman/frm$(CATMANEXT)$(SUFFIX)		\
++ 			catman/listalias$(CATMANEXT)$(SUFFIX)	\
++ 			catman/messages$(CATMANEXT)$(SUFFIX)	\
++ 			catman/mmencode$(CATMANEXT)$(SUFFIX)	\
++ 			catman/newalias$(CATMANEXT)$(SUFFIX)	\
++ 			catman/newmail$(CATMANEXT)$(SUFFIX)	\
++ 			catman/printmail$(CATMANEXT)$(SUFFIX)	\
++ 			catman/readmsg$(CATMANEXT)$(SUFFIX)
++ 
++ # List of remotely installed man pages (except for wnemail.1 - handled
++ # differently)
++ REMOTE_MAN_LIST	=	$(REMOTE)$(MAN)/answer$(MANEXT)		\
++ 			$(REMOTE)$(MAN)/checkalias$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/elm$(MANEXT)		\
++ 			$(REMOTE)$(MAN)/elmalias$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/fastmail$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/frm$(MANEXT)		\
++ 			$(REMOTE)$(MAN)/listalias$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/messages$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/mmencode$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/newalias$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/newmail$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/printmail$(MANEXT)	\
++ 			$(REMOTE)$(MAN)/readmsg$(MANEXT)
++ 
++ # List of files installed in LIB directory
++ LIB_LIST	=	$(LIB)/elmrc-info	\
++ 			$(LIB)/help-main	\
++ 			$(LIB)/help-options	\
++ 			$(LIB)/help-alias	\
++ 			$(LIB)/help-pager	\
++ 			$(LIB)/help-status	\
++ 			$(LIB)/help-fbrowser	\
++ 			$(LIB)/help-attach	\
++ 			$(LIB)/help-selfolder	\
++ 			$(LIB)/mime-types	\
++ 			$(LIB)/mlists.eg
++ 
++ # List of files installed in remote LIB directory
++ REMOTE_LIB_LIST	=	$(REMOTE)$(LIB)/elmrc-info	\
++ 			$(REMOTE)$(LIB)/help-main	\
++ 			$(REMOTE)$(LIB)/help-options	\
++ 			$(REMOTE)$(LIB)/help-alias	\
++ 			$(REMOTE)$(LIB)/help-pager	\
++ 			$(REMOTE)$(LIB)/help-status	\
++ 			$(REMOTE)$(LIB)/help-fbrowser	\
++ 			$(REMOTE)$(LIB)/help-attach	\
++ 			$(REMOTE)$(LIB)/help-selfolder	\
++ 			$(REMOVE)$(LIB)/mime-types	\
++ 			$(REMOVE)$(LIB)/mlists.eg
++ 
++ # List of formatted guides
++ FORMATTED_LIST	=	Alias.fmtd	\
++ 			Config.fmtd 	\
++ 			Cover.fmtd	\
++ 			Form.fmtd	\
++ 			Ref.fmtd	\
++ 			Users.fmtd
++ 
++ # Targets
++ all:  Makefile
++ 	@$(TEST) '$(CATMAN)' = "catman-none" || \
++ 		$(MAKE) $(MFLAGS) formatted_pages
++ 
++ #	The following are no-ops
++ lint:
++ clean:	
++ 
++ Makefile:     $(SRCDIR)/doc/Makefile.SH ../config.sh
++ 		sh $(SRCDIR)/doc/Makefile.SH
++ 		@echo "Makefile has been rebuilt - please restart make"
++ 		@false
++ 
++ formatted_pages: catman $(FORMATTED_PAGES_LIST)
++ 
++ catman:
++ 	mkdir catman
++ 
++ install: $(LIB_LIST)
++ 	@$(TEST) '$(MAN)' = "man-none" || $(MAKE) $(MFLAGS) install_man
++ 	@$(TEST) '$(CATMAN)' = "catman-none" || $(MAKE) $(MFLAGS) install_catman
++ 	
++ install_man: $(MAN_LIST) $(MAN)/wnewmail$(MANEXT)
++ 
++ install_catman: $(CATMAN_LIST) $(CATMAN)/wnewmail$(CATMANEXT)$(SUFFIX)
++ 
++ uninstall:
++ 	$(RM) $(LIB_LIST) 
++ 	@$(TEST) '$(MAN)' = "man-none" \
++ 		|| $(RM) $(MAN_LIST) $(MAN)/wnewmail$(MANEXT)
++ 	@$(TEST) '$(CATMAN)' != "catman-none" \
++ 		|| $(RM) $(CATMAN_LIST) $(CATMAN)/wnewmail$(CATMANEXT)$(SUFFIX)
++ 
++ #	Dependencies and rules for installing man pages and lib files
++ #	taken from a remote system
++ #	This is the only target that gets installed even if not out-of-date
++ #	with respect the files from which it is installed.
++ rmt-install:	rmt-defined
++ 		$(RM) $(MAN)/newmail$(MANEXT) $(MAN)/wnewmail$(MANEXT)
++ 		$(CP) $(REMOTE_MAN_LIST) $(MAN)
++ 		$(CHMOD) u+rw,go+r $(MAN_LIST)
++ 		$(LN) $(MAN)/newmail$(MANEXT) $(MAN)/wnewmail$(MANEXT)
++ 		$(CP) $(REMOTE_LIB_LIST) $(LIB)
++ 		$(CHMOD) u+rw,go+r $(LIB_LIST)
++ 
++ rmt-defined:
++ 	@(if [ "$(REMOTE)" = "" ];\
++ 	  then\
++ 	    $(ECHO) "You need to define 'REMOTE' as the remote file system";\
++ 	    $(ECHO) "for this particular command. The easiest way to do this";\
++ 	    $(ECHO) "to type:";\
++ 	    $(ECHO) "        make REMOTE=<remote file system> rmt-install";\
++ 	    exit 1;\
++ 	  fi);
++ 
++ BEEP = ( echo X | tr X '\07' | tr -d '\012' ) 2>/dev/null
++ I_CHECK = if $(TEST) ! -f $@ ; then : ; else \
++ 	echo "" ; \
++ 	echo "WARNING - installation is about to overwrite" ; \
++ 	echo "     $@" ; \
++ 	echo "I will pause 10 seconds.  Abort NOW to prevent overwrite." ; \
++ 	echo "" ; \
++ 	$(BEEP) ; sleep 2 ; \
++ 	$(BEEP) ; sleep 2 ; \
++ 	$(BEEP) ; sleep 2 ; \
++ 	$(BEEP) ; sleep 2 ; \
++ 	$(BEEP) ; sleep 2 ; \
++ 	echo "Continuing with install..." ; \
++ 	echo ; \
++ 	fi
++ 
++ I_DELETE = $(TEST) ! -f $@ || $(RM) $@
++ INST_444 = $(I_DELETE) ; $(CP) $? $@ ; $(CHMOD) 444 $@
++ INST_644 = $(I_DELETE) ; $(CP) $? $@ ; $(CHMOD) 644 $@
++ INST_LINK = $(I_DELETE) ; $(LN) $? $@
++ 
++ #	Dependencies and rules for installing man pages and lib files
++ 
++ $(MAN)/answer$(MANEXT):		answer.1		; $(INST_444)
++ $(MAN)/checkalias$(MANEXT):	chkalias.1		; $(INST_444)
++ $(MAN)/elm$(MANEXT):		elm.1			; $(INST_444)
++ $(MAN)/elmalias$(MANEXT):	elmalias.1		; $(INST_444)
++ $(MAN)/fastmail$(MANEXT):	fastmail.1		; $(INST_444)
++ $(MAN)/frm$(MANEXT):		frm.1			; $(INST_444)
++ $(MAN)/listalias$(MANEXT):	listalias.1		; $(INST_444)
++ $(MAN)/messages$(MANEXT):	messages.1		; $(INST_444)
++ $(MAN)/mmencode$(MANEXT):	mmencode.1		; $(INST_444)
++ $(MAN)/newalias$(MANEXT):	newalias.1		; $(INST_444)
++ $(MAN)/newmail$(MANEXT):	newmail.1		; $(INST_444)
++ $(MAN)/printmail$(MANEXT):	printmail.1		; $(INST_444)
++ $(MAN)/readmsg$(MANEXT):	readmsg.1		; $(INST_444)
++ $(MAN)/wnewmail$(MANEXT):	$(MAN)/newmail$(MANEXT)	; $(INST_LINK)
++ 
++ $(LIB)/help-main:		help-main		; $(INST_444)
++ $(LIB)/help-options:		help-options		; $(INST_444)
++ $(LIB)/help-alias:		help-alias		; $(INST_444)
++ $(LIB)/help-pager:		help-pager		; $(INST_444)
++ $(LIB)/help-status:		help-status		; $(INST_444)
++ $(LIB)/help-fbrowser:		help-fbrowser		; $(INST_444)
++ $(LIB)/help-attach:		help-attach		; $(INST_444)
++ $(LIB)/help-selfolder:		help-selfolder		; $(INST_444)
++ 
++ $(LIB)/mlists.eg:		mlists.eg		; $(INST_444)
++ $(LIB)/elmrc-info:		elmrc-info		; $(INST_444)
++ 
++ # This may have custom modifications.  Be careful about overwriting.
++ $(LIB)/mime-types:		mime-types
++ 	@ $(I_CHECK)
++ 	$(INST_444)
++ 
++ #	Dependencies and rules for installing catman
++ 
++ CES = $(CATMANEXT)$(SUFFIX)
++ $(CATMAN)/answer$(CES):		catman/answer$(CES)	; $(INST_644)
++ $(CATMAN)/checkalias$(CES):	catman/checkalias$(CES)	; $(INST_644)
++ $(CATMAN)/elm$(CES):		catman/elm$(CES)	; $(INST_644)
++ $(CATMAN)/elmalias$(CES):	catman/elmalias$(CES)	; $(INST_644)
++ $(CATMAN)/fastmail$(CES):	catman/fastmail$(CES)	; $(INST_644)
++ $(CATMAN)/frm$(CES):		catman/frm$(CES)	; $(INST_644)
++ $(CATMAN)/listalias$(CES):	catman/listalias$(CES)	; $(INST_644)
++ $(CATMAN)/messages$(CES):	catman/messages$(CES)	; $(INST_644)
++ $(CATMAN)/mmencode$(CES):	catman/mmencode$(CES)	; $(INST_644)
++ $(CATMAN)/newalias$(CES):	catman/newalias$(CES)	; $(INST_644)
++ $(CATMAN)/newmail$(CES):	catman/newmail$(CES)	; $(INST_644)
++ $(CATMAN)/printmail$(CES):	catman/printmail$(CES)	; $(INST_644)
++ $(CATMAN)/readmsg$(CES):	catman/readmsg$(CES)	; $(INST_644)
++ $(CATMAN)/wnewmail$(CES):	$(CATMAN)/newmail$(CES)	; $(INST_LINK)
++ 
++ 
++ #	Dependencies and rules for making catman pages
++ 
++ DO_ROFF = $(MANROFF) $(MANROFF_OPTS) -man $? \
++ 		> catman/`basename $@ $(SUFFIX)`
++ DO_PACK = if $(TEST) "X$(PACKED)" != "Xy" ; then : ; else \
++ 		$(RM) $@ ; $(PACKER) catman/`basename $@ $(SUFFIX)` ; fi
++ 
++ catman/answer$(CATMANEXT)$(SUFFIX):		answer.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/checkalias$(CATMANEXT)$(SUFFIX):		chkalias.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/elm$(CATMANEXT)$(SUFFIX):		elm.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/elmalias$(CATMANEXT)$(SUFFIX):		elmalias.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/fastmail$(CATMANEXT)$(SUFFIX):		fastmail.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/frm$(CATMANEXT)$(SUFFIX):		frm.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/listalias$(CATMANEXT)$(SUFFIX):		listalias.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/messages$(CATMANEXT)$(SUFFIX):		messages.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/mmencode$(CATMANEXT)$(SUFFIX):		mmencode.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/newalias$(CATMANEXT)$(SUFFIX):		newalias.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/newmail$(CATMANEXT)$(SUFFIX):		newmail.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/printmail$(CATMANEXT)$(SUFFIX):		printmail.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ catman/readmsg$(CATMANEXT)$(SUFFIX):		readmsg.1
++ 	$(DO_ROFF)
++ 	@ $(DO_PACK)
++ 
++ 
++ #	Dependencies and rules for formatting guides
++ documentation:	$(FORMATTED_LIST)
++ 
++ Alias.fmtd:	Alias.guide
++ 		$(TBL) $? | $(FORMATTER) $(FORMATTER_OPTS) tmac.n - > $@
++ 
++ Config.fmtd:	Config.guid
++ 		$(TBL) $? | $(FORMATTER) $(FORMATTER_OPTS) tmac.n - > $@
++ 
++ Cover.fmtd:	Elm.cover
++ 		$(FORMATTER) $(FORMATTER_OPTS) tmac.n $? > $@
++ 
++ Form.fmtd:	Form.guide
++ 		$(FORMATTER) $(FORMATTER_OPTS) tmac.n $? > $@
++ 
++ Ref.fmtd:	Ref.guide
++ 		$(FORMATTER) $(FORMATTER_OPTS) tmac.n $? > $@
++ 
++ Users.fmtd:	Users.guide
++ 		$(TBL) $? | $(FORMATTER) $(FORMATTER_OPTS) tmac.n - > $@
++ 
+Index: elm2.5.5/lib/Makefile
+diff -c /dev/null elm2.5.5/lib/Makefile:1.1
+*** /dev/null	Tue May 22 20:58:00 2001
+--- elm2.5.5/lib/Makefile	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,520 ----
++ # $Id: Makefile,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #
++ #  Makefile for the ELM mail program.
++ #
++ #	Copyright (c) 1986,1987 Dave Taylor
++ #	Copyright (c) 1988-1992 USENET Community Trust
++ #
++ # Bug reports, patches, comments, suggestions should be sent to:
++ #
++ #	Syd Weinstein - elm@DSI.COM
++ #			dsinc!elm
++ #
++ # $Log: Makefile,v $
++ # Revision 1.1  2001/05/23 01:55:18  marc
++ # Preconfigured answers
++ #
++ # Revision 1.7  1996/03/14  17:27:35  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.6  1995/09/29  17:41:01  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.5  1995/09/11  15:18:51  wfp5p
++ # Alpha 7
++ #
++ # Revision 1.4  1995/07/18  18:59:49  wfp5p
++ # Alpha 6
++ #
++ # Revision 1.3  1995/06/30  14:56:23  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.2  1995/06/22  14:48:34  wfp5p
++ # Performance enhancements from Paul Close
++ #
++ # Revision 1.1.1.1  1995/04/19  20:38:31  wfp5p
++ # Initial import of elm 2.4 PL0 as base for elm 2.5.
++ #
++ # Revision 5.15  1993/08/03  19:28:39  syd
++ # Elm tries to replace the system toupper() and tolower() on current
++ # BSD systems, which is unnecessary.  Even worse, the replacements
++ # collide during linking with routines in isctype.o.  This patch adds
++ # a Configure test to determine whether replacements are really needed
++ # (BROKE_CTYPE definition).  The <ctype.h> header file is now included
++ # globally through hdrs/defs.h and the BROKE_CTYPE patchup is handled
++ # there.  Inclusion of <ctype.h> was removed from *all* the individual
++ # files, and the toupper() and tolower() routines in lib/opt_utils.c
++ # were dropped.
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.14  1993/08/03  19:17:33  syd
++ # Implement new timezone handling.  New file lib/get_tz.c with new timezone
++ # routines.  Added new TZMINS_USE_xxxxxx and TZNAME_USE_xxxxxx configuration
++ # definitions.  Obsoleted TZNAME, ALTCHECK, and TZ_MINUTESWEST configuration
++ # definitions.  Updated Configure.  Modified lib/getarpdate.c and
++ # lib/strftime.c to use new timezone routines.
++ #
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.13  1993/08/02  18:14:35  syd
++ # add missing references for mcprt.c/mcprtlib.c to defs.h
++ # From: Syd
++ #
++ # Revision 5.12  1993/06/10  03:02:46  syd
++ # break_down_tolist() tried to blindly split address lists at "," which
++ # caused bogus results with addreses that had a comma inside a comment
++ # or quoted text, such as "user@domain (Last, First)".  This patch steps
++ # through the address in quanta of RFC-822 tokens when searching for a
++ # delimiting comma.  It also adds "rfc822_toklen()" to the library to
++ # get that length.
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.11  1993/04/12  01:51:42  syd
++ # Added safe_malloc(), safe_realloc(), and safe_strdup().  They
++ # will be used in the new elmalias utility.
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.10  1993/02/03  16:21:03  syd
++ # add strtokq
++ # From: Syd
++ #
++ # Revision 5.9  1993/01/27  18:52:03  syd
++ # add strftime as optional component
++ #
++ # Revision 5.8  1993/01/19  05:07:05  syd
++ # Trim erroreous extra log entry
++ # From: Syd
++ #
++ # Revision 5.7  1993/01/19  04:47:12  syd
++ # Significant changes to provide consistent Date and From_ header
++ # cracking.  Overhauled date utilities and moved into library.  Moved
++ # real_from() into library.  Modified frm, newmail, and readmsg utilities
++ # to use library version of real_from().  Moved get_word() from Elm
++ # source into library.  Added new library routines atonum() and strfcpy().
++ # Fixed trailing backslash bug in len_next().
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.6  1992/12/24  19:33:59  syd
++ # tune dependency list further
++ # From: Syd
++ #
++ # Revision 5.5  1992/12/24  19:30:46  syd
++ # Make all object depend on config.h, so a reconfig for a new
++ # arch in shared sources (or copied sources) forces a recompile
++ # of all modules.
++ # From: Syd
++ #
++ # Revision 5.4  1992/12/20  05:15:58  syd
++ # Add a c)hange alias, -u and -t options to listalias to list only user
++ # and only system aliases respectively.
++ # From: "Robert L. Howard" <robert.howard@matd.gatech.edu>
++ #
++ # Revision 5.3  1992/11/07  20:07:23  syd
++ # Add header_cmp routine
++ # From: Syd
++ #
++ # Revision 5.2  1992/10/27  01:43:40  syd
++ # Move posix_signal to lib directory
++ # From: tom@osf.org
++ #
++ # Revision 5.1  1992/10/03  22:41:36  syd
++ # Initial checkin as of 2.4 Release at PL0
++ #
++ 
++ SUBDIR = lib
++ 
++ ALL = libutil.a
++ 
++ INSTS =
++ 
++ SRCS = add_site.c addrmchusr.c aliasdb.c atonum.c basename.c can_access.c \
++ 	can_open.c chloc.c date_util.c elm_access.c elmrc.c errno.c expand.c \
++ 	fast_getpw.c figadrssee.c gcos_name.c get_tz.c getarpdate.c \
++ 	getfullnam.c gethostname.c getword.c header_cmp.c in_list.c \
++ 	initcommon.c ldstate.c len_next.c $(MCSRC) mail_gets.c mailfile.c \
++ 	mk_aliases.c mk_lockname.c mlist.c move_left.c ndbz.c okay_addr.c \
++ 	opt_utils.c parsarpdat.c parsarpmbox.c parsarpwho.c patmatch.c \
++ 	posixsig.c putenv.c qstrings.c realfrom.c remfirstwd.c reverse.c \
++ 	rfc822tlen.c safemalloc.c shiftlower.c strfcpy.c strftime.c \
++ 	strincmp.c striparens.c strstr.c strtokq.c tail_of.c trim.c \
++ 	validname.c
++ 
++ OBJS = add_site.o addrmchusr.o aliasdb.o atonum.o basename.o can_access.o \
++ 	can_open.o chloc.o date_util.o elm_access.o elmrc.o errno.o expand.o \
++ 	fast_getpw.o figadrssee.o gcos_name.o get_tz.o getarpdate.o \
++ 	getfullnam.o gethostname.o getword.o header_cmp.o in_list.o \
++ 	initcommon.o ldstate.o len_next.o mail_gets.o mailfile.o \
++ 	$(MCOBJ) mk_aliases.o mk_lockname.o mlist.o move_left.o ndbz.o \
++ 	okay_addr.o opt_utils.o parsarpdat.o parsarpmbox.o parsarpwho.o \
++ 	patmatch.o posixsig.o putenv.o qstrings.o realfrom.o remfirstwd.o \
++ 	reverse.o rfc822tlen.o safemalloc.o shiftlower.o strfcpy.o \
++ 	strftime.o strincmp.o striparens.o strstr.o strtokq.o tail_of.o \
++ 	trim.o validname.o
++ 
++ ##############################################################################
++ #
++ # Make.defs - common definitions
++ #
++ # DO NOT EDIT THE RESULTING Makefile !!!
++ # Any changes made will be lost if this makefile is rebuilt.
++ #
++ # The Elm makefiles support the following standard actions:
++ #
++ #	make all - This is the default.  Build the targets.
++ #
++ #	make install - Install targets into system directories.
++ #
++ #	make clean - Delete targets, objects, and intermediate files.
++ #
++ #	make uninstall - Delete installed targets from system directories
++ #
++ #	make lint - Run "lint".
++ #
++ #	make setup - Ensure directories and .SH files up to date.
++ #
++ #	make tags - Create "tags" file for the sources.
++ #
++ # The customized portion of the Makefile must provide the following defs:
++ #
++ #	SUBDIR - This directory relative to SRCDIR, e.g. "lib".
++ #
++ #	ALL - List of targets to build for "make all"  These also
++ #		are deleted by the "make clean" rule.
++ #
++ #	INSTS - List of targets to install for "make install".
++ #
++ #	SRCS - List of source files that comprise ALL targets.  These
++ #		are all scanned when building automatic dependancies.
++ #
++ #	OBJS - List of intermediate object files for ALL targets.
++ #
++ # The customized portion also must provide the following rules:
++ #
++ #	Rules to build each item in the ALL list.
++ #
++ #	Rules to install each item in the INSTS list.
++ #
++ #	A "rmt-install" rule that does remote installation.
++ #
++ #	A "LINT.OUT" rule that runs lint on the SRCS files.
++ #
++ 
++ SHELL		= /bin/sh
++ 
++ SRCDIR		= ..
++ #VPATH		= $(SRCDIR)/$(SUBDIR)
++ 
++ BINDIR		= ../bin
++ INCLDIR		= $(SRCDIR)/hdrs
++ 
++ CC		= cc
++ OPTIMIZE	= -O2
++ #DEBUG		= -g -DDEBUG
++ CCFLAGS		=  
++ INCLS		= -I.. -I$(INCLDIR)
++ CFLAGS		= $(CCFLAGS) $(OPTIMIZE) $(DEBUG) $(INCLS)
++ LFLAGS		=  
++ LIBS		= -lintl /usr/lib/libcrypt.a -lcurses 
++ LINTFLAGS	= $(INCLS)
++ 
++ AR		= ar
++ CHGRP		= /bin/chgrp
++ CHMOD		= /bin/chmod
++ CP		= /bin/cp
++ CTAGS		= ctags
++ ECHO		= /bin/echo
++ LINT		= /bin/lint
++ LN		= /bin/ln
++ MV		= /bin/mv
++ RANLIB		= :
++ RM		= /bin/rm
++ TEST		= test
++ TOUCH		= /bin/touch
++ 
++ DESTBIN		= /opt/freeware/bin
++ DESTLIB		= /opt/freeware/lib/elm
++ MAILGRP		= mail
++ MAILERMODE	= 2755
++ 
++ MCSRC		= 
++ MCOBJ		= 
++ 
++ 
++ INSTALL_EXE = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(CHMOD) a+x $@
++ 
++ INSTALL_LINK = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(LN) $? $@
++ 
++ INST_MAILER = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(TEST) $(MAILERMODE) -lt 999 || $(CHGRP) $(MAILGRP) $@ ; \
++ 	$(CHMOD) $(MAILERMODE) $@
++ 
++ #
++ # Common rules
++ #
++ 
++ all:		Makefile $& $(ALL)
++ 
++ clean:		; $(RM) -f $(ALL) *.o a.out core core.* tags LINT.OUT
++ 
++ install:	all $(INSTS)
++ 
++ uninstall:	; $(RM) -f $(INSTS)
++ 
++ lint:		LINT.OUT
++ 
++ setup:		Makefile
++ 
++ depend:		$(SRCDIR)/$(SUBDIR)/depend.out
++ 
++ rmt-defined:
++ 	@if $(TEST) "X$(REMOTE)" = "X" ; then \
++ 	    $(ECHO) "You need to define 'REMOTE' as the remote file system" ; \
++ 	    $(ECHO) "for this particular command.  The easiest way to do" ; \
++ 	    $(ECHO) "this is to type:";\
++ 	    $(ECHO) "        make REMOTE=<remote file system> rmt-install" ; \
++ 	    false ; \
++ 	fi
++ 
++ tags: $(SRCDIR)/$(SUBDIR)/*.[ch] $(SRCDIR)/lib/*.[ch] $(SRCDIR)/hdrs/*.[ch]
++ 	@set -x ; \
++ 		cd $(SRCDIR)/$(SUBDIR) ; \
++ 		rm -f tags ; \
++ 		if [ "X$(SUBDIR)" = "Xlib" ] ;  \
++ 			then $(CTAGS) ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 			else $(CTAGS) *.[ch] ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 		fi
++ 
++ #
++ # "depend.out" is a Makefile dependancy, but we omit it to avoid rebuilding
++ # everything whenever a source file changes
++ #
++ Makefile: ../config.sh $(SRCDIR)/$(SUBDIR)/Makefile.SH ../Make.defs
++ 	sh $(SRCDIR)/$(SUBDIR)/Makefile.SH
++ 	@echo "Makefile has been rebuilt - please restart make"
++ 	@false
++ 
++ $(SRCDIR)/$(SUBDIR)/depend.out: $(SRCS)
++ 	cd $(SRCDIR)/$(SUBDIR) ; sh ../dev/makedeps.sh $(SRCS) >$@
++ 
++ #
++ # end of Make.defs
++ #
++ ##############################################################################
++ 
++ 
++ libutil.a: $(OBJS)
++ 	$(AR) r $@ $?
++ 	$(RANLIB) $@
++ 
++ #
++ # Some of the library modules have test code enabled by the _TEST definition.
++ # The following target can be used to build test cases.  For instance, to
++ # test the "foobar.c" file, run "MOD=foobar make test".
++ #
++ test: $(SRCDIR)/$(SUBDIR)/$(MOD).c
++ 	$(CC) -D_TEST -DINTERN $(CFLAGS) $? libutil.a
++ 
++ #
++ # Catch "make test" without $(MOD) defined.
++ #
++ $(SRCDIR)/$(SUBDIR)/.c:
++ 	@echo "Error - usage: MOD=module_to_test $(MAKE) $(MFLAGS) test"
++ 	@false
++ 
++ LINT.OUT:
++ 	$(LINT) $(LINTFLAGS) $(SRCS) >$@
++ 
++ #
++ # Dependencies automatically generated by ../dev/makedeps.sh
++ #
++ add_site.o : add_site.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ addrmchusr.o : addrmchusr.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ atonum.o : atonum.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ aliasdb.o : aliasdb.c $(INCLDIR)/elm_defs.h $(INCLDIR)/ndbz.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ mk_lockname.o : mk_lockname.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ basename.o : basename.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ can_access.o : can_access.c $(INCLDIR)/elm_defs.h $(INCLDIR)/port_stat.h \
++ 	$(INCLDIR)/port_wait.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ can_open.o : can_open.c $(INCLDIR)/elm_defs.h $(INCLDIR)/port_stat.h \
++ 	$(INCLDIR)/port_wait.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ chloc.o : chloc.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ date_util.o : date_util.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ elm_access.o : elm_access.c $(INCLDIR)/elm_defs.h $(INCLDIR)/port_stat.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ errno.o : errno.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ expand.o : expand.c $(INCLDIR)/elm_defs.h $(INCLDIR)/s_elmrc.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ fast_getpw.o : fast_getpw.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ figadrssee.o : figadrssee.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ gcos_name.o : gcos_name.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ getarpdate.o : getarpdate.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ getfullnam.o : getfullnam.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ gethostname.o : gethostname.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ getword.o : getword.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ get_tz.o : get_tz.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ header_cmp.o : header_cmp.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ in_list.o : in_list.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ initcommon.o : initcommon.c $(INCLDIR)/elm_defs.h $(INCLDIR)/s_error.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ ldstate.o : ldstate.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ len_next.o : len_next.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ mail_gets.o : mail_gets.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ mailfile.o : mailfile.c $(INCLDIR)/elm_defs.h $(INCLDIR)/mailfile.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ mcprt.o : mcprt.c $(INCLDIR)/elm_defs.h $(INCLDIR)/mcprtlib.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ mcprtlib.o : mcprtlib.c $(INCLDIR)/elm_defs.h $(INCLDIR)/mcprtlib.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ msgcat.o : msgcat.c $(INCLDIR)/msgcat.h $(INCLDIR)/nl_types.h
++ mk_aliases.o : mk_aliases.c $(INCLDIR)/elm_defs.h $(INCLDIR)/ndbz.h \
++ 	$(INCLDIR)/s_newalias.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ mlist.o : mlist.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ move_left.o : move_left.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ ndbz.o : ndbz.c $(INCLDIR)/elm_defs.h $(INCLDIR)/ndbz.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ okay_addr.o : okay_addr.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ opt_utils.o : opt_utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/s_error.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ parsarpdat.o : parsarpdat.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ parsarpmbox.o : parsarpmbox.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ parsarpwho.o : parsarpwho.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ patmatch.o : patmatch.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ posixsig.o : posixsig.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ putenv.o : putenv.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ realfrom.o : realfrom.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ qstrings.o : qstrings.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ remfirstwd.o : remfirstwd.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ reverse.o : reverse.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ rfc822tlen.o : rfc822tlen.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ safemalloc.o : safemalloc.c $(INCLDIR)/elm_defs.h $(INCLDIR)/s_error.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h
++ shiftlower.o : shiftlower.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ strfcpy.o : strfcpy.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ strincmp.o : strincmp.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ striparens.o : striparens.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ strstr.o : strstr.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ strftime.o : strftime.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
++ strtokq.o : strtokq.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ tail_of.o : tail_of.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ trim.o : trim.c $(INCLDIR)/elm_defs.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h
++ validname.o : validname.c $(INCLDIR)/elm_defs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h
+Index: elm2.5.5/src/Makefile
+diff -c /dev/null elm2.5.5/src/Makefile:1.1
+*** /dev/null	Tue May 22 20:58:00 2001
+--- elm2.5.5/src/Makefile	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,771 ----
++ # $Id: Makefile,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #
++ #  Makefile for the ELM mail program.
++ #
++ #	Copyright (c) 1988-1992 USENET Community Trust
++ #	Copyright (c) 1986,1987 Dave Taylor
++ #
++ # Bug reports, patches, comments, suggestions should be sent to:
++ #
++ #	Syd Weinstein - elm@DSI.COM
++ #			dsinc!elm
++ #
++ # $Log: Makefile,v $
++ # Revision 1.1  2001/05/23 01:55:18  marc
++ # Preconfigured answers
++ #
++ # Revision 1.9  1996/03/14  17:27:46  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.8  1995/09/29  17:41:52  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.7  1995/09/11  15:19:01  wfp5p
++ # Alpha 7
++ #
++ # Revision 1.6  1995/07/18  18:59:53  wfp5p
++ # Alpha 6
++ #
++ # Revision 1.5  1995/06/30  14:56:24  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.4  1995/06/22  14:48:46  wfp5p
++ # Performance enhancements from Paul Close
++ #
++ # Revision 1.3  1995/05/10  13:34:48  wfp5p
++ # Added mailing list stuff by Paul Close <pdc@sgi.com>
++ #
++ # Revision 1.2  1995/04/26  18:49:54  wfp5p
++ # Changed Configure to allow a different install path
++ #
++ # Revision 1.1.1.1  1995/04/19  20:38:34  wfp5p
++ # Initial import of elm 2.4 PL0 as base for elm 2.5.
++ #
++ # Revision 5.1  1992/10/03  22:58:40  syd
++ # Initial checkin as of 2.4 Release at PL0
++ #
++ 
++ SUBDIR		= src
++ 
++ ALL = $(BINDIR)/elm
++ 
++ INSTS = $(DESTBIN)/elm
++ 
++ SRCS = addr_util.c alias.c aliaslib.c args.c a_edit.c a_screen.c \
++ 	a_sendmsg.c a_sort.c a_quit.c bouncebk.c builtin.c calendar.c \
++ 	chstatus.c curses.c date.c delete.c edit.c editmsg.c elm.c \
++ 	encode.c expires.c fbrowser.c file_ops.c file_util.c fileio.c \
++ 	find_alias.c forms.c hdrconfg.c help.c in_utils.c init.c \
++ 	leavembox.c lock.c limit.c mime.c newmbox.c options.c out_utils.c \
++ 	pattern.c quit.c read_rc.c reply.c returnadd.c save.c save_opts.c \
++ 	savecopy.c screen.c showmsg.c showmsg_c.c signals.c sndattach.c \
++ 	sndhdrs.c sndmsg.c sndpart_io.c sndpart_lib.c softkeys.c sort.c \
++ 	string2.c strings.c syscall.c utils.c wordwrap.c
++ 
++ OBJS = addr_util.o alias.o aliaslib.o args.o a_edit.o a_screen.o \
++ 	a_sendmsg.o a_sort.o a_quit.o bouncebk.o builtin.o calendar.o \
++ 	chstatus.o curses.o date.o delete.o edit.o editmsg.o elm.o \
++ 	encode.o expires.o fbrowser.o file_ops.o file_util.o fileio.o \
++ 	find_alias.o forms.o hdrconfg.o help.o in_utils.o init.o \
++ 	leavembox.o lock.o limit.o mime.o newmbox.o options.o out_utils.o \
++ 	pattern.o quit.o read_rc.o reply.o returnadd.o save.o save_opts.o \
++ 	savecopy.o screen.o showmsg.o showmsg_c.o signals.o sndattach.o \
++ 	sndhdrs.o sndmsg.o sndpart_io.o sndpart_lib.o softkeys.o sort.o \
++ 	string2.o strings.o syscall.o utils.o wordwrap.o
++ 
++ ##############################################################################
++ #
++ # Make.defs - common definitions
++ #
++ # DO NOT EDIT THE RESULTING Makefile !!!
++ # Any changes made will be lost if this makefile is rebuilt.
++ #
++ # The Elm makefiles support the following standard actions:
++ #
++ #	make all - This is the default.  Build the targets.
++ #
++ #	make install - Install targets into system directories.
++ #
++ #	make clean - Delete targets, objects, and intermediate files.
++ #
++ #	make uninstall - Delete installed targets from system directories
++ #
++ #	make lint - Run "lint".
++ #
++ #	make setup - Ensure directories and .SH files up to date.
++ #
++ #	make tags - Create "tags" file for the sources.
++ #
++ # The customized portion of the Makefile must provide the following defs:
++ #
++ #	SUBDIR - This directory relative to SRCDIR, e.g. "lib".
++ #
++ #	ALL - List of targets to build for "make all"  These also
++ #		are deleted by the "make clean" rule.
++ #
++ #	INSTS - List of targets to install for "make install".
++ #
++ #	SRCS - List of source files that comprise ALL targets.  These
++ #		are all scanned when building automatic dependancies.
++ #
++ #	OBJS - List of intermediate object files for ALL targets.
++ #
++ # The customized portion also must provide the following rules:
++ #
++ #	Rules to build each item in the ALL list.
++ #
++ #	Rules to install each item in the INSTS list.
++ #
++ #	A "rmt-install" rule that does remote installation.
++ #
++ #	A "LINT.OUT" rule that runs lint on the SRCS files.
++ #
++ 
++ SHELL		= /bin/sh
++ 
++ SRCDIR		= ..
++ #VPATH		= $(SRCDIR)/$(SUBDIR)
++ 
++ BINDIR		= ../bin
++ INCLDIR		= $(SRCDIR)/hdrs
++ 
++ CC		= cc
++ OPTIMIZE	= -O2
++ #DEBUG		= -g -DDEBUG
++ CCFLAGS		=  
++ INCLS		= -I.. -I$(INCLDIR)
++ CFLAGS		= $(CCFLAGS) $(OPTIMIZE) $(DEBUG) $(INCLS)
++ LFLAGS		=  
++ LIBS		= -lintl /usr/lib/libcrypt.a -lcurses 
++ LINTFLAGS	= $(INCLS)
++ 
++ AR		= ar
++ CHGRP		= /bin/chgrp
++ CHMOD		= /bin/chmod
++ CP		= /bin/cp
++ CTAGS		= ctags
++ ECHO		= /bin/echo
++ LINT		= /bin/lint
++ LN		= /bin/ln
++ MV		= /bin/mv
++ RANLIB		= :
++ RM		= /bin/rm
++ TEST		= test
++ TOUCH		= /bin/touch
++ 
++ DESTBIN		= /opt/freeware/bin
++ DESTLIB		= /opt/freeware/lib/elm
++ MAILGRP		= mail
++ MAILERMODE	= 2755
++ 
++ MCSRC		= 
++ MCOBJ		= 
++ 
++ 
++ INSTALL_EXE = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(CHMOD) a+x $@
++ 
++ INSTALL_LINK = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(LN) $? $@
++ 
++ INST_MAILER = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(TEST) $(MAILERMODE) -lt 999 || $(CHGRP) $(MAILGRP) $@ ; \
++ 	$(CHMOD) $(MAILERMODE) $@
++ 
++ #
++ # Common rules
++ #
++ 
++ all:		Makefile $& $(ALL)
++ 
++ clean:		; $(RM) -f $(ALL) *.o a.out core core.* tags LINT.OUT
++ 
++ install:	all $(INSTS)
++ 
++ uninstall:	; $(RM) -f $(INSTS)
++ 
++ lint:		LINT.OUT
++ 
++ setup:		Makefile
++ 
++ depend:		$(SRCDIR)/$(SUBDIR)/depend.out
++ 
++ rmt-defined:
++ 	@if $(TEST) "X$(REMOTE)" = "X" ; then \
++ 	    $(ECHO) "You need to define 'REMOTE' as the remote file system" ; \
++ 	    $(ECHO) "for this particular command.  The easiest way to do" ; \
++ 	    $(ECHO) "this is to type:";\
++ 	    $(ECHO) "        make REMOTE=<remote file system> rmt-install" ; \
++ 	    false ; \
++ 	fi
++ 
++ tags: $(SRCDIR)/$(SUBDIR)/*.[ch] $(SRCDIR)/lib/*.[ch] $(SRCDIR)/hdrs/*.[ch]
++ 	@set -x ; \
++ 		cd $(SRCDIR)/$(SUBDIR) ; \
++ 		rm -f tags ; \
++ 		if [ "X$(SUBDIR)" = "Xlib" ] ;  \
++ 			then $(CTAGS) ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 			else $(CTAGS) *.[ch] ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 		fi
++ 
++ #
++ # "depend.out" is a Makefile dependancy, but we omit it to avoid rebuilding
++ # everything whenever a source file changes
++ #
++ Makefile: ../config.sh $(SRCDIR)/$(SUBDIR)/Makefile.SH ../Make.defs
++ 	sh $(SRCDIR)/$(SUBDIR)/Makefile.SH
++ 	@echo "Makefile has been rebuilt - please restart make"
++ 	@false
++ 
++ $(SRCDIR)/$(SUBDIR)/depend.out: $(SRCS)
++ 	cd $(SRCDIR)/$(SUBDIR) ; sh ../dev/makedeps.sh $(SRCS) >$@
++ 
++ #
++ # end of Make.defs
++ #
++ ##############################################################################
++ 
++ 
++ $(BINDIR)/elm:	$& $(OBJS) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(OBJS) ../lib/libutil.a $(LIBS)
++ 
++ $(DESTBIN)/elm:	$(BINDIR)/elm
++ 	$(INST_MAILER)
++ 
++ rmt-install:	rmt-defined
++ 	-$(MV) $(DESTBIN)/elm $(DESTBIN)/elm.old
++ 	-$(RM) -f $(DESTBIN)/elm.old
++ 	$(CP) $(REMOTE)$(DESTBIN)/elm $(DESTBIN)/elm
++ 	$(TEST) $(MAILERMODE) -lt 999 || $(CHGRP) $(MAILGRP) $(DESTBIN)/elm
++ 	$(CHMOD) $(MAILERMODE) $(DESTBIN)/elm
++ 
++ LINT.OUT:
++ 	$(LINT) $(LINTFLAGS) $(SRCS) >$@
++ 
++ #
++ # Dependencies automatically generated by ../dev/makedeps.sh
++ #
++ addr_util.o : addr_util.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ alias.o : alias.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/ndbz.h $(INCLDIR)/port_stat.h $(INCLDIR)/s_aliases.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ aliaslib.o : aliaslib.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ args.o : args.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/patchlevel.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_edit.o : a_edit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ a_screen.o : a_screen.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_sendmsg.o : a_sendmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ a_sort.o : a_sort.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_quit.o : a_quit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ bouncebk.o : bouncebk.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ builtin.o : builtin.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ calendar.o : calendar.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_error.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ chstatus.o : chstatus.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ curses.o : curses.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_termios.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ date.o : date.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ delete.o : delete.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ edit.o : edit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ editmsg.o : editmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ elm.o : elm.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ encode.o : encode.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ expires.o : expires.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ fbrowser.o : fbrowser.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_dirent.h $(INCLDIR)/port_stat.h \
++ 	$(INCLDIR)/s_fbrowser.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ file_ops.o : file_ops.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ file_util.o : file_util.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ fileio.o : fileio.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mailfile.h $(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ find_alias.o : find_alias.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ forms.o : forms.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ hdrconfg.o : hdrconfg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ help.o : help.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ in_utils.o : in_utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ init.o : init.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/patchlevel.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ leavembox.o : leavembox.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ lock.o : lock.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ limit.o : limit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ mime.o : mime.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ newmbox.o : newmbox.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mailfile.h $(INCLDIR)/mime.h $(INCLDIR)/s_elm.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ options.o : options.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/save_opts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ out_utils.o : out_utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ pattern.o : pattern.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ quit.o : quit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ read_rc.o : read_rc.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/save_opts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ reply.o : reply.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ returnadd.o : returnadd.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ save.o : save.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ save_opts.o : save_opts.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elmrc.h $(INCLDIR)/save_opts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ savecopy.o : savecopy.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ screen.o : screen.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ showmsg.o : showmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_wait.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ showmsg_c.o : showmsg_c.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ signals.o : signals.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndattach.o : sndattach.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_attach.h $(INCLDIR)/sndparts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndhdrs.o : sndhdrs.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndmsg.o : sndmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h \
++ 	$(INCLDIR)/sndparts.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndpart_io.o : sndpart_io.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndparts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ sndpart_lib.o : sndpart_lib.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndparts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ softkeys.o : softkeys.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sort.o : sort.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ string2.o : string2.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ strings.o : strings.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ syscall.o : syscall.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_wait.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ utils.o : utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ wordwrap.o : wordwrap.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ #
++ # Dependencies automatically generated by ../dev/makedeps.sh
++ #
++ addr_util.o : addr_util.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ alias.o : alias.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/ndbz.h $(INCLDIR)/port_stat.h $(INCLDIR)/s_aliases.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ aliaslib.o : aliaslib.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ args.o : args.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/patchlevel.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_edit.o : a_edit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ a_screen.o : a_screen.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_sendmsg.o : a_sendmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ a_sort.o : a_sort.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ a_quit.o : a_quit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ bouncebk.o : bouncebk.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ builtin.o : builtin.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ calendar.o : calendar.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_error.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ chstatus.o : chstatus.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ curses.o : curses.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_termios.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ date.o : date.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ delete.o : delete.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ edit.o : edit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ editmsg.o : editmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ elm.o : elm.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ encode.o : encode.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ expires.o : expires.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ fbrowser.o : fbrowser.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_dirent.h $(INCLDIR)/port_stat.h \
++ 	$(INCLDIR)/s_fbrowser.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ file_ops.o : file_ops.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ file_util.o : file_util.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ fileio.o : fileio.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mailfile.h $(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ find_alias.o : find_alias.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ forms.o : forms.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ hdrconfg.o : hdrconfg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ help.o : help.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ in_utils.o : in_utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ init.o : init.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/patchlevel.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ leavembox.o : leavembox.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_stat.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ lock.o : lock.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ limit.o : limit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_aliases.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ mime.o : mime.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ newmbox.o : newmbox.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mailfile.h $(INCLDIR)/mime.h $(INCLDIR)/s_elm.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ options.o : options.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/save_opts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ out_utils.o : out_utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ pattern.o : pattern.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ quit.o : quit.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ read_rc.o : read_rc.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/save_opts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ reply.o : reply.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ returnadd.o : returnadd.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ save.o : save.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ save_opts.o : save_opts.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elmrc.h $(INCLDIR)/save_opts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ savecopy.o : savecopy.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ screen.o : screen.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ showmsg.o : showmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_wait.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ showmsg_c.o : showmsg_c.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ signals.o : signals.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndattach.o : sndattach.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_attach.h $(INCLDIR)/sndparts.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndhdrs.o : sndhdrs.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndmsg.o : sndmsg.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndhdrs.h \
++ 	$(INCLDIR)/sndparts.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sndpart_io.o : sndpart_io.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndparts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ sndpart_lib.o : sndpart_lib.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/mime.h $(INCLDIR)/s_elm.h $(INCLDIR)/sndparts.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ softkeys.o : softkeys.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ sort.o : sort.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ string2.o : string2.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
++ strings.o : strings.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ syscall.o : syscall.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/port_wait.h $(INCLDIR)/s_elm.h ../config.h \
++ 	$(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h \
++ 	$(INCLDIR)/parseaddrs.h ../sysdefs.h $(INCLDIR)/elm_curses.h
++ utils.o : utils.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	$(INCLDIR)/s_elm.h ../config.h $(INCLDIR)/elm_lib.h \
++ 	$(INCLDIR)/mcprt.h $(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h \
++ 	../sysdefs.h $(INCLDIR)/elm_curses.h
++ wordwrap.o : wordwrap.c $(INCLDIR)/elm_defs.h $(INCLDIR)/elm_globals.h \
++ 	../config.h $(INCLDIR)/elm_lib.h $(INCLDIR)/mcprt.h \
++ 	$(INCLDIR)/nl_types.h $(INCLDIR)/parseaddrs.h ../sysdefs.h \
++ 	$(INCLDIR)/elm_curses.h
+Index: elm2.5.5/utils/Makefile
+diff -c /dev/null elm2.5.5/utils/Makefile:1.1
+*** /dev/null	Tue May 22 20:58:00 2001
+--- elm2.5.5/utils/Makefile	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,444 ----
++ # @(#)$Id: Makefile,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #
++ #  Makefile for the Elm system utilities
++ #
++ #         (C) Copyright 1986,1987, by Dave Taylor
++ #         (C) Copyright 1988-1992, USENET Community Trust
++ #
++ # Bug reports, patches, comments, suggestions should be sent to:
++ #
++ #	Syd Weinstein - elm@DSI.COM
++ #			dsinc!elm
++ #
++ # $Log: Makefile,v $
++ # Revision 1.1  2001/05/23 01:55:18  marc
++ # Preconfigured answers
++ #
++ # Revision 1.8  1996/03/14  17:30:05  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.7  1995/09/29  17:42:39  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.6  1995/09/11  15:19:34  wfp5p
++ # Alpha 7
++ #
++ # Revision 1.5  1995/07/18  19:00:11  wfp5p
++ # Alpha 6
++ #
++ # Revision 1.4  1995/06/30  14:56:29  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.3  1995/06/12  20:33:42  wfp5p
++ # Alpha 2 clean up
++ #
++ # Revision 1.2  1995/04/26  18:49:56  wfp5p
++ # Changed Configure to allow a different install path
++ #
++ # Revision 1.1.1.1  1995/04/19  20:38:40  wfp5p
++ # Initial import of elm 2.4 PL0 as base for elm 2.5.
++ #
++ # Revision 5.6  1994/03/10  17:20:23  syd
++ # Remove autoreply
++ # From: Syd
++ #
++ # Revision 5.5  1993/05/31  19:17:28  syd
++ # In the Makefile listalias was given only a+x permission
++ # though it should have been a+rx.
++ # From: Jukka Ukkonen <ukkonen@csc.fi>
++ #
++ # Revision 5.4  1993/04/16  05:07:10  syd
++ # add elmalias
++ #
++ # Revision 5.3  1993/04/12  02:14:15  syd
++ # Fix comments
++ #
++ # Revision 5.2  1993/04/12  02:11:05  syd
++ # Added new utilities "elmalias" and "prlong".  Modified "checkalias"
++ # and "listalias" to use them.
++ # From: chip@chinacat.unicom.com (Chip Rosenthal)
++ #
++ # Revision 5.1  1992/10/04  00:46:45  syd
++ # Initial checkin as of 2.4 Release at PL0
++ #
++ 
++ SUBDIR		= utils
++ 
++ #	mmencode installation is optional
++ INSTALL_MMENCODE = $(DESTBIN)/mmencode
++ REMOTE_MMENCODE = $(REMOTE)/$(DESTBIN)/mmencode
++ 
++ ALL	=	$(BINDIR)/answer	\
++ 		$(BINDIR)/checkalias	\
++ 		$(BINDIR)/elmalias	\
++ 		$(BINDIR)/fastmail	\
++ 		$(BINDIR)/frm		\
++ 		$(BINDIR)/listalias	\
++ 		$(BINDIR)/mmencode	\
++ 		$(BINDIR)/messages	\
++ 		$(BINDIR)/newalias	\
++ 		$(BINDIR)/newmail	\
++ 		$(BINDIR)/printmail	\
++ 		$(BINDIR)/prlong	\
++ 		$(BINDIR)/readmsg
++ 
++ INSTS	=	$(DESTBIN)/answer	\
++ 		$(DESTBIN)/checkalias	\
++ 		$(DESTBIN)/elmalias	\
++ 		$(DESTBIN)/fastmail	\
++ 		$(DESTBIN)/frm		\
++ 		$(DESTBIN)/listalias	\
++ 		$(DESTBIN)/messages	\
++ 		$(INSTALL_MMENCODE)	\
++ 		$(DESTBIN)/newalias	\
++ 		$(DESTBIN)/newmail	\
++ 		$(DESTBIN)/nfrm		\
++ 		$(DESTBIN)/printmail	\
++ 		$(DESTBIN)/prlong	\
++ 		$(DESTBIN)/readmsg	\
++ 		$(DESTBIN)/wnewmail
++ 
++ SRCS	=	answer.c		\
++ 		elmalias.c		\
++ 		fastmail.c		\
++ 		from.c			\
++ 		mmencode.c		\
++ 		newalias.c		\
++ 		newmail.c		\
++ 		readmsg.c		\
++ 		prlong.c
++ 
++ OBJS	=	answer.o		\
++ 		elmalias.o		\
++ 		fastmail.o		\
++ 		from.o			\
++ 		mmencode.o		\
++ 		newalias.o		\
++ 		newmail.o		\
++ 		readmsg.o		\
++ 		prlong.o
++ 
++ REMOTE_LIST	=	$(REMOTE)$(DESTBIN)/answer	\
++ 			$(REMOTE)$(DESTBIN)/checkalias	\
++ 			$(REMOTE)$(DESTBIN)/elmalias	\
++ 			$(REMOTE)$(DESTBIN)/fastmail	\
++ 			$(REMOTE)$(DESTBIN)/frm		\
++ 			$(REMOTE)$(DESTBIN)/listalias	\
++ 			$(REMOTE)$(DESTBIN)/messages	\
++ 			$(REMOTE_MMENCODE)		\
++ 			$(REMOTE)$(DESTBIN)/newalias	\
++ 			$(REMOTE)$(DESTBIN)/newmail	\
++ 			$(REMOTE)$(DESTBIN)/printmail	\
++ 			$(REMOTE)$(DESTBIN)/prlong	\
++ 			$(REMOTE)$(DESTBIN)/readmsg
++ 
++ LINT_LIST	=	answer_lint	\
++ 			elmalias_lint	\
++ 			fastmail_lint	\
++ 			frm_lint	\
++ 			mmencode_lint	\
++ 			newalias_lint	\
++ 			newmail_lint	\
++ 			readmsg_lint	\
++ 			prlong_lint
++ 
++ 
++ ##############################################################################
++ #
++ # Make.defs - common definitions
++ #
++ # DO NOT EDIT THE RESULTING Makefile !!!
++ # Any changes made will be lost if this makefile is rebuilt.
++ #
++ # The Elm makefiles support the following standard actions:
++ #
++ #	make all - This is the default.  Build the targets.
++ #
++ #	make install - Install targets into system directories.
++ #
++ #	make clean - Delete targets, objects, and intermediate files.
++ #
++ #	make uninstall - Delete installed targets from system directories
++ #
++ #	make lint - Run "lint".
++ #
++ #	make setup - Ensure directories and .SH files up to date.
++ #
++ #	make tags - Create "tags" file for the sources.
++ #
++ # The customized portion of the Makefile must provide the following defs:
++ #
++ #	SUBDIR - This directory relative to SRCDIR, e.g. "lib".
++ #
++ #	ALL - List of targets to build for "make all"  These also
++ #		are deleted by the "make clean" rule.
++ #
++ #	INSTS - List of targets to install for "make install".
++ #
++ #	SRCS - List of source files that comprise ALL targets.  These
++ #		are all scanned when building automatic dependancies.
++ #
++ #	OBJS - List of intermediate object files for ALL targets.
++ #
++ # The customized portion also must provide the following rules:
++ #
++ #	Rules to build each item in the ALL list.
++ #
++ #	Rules to install each item in the INSTS list.
++ #
++ #	A "rmt-install" rule that does remote installation.
++ #
++ #	A "LINT.OUT" rule that runs lint on the SRCS files.
++ #
++ 
++ SHELL		= /bin/sh
++ 
++ SRCDIR		= ..
++ #VPATH		= $(SRCDIR)/$(SUBDIR)
++ 
++ BINDIR		= ../bin
++ INCLDIR		= $(SRCDIR)/hdrs
++ 
++ CC		= cc
++ OPTIMIZE	= -O2
++ #DEBUG		= -g -DDEBUG
++ CCFLAGS		=  
++ INCLS		= -I.. -I$(INCLDIR)
++ CFLAGS		= $(CCFLAGS) $(OPTIMIZE) $(DEBUG) $(INCLS)
++ LFLAGS		=  
++ LIBS		= -lintl /usr/lib/libcrypt.a -lcurses 
++ LINTFLAGS	= $(INCLS)
++ 
++ AR		= ar
++ CHGRP		= /bin/chgrp
++ CHMOD		= /bin/chmod
++ CP		= /bin/cp
++ CTAGS		= ctags
++ ECHO		= /bin/echo
++ LINT		= /bin/lint
++ LN		= /bin/ln
++ MV		= /bin/mv
++ RANLIB		= :
++ RM		= /bin/rm
++ TEST		= test
++ TOUCH		= /bin/touch
++ 
++ DESTBIN		= /opt/freeware/bin
++ DESTLIB		= /opt/freeware/lib/elm
++ MAILGRP		= mail
++ MAILERMODE	= 2755
++ 
++ MCSRC		= 
++ MCOBJ		= 
++ 
++ 
++ INSTALL_EXE = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(CHMOD) a+x $@
++ 
++ INSTALL_LINK = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(LN) $? $@
++ 
++ INST_MAILER = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(TEST) $(MAILERMODE) -lt 999 || $(CHGRP) $(MAILGRP) $@ ; \
++ 	$(CHMOD) $(MAILERMODE) $@
++ 
++ #
++ # Common rules
++ #
++ 
++ all:		Makefile $& $(ALL)
++ 
++ clean:		; $(RM) -f $(ALL) *.o a.out core core.* tags LINT.OUT
++ 
++ install:	all $(INSTS)
++ 
++ uninstall:	; $(RM) -f $(INSTS)
++ 
++ lint:		LINT.OUT
++ 
++ setup:		Makefile
++ 
++ depend:		$(SRCDIR)/$(SUBDIR)/depend.out
++ 
++ rmt-defined:
++ 	@if $(TEST) "X$(REMOTE)" = "X" ; then \
++ 	    $(ECHO) "You need to define 'REMOTE' as the remote file system" ; \
++ 	    $(ECHO) "for this particular command.  The easiest way to do" ; \
++ 	    $(ECHO) "this is to type:";\
++ 	    $(ECHO) "        make REMOTE=<remote file system> rmt-install" ; \
++ 	    false ; \
++ 	fi
++ 
++ tags: $(SRCDIR)/$(SUBDIR)/*.[ch] $(SRCDIR)/lib/*.[ch] $(SRCDIR)/hdrs/*.[ch]
++ 	@set -x ; \
++ 		cd $(SRCDIR)/$(SUBDIR) ; \
++ 		rm -f tags ; \
++ 		if [ "X$(SUBDIR)" = "Xlib" ] ;  \
++ 			then $(CTAGS) ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 			else $(CTAGS) *.[ch] ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 		fi
++ 
++ #
++ # "depend.out" is a Makefile dependancy, but we omit it to avoid rebuilding
++ # everything whenever a source file changes
++ #
++ Makefile: ../config.sh $(SRCDIR)/$(SUBDIR)/Makefile.SH ../Make.defs
++ 	sh $(SRCDIR)/$(SUBDIR)/Makefile.SH
++ 	@echo "Makefile has been rebuilt - please restart make"
++ 	@false
++ 
++ $(SRCDIR)/$(SUBDIR)/depend.out: $(SRCS)
++ 	cd $(SRCDIR)/$(SUBDIR) ; sh ../dev/makedeps.sh $(SRCS) >$@
++ 
++ #
++ # end of Make.defs
++ #
++ ##############################################################################
++ 
++ 
++ #	Lists of source and object files for each C program
++ ANSWER_SRC	=	answer.c
++ ANSWER_OBJ	=	answer.o
++ ELMALIAS_SRC	=	elmalias.c
++ ELMALIAS_OBJ	=	elmalias.o
++ FASTMAIL_SRC	=	fastmail.c
++ FASTMAIL_OBJ	=	fastmail.o
++ FRM_SRC		=	from.c
++ FRM_OBJ		=	from.o
++ MMENCODE_SRC	=	mmencode.c
++ MMENCODE_OBJ	=	mmencode.o
++ NEWALIAS_SRC	=	newalias.c
++ NEWALIAS_OBJ	=	newalias.o
++ NEWMAIL_SRC	=	newmail.c
++ NEWMAIL_OBJ	=	newmail.o
++ PRLONG_SRC	=	prlong.c
++ PRLONG_OBJ	=	prlong.o
++ READMSG_SRC	=	readmsg.c
++ READMSG_OBJ	=	readmsg.o
++ 
++ 
++ checkalias:           ../config.sh $(SRCDIR)/$(SUBDIR)/checkalias.SH
++ 	sh $(SRCDIR)/$(SUBDIR)/checkalias.SH
++ 
++ listalias:            ../config.sh $(SRCDIR)/$(SUBDIR)/listalias.SH
++ 	sh $(SRCDIR)/$(SUBDIR)/listalias.SH
++ 
++ messages:             ../config.sh $(SRCDIR)/$(SUBDIR)/messages.SH
++ 	sh $(SRCDIR)/$(SUBDIR)/messages.SH
++ 
++ printmail:            ../config.sh $(SRCDIR)/$(SUBDIR)/printmail.SH
++ 	sh $(SRCDIR)/$(SUBDIR)/printmail.SH
++ 
++ 
++ $(BINDIR)/answer:	$(ANSWER_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(ANSWER_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/elmalias:	$(ELMALIAS_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(ELMALIAS_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/fastmail:	$(FASTMAIL_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(FASTMAIL_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/frm:		$(FRM_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(FRM_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/mmencode:	$(MMENCODE_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(MMENCODE_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/newalias:	$(NEWALIAS_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(NEWALIAS_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/newmail:	$(NEWMAIL_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(NEWMAIL_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/readmsg:	$(READMSG_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(READMSG_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/prlong:	$(PRLONG_OBJ) ../lib/libutil.a
++ 	$(CC) $(LFLAGS) -o $@ $(PRLONG_OBJ) ../lib/libutil.a $(LIBS)
++ 
++ $(BINDIR)/checkalias:	checkalias	; $(CP) $? $@ ; $(CHMOD) u+w,a+rx $@
++ $(BINDIR)/listalias:	listalias	; $(CP) $? $@ ; $(CHMOD) u+w,a+rx $@
++ $(BINDIR)/messages:	messages	; $(CP) $? $@ ; $(CHMOD) u+w,a+rx $@
++ $(BINDIR)/printmail:	printmail	; $(CP) $? $@ ; $(CHMOD) u+w,a+rx $@
++ 
++ $(DESTBIN)/answer:	$(BINDIR)/answer	; $(INSTALL_EXE)
++ $(DESTBIN)/checkalias:	$(BINDIR)/checkalias	; $(INSTALL_EXE)
++ $(DESTBIN)/elmalias:	$(BINDIR)/elmalias	; $(INSTALL_EXE)
++ $(DESTBIN)/fastmail:	$(BINDIR)/fastmail	; $(INSTALL_EXE)
++ $(DESTBIN)/frm:		$(BINDIR)/frm		; $(INSTALL_EXE)
++ $(DESTBIN)/nfrm:	$(DESTBIN)/frm		; $(INSTALL_LINK)
++ $(DESTBIN)/listalias:	$(BINDIR)/listalias	; $(INSTALL_EXE)
++ $(DESTBIN)/messages:	$(BINDIR)/messages	; $(INSTALL_EXE)
++ $(DESTBIN)/mmencode:	$(BINDIR)/mmencode	; $(INSTALL_EXE)
++ $(DESTBIN)/newalias:	$(BINDIR)/newalias	; $(INSTALL_EXE)
++ $(DESTBIN)/newmail:	$(BINDIR)/newmail	; $(INSTALL_EXE)
++ $(DESTBIN)/printmail:	$(BINDIR)/printmail	; $(INSTALL_EXE)
++ $(DESTBIN)/readmsg:	$(BINDIR)/readmsg	; $(INSTALL_EXE)
++ $(DESTBIN)/wnewmail:	$(DESTBIN)/newmail	; $(INSTALL_LINK)
++ $(DESTBIN)/prlong:	$(BINDIR)/prlong	; $(INSTALL_EXE)
++ 
++ #	This is the only target that gets installed even if not out-of-date
++ #	with respect the files from which it is installed.
++ rmt-install:		rmt-defined
++ 			-$(MV) $(DESTBIN)/answer $(DESTBIN)/answer.old
++ 			-$(MV) $(DESTBIN)/checkalias $(DESTBIN)/checkalias.old
++ 			-$(MV) $(DESTBIN)/elmalias $(DESTBIN)/elmalias.old
++ 			-$(MV) $(DESTBIN)/fastmail $(DESTBIN)/fastmail.old
++ 			-$(MV) $(DESTBIN)/frm $(DESTBIN)/frm.old
++ 			-$(MV) $(DESTBIN)/nfrm $(DESTBIN)/nfrm.old
++ 			-$(MV) $(DESTBIN)/listalias $(DESTBIN)/listalias.old
++ 			-$(MV) $(DESTBIN)/messages $(DESTBIN)/messages.old
++ 			-test "X$(INSTALL_MMENCODE)" = X || \
++ 			    -$(MV) $(INSTALL_MMENCODE) $(INSTALL_MMENCODE).old
++ 			-$(MV) $(DESTBIN)/newalias $(DESTBIN)/newalias.old
++ 			-$(MV) $(DESTBIN)/newmail $(DESTBIN)/newmail.old
++ 			-$(MV) $(DESTBIN)/printmail $(DESTBIN)/printmail.old
++ 			-$(MV) $(DESTBIN)/prlong $(DESTBIN)/prlong.old
++ 			-$(MV) $(DESTBIN)/readmsg $(DESTBIN)/readmsg.old
++ 			-$(MV) $(DESTBIN)/wnewmail $(DESTBIN)/wnewmail.old
++ 			-$(RM) $(DESTBIN)/answer.old
++ 			-$(RM) $(DESTBIN)/checkalias.old
++ 			-$(RM) $(DESTBIN)/elmalias.old
++ 			-$(RM) $(DESTBIN)/fastmail.old
++ 			-$(RM) $(DESTBIN)/frm.old
++ 			-$(RM) $(DESTBIN)/nfrm.old
++ 			-$(RM) $(DESTBIN)/listalias.old
++ 			-$(RM) $(DESTBIN)/messages.old
++ 			-test "X$(INSTALL_MMENCODE)" = X || \
++ 			    -$(RM) $(INSTALL_MMENCODE)
++ 			-$(RM) $(DESTBIN)/newalias.old
++ 			-$(RM) $(DESTBIN)/newmail.old
++ 			-$(RM) $(DESTBIN)/printmail.old
++ 			-$(RM) $(DESTBIN)/prlong.old
++ 			-$(RM) $(DESTBIN)/readmsg.old
++ 			-$(RM) $(DESTBIN)/wnewmail.old
++ 			$(CP) $(REMOTE_LIST) $(DESTBIN)
++ 			$(LN) $(DESTBIN)/frm $(DESTBIN)/nfrm
++ 			$(LN) $(DESTBIN)/newmail $(DESTBIN)/wnewmail
++ 			$(CHMOD) a+rx $(INSTALL_LIST)
++ 
++ LINT.OUT :
++ 	@( set -x ; \
++ 		$(LINT) $(LINTFLAGS) $(ANSWER_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(ELMALIAS_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(FASTMAIL_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(FRM_SRC)		; \
++ 		$(LINT) $(LINTFLAGS) $(MMENCODE_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(NEWALIAS_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(NEWMAIL_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(READMSG_SRC)	; \
++ 		$(LINT) $(LINTFLAGS) $(PRLONG_SRC)	\
++ 	) >$@
++ 
+Index: elm2.5.5/utils/checkalias
+diff -c /dev/null elm2.5.5/utils/checkalias:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/utils/checkalias	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,16 ----
++ #!/bin/sh
++ # checkalias: part of the Elm mail system
++ # @(#): checkalias.SH,v 1.3 1995/07/18 19:00:12 wfp5p Exp $
++ #		Copyright (c) 1988-1992 USENET Community Trust
++ # 		Copyright (c) 1986,1987 Dave Taylor
++  
++ 
++ if [ $# -eq 0 ] ; then
++ 	echo "usage: $0 alias ..." 1>&2
++ 	exit 1
++ fi
++ 
++ elmalias -en $@ | \
++ 	prlong -w 78 -1 "Expands to: " -l "	" -f ", "
++ exit $?
++ 
+Index: elm2.5.5/utils/listalias
+diff -c /dev/null elm2.5.5/utils/listalias:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/utils/listalias	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,46 ----
++ #!/bin/sh
++ # listalias: part of the Elm mail system
++ # @(#)$Id: listalias,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #		Copyright (c) 1988-1992 USENET Community Trust
++ # 		Copyright (c) 1986,1987 Dave Taylor
++ 
++ USAGE="usage: $0 [-u | -s] [optional-regular-expression]"
++ 
++ opts=
++ 
++ while : ; do
++ 	case "$1" in
++ 	-u|-s)	opts="$opts $1" ; shift ;;
++ 	--)	shift ; break ;;
++ 	-*)	echo "$USAGE" 1>&2 ; exit 1 ;;
++ 	*)	break ;;
++ 	esac
++ done
++ 
++ listit="elmalias -v $opts"
++ grepit=
++ sortit="| sort"
++ 
++ case "$#" in
++ 
++ 0)	;;
++ 
++ 1)	# BSD uses "-y" for case insensitive, SysV uses "-i".
++ 	grepit="| grep \"$1\""
++ 	for flag in -i -y ; do
++ 		x=`echo HELLO | grep $flag hello 2>/dev/null`
++ 		if test $? -eq 0 -a "X$x" = "XHELLO" ; then
++ 			grepit="| grep $flag \"$1\""
++ 			break
++ 		fi
++ 	done
++ 	;;
++ 
++ *)	echo "$USAGE" 1>&2
++ 	exit 1
++ 	;;
++ 
++ esac
++ 
++ eval "$listit $grepit $sortit"
++ exit $?
+Index: elm2.5.5/utils/messages
+diff -c /dev/null elm2.5.5/utils/messages:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/utils/messages	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,41 ----
++ #!/bin/sh
++ # messages: part of the Elm mail system
++ # @(#)$Id: messages,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #		Copyright (c) 1988-1992 USENET Community Trust
++ # 		Copyright (c) 1986,1987 Dave Taylor
++  
++ if [ "$2" != "" ]; then
++   echo Usage: messages \{folder-name\} 1>&2
++   exit 1
++ fi
++  
++ if [ "$1" = "" ]; then
++   fname=${MAIL-/var/spool/mail/$LOGNAME}
++   optional="in your incoming mailbox"
++ else
++   optional="in folder $1"
++   first=`expr "$1" : "\(.\).*"`
++   if [ "$first" = "=" ]; then
++     last=`expr "$1" : ".\(.*\)"`
++     fname="`grep maildir $HOME/.elm/elmrc | awk -F= '{print $2}'| tr -d ' '`/$last"
++   else
++     fname=$1
++   fi
++ fi
++ 
++ if [ -f "$fname" ]; then
++   mcount=`egrep -c "^From " $fname`
++ else
++   echo "Folder $1 does not exist."
++   exit 0
++ fi
++  
++ if [ "$mcount" -eq 1 ]; then
++   echo There is 1 message $optional.
++ elif [ "$mcount" -eq 0 ]; then
++   echo There are no messages $optional.
++ else
++   echo There are $mcount messages $optional.
++ fi
++  
++ exit $mcount
+Index: elm2.5.5/utils/printmail
+diff -c /dev/null elm2.5.5/utils/printmail:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/utils/printmail	Tue May 22 20:55:18 2001
+***************
+*** 0 ****
+--- 1,21 ----
++ #!/bin/sh
++ # printmail: part of the Elm mail system
++ # @(#)$Id: printmail,v 1.1 2001/05/23 01:55:18 marc Exp $
++ #		Copyright (c) 1988-1992 USENET Community Trust
++ # 		Copyright (c) 1986,1987 Dave Taylor
++  
++ if [ "$1" = "-p" ]; then
++   flags="-p";shift
++ fi
++  
++ if [ "$1" != "" ]; then
++   if [ ! -r $1 ]; then
++     echo printmail: cannot open folder $1 1>&2
++     exit 1
++   else
++     flags="$flags -f $1"
++   fi
++ fi
++  
++ # and now invoke readmsg
++ exec readmsg $flags \*
+Index: elm2.5.5/config.sh
+diff -c /dev/null elm2.5.5/config.sh:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/config.sh	Tue May 22 20:55:19 2001
+***************
+*** 0 ****
+--- 1,285 ----
++ #!/bin/sh
++ # config.sh
++ # This file was produced by running the Configure script.
++ 
++ Log='$Log'
++ Header='$Header'
++ contains='grep'
++ cppstdin='/usr/local/bin/cpp'
++ cppminus=''
++ d_getopt='define'
++ d_memcpy='define'
++ d_mkdir='define'
++ d_rename='define'
++ d_symlink='undef'
++ d_whoami='undef'
++ n=''
++ c='\c'
++ orderlib='false'
++ ranlib=':'
++ package='elm2.5'
++ pager='builtin+'
++ prefshell='/bin/ksh'
++ startsh='#!/bin/sh'
++ d_eunice='undef'
++ define='define'
++ eunicefix=':'
++ build_dir='/bigfs/tmp/elm2.5.5'
++ source_dir='/bigfs/tmp/elm2.5.5'
++ loclist='
++ cat
++ chgrp
++ chmod
++ cp
++ echo
++ expr
++ grep
++ ln
++ ls
++ mv
++ rm
++ sed
++ sleep
++ touch
++ tr
++ '
++ expr='/bin/expr'
++ sed='/bin/sed'
++ echo='/bin/echo'
++ cat='/bin/cat'
++ rm='/bin/rm'
++ mv='/bin/mv'
++ cp='/bin/cp'
++ tail=''
++ tr='/bin/tr'
++ mkdir=''
++ sort=''
++ uniq=''
++ grep='/bin/grep'
++ trylist='
++ Mcc
++ compress
++ cpp
++ date
++ emacs
++ execmail
++ ispell
++ line
++ lint
++ lp
++ lpr
++ mips
++ more
++ nroff
++ pack
++ pg
++ pr
++ rmail
++ sendmail
++ shar
++ smail
++ submit
++ tar
++ tbl
++ test
++ troff
++ uname
++ uuname
++ vi
++ '
++ test='test'
++ inews=''
++ ispell='ispell'
++ egrep=''
++ more='/bin/more'
++ pg='/bin/pg'
++ Mcc='Mcc'
++ vi='/bin/vi'
++ mailx=''
++ mail=''
++ cpp='/usr/local/bin/cpp'
++ perl=''
++ emacs='/bin/emacs'
++ ls='/bin/ls'
++ rmail='/bin/rmail'
++ sendmail='/usr/sbin/sendmail'
++ shar='/bin/shar'
++ smail='smail'
++ submit=''
++ tbl='/bin/tbl'
++ troff='/bin/troff'
++ nroff='/bin/nroff'
++ uname='/bin/uname'
++ uuname='uuname'
++ line='/bin/line'
++ chgrp='/bin/chgrp'
++ chmod='/bin/chmod'
++ lint='/bin/lint'
++ sleep='/bin/sleep'
++ pr='/bin/pr'
++ tar='/bin/tar'
++ ln='/bin/ln'
++ lpr='/bin/lpr'
++ lp='/bin/lp'
++ touch='/bin/touch'
++ make=''
++ date='/bin/date'
++ csh=''
++ pmake=''
++ mips='false'
++ col=''
++ pack='/bin/pack'
++ bld=''
++ compress='/bin/compress'
++ execmail=''
++ libswanted='intl nls'
++ bin='/opt/freeware/bin'
++ installbin='/opt/freeware/bin'
++ c_date='Tue May 22 19:01:39 CDT 2001'
++ d_ascii='undef'
++ d_broke_ctype='undef'
++ d_broke_fflush='undef'
++ d_calendar='define'
++ calendar='calendar'
++ d_chown_neg1='define'
++ d_content='undef'
++ d_crypt='define'
++ cryptlib='/usr/lib/libcrypt.a'
++ d_cuserid='define'
++ d_disphost='undef'
++ d_domname='define'
++ d_usegetdom='define'
++ d_errlst='define'
++ d_flock='undef'
++ d_dotlock='define'
++ d_fcntlock='define'
++ lock_dir='/tmp'
++ has_flock='define'
++ has_fcntl='define'
++ d_fsync='undef'
++ d_ftruncate='define'
++ d_gethname='define'
++ d_douname='undef'
++ d_host_comp='undef'
++ ign_hname='n'
++ d_index='undef'
++ d_internet='define'
++ d_ispell='define'
++ ispell_path='/opt/freeware/bin/ispell'
++ ispell_options=''
++ d_locale='define'
++ d_nl_types='define'
++ d_msgcat='define'
++ d_usenls='undef'
++ d_mboxedit='undef'
++ d_mime='define'
++ defcharset='iso-8859-1'
++ defdispcharset='iso-8859-1'
++ d_mmdf='undef'
++ d_newauto='define'
++ d_noaddfrom='define'
++ d_usedomain='undef'
++ d_noxheader='undef'
++ d_pidcheck='define'
++ d_ptem='undef'
++ d_putenv='define'
++ d_remlock='undef'
++ maxattempts='6'
++ d_setegid='define'
++ d_setgid='define'
++ d_savegrpmboxid='define'
++ mailermode='2755'
++ d_sigvec='undef'
++ d_sigvectr='undef'
++ d_sigset='undef'
++ d_sighold='undef'
++ d_sigprocmask='define'
++ d_sigblock='undef'
++ d_sigaction='define'
++ d_statuschg='define'
++ d_strcspn='define'
++ d_strspn='define'
++ d_strpbrk='define'
++ d_strerror='define'
++ d_strftime='define'
++ d_strings='undef'
++ d_pwdinsys='undef'
++ strings='/usr/include/string.h'
++ includepath=''
++ d_strstr='define'
++ d_strtok='define'
++ d_subshell='define'
++ d_tempnam='define'
++ tempnamo=''
++ tempnamc=''
++ d_termio='undef'
++ d_termios='define'
++ d_useembed='define'
++ d_utimbuf='define'
++ d_vfork='define'
++ defbatsub='no subject (file transmission)'
++ defeditor='/bin/vi'
++ editoropts=''
++ hostname='emperor'
++ phostname='hostname'
++ mydomain='.austin.ibm.com'
++ autohostname='define'
++ i_memory='define'
++ i_stdarg='define'
++ i_stdlib='define'
++ i_time='define'
++ i_systime='define'
++ d_systimekernel='undef'
++ i_unistd='define'
++ i_utime='define'
++ i_sysutime='undef'
++ lib='/opt/freeware/lib/elm'
++ installlib='/opt/freeware/lib/elm'
++ libc='/lib/libc.a'
++ linepr='/bin/lpr'
++ maildir='/var/spool/mail'
++ mailer='/usr/sbin/sendmail'
++ mailgrp='mail'
++ mansrc='/usr/man/man1'
++ catmansrc='/usr/man/cat1'
++ manext='.1'
++ manext_choice='.1'
++ catmanext='.1'
++ catmanext_choice='.1'
++ packed='n'
++ manroff='/bin/nroff'
++ manroffopts=''
++ suffix=''
++ packer=''
++ models='none'
++ split=''
++ small=''
++ medium=''
++ large=''
++ huge=''
++ optimize='-O2'
++ ccflags=''
++ cppflags=''
++ ldflags=''
++ cc='cc'
++ libs='-lintl'
++ nametype='bsd'
++ d_passnames='define'
++ d_berknames='define'
++ d_usgnames='undef'
++ passcat='cat /etc/passwd'
++ rmttape='unknown-remote-tape-unit'
++ roff='/bin/troff'
++ roffopts=''
++ sigtype='void'
++ spitshell='cat'
++ shsharp='true'
++ sharpbang='#!'
++ termlib='-lcurses'
++ tmpdir='/tmp'
++ tzname_handling='TZNAME'
++ xencf=''
++ xenlf=''
++ d_xenix='undef'
++ d_bsd='define'
++ CONFIG=true
+Index: elm2.5.5/Make.defs
+diff -c /dev/null elm2.5.5/Make.defs:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/Make.defs	Tue May 22 20:55:19 2001
+***************
+*** 0 ****
+--- 1,164 ----
++ 
++ ##############################################################################
++ #
++ # Make.defs - common definitions
++ #
++ # DO NOT EDIT THE RESULTING Makefile !!!
++ # Any changes made will be lost if this makefile is rebuilt.
++ #
++ # The Elm makefiles support the following standard actions:
++ #
++ #	make all - This is the default.  Build the targets.
++ #
++ #	make install - Install targets into system directories.
++ #
++ #	make clean - Delete targets, objects, and intermediate files.
++ #
++ #	make uninstall - Delete installed targets from system directories
++ #
++ #	make lint - Run "lint".
++ #
++ #	make setup - Ensure directories and .SH files up to date.
++ #
++ #	make tags - Create "tags" file for the sources.
++ #
++ # The customized portion of the Makefile must provide the following defs:
++ #
++ #	SUBDIR - This directory relative to SRCDIR, e.g. "lib".
++ #
++ #	ALL - List of targets to build for "make all"  These also
++ #		are deleted by the "make clean" rule.
++ #
++ #	INSTS - List of targets to install for "make install".
++ #
++ #	SRCS - List of source files that comprise ALL targets.  These
++ #		are all scanned when building automatic dependancies.
++ #
++ #	OBJS - List of intermediate object files for ALL targets.
++ #
++ # The customized portion also must provide the following rules:
++ #
++ #	Rules to build each item in the ALL list.
++ #
++ #	Rules to install each item in the INSTS list.
++ #
++ #	A "rmt-install" rule that does remote installation.
++ #
++ #	A "LINT.OUT" rule that runs lint on the SRCS files.
++ #
++ 
++ SHELL		= /bin/sh
++ 
++ SRCDIR		= ..
++ #VPATH		= $(SRCDIR)/$(SUBDIR)
++ 
++ BINDIR		= ../bin
++ INCLDIR		= $(SRCDIR)/hdrs
++ 
++ CC		= cc
++ OPTIMIZE	= -O2
++ #DEBUG		= -g -DDEBUG
++ CCFLAGS		=  
++ INCLS		= -I.. -I$(INCLDIR)
++ CFLAGS		= $(CCFLAGS) $(OPTIMIZE) $(DEBUG) $(INCLS)
++ LFLAGS		=  
++ LIBS		= -lintl /usr/lib/libcrypt.a -lcurses 
++ LINTFLAGS	= $(INCLS)
++ 
++ AR		= ar
++ CHGRP		= /bin/chgrp
++ CHMOD		= /bin/chmod
++ CP		= /bin/cp
++ CTAGS		= ctags
++ ECHO		= /bin/echo
++ LINT		= /bin/lint
++ LN		= /bin/ln
++ MV		= /bin/mv
++ RANLIB		= :
++ RM		= /bin/rm
++ TEST		= test
++ TOUCH		= /bin/touch
++ 
++ DESTBIN		= /opt/freeware/bin
++ DESTLIB		= /opt/freeware/lib/elm
++ MAILGRP		= mail
++ MAILERMODE	= 2755
++ 
++ MCSRC		= 
++ MCOBJ		= 
++ 
++ 
++ INSTALL_EXE = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(CHMOD) a+x $@
++ 
++ INSTALL_LINK = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(LN) $? $@
++ 
++ INST_MAILER = \
++ 	$(RM) -f $@.old ; \
++ 	$(TEST) ! -f $@ || $(MV) $@ $@.old ; \
++ 	$(RM) -f $@.old ; \
++ 	$(CP) $? $@ ; \
++ 	$(TEST) $(MAILERMODE) -lt 999 || $(CHGRP) $(MAILGRP) $@ ; \
++ 	$(CHMOD) $(MAILERMODE) $@
++ 
++ #
++ # Common rules
++ #
++ 
++ all:		Makefile $& $(ALL)
++ 
++ clean:		; $(RM) -f $(ALL) *.o a.out core core.* tags LINT.OUT
++ 
++ install:	all $(INSTS)
++ 
++ uninstall:	; $(RM) -f $(INSTS)
++ 
++ lint:		LINT.OUT
++ 
++ setup:		Makefile
++ 
++ depend:		$(SRCDIR)/$(SUBDIR)/depend.out
++ 
++ rmt-defined:
++ 	@if $(TEST) "X$(REMOTE)" = "X" ; then \
++ 	    $(ECHO) "You need to define 'REMOTE' as the remote file system" ; \
++ 	    $(ECHO) "for this particular command.  The easiest way to do" ; \
++ 	    $(ECHO) "this is to type:";\
++ 	    $(ECHO) "        make REMOTE=<remote file system> rmt-install" ; \
++ 	    false ; \
++ 	fi
++ 
++ tags: $(SRCDIR)/$(SUBDIR)/*.[ch] $(SRCDIR)/lib/*.[ch] $(SRCDIR)/hdrs/*.[ch]
++ 	@set -x ; \
++ 		cd $(SRCDIR)/$(SUBDIR) ; \
++ 		rm -f tags ; \
++ 		if [ "X$(SUBDIR)" = "Xlib" ] ;  \
++ 			then $(CTAGS) ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 			else $(CTAGS) *.[ch] ../lib/*.[ch] ../hdrs/*.[ch] ; \
++ 		fi
++ 
++ #
++ # "depend.out" is a Makefile dependancy, but we omit it to avoid rebuilding
++ # everything whenever a source file changes
++ #
++ Makefile: ../config.sh $(SRCDIR)/$(SUBDIR)/Makefile.SH ../Make.defs
++ 	sh $(SRCDIR)/$(SUBDIR)/Makefile.SH
++ 	@echo "Makefile has been rebuilt - please restart make"
++ 	@false
++ 
++ $(SRCDIR)/$(SUBDIR)/depend.out: $(SRCS)
++ 	cd $(SRCDIR)/$(SUBDIR) ; sh ../dev/makedeps.sh $(SRCS) >$@
++ 
++ #
++ # end of Make.defs
++ #
++ ##############################################################################
++ 
+Index: elm2.5.5/Makefile
+diff -c /dev/null elm2.5.5/Makefile:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/Makefile	Tue May 22 20:55:19 2001
+***************
+*** 0 ****
+--- 1,115 ----
++ #
++ # : Makefile.SH,v 1.8 1996/03/14 17:27:09 wfp5p Exp $
++ #
++ #  Makefile for the entire ELM mail system
++ #
++ #         (C) Copyright 1986,1987, by Dave Taylor
++ #         (C) Copyright 1988-1995, USENET Community Trust
++ #
++ #  $Log: Makefile,v $
++ #  Revision 1.1  2001/05/23 01:55:19  marc
++ #  Preconfigured answers
++ #
++ # Revision 1.8  1996/03/14  17:27:09  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.7  1995/09/29  17:40:28  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.6  1995/09/11  15:18:35  wfp5p
++ # Alpha 7
++ #
++ # Revision 1.5  1995/07/18  18:59:31  wfp5p
++ # Alpha 6
++ #
++ # Revision 1.4  1995/06/30  14:55:57  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.3  1995/05/10  13:33:48  wfp5p
++ # *** empty log message ***
++ #
++ # Revision 1.2  1995/04/20  21:00:39  wfp5p
++ # Removed filter
++ # Added the showreply feature and emacs key bindings
++ #
++ # Revision 1.1.1.1  1995/04/19  20:38:25  wfp5p
++ # Initial import of elm 2.4 PL0 as base for elm 2.5.
++ #
++ #
++ 
++ #	Variables established by Configure
++ SRCDIR		=	.
++ #VPATH		=	$(SRCDIR)
++ CAT		=	/bin/cat
++ GREP		=	/bin/grep
++ ECHO		=	/bin/echo
++ PR		=	/bin/pr
++ SHAR		=	/bin/shar -s 60000
++ SLEEP		=	/bin/sleep
++ TAR		=	/bin/tar
++ TAPE		=	unknown-remote-tape-unit
++ 
++ #	Other variables
++ SHELL			=	/bin/sh
++ SOURCE_FILES		=	`$(GREP) -v 'doc/' MANIFEST`
++ DISTRIBUTED_FILES	=	`$(CAT) MANIFEST`
++ 
++ default_target:	all
++ 
++ REQS = Make.defs Makefile config.h sysdefs.h
++ 
++ setup all install rmt-install uninstall lint clean tags depend : $(REQS) .CHECK
++ 	cd lib && $(MAKE) $(MFLAGS) $(MJ) $@
++ 	cd src && $(MAKE) $(MFLAGS) $(MJ) $@
++ 	cd utils && $(MAKE) $(MFLAGS) $(MJ) $@
++ 	cd doc && $(MAKE) $(MFLAGS) $(MJ) $@
++ 
++ #
++ # Ensure required subdirectories and their Makefiles exist.
++ #
++ .CHECK :
++ 	@test -d bin || ( set -x ; mkdir bin )
++ 	-@for d in lib src utils doc ; do \
++ 		test -d $$d || ( set -x ; mkdir $$d ) ; \
++ 		test -f $$d/Makefile || ( set -x ; cd $$d ; sh $(SRCDIR)/$$d/Makefile.SH ) ; \
++ 	done
++ 
++ Make.defs:	$(SRCDIR)/Make.defs.SH config.sh
++ 		sh $(SRCDIR)/Make.defs.SH
++ 
++ Makefile:	$(SRCDIR)/Makefile.SH Make.defs config.sh
++ 		sh $(SRCDIR)/Makefile.SH
++ 		@echo "Makefile has been rebuilt - please restart make"
++ 		@false
++ 
++ config.h:	$(SRCDIR)/config.h.SH config.sh
++ 		sh $(SRCDIR)/config.h.SH
++ 
++ sysdefs.h:	$(SRCDIR)/hdrs/sysdefs.SH config.sh
++ 		sh $(SRCDIR)/hdrs/sysdefs.SH
++ 
++ #	Targets that apply to all elm at once
++ listing:
++ 		@$(ECHO) "Making source listing in file LISTING."
++ 		@$(PR) -n -f $(SOURCE_FILES) > LISTING
++ 
++ shar:
++ 		$(SHAR) $(DISTRIBUTED_FILES)
++ 
++ tar:
++ 		$(TAR) cvf $(TAPE) $(DISTRIBUTED_FILES)
++ 
++ #	Targets that are really in subordinate make files
++ documentation:
++ 	cd doc; $(MAKE) $(MFLAGS) $(MJ) $@
++ 
++ elm:
++ 	cd lib; $(MAKE) $(MFLAGS) $(MJ) all
++ 	cd src; $(MAKE) $(MFLAGS) $(MJ) all
++ 
++ 
++ utils: .FORCE
++ 	cd utils; $(MAKE) $(MFLAGS) $(MJ) all
++ 
++ .FORCE:
++ 
+Index: elm2.5.5/config.h
+diff -c /dev/null elm2.5.5/config.h:1.1
+*** /dev/null	Tue May 22 20:58:01 2001
+--- elm2.5.5/config.h	Tue May 22 20:55:19 2001
+***************
+*** 0 ****
+--- 1,599 ----
++ /* config.h
++  * This file was produced by running the config.h.SH script, which
++  * gets its values from config.sh, which is generally produced by
++  * running Configure.
++  *
++  * Feel free to modify any of this as the need arises.  Note, however,
++  * that running config.h.SH again will wipe out any changes you've made.
++  * For a more permanent change edit config.sh and rerun config.h.SH.
++  */
++ 
++ 
++ /* CPPSTDIN:
++  *	This symbol contains the first part of the string which will invoke
++  *	the C preprocessor on the standard input and produce to standard
++  *	output.	 Typical value of "cc -E" or "/lib/cpp".
++  */
++ /* CPPMINUS:
++  *	This symbol contains the second part of the string which will invoke
++  *	the C preprocessor on the standard input and produce to standard
++  *	output.  This symbol will have the value "-" if CPPSTDIN needs a minus
++  *	to specify standard input, otherwise the value is "".
++  */
++ #define CPPSTDIN "/usr/local/bin/cpp"
++ #define CPPMINUS ""
++ 
++ /* GETOPT:
++  *	This symbol, if defined, indicates that the getopt() routine exists.
++  */
++ #define	GETOPT		/**/
++ 
++ /* MEMCPY:
++  *	This symbol, if defined, indicates that the memcpy routine is available
++  *	to copy blocks of memory.  Otherwise you should probably use bcopy().
++  *	If neither is defined, roll your own.
++  */
++ #define	MEMCPY		/**/
++ 
++ /* MKDIR:
++  *	This symbol, if defined, indicates that the mkdir routine is available
++  *	to create directories.  Otherwise you should fork off a new process to
++  *	exec /bin/mkdir.
++  */
++ #define	MKDIR		/**/
++ 
++ /* RENAME:
++  *	This symbol, if defined, indicates that the rename routine is available
++  *	to rename files.  Otherwise you should do the unlink(), link(), unlink()
++  *	trick.
++  */
++ #define	RENAME		/**/
++ 
++ /* SYMLINK:
++  *	This symbol, if defined, indicates that the symlink routine is available
++  *	to create symbolic links.
++  */
++ /*#undef	SYMLINK		/**/
++ 
++ /* WHOAMI:
++  *	This symbol, if defined, indicates that the program may include
++  *	whoami.h.
++  */
++ /*#undef	WHOAMI		/**/
++ 
++ /* PREFSHELL:
++  *	This symbol contains the full name of the preferred user shell on this
++  *	system.  Usual values are /bin/csh, /bin/ksh, /bin/sh.
++  */
++ #define PREFSHELL "/bin/ksh"		/**/
++ 
++ /* EUNICE:
++  *	This symbol, if defined, indicates that the program is being compiled
++  *	under the EUNICE package under VMS.  The program will need to handle
++  *	things like files that don't go away the first time you unlink them,
++  *	due to version numbering.  It will also need to compensate for lack
++  *	of a respectable link() command.
++  */
++ /* VMS:
++  *	This symbol, if defined, indicates that the program is running under
++  *	VMS.  It is currently only set in conjunction with the EUNICE symbol.
++  */
++ /*#undef	EUNICE		/**/
++ /*#undef	VMS		/**/
++ 
++ /* BIN:
++  *	This symbol holds the name of the directory in which the user wants
++  *	to put publicly executable images for the package in question.  It
++  *	is most often a local directory such as /usr/local/bin.
++  */
++ #define BIN "/opt/freeware/bin"             /**/
++ 
++ /* CONFIGURE_DATE
++  *	This symbol contains the last date that configure was run for elm -v output.
++  */
++ #define		CONFIGURE_DATE	"Tue May 22 19:01:39 CDT 2001"
++ 
++ /* ASCII_CTYPE:
++  *	This symbol, if defined, indicates that the ctype functions and
++  *	macros are ASCII specific and not 8-bit clean.
++  */
++ /*#undef	ASCII_CTYPE	/**/
++ 
++ /* BROKE_CTYPE:
++  *	This symbol, if defined, indicates that toupper and tolower
++  *	routines/macros are not safe to use.
++  */
++ /*#undef	BROKE_CTYPE	/**/
++ 
++ /* ULTRIX_FFLUSH_BUG:
++  *	This symbol, if defined, indicates that fflush() is broken.
++  */
++ /*#undef       ULTRIX_FFLUSH_BUG       /**/
++ 
++ /* ENABLE_CALENDAR:
++  *	This symbol, if defined, indicates that the calendar feature
++  *	should be supported.
++  */
++ #define	ENABLE_CALENDAR	/**/
++ #define dflt_calendar_file	"calendar"	
++ 
++ /* CHOWN_NEG1:
++  */
++ #define	CHOWN_NEG1	/**/
++ 
++ /* DONT_ESCAPE_MESSAGES:
++  *	This symbol, if defined, indicates that a binary capable MTA is in use
++  *	that honors the content-length header and no message constructs need
++  *	to be escaped.
++  */
++ /*#undef	DONT_ESCAPE_MESSAGES /**/
++ 
++ /* CRYPT:
++  *	This symbol, if defined, indicates that the crypt routine is available
++  *	to encrypt passwords and the like.
++  */
++ #define	CRYPT		/**/
++ 
++ /* HAS_CUSERID:
++  *	This symbol, if defined, means not to include our own cuserid().
++  */
++ #define HAS_CUSERID		/**/
++ 
++ /* DISP_HOST:
++  *	This symbol, if defined, indicates that elm should display the
++  *	host name on the index screen.
++  */
++ /*#undef	DISP_HOST /**/
++ 
++ /* GETDOMAINNAME
++  *	This symbol, if defined, indicates that the getdomainname system call
++  *	is available to obtain the domain name.  Note that the /domain
++  *	file overrides the value of getdomainname().  If getdomainname() exists,
++  *	MYDOMAIN will be ignored.
++  */
++ /* USEGETDOMAINNAME
++  *	This symbol, if defined, indicates that the getdomainname system call
++  *	should be used to obtain the domain name.  Note that the /domain
++  *	file overrides the value of getdomainname().  If this variable is set
++  *	MYDOMAIN (and therefore DEFAULT_DOMAIN) will be ignored.
++  */
++ #define	GETDOMAINNAME		/**/
++ 
++ #define	USEGETDOMAINNAME		/**/
++ 
++ /* ERRLST:
++  *	This symbol, if defined, indicates that the sys_errlist and sys_nerr
++  *	symbols exist.
++  */
++ #define	ERRLST	/**/
++ 
++ /* USE_FLOCK_LOCKING
++  *	This symbol, if defined, indicates that the flock mailbox locking should be used.
++  */
++ /* USE_DOTLOCK_LOCKING
++  *	This symbol, if defined, indicates that the .lock mailbox locking should be used.
++  */
++ /* USE_FCNTL_LOCKING
++  *	This symbol, if defined, indicates that SYSV style fcntl file locking should be used.
++  */
++ /* LOCK_DIR
++  *	This symbol is the name of the lock directory for access (not mailbox) locks.
++  *	It will be /usr/spool/locks or /usr/spool/uucp
++  */
++ /*#undef	USE_FLOCK_LOCKING		/**/
++ 
++ #define	USE_DOTLOCK_LOCKING		/**/
++ 
++ #define	USE_FCNTL_LOCKING	/**/
++ 
++ #define		LOCK_DIR	"/tmp"	/**/
++ 
++ /* HAS_FSYNC:
++  *	This symbol, if defined, indicates that the fsync() routine exists.
++  */
++ /*#undef	HAS_FSYNC		/**/
++ 
++ /* FTRUNCATE:
++  *	This symbol, if defined, indicates that the ftruncate() routine exists.
++  */
++ #define	FTRUNCATE		/**/
++ 
++ /* GETHOSTNAME:
++  *	This symbol, if defined, indicates that the C program may use the
++  *	gethostname() routine to derive the host name.  See also DOUNAME.
++  */
++ /* DOUNAME:
++  *	This symbol, if defined, indicates that the C program may use the
++  *	uname() routine to derive the host name.  See also GETHOSTNAME.
++  */
++ /* HOSTCOMPILED:
++  *	This symbol, if defined, indicated that the host name is compiled
++  *	in from the string hostname
++  */
++ #define	GETHOSTNAME	/**/
++ /*#undef	DOUNAME		/**/
++ /*#undef	HOSTCOMPILED	/**/
++ 
++ /* index:
++  *	This preprocessor symbol is defined, along with rindex, if the system
++  *	uses the strchr and strrchr routines instead.
++  */
++ /* rindex:
++  *	This preprocessor symbol is defined, along with index, if the system
++  *	uses the strchr and strrchr routines instead.
++  */
++ /*#undef	index strchr	/* cultural */
++ /*#undef	rindex strrchr	/*  differences? */
++ 
++ /* INTERNET:
++  *	This symbol, if defined, indicates that there is a mailer available
++  *	which supports internet-style addresses (user@site.domain).
++  */
++ #define	INTERNET	/**/
++ 
++ /* ISPELL:
++  *	This symbol, if defined, indicates that the GNU ispell
++  *	spelling checker that is available to Elm.
++  */
++ /* ISPELL_PATH:
++  *	This symbol contains the path to the GNU ispell
++  *	spelling checker that is available to Elm.
++  */
++ /* ISPELL_OPTIONS:
++  *	This symbol contains the options to the GNU ispell
++  *	spelling checker that is available to Elm.
++  */
++ #define	ISPELL	/**/
++ #define		ISPELL_PATH	"/opt/freeware/bin/ispell" /**/
++ #define		ISPELL_OPTIONS	"" /**/
++ 
++ /* I_LOCALE:
++  *	This symbol, if defined, indicates that the file locale.h
++  *	should be included
++  */
++ /* MSGCAT:
++  *	This symbol, if defined, indicates that the MSGCAT NLS libraries
++  *	are available.
++  */
++ /* USENLS:
++  *	This symbol, if defined, indicates that the Elm NLS libraries
++  *	are being used instead of the system NLS libraries.
++  */
++ #define	I_LOCALE	/**/
++ #define	I_NL_TYPES	/**/
++ #define	MSGCAT		/**/
++ /*#undef	USENLS		/**/
++ 
++ /* ALLOW_MAILBOX_EDITING:
++  *	This symbol, if defined, indicates that the E)dit mailbox
++  *	function is to be allowed.
++  */
++ /*#undef	ALLOW_MAILBOX_EDITING	/**/
++ 
++ /* MIME:
++  *	This symbol, if defined, indicates that the MIME mail
++  *	extension utilities are available
++  */
++ #define	MIME	/**/
++ 
++ /* MMDF:
++  *	This symbol, if defined, indicates that mailboxes are in
++  *	the MMDF format.
++  */
++ /*#undef	MMDF	/**/
++ 
++ /* AUTO_BACKGROUND:
++  *	This symbol, if defined, indicates that newmail should go to
++  *	the background automatically.
++  */
++ #define AUTO_BACKGROUND /**/
++ 
++ /* DONT_ADD_FROM:
++  *	This symbol, if defined, indicates that elm should not add
++  *	the From: header
++  */
++ /* USE_DOMAIN:
++  *	This symbol, if defined, indicates that elm should add
++  *	the domain name to our address
++  */
++ #define	DONT_ADD_FROM /**/
++ /*#undef	USE_DOMAIN /**/
++ 
++ /* NO_XHEADER:
++  *	This symbol, if defined, will not automatically add "X-Mailer:"
++  *	headers.
++  */
++ /*#undef	NO_XHEADER	/**/
++ 
++ /* PIDCHECK:
++  *	This symbol, if defined, means that the kill(pid, 0) will
++  *	check for an active pid.
++  */
++ #define PIDCHECK		/**/
++ 
++ /* PTEM:
++  *	This symbol, if defined, indicates that the sys/ptem.h include file is
++  *	needed for window sizing.
++  */
++ /*#undef	PTEM		/**/
++ 
++ /* PUTENV:
++  *	This symbol, if defined, indicates that putenv() exists.
++  */
++ #define	PUTENV	/**/
++ 
++ /* REMOVE_AT_LAST:
++  *	This symbol, if defined, tells the C code to remove the lock
++  *	file on lock failure.
++  */
++ /* MAX_ATTEMPTS:
++  *	This symbol defines to the C code the number of times to try
++  *	locking the mail file.
++  */
++ /*#undef REMOVE_AT_LAST	/**/
++ #define MAX_ATTEMPTS	6
++ 
++ /* HAS_SETEGID:
++  *	This symbol, if defined, indicates that the setegid() routine exists.
++  */
++ #define	HAS_SETEGID		/**/
++ 
++ /* SAVE_GROUP_MAILBOX_ID:
++  *	This symbol, if defined, indicates that Elm needs to restore the
++  *	group id of the file, as it is running setgid.
++  */
++ #define SAVE_GROUP_MAILBOX_ID	/**/
++ 
++ /* SIGVEC:
++  *	This symbol, if defined, indicates that BSD reliable signals routine
++  *	sigvec is available.
++  */
++ /* SIGVECTOR:
++  *	This symbol, if defined, indicates that the sigvec() routine is called
++  *	sigvector() instead, and that sigspace() is provided instead of
++  *	sigstack().  This is probably only true for HP-UX.
++  */
++ /* SIGSET:
++  *	This symbol, if defined, indicates that BSD reliable signal routine
++  *	sigset is available.
++  */
++ /* POSIX_SIGNALS:
++  *	This symbol, if defined, indicated that POSIX sigaction
++  *	routine is available.
++  */
++ /* HASSIGHOLD:
++  *	This symbol, if defined, indicates that sighold routine is
++  *	available.
++  */
++ /* HASSIGBLOCK
++  *	This symbol, if defined, indicates that the sigblock routine is
++  *	available.
++  */
++ /* HASSIGPROCMASK:
++  *	This symbol, if defined, indicates that POSIX sigprocmask
++  *	routine is available.
++  */
++ /*#undef	SIGVEC		/**/
++ 
++ /*#undef	SIGVECTOR	/**/
++ 
++ /*#undef	SIGSET	/**/
++ 
++ #define	POSIX_SIGNALS	/**/
++ 
++ /*#undef	HASSIGHOLD	/**/
++ 
++ /*#undef	HASSIGBLOCK	/**/
++ 
++ #define	HASSIGPROCMASK	/**/
++ 
++ /* ALLOW_STATUS_CHANGING:
++  *	This symbol, if defined, indicates that the S)tatus Change
++  *	function is to be allowed.
++  */
++ #define	ALLOW_STATUS_CHANGING	/**/
++ 
++ /* STRSPN:
++  *	This symbol, if defined, indicates that the strspn() routine exists.
++  */
++ /* STRCSPN:
++  *	This symbol, if defined, indicates that the strcspn() routine exists.
++  */
++ /* STRPBRK:
++  *	This symbol, if defined, indicates that the strpbrk() routine exists.
++  */
++ #define	STRSPN		/**/
++ 
++ #define	STRCSPN		/**/
++ 
++ #define	STRPBRK		/**/
++ 
++ /* STRERROR:
++  *	This symbol, if defined, indicates that strerror() exists.
++  */
++ #define	STRERROR	/**/
++ 
++ /* STRFTIME:
++  *	This symbol, if defined, indicates that strftime() exists.
++  */
++ #define	STRFTIME	/**/
++ 
++ /* STRINGS:
++  *	This symbol, if defined, indicates that the file strings.h
++  *	should be included not string.h
++  */
++ /* PWDINSYS:
++  *	This symbol, if defined, indicates that the file pwd.h
++  *	is in the sys sub directory
++  */
++ /*#undef	STRINGS		/**/
++ /*#undef	PWDINSYS	/**/
++ 
++ /* STRSTR:
++  *	This symbol, if defined, indicates that strstr() exists.
++  */
++ #define	STRSTR	/**/
++ 
++ /* STRTOK:
++  *	This symbol, if defined, indicates that strtok() exists.
++  */
++ #define	STRTOK	/**/
++ 
++ /* ALLOW_SUBSHELL:
++  *	This symbol, if defined, indicates that the '!' subshell
++  *	function is to be allowed at various places.
++  */
++ #define	ALLOW_SUBSHELL	/**/
++ 
++ /* TEMPNAM:
++  *	This symbol, if defined, indicates that the tempnam() routine exists.
++  */
++ #define	TEMPNAM		/**/
++ 
++ /* TERMIOS:
++  *	This symbol, if defined, indicates that the program should include
++  *	termios.h rather than sgtty.h or termio.h.  There are also differences
++  *	in the ioctl() calls that depend on the value of this symbol.
++  */
++ /* TERMIO:
++  *	This symbol, if defined, indicates that the program should include
++  *	termio.h rather than sgtty.h.  There are also differences in the
++  *	ioctl() calls that depend on the value of this symbol.
++  */
++ #define	TERMIOS		/**/
++ 
++ /*#undef	TERMIO		/**/
++ 
++ /* USE_EMBEDDED_ADDRESSES:
++  *	This symbol, if defined, indicates that replyto: and from:
++  *	headers can be trusted.
++  */
++ #define USE_EMBEDDED_ADDRESSES	 /**/
++ 
++ /* UTIMBUF:
++  *	This symbol is defined if this system defines struct utimbuf.
++  */
++ #define UTIMBUF		/**/
++ 
++ /* VFORK:
++  *	This symbol, if defined, indicates that vfork() exists.
++  */
++ #define	VFORK	/**/
++ 
++ /* DEFEDITOR:
++  *	This symbol contains the name of the default editor.
++  */
++ /* EDITOROPTS:
++  *	This symbol contains the command line options for the default editor.
++  */
++ #define DEFEDITOR "/bin/vi"		/**/
++ 
++ #define EDITOROPTS ""		/**/
++ 
++ /* HOSTNAME:
++  *	This symbol contains name of the host the program is going to run on.
++  *	The domain is not kept with hostname, but must be gotten from MYDOMAIN.
++  *	The dot comes with MYDOMAIN, and need not be supplied by the program.
++  *	If gethostname() or uname() exist, HOSTNAME may be ignored.
++  */
++ /* MYDOMAIN:
++  *	This symbol contains the domain of the host the program is going to
++  *	run on.  The domain must be appended to HOSTNAME to form a complete
++  *	host name.  The dot comes with MYDOMAIN, and need not be supplied by
++  *	the program.  If the host name is derived from PHOSTNAME, the domain
++  *	may or may not already be there, and the program should check.
++  */
++ #define HOSTNAME "emperor"		/**/
++ #define MYDOMAIN ".austin.ibm.com"		/**/
++ 
++ /* I_MEMORY:
++  *	This symbol, if defined, indicates that the file memory.h
++  *	should be included instead of declaring the memory routines.
++  */
++ #define	I_MEMORY	/**/
++ 
++ /* I_STDARG:
++  *	This symbol, if defined, indicates that the file stdarg.h
++  *	should be included instead of varargs
++  */
++ #define	I_STDARG	/**/
++ 
++ /* I_STDLIB:
++  *	This symbol, if defined, indicates that the file stdlib.h
++  *	should be included instead of declaring the stdlib routines.
++  */
++ #define	I_STDLIB	/**/
++ 
++ /* I_TIME:
++  *	This symbol is defined if the program should include <time.h>.
++  */
++ /* I_SYSTIME:
++  *	This symbol is defined if the program should include <sys/time.h>.
++  */
++ /* I_SYSTIMEKERNEL:
++  *	This symbol is defined if the program should include <sys/time.h>
++  *	with KERNEL defined.
++  */
++ #define		I_TIME	 	/**/
++ #define	I_SYSTIME 	/**/
++ /*#undef	SYSTIMEKERNEL 	/**/
++ 
++ /* I_UNISTD:
++  *	This symbol, if defined, indicates that the file unistd.h
++  *	should be included instead of declaring the unistd routines.
++  */
++ #define	I_UNISTD	/**/
++ 
++ /* I_UTIME:
++  *	This symbol, if defined, indicates that the file utime.h
++  *	should be included instead of declaring our own utimbuf.
++  */
++ /* I_USYSTIME:
++  *	This symbol, if defined, indicates that the file sys/utime.h
++  *	should be included instead of declaring our own utimbuf.
++  */
++ #define	I_UTIME	/**/
++ /*#undef	I_SYSUTIME	/**/
++ 
++ /* PASSNAMES:
++  *	This symbol, if defined, indicates that full names are stored in
++  *	the /etc/passwd file.
++  */
++ /* BERKNAMES:
++  *	This symbol, if defined, indicates that full names are stored in
++  *	the /etc/passwd file in Berkeley format (name first thing, everything
++  *	up to first comma, with & replaced by capitalized login ID, yuck).
++  */
++ /* USGNAMES:
++  *	This symbol, if defined, indicates that full names are stored in
++  *	the /etc/passwd file in USG format (everything after - and before ( is
++  *	the name).
++  */
++ #define	PASSNAMES /*  (undef to take name from ~/.fullname) */
++ #define	BERKNAMES /* (that is, ":name,stuff:") */
++ /*#undef	USGNAMES  /* (that is, ":stuff-name(stuff):") */
++ 
++ /* SIG_TYPE:
++  *	This symbol contains the type name of the signal handler functions.
++  */
++ #define	SIGHAND_TYPE	void
++ 
++ /* TZNAME_USE_xxxxxx:
++  *	Specify how to get timezone name.  Possible values are:
++  *		 TZNAME_USE_TM_NAME	use (struct tm *)->tm_name
++  *		 TZNAME_USE_TM_ZONE	use (struct tm *)->tm_zone
++  *		 TZNAME_USE_TZNAME	use "tzname[]" external
++  *		 TZNAME_USE_TIMEZONE	use timezone() function
++  */
++ #define TZNAME_USE_TZNAME
++ 
++ /* XENIX:
++  *	This symbol, if defined, indicates this is a Xenix system,
++  *	for knocking  out the far keyword in selected places.
++  */
++ /* BSD:
++  *	This symbol, if defined, indicates this is a BSD type system,
++  */
++ /*#undef	XENIX	/**/
++ #define	BSD	/**/
++ 
+Index: elm2.5.5/sysdefs.h
+diff -c /dev/null elm2.5.5/sysdefs.h:1.1
+*** /dev/null	Tue May 22 20:58:02 2001
+--- elm2.5.5/sysdefs.h	Tue May 22 20:55:19 2001
+***************
+*** 0 ****
+--- 1,149 ----
++ 
++ /* : sysdefs.SH,v 1.6 1996/03/14 17:27:34 wfp5p Exp $ */
++ /*******************************************************************************
++  *  The Elm Mail System  -  : 1.6 $   : Exp $
++  *
++  * 			Copyright (c) 1988-1992 USENET Community Trust
++  * 			Copyright (c) 1986,1987 Dave Taylor
++  *******************************************************************************
++  * Bug reports, patches, comments, suggestions should be sent to:
++  *
++  *	Bill Pemberton, Elm Coordinator
++  *	elm@DSI.COM	
++  *
++  *******************************************************************************
++  * $Log: sysdefs.h,v $
++  * Revision 1.1  2001/05/23 01:55:19  marc
++  * Preconfigured answers
++  *
++ # Revision 1.6  1996/03/14  17:27:34  wfp5p
++ # Alpha 9
++ #
++ # Revision 1.5  1995/09/29  17:41:00  wfp5p
++ # Alpha 8 (Chip's big changes)
++ #
++ # Revision 1.4  1995/06/30  14:56:22  wfp5p
++ # Alpha 5
++ #
++ # Revision 1.3  1995/06/01  13:07:37  wfp5p
++ # Changes over to enhanced mode in for the print command.  From Chip Rosenthal
++ # <chip@unicom.com>
++ #
++ # Revision 1.2  1995/05/10  13:34:32  wfp5p
++ # Added mailing list stuff by Paul Close <pdc@sgi.com>
++ # And NetBSD stuff.
++ #
++  * Revision 1.1.1.1  1995/04/19  20:38:31  wfp5p
++  * Initial import of elm 2.4 PL0 as base for elm 2.5.
++  *
++  ******************************************************************************/
++ 
++ /**  System level, configurable, defines for the ELM mail system.  **/
++ 
++ /* max headers to weed out */
++ #define MAX_IN_WEEDLIST 150
++ 
++ /* max hops in return addr to E)veryone  */
++ #define MAX_HOPS 35
++ 
++ #define DEFAULT_BATCH_SUBJECT "no subject (file transmission)"
++ 
++ /* if mydomain file is missing */
++ #define DEFAULT_DOMAIN ".austin.ibm.com"
++ 
++ /* FOO - interim while the intent for MIME support is sorted out */
++ #define MIME_SEND
++ #ifdef MIME
++ # define MIME_RECV
++ #endif
++ 
++ /* system data files - fully rooted pathnames */
++ 
++ #define system_data_file	"/opt/freeware/lib/elm/aliases"
++ #define system_text_file	"/opt/freeware/lib/elm/aliases.text"
++ #define system_hostdom_file	"/opt/freeware/lib/elm/domain"
++ #define system_rc_file		"/opt/freeware/lib/elm/elm.rc"
++ #define system_rcinfo_file	"/opt/freeware/lib/elm/elmrc-info"
++ #define system_mimetypes_file	"/opt/freeware/lib/elm/mime-types"
++ #define system_mlist_file	"/opt/freeware/lib/elm/mlists"
++ #define system_help_dir		"/opt/freeware/lib/elm"
++ 
++ 
++ /* user data files - relative to user home directory */
++ 
++ #define elmrcfile	".elm/elmrc"
++ #define old_elmrcfile	".elm/elmrc.old"
++ #define mailheaders	".elm/elmheaders"
++ #define mlistfile	".elm/mlists"
++ 
++ #define ALIAS_TEXT	".elm/aliases.text"
++ #define ALIAS_DATA	".elm/aliases"
++ 
++ #define dead_letter	"Canceled.mail"
++ #define unedited_mail	"emergency.mbox"
++ 
++ /* where to put the output of the elm -d command... */
++ #define DEBUGFILE	"ELM:debug.info"
++ #define OLDEBUG		"ELM:debug.last"
++ 
++ 
++ /* temporary files */
++ 
++ #define	default_temp   	"/tmp/"
++ #define temp_file	"snd."
++ #define temp_form_file	"form."
++ #define temp_mbox	"mbox."
++ #define temp_print      "print."
++ #define temp_edit	"elm-edit"
++ #define temp_uuname	"uuname."
++ #define temp_state	"est."
++ 
++ 
++ /* commands and options */
++ 
++ #define emacs_editor	"/bin/emacs"
++ #define vi_editor	"/bin/vi"
++ 
++ #define default_editor	"/bin/vi "
++ 
++ #define default_shell	"/bin/ksh"
++ #define default_pager	"builtin+"
++ #define default_printout "/bin/lpr"
++ 
++ #define sendmail	"/usr/sbin/sendmail"
++ #define smflags		"-oi -oem"	/* ignore dots and mail back errors */
++ #define smflagsv	"-oi -oem -v"	/* ...plus verbose voyuer mode */
++ #define smflagmt	" -om"		/* metoo copy to sender */
++ 
++ #define execmail	""
++ #define emflags		""
++ #define emflagsv	"-d"		/* verbose voyuer mode */
++ #define emflagmt	"-m"		/* metoo copy to sender */
++ 
++ #define submitmail	""
++ #define submitflags	"-mlrnvxto,cc*"
++ #define submitflags_s	"-mlrnv"
++ 
++ #define mailer		"/usr/sbin/sendmail"
++ 
++ #define newalias	"newalias 1>&2 > /dev/null"
++ #define readmsg		"readmsg"
++ 
++ #define remove_cmd	"/bin/rm -f"	/* how to remove a file */
++ #define cat		"/bin/cat"		/* how to display files */
++ #define sed_cmd		"/bin/sed"		/* how to access sed */
++ #define move_cmd	"/bin/mv"		/* how to access sed */
++ #define uuname		"uuname"	/* how to get a uuname  */
++ 
++ 
++ /* other system definitions */
++ 
++ #define mailhome	"/var/spool/mail/"
++ 
++ #define default_charset		"iso-8859-1"
++ #define default_display_charset	"iso-8859-1"
++ 
++ #define MSG_SEPARATOR	"\001\001\001\001\n"	/* mmdf message seperator */
++ 
++ 		
++ 

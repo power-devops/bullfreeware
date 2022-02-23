@@ -1,0 +1,38 @@
+*** ./lib/logrewrite.c.ORIG	Thu Dec  2 14:35:39 2010
+--- ./lib/logrewrite.c	Thu Dec  2 14:36:35 2010
+***************
+*** 198,204 ****
+  typedef struct _LogRewriteRule
+  {
+    LogProcessRule super;
+!   GList *rewrite_list; /* LogRewrite*  */;
+  } LogRewriteRule;
+  
+  static void 
+--- 198,204 ----
+  typedef struct _LogRewriteRule
+  {
+    LogProcessRule super;
+!   GList *rewrite_list; /* LogRewrite*  */
+  } LogRewriteRule;
+  
+  static void 
+*** ./configure.ORIG	Thu Dec  2 14:34:44 2010
+--- ./configure	Thu Dec  2 14:36:20 2010
+***************
+*** 4840,4846 ****
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  /* end confdefs.h.  */
+  #include <stdarg.h>
+! #include <stdbool.h>
+  #include <stdlib.h>
+  #include <wchar.h>
+  #include <stdio.h>
+--- 4840,4846 ----
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  /* end confdefs.h.  */
+  #include <stdarg.h>
+! #include "stdbool.h"
+  #include <stdlib.h>
+  #include <wchar.h>
+  #include <stdio.h>

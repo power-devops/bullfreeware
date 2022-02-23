@@ -1,0 +1,4541 @@
+diff -Nur mongodb-src-r3.2.0.orig/SConstruct mongodb-src-r3.2.0.aix/SConstruct
+--- mongodb-src-r3.2.0.orig/SConstruct	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/SConstruct	2016-04-04 09:52:58 +0200
+@@ -50,6 +50,8 @@
+         running_os = 'windows'
+     elif running_os == 'darwin':
+         running_os = 'osx'
++    elif "aix" in running_os:
++        running_os = "aix"
+     else:
+         running_os = 'unknown'
+     return running_os
+@@ -59,7 +61,7 @@
+ 
+ def is_os_raw(target_os, os_list_to_check):
+     okay = False
+-    posix_os_list = [ 'linux', 'openbsd', 'freebsd', 'osx', 'solaris' ]
++    posix_os_list = [ 'linux', 'openbsd', 'freebsd', 'osx', 'solaris', 'aix' ]
+ 
+     for p in os_list_to_check:
+         if p == 'posix' and target_os in posix_os_list:
+@@ -531,7 +533,7 @@
+     if is_running_os('windows'):
+         # we only support MS toolchain on windows
+         return ['msvc', 'mslink', 'mslib']
+-    elif is_running_os('linux', 'solaris'):
++    elif is_running_os('linux', 'solaris', 'aix'):
+         return ['gcc', 'g++', 'gnulink', 'ar']
+     elif is_running_os('osx'):
+         return ['gcc', 'g++', 'applelink', 'ar']
+@@ -1166,6 +1168,8 @@
+ elif endian == "big":
+     env.SetConfigHeaderDefine("MONGO_CONFIG_BYTE_ORDER", "4321")
+ 
++Export("endian")
++
+ if env['_LIBDEPS'] == '$_LIBDEPS_OBJS':
+     # The libraries we build in LIBDEPS_OBJS mode are just placeholders for tracking dependencies.
+     # This avoids wasting time and disk IO on them.
+@@ -1194,6 +1198,11 @@
+     env['LINK_LIBGROUP_END'] = ''
+     env['LINK_WHOLE_ARCHIVE_START'] = '-Wl,-all_load'
+     env['LINK_WHOLE_ARCHIVE_END'] = '-Wl,-noall_load'
++elif env.TargetOSIs('aix'):
++    env['LINK_LIBGROUP_START'] = ''
++    env['LINK_LIBGROUP_END'] = ''
++    env['LINK_WHOLE_ARCHIVE_START'] = ''
++    env['LINK_WHOLE_ARCHIVE_END'] = ''
+ elif env.TargetOSIs('solaris'):
+     env['LINK_LIBGROUP_START'] = '-z rescan-start'
+     env['LINK_LIBGROUP_END'] = '-z rescan-end'
+@@ -1218,6 +1227,13 @@
+ 
+ elif env.TargetOSIs('openbsd'):
+     env.Append( LIBS=[ "kvm" ] )
++elif env.TargetOSIs('aix'):
++    env.Append( LIBS=['m'] )
++    env.Append( CCFLAGS=[ "-maix64", "-DASIO_HAS_PTHREADS", "-DASIO_HAS_THREADS" ] )
++    env.Append( LINKFLAGS=[ "-maix64", "-Wl,-bbigtoc", "-Wl,-bexpfull", "-ftls-model=global-dynamic" ] ) #, "-Wl,-bnoquiet", "-Wl,-v", "-Wl,-brtl" ] ) #, "-lptools_ptr", "-g", "-Wl,-bstatic" ] )
++    env.Append( ARFLAGS=[ "-X64" ] )
++    env.Append( CPPPATH=[ "/opt/freeware/include", "/opt/freeware/lib/gcc/powerpc-ibm-aix6.1.0.0/4.8.4/include/c++/" ] )
++    env.Append( LIBPATH=[ "/opt/freeware/lib/gcc/powerpc-ibm-aix6.1.0.0/4.8.4/pthread/ppc64", "/opt/freeware/lib64" ] )
+ 
+ elif env.TargetOSIs('windows'):
+     dynamicCRT = has_option("dynamic-windows")
+@@ -1393,7 +1409,7 @@
+     if env.TargetOSIs('osx'):
+         env.Append( LINKFLAGS=["-Wl,-bind_at_load"] )
+         env.Append( SHLINKFLAGS=["-Wl,-bind_at_load"] )
+-    else:
++    elif not env.TargetOSIs('aix'):
+         env.Append( LINKFLAGS=["-Wl,-z,now"] )
+         env.Append( SHLINKFLAGS=["-Wl,-z,now"] )
+         env.Append( LINKFLAGS=["-rdynamic"] )
+@@ -2124,6 +2140,12 @@
+         if conf.CheckStorageClass(storage_class):
+             haveTriviallyConstructibleThreadLocals = True
+             myenv.SetConfigHeaderDefine(macro_name)
++    
++    # On AIX, the test for __thread support fails, but __thread is indeed supported 
++    if not haveTriviallyConstructibleThreadLocals and is_running_os("aix"):
++        haveTriviallyConstructibleThreadLocals = True
++        myenv.SetConfigHeaderDefine('MONGO_CONFIG_HAVE___THREAD')
++    
+     conf.Finish()
+     if not haveTriviallyConstructibleThreadLocals:
+         print "Compiler must support a thread local storage class for trivially constructible types"
+diff -Nur mongodb-src-r3.2.0.orig/rpm/init.d-mongod mongodb-src-r3.2.0.aix/rpm/init.d-mongod
+--- mongodb-src-r3.2.0.orig/rpm/init.d-mongod	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/rpm/init.d-mongod	2016-04-05 13:24:09 +0200
+@@ -15,13 +15,13 @@
+ 
+ # NOTE: if you change any OPTIONS here, you get what you pay for:
+ # this script assumes all options are in the config file.
+-CONFIGFILE="/etc/mongod.conf"
++CONFIGFILE="/opt/freeware/etc/mongod.conf"
+ OPTIONS=" -f $CONFIGFILE"
+-SYSCONFIG="/etc/sysconfig/mongod"
++SYSCONFIG="/opt/freeware/etc/sysconfig/mongod"
+ 
+ PIDFILEPATH=`awk -F'[:=]' -v IGNORECASE=1 '/^[[:blank:]]*(processManagement\.)?pidfilepath[[:blank:]]*[:=][[:blank:]]*/{print $2}' "$CONFIGFILE" | tr -d "[:blank:]\"'" | awk -F'#' '{print $1}'`
+ 
+-mongod=${MONGOD-/usr/bin/mongod}
++mongod=${MONGOD-/opt/freeware/bin/mongod}
+ 
+ MONGO_USER=mongod
+ MONGO_GROUP=mongod
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/bson/bsonmisc.cpp mongodb-src-r3.2.0.aix/src/mongo/bson/bsonmisc.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/bson/bsonmisc.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/bson/bsonmisc.cpp	2016-04-04 09:38:58 +0200
+@@ -58,7 +58,11 @@
+ Labeler::Label LTE("$lte");
+ Labeler::Label NE("$ne");
+ Labeler::Label NIN("$nin");
++#ifdef _AIX
++Labeler::Label BYTESIZE("$size");
++#else
+ Labeler::Label BSIZE("$size");
++#endif
+ 
+ GENOIDLabeler GENOID;
+ DateNowLabeler DATENOW;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/bson/bsonmisc.h mongodb-src-r3.2.0.aix/src/mongo/bson/bsonmisc.h
+--- mongodb-src-r3.2.0.orig/src/mongo/bson/bsonmisc.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/bson/bsonmisc.h	2016-04-04 09:38:58 +0200
+@@ -196,8 +196,11 @@
+ extern Labeler::Label LTE;
+ extern Labeler::Label NE;
+ extern Labeler::Label NIN;
++#ifdef _AIX
++extern Labeler::Label BYTESIZE;
++#else
+ extern Labeler::Label BSIZE;
+-
++#endif
+ 
+ // $or helper: OR(BSON("x" << GT << 7), BSON("y" << LT << 6));
+ // becomes   : {$or: [{x: {$gt: 7}}, {y: {$lt: 6}}]}
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/bson/bsonobj.cpp mongodb-src-r3.2.0.aix/src/mongo/bson/bsonobj.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/bson/bsonobj.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/bson/bsonobj.cpp	2016-04-04 09:38:58 +0200
+@@ -42,6 +42,10 @@
+ #include "mongo/util/mongoutils/str.h"
+ #include "mongo/util/stringutils.h"
+ 
++#ifdef _AIX
++extern "C" void mt__trce ( int  FileDescriptor, int Signal, void *Context, int Node );
++#endif
++
+ namespace mongo {
+ using namespace std;
+ /* BSONObj ------------------------------------------------------------*/
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/bson/util/builder.h mongodb-src-r3.2.0.aix/src/mongo/bson/util/builder.h
+--- mongodb-src-r3.2.0.orig/src/mongo/bson/util/builder.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/bson/util/builder.h	2016-04-04 09:38:58 +0200
+@@ -74,6 +74,10 @@
+ template <typename Allocator>
+ class StringBuilderImpl;
+ 
++#ifdef Free
++#undef Free
++#endif
++
+ class TrivialAllocator {
+ public:
+     void* Malloc(size_t sz) {
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/SConscript mongodb-src-r3.2.0.aix/src/mongo/db/SConscript
+--- mongodb-src-r3.2.0.orig/src/mongo/db/SConscript	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/SConscript	2016-04-04 09:38:58 +0200
+@@ -702,6 +702,11 @@
+     serveronlyLibdeps.append('storage/wiredtiger/storage_wiredtiger')
+     serveronlyLibdeps.append('$BUILD_DIR/third_party/shim_wiredtiger')
+ 
++#Damien: bug g++
++#if env.TargetOSIs('aix'):
++#    if optBuild:
++#        serveronlyEnv.Append( CCFLAGS=[ "-O1" ] )
++
+ serveronlyEnv.Library(
+     target="serveronly",
+     source=serverOnlyFiles,
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/curop.h mongodb-src-r3.2.0.aix/src/mongo/db/curop.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/curop.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/curop.h	2016-04-04 09:38:58 +0200
+@@ -64,7 +64,9 @@
+     enum { TOO_BIG_SENTINEL = 1 };
+ 
+     CachedBSONObj() {
++#ifndef _AIX
+         _size = (int*)_buf;
++#endif
+         reset();
+     }
+ 
+@@ -85,7 +87,11 @@
+     }
+ 
+     int size() const {
++#ifdef _AIX
++        return ConstDataView(_buf).read<LittleEndian<int>>();
++#else
+         return *_size;
++#endif
+     }
+     bool have() const {
+         return size() > 0;
+@@ -118,11 +124,17 @@
+ 
+     /** you have to be locked when you call this */
+     void _reset(int sz) {
++#ifdef _AIX
++        DataView(_buf).write(tagLittleEndian(sz));
++#else
+         _size[0] = sz;
++#endif
+     }
+ 
+     mutable SpinLock _lock;
++#ifndef _AIX
+     int* _size;
++#endif
+     char _buf[BUFFER_SIZE];
+ };
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/db.cpp mongodb-src-r3.2.0.aix/src/mongo/db/db.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/db.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/db.cpp	2016-04-04 09:38:58 +0200
+@@ -855,15 +855,6 @@
+ 
+     srand(static_cast<unsigned>(curTimeMicros64()));
+ 
+-    {
+-        unsigned x = 0x12345678;
+-        unsigned char& b = (unsigned char&)x;
+-        if (b != 0x78) {
+-            mongo::log(LogComponent::kControl) << "big endian cpus not yet supported" << endl;
+-            return 33;
+-        }
+-    }
+-
+     Status status = mongo::runGlobalInitializers(argc, argv, envp);
+     if (!status.isOK()) {
+         severe(LogComponent::kControl) << "Failed global initialization: " << status;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/fts/fts_index_format.cpp mongodb-src-r3.2.0.aix/src/mongo/db/fts/fts_index_format.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/fts/fts_index_format.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/fts/fts_index_format.cpp	2016-04-04 09:38:58 +0200
+@@ -215,6 +215,8 @@
+             } t;
+             uint32_t seed = 0;
+             MurmurHash3_x64_128(term.data(), term.size(), seed, t.hash);
++            t.hash[0] = endian::nativeToLittle<uint64_t>(t.hash[0]);
++            t.hash[1] = endian::nativeToLittle<uint64_t>(t.hash[1]);
+             string keySuffix = mongo::toHexLower(t.data, sizeof(t.data));
+             invariant(termKeySuffixLengthV2 == keySuffix.size());
+             b.append("", term.substr(0, termKeyPrefixLengthV2) + keySuffix);
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/geo/hash.cpp mongodb-src-r3.2.0.aix/src/mongo/db/geo/hash.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/geo/hash.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/geo/hash.cpp	2016-04-04 09:38:58 +0200
+@@ -154,7 +154,11 @@
+     _bits = bits;
+     if (e.type() == BinData) {
+         int len = 0;
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        memcpy((char*)&_hash, e.binData(len), sizeof(_hash));
++#else
+         copyAndReverse((char*)&_hash, e.binData(len));
++#endif
+         verify(len == 8);
+     } else {
+         cout << "GeoHash bad element: " << e << endl;
+@@ -193,11 +197,16 @@
+     *y = 0;
+     const char* c = reinterpret_cast<const char*>(&_hash);
+     for (int i = 0; i < 8; i++) {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        int shift = 4 * (7 - i);
++#else
++        int shift = 4 * i;
++#endif
+         unsigned t = (unsigned)(c[i]) & 0x55;
+-        *y |= (geoBitSets.hashedToNormal[t] << (4 * i));
++        *y |= (geoBitSets.hashedToNormal[t] << shift);
+ 
+         t = ((unsigned)(c[i]) >> 1) & 0x55;
+-        *x |= (geoBitSets.hashedToNormal[t] << (4 * i));
++        *x |= (geoBitSets.hashedToNormal[t] << shift);
+     }
+ }
+ 
+@@ -434,7 +443,11 @@
+ 
+ static void appendHashToBuilder(long long hash, BSONObjBuilder* builder, const char* fieldName) {
+     char buf[8];
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++    memcpy(buf, (char*) &hash, sizeof(hash));
++#else
+     copyAndReverse(buf, (char*)&hash);
++#endif
+     builder->appendBinData(fieldName, 8, bdtCustom, buf);
+ }
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/record_id.h mongodb-src-r3.2.0.aix/src/mongo/db/record_id.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/record_id.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/record_id.h	2016-04-04 09:38:58 +0200
+@@ -108,7 +108,7 @@
+     /// members for Sorter
+     struct SorterDeserializeSettings {};  // unused
+     void serializeForSorter(BufBuilder& buf) const {
+-        buf.appendStruct(_repr);
++        buf.appendNum(static_cast<long long>(_repr));
+     }
+     static RecordId deserializeForSorter(BufReader& buf, const SorterDeserializeSettings&) {
+         return RecordId(buf.read<int64_t>());
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/repl/isself.cpp mongodb-src-r3.2.0.aix/src/mongo/db/repl/isself.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/repl/isself.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/repl/isself.cpp	2016-04-04 09:38:58 +0200
+@@ -48,7 +48,7 @@
+ #include "mongo/util/log.h"
+ 
+ #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__sun) || \
+-    defined(__OpenBSD__)
++    defined(__OpenBSD__) || defined(_AIX)
+ #define FASTPATH_UNIX 1
+ #endif
+ 
+@@ -58,7 +58,121 @@
+ 
+ 
+ #ifdef FASTPATH_UNIX
++#ifdef _AIX
++#ifndef GENERIC_AIX_IFADDRS_H
++#define GENERIC_AIX_IFADDRS_H
++
++#include <sys/socket.h>
++#include <net/if.h>
++
++#undef  ifa_dstaddr
++#undef  ifa_broadaddr
++#define ifa_broadaddr ifa_dstaddr
++
++struct ifaddrs {
++  struct ifaddrs  *ifa_next;
++  char            *ifa_name;
++  unsigned int     ifa_flags;
++  struct sockaddr *ifa_addr;
++  struct sockaddr *ifa_netmask;
++  struct sockaddr *ifa_dstaddr;
++};
++
++#endif
++
++#include <string.h>
++#include <sys/ioctl.h>
++
++#define MAX(x,y) ((x)>(y)?(x):(y))
++#define SIZE(p) MAX((p).sa_len,sizeof(p))
++
++
++static struct sockaddr *
++sa_dup (struct sockaddr *sa1)
++{
++  struct sockaddr *sa2;
++  size_t sz = sa1->sa_len;
++  sa2 = (struct sockaddr *) calloc(1,sz);
++  memcpy(sa2,sa1,sz);
++  return(sa2);
++}
++
++
++void freeifaddrs (struct ifaddrs *ifp)
++{
++  if (NULL == ifp) return;
++  free(ifp->ifa_name);
++  free(ifp->ifa_addr);
++  free(ifp->ifa_netmask);
++  free(ifp->ifa_dstaddr);
++  freeifaddrs(ifp->ifa_next);
++  free(ifp);
++}
++
++
++int getifaddrs (struct ifaddrs **ifap)
++{
++  int  sd, ifsize;
++  char *ccp, *ecp;
++  struct ifconf ifc;
++  struct ifreq *ifr;
++  struct ifaddrs *cifa = NULL; /* current */
++  struct ifaddrs *pifa = NULL; /* previous */
++  const size_t IFREQSZ = sizeof(struct ifreq);
++
++  sd = socket(AF_INET, SOCK_DGRAM, 0);
++
++  *ifap = NULL;
++
++  /* find how much memory to allocate for the SIOCGIFCONF call */
++  if (ioctl(sd, SIOCGSIZIFCONF, (caddr_t)&ifsize) < 0) return(-1);
++
++  ifc.ifc_req = (struct ifreq *) calloc(1,ifsize);
++  ifc.ifc_len = ifsize;
++
++  if (ioctl(sd, SIOCGIFCONF, &ifc) < 0) return(-1);
++
++  ccp = (char *)ifc.ifc_req;
++  ecp = ccp + ifsize;
++
++  while (ccp < ecp) {
++
++    ifr = (struct ifreq *) ccp;
++    ifsize = sizeof(ifr->ifr_name) + SIZE(ifr->ifr_addr);
++    cifa = (struct ifaddrs *) calloc(1, sizeof(struct ifaddrs));
++    cifa->ifa_next = NULL;
++    cifa->ifa_name = strdup(ifr->ifr_name);
++
++    if (pifa == NULL) *ifap = cifa; /* first one */
++    else     pifa->ifa_next = cifa;
++
++    if (ioctl(sd, SIOCGIFADDR, ifr, IFREQSZ) < 0) return(-1);
++    cifa->ifa_addr = sa_dup(&ifr->ifr_addr);
++
++    if (ioctl(sd, SIOCGIFNETMASK, ifr, IFREQSZ) < 0) return(-1);
++    cifa->ifa_netmask = sa_dup(&ifr->ifr_addr);
++
++    cifa->ifa_flags = 0;
++    cifa->ifa_dstaddr = NULL;
++
++    if (0 == ioctl(sd, SIOCGIFFLAGS, ifr)) /* optional */
++      cifa->ifa_flags = ifr->ifr_flags;
++
++    if (ioctl(sd, SIOCGIFDSTADDR, ifr, IFREQSZ) < 0) {
++      if (0 == ioctl(sd, SIOCGIFBRDADDR, ifr, IFREQSZ))
++         cifa->ifa_dstaddr = sa_dup(&ifr->ifr_addr);
++    }
++    else cifa->ifa_dstaddr = sa_dup(&ifr->ifr_addr);
++
++    pifa = cifa;
++    ccp += ifsize;
++  }
++  return 0;
++}
++
++#else
+ #include <ifaddrs.h>
++#endif
+ #include <netdb.h>
+ 
+ #ifdef __FreeBSD__
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/repl/oplog.cpp mongodb-src-r3.2.0.aix/src/mongo/db/repl/oplog.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/repl/oplog.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/repl/oplog.cpp	2016-04-04 09:38:58 +0200
+@@ -190,7 +190,7 @@
+ 
+         memcpy(buf, _frame.objdata(), _frame.objsize() - 1);  // don't copy final EOO
+ 
+-        reinterpret_cast<int*>(buf)[0] = documentSize();
++        DataView(buf).write(tagLittleEndian((int)documentSize()));
+ 
+         buf += (_frame.objsize() - 1);
+         buf[0] = (char)Object;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/aligned_builder.h mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/aligned_builder.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/aligned_builder.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/aligned_builder.h	2016-04-04 09:38:58 +0200
+@@ -72,31 +72,39 @@
+     }
+ 
+     void appendChar(char j) {
+-        *((char*)grow(sizeof(char))) = j;
++        BOOST_STATIC_ASSERT(CHAR_BIT == 8);
++        appendNumImpl(j);
+     }
+     void appendNum(char j) {
+-        *((char*)grow(sizeof(char))) = j;
++        appendNumImpl(j);
+     }
+     void appendNum(short j) {
+-        *((short*)grow(sizeof(short))) = j;
++        BOOST_STATIC_ASSERT(sizeof(short) == 2);
++        appendNumImpl(j);
+     }
+     void appendNum(int j) {
+-        *((int*)grow(sizeof(int))) = j;
++        BOOST_STATIC_ASSERT(sizeof(int) == 4);
++        appendNumImpl(j);
+     }
+     void appendNum(unsigned j) {
+-        *((unsigned*)grow(sizeof(unsigned))) = j;
++        appendNumImpl(j);
+     }
++#if 0
++    // Bool does not have a well defined encoding.
+     void appendNum(bool j) {
+-        *((bool*)grow(sizeof(bool))) = j;
++        appendNumImpl(j);
+     }
++#endif
+     void appendNum(double j) {
+-        *((double*)grow(sizeof(double))) = j;
++        BOOST_STATIC_ASSERT(sizeof(double) == 8);
++        appendNumImpl(j);
+     }
+     void appendNum(long long j) {
+-        *((long long*)grow(sizeof(long long))) = j;
++        BOOST_STATIC_ASSERT(sizeof(long long) == 8);
++        appendNumImpl(j);
+     }
+     void appendNum(unsigned long long j) {
+-        *((unsigned long long*)grow(sizeof(unsigned long long))) = j;
++        appendNumImpl(j);
+     }
+ 
+     void appendBuf(const void* src, size_t len) {
+@@ -122,6 +130,11 @@
+ private:
+     static const unsigned Alignment = 8192;
+ 
++    template<typename T>
++    void appendNumImpl(T t) {
++        DataView(grow(sizeof(t))).write(tagLittleEndian(t));
++    }
++
+     /** returns the pre-grow write position */
+     inline char* grow(unsigned by) {
+         unsigned oldlen = _len;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/bswap.h mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/bswap.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/bswap.h	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/bswap.h	2016-04-04 09:38:58 +0200
+@@ -0,0 +1,528 @@
++#pragma once
++
++#ifndef MONGO_BSWAP_H
++#define MONGO_BSWAP_H
++
++#include "mongo/platform/endian.h"
++#include "boost/detail/endian.hpp"
++#include "boost/static_assert.hpp"
++#include <string.h>
++
++#ifdef __APPLE__
++#  include <libkern/OSByteOrder.h>
++#endif
++
++namespace mongo {
++   class Nullstream;
++
++   // Generic (portable) byte swap function
++   template<class T> T byteSwap( T j ) {
++       
++#ifdef HAVE_BSWAP32
++       if ( sizeof( T ) == 4 ) {
++           return __builtin_bswap32( j );
++       }
++#endif
++#ifdef HAVE_BSWAP64
++       if ( sizeof( T ) == 8 ) {
++           return __builtin_bswap64( j );
++       }
++#endif
++
++      T retVal = 0;
++      for ( unsigned i = 0; i < sizeof( T ); ++i ) {
++         
++         // 7 5 3 1 -1 -3 -5 -7
++         int shiftamount = sizeof(T) - 2 * i - 1;
++         // 56 40 24 8 -8 -24 -40 -56
++         shiftamount *= 8;
++
++         // See to it that the masks can be re-used
++         if ( shiftamount > 0 ) {
++            T mask = T( 0xff ) << ( 8 * i );
++            retVal |= ( (j & mask ) << shiftamount );
++         } else {
++            T mask = T( 0xff ) << ( 8 * (sizeof(T) - i - 1) );
++            retVal |= ( j >> -shiftamount ) & mask;
++         }
++      }
++      return retVal;
++   }
++
++   template<> inline double byteSwap( double j ) {
++      union {
++         double d;
++         unsigned long long l;
++      } u;
++      u.d = j;
++      u.l = byteSwap<unsigned long long>( u.l );
++      return u.d;
++   }
++
++
++   // Here we assume that double is big endian if ints are big endian
++   // and also that the format is the same as for x86 when swapped.
++   template<class T> inline T littleEndian( T j ) {
++#if MONGO_BYTE_ORDER == 1234
++      return j;
++#else
++      return byteSwap<T>(j);
++#endif
++   }
++
++   template<class T> inline T bigEndian( T j ) {
++#if MONGO_BYTE_ORDER == 4321
++      return j;
++#else
++      return byteSwap<T>(j);
++#endif
++   }
++
++#if defined(__arm__) 
++#  if defined(__MAVERICK__)
++#    define MONGO_ARM_SPECIAL_ENDIAN
++   // Floating point is always little endian
++   template<> inline double littleEndian( double j ) {
++       return j;
++   }
++#  elif defined(__VFP_FP__) || MONGO_BYTE_ORDER == 4321
++   // Native endian floating points even if FPA is used
++#  else
++#    define MONGO_ARM_SPECIAL_ENDIAN
++   // FPA mixed endian floating point format 456701234
++   template<> inline double littleEndian( double j ) {
++      union { double d; unsigned u[2]; } u;
++      u.d = j;
++      std::swap( u.u[0], u.u[1] );
++      return u.d;
++   }
++#  endif
++#  if defined(MONGO_ARM_SPECIAL_ENDIAN)
++   template<> inline double bigEndian( double j ) {
++      return byteSwap<double>( littleEndian<double>( j ) );
++   }
++#  endif
++#endif
++
++
++   BOOST_STATIC_ASSERT( sizeof( double ) == sizeof( unsigned long long ) );
++
++   template<class S, class D> inline D convert( S src )
++   {
++      union { S s; D d; } u;
++      u.s = src;
++      return u.d;
++   }
++
++   template<> inline char convert<bool,char>( bool src ) {
++      return src;
++   }
++
++   template<> inline bool convert<char, bool>( char src ) {
++      return src;
++   }
++
++
++#define MONGO_ENDIAN_BODY( MYTYPE, BASE_TYPE, T )                       \
++      MYTYPE& operator=( const T& val ) {                               \
++          BASE_TYPE::_val = val;                                        \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      operator const T() const {                                        \
++          return BASE_TYPE::_val;                                       \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator+=( T other ) {                                   \
++          (*this) = T(*this) + other;                                   \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator-=( T other ) {                                   \
++          (*this) = T(*this) - other;                                   \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator&=( T other ) {                                   \
++          (*this) = T(*this) & other;                                   \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator|=( T other ) {                                   \
++          (*this) = T(*this) | other;                                   \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator^=( T other ) {                                   \
++          (*this) = T(*this) ^ other;                                   \
++          return *this;                                                 \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator++() {                                            \
++          return (*this) += 1;                                          \
++      }                                                                 \
++                                                                        \
++      MYTYPE operator++(int) {                                          \
++          MYTYPE old = *this;                                           \
++          ++(*this);                                                    \
++          return old;                                                   \
++      }                                                                 \
++                                                                        \
++      MYTYPE& operator--() {                                            \
++          return (*this) -= 1;                                          \
++      }                                                                 \
++                                                                        \
++      MYTYPE operator--(int) {                                          \
++          MYTYPE old = *this;                                           \
++          --(*this);                                                    \
++          return old;                                                   \
++      }                                                                 \
++                                                                        \
++      friend std::ostream& operator<<( std::ostream& ost, MYTYPE val ) { \
++          return ost << T(val);                                         \
++      }                                                                 \
++                                                                        \
++      friend Nullstream& operator<<( Nullstream& ost, MYTYPE val ) {    \
++          return ost << T(val);                                         \
++      }                                                                 \
++                                                                        \
++      std::string toString() const {                                    \
++          std::stringstream ss;                                         \
++          ss << this;                                                   \
++          return ss.str();                                              \
++      }
++  
++
++  template<class T, class D> void storeLE( D* dest, T src ) {
++#if MONGO_BYTE_ORDER == 1234 || !defined( ALIGNMENT_IMPORTANT )
++      // This also assumes no alignment issues
++      *dest = littleEndian<T>( src );
++#else
++      unsigned char* u_dest = reinterpret_cast<unsigned char*>( dest );
++      for ( unsigned i = 0; i < sizeof( T ); ++i ) {
++         u_dest[i] = src >> ( 8 * i );
++      }
++#endif
++   }
++   
++  template<class T, class S> T loadLE( const S* data ) {
++#ifdef __APPLE__
++      switch ( sizeof( T ) ) {
++      case 8:
++          return OSReadLittleInt64( data, 0 );
++      case 4:
++          return OSReadLittleInt32( data, 0 );
++      case 2:
++          return OSReadLittleInt16( data, 0 );
++      }
++#endif
++
++#if MONGO_BYTE_ORDER == 1234 || !defined( ALIGNMENT_IMPORTANT )
++#if defined(__powerpc__)
++      // Without this trick gcc (4.4.5) compiles 64 bit load to 8 byte loads.
++      if ( sizeof( T ) == 8 ) {
++          const unsigned * x = reinterpret_cast<const unsigned*>( data );
++          unsigned long long a = loadLE<unsigned, unsigned>( x );
++          unsigned long long b = loadLE<unsigned, unsigned>( x + 1 ); 
++          return a | ( b << 32 );
++      }
++#endif
++      return littleEndian<T>( *data );
++#else
++      T retval = 0;
++      const unsigned char* u_data = reinterpret_cast<const unsigned char*>( data );
++      for( unsigned i = 0; i < sizeof( T ); ++i ) {
++          retval |= T( u_data[i] ) << ( 8 * i );
++      }
++      return retval;
++#endif
++  }
++
++  template<class T, class D> void store_big( D* dest, T src ) {
++#if MONGO_BYTE_ORDER == 4321 || !defined( ALIGNMENT_IMPORTANT )
++      // This also assumes no alignment issues
++      *dest = bigEndian<T>( src );
++#else
++      unsigned char* u_dest = reinterpret_cast<unsigned char*>( dest );
++      for ( unsigned i = 0; i < sizeof( T ); ++i ) {
++          u_dest[ sizeof(T) - 1 - i ] = src >> ( 8 * i );
++      }
++#endif
++   }
++   
++  template<class T, class S> T load_big( const S* data ) {
++
++      if ( sizeof( T ) == 8 && sizeof( void* ) == 4 ) {
++          const unsigned * x = reinterpret_cast<const unsigned*>( data );
++          unsigned long long a = load_big<unsigned, unsigned>( x );
++          unsigned long long b = load_big<unsigned, unsigned>( x + 1 );
++          return a << 32 | b;
++      }
++
++#if MONGO_BYTE_ORDER == 4321 || !defined( ALIGNMENT_IMPORTANT )
++      return bigEndian<T>( *data );
++#else
++      T retval = 0;
++      const unsigned char* u_data = reinterpret_cast<const unsigned char*>( data );
++      for( unsigned i = 0; i < sizeof( T ); ++i ) {
++          retval |= T( u_data[ sizeof(T) - 1 - i ] ) << ( 8 * i );
++      }
++      return retval;
++#endif
++  }
++
++
++  /** Converts the type to the type to actually store */
++  template<typename T> class storage_type {
++  public:
++      typedef T t;
++      
++      static inline t toStorage( T src ) { return src; }
++      static inline T fromStorage( t src ) { return src; }
++
++  };
++
++  template<> class storage_type<bool> {
++  public:
++      typedef unsigned char t;
++
++      static inline t toStorage( bool src ) { return src; }
++      static inline bool fromStorage( t src ) { return src; }      
++      
++  };
++
++  template<> class storage_type<double> {
++  public:
++      typedef unsigned long long t;
++
++      static inline t toStorage( double src ) { return convert<double,t>( src ); }
++      static inline double fromStorage( t src ) { 
++          return convert<t,double>( src ); 
++      }
++  };
++
++#pragma pack(1)
++
++#ifdef __GNUC__
++  #define ATTRIB_PACKED __attribute__((packed))
++#else
++  #define ATTRIB_PACKED
++#endif
++
++#pragma pack(1)
++  template<class T> struct packed_little_storage {
++  protected:
++      typedef storage_type<T> STORAGE;
++      typedef typename STORAGE::t S;
++      S _val;
++
++      void store( S val ) {
++#ifdef __APPLE__
++          switch ( sizeof( S ) ) {
++          case 8:
++              return OSWriteLittleInt64( &_val, 0, val );
++          case 4:
++              return OSWriteLittleInt32( &_val, 0, val );
++          case 2:
++              return OSWriteLittleInt16( &_val, 0, val );
++      }
++#endif
++
++#if MONGO_BYTE_ORDER == 1234 || !defined( ALIGNMENT_IMPORTANT )
++          _val = littleEndian<S>( val );
++#else
++          unsigned char* u_dest = reinterpret_cast<unsigned char*>( &_val );
++          for ( unsigned i = 0; i < sizeof( T ); ++i ) {
++              u_dest[i] = val >> ( 8 * i );
++          }
++#endif
++      }
++
++      S load() const {
++          // Here S should always be an integer type
++#ifdef __APPLE__
++          switch ( sizeof( S ) ) {
++          case 8:
++              return OSReadLittleInt64( &_val, 0 );
++          case 4:
++              return OSReadLittleInt32( &_val, 0 );
++          case 2:
++              return OSReadLittleInt16( &_val, 0 );
++          }
++#endif
++          // Without this trick gcc (4.4.5) compiles 64 bit load to 8 byte loads.
++          // (ppc)
++          if ( sizeof( S ) == 8 && sizeof( void* ) == 4 ) {
++              const packed_little_storage<unsigned>* x = 
++                  reinterpret_cast<const packed_little_storage<unsigned>* >(this);
++              
++              unsigned long long a = x[0];
++              unsigned long long b = x[1];
++              return a | ( b << 32 ); 
++          }
++              
++
++#if MONGO_BYTE_ORDER == 1234 || !defined( ALIGNMENT_IMPORTANT )
++          return littleEndian<S>( _val );
++#else
++          S retval = 0;
++          const unsigned char* u_data = 
++              reinterpret_cast<const unsigned char*>( &_val );
++          for( unsigned i = 0; i < sizeof( T ); ++i ) {
++              retval |= S( u_data[i] ) << ( 8 * i );
++          }
++          return retval;
++#endif
++      }
++  public:      
++      inline packed_little_storage& operator=( T val ) {
++          store( STORAGE::toStorage( val ) );
++          return *this;
++      }
++          
++      inline operator T() const {
++          return STORAGE::fromStorage( load() );
++      }
++      
++      
++  } ATTRIB_PACKED ;
++
++#ifdef MONGO_ARM_SPECIAL_ENDIAN
++  template<> struct packed_little_storage<double> {
++  private:
++      double _val;
++  public:
++      inline packed_little_storage<double>& operator=( double val ) {
++          _val = littleEndian<double>( val );
++          return *this;
++      }
++      
++      inline operator double() const {
++          return littleEndian<double>( _val );
++      }
++  } ATTRIB_PACKED ;
++#endif
++
++  template<class T> struct packed_big_storage {
++  private:
++      typedef typename storage_type<T>::t S;
++      S _val;
++  public:
++      
++     packed_big_storage& operator=( T val ) {
++        store_big<S>( &_val, convert<T,S>( val ) );
++        return *this;
++     }
++     
++     operator T() const {
++        return convert<S,T>( load_big<S>( &_val ) );
++     }
++  } ATTRIB_PACKED ;
++
++#ifdef MONGO_ARM_SPECIAL_ENDIAN
++  template<> struct packed_big_storage<double> {
++  private:
++      double _val;
++  public:
++      inline packed_big_storage<double>& operator=( double val ) {
++          _val = bigEndian<double>( val );
++          return *this;
++      }
++      
++      inline operator double() const {
++          return bigEndian<double>( _val );
++      }
++  } ATTRIB_PACKED;
++#endif
++
++
++#pragma pack()
++  
++
++#define MONGO_ENDIAN_REF_FUNCS( TYPE )                          \
++      static TYPE& ref( char* src ) {                           \
++          return *reinterpret_cast<TYPE*>( src );               \
++      }                                                         \
++                                                                \
++      static const TYPE& ref( const char* src ) {               \
++          return *reinterpret_cast<const TYPE*>( src );         \
++      }                                                         \
++                                                                \
++      static TYPE& ref( void* src ) {                           \
++          return ref( reinterpret_cast<char*>( src ) );         \
++      }                                                         \
++                                                                \
++      static const TYPE& ref( const void* src ) {               \
++          return ref( reinterpret_cast<const char*>( src ) );   \
++      }
++
++  template<class T> class little_pod {
++  protected:
++      packed_little_storage<T> _val;
++  public:
++      MONGO_ENDIAN_REF_FUNCS( little_pod );
++      MONGO_ENDIAN_BODY( little_pod, little_pod<T>, T );
++  } ATTRIB_PACKED;
++
++  template<class T> class little : public little_pod<T> {
++  public:
++      inline little( T x ) {
++          *this = x;
++      }
++
++      inline little() {}
++      MONGO_ENDIAN_REF_FUNCS( little );
++      MONGO_ENDIAN_BODY( little, little_pod<T>, T );
++  } ATTRIB_PACKED;
++
++  template<class T> class big_pod {
++  protected:
++      packed_big_storage<T> _val;
++  public:
++      MONGO_ENDIAN_REF_FUNCS( big_pod );
++      MONGO_ENDIAN_BODY( big_pod, big_pod<T>, T );
++  } ATTRIB_PACKED;
++
++  template<class T> class big : public big_pod<T> {
++  public:
++      inline big( T x ) {
++          *this = x;
++      }
++
++      inline big() {}
++      MONGO_ENDIAN_REF_FUNCS( big );
++      MONGO_ENDIAN_BODY( big, big_pod<T>, T );
++  } ATTRIB_PACKED;
++
++  // Helper functions
++  template<class T> T readLE( const void* data ) {
++      return little<T>::ref( data );
++  }
++
++  template<class T> T readBE( const void* data ) {
++      return big<T>::ref( data );
++  }
++
++  template<class T> void copyLE( void* dest, T src ) {
++      little<T>::ref( dest ) = src;
++  }
++
++  template<class T> void copyBE( void* dest, T src ) {
++      big<T>::ref( dest ) = src;
++  }
++
++
++  BOOST_STATIC_ASSERT( sizeof( little_pod<double> ) == 8 );
++  BOOST_STATIC_ASSERT( sizeof( little<double> ) == 8 );
++  BOOST_STATIC_ASSERT( sizeof( big<bool> ) == 1 );
++  BOOST_STATIC_ASSERT( sizeof( little<bool> ) == 1 );
++ 
++  /** Marker class to inherit from to mark that endianess has been taken care of */
++  struct endian_aware { typedef int endian_aware_t; };
++
++  /** To assert that a class has the endian aware marker */
++  #define STATIC_ASSERT_HAS_ENDIAN_AWARE_MARKER( T ) BOOST_STATIC_ASSERT( sizeof( typename T::endian_aware_t ) > 0 )
++
++}
++
++#endif
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.cpp	2016-04-04 09:38:58 +0200
+@@ -53,6 +53,9 @@
+         la = 0;
+         ofs = OurNullOfs;
+     }
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++    la <<= 8;
++#endif
+     memcpy(_a, &la, 3);  // endian
+ }
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.h mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/btree_ondisk.h	2016-04-04 09:38:58 +0200
+@@ -222,9 +222,16 @@
+         // endian
+         unsigned long long result = ofs;
+         char* cursor = reinterpret_cast<char*>(&result);
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        *reinterpret_cast<uint8_t*>(cursor) = uint8_t(0);
++        for (int i = 0; i < 3; i++) {
++            *reinterpret_cast<uint8_t*>(cursor + i + 1) = *reinterpret_cast<const uint8_t*>(&_a[i]);
++        }
++#else
+         *reinterpret_cast<uint16_t*>(cursor + 4) = *reinterpret_cast<const uint16_t*>(&_a[0]);
+         *reinterpret_cast<uint8_t*>(cursor + 6) = *reinterpret_cast<const uint8_t*>(&_a[2]);
+         *reinterpret_cast<uint8_t*>(cursor + 7) = uint8_t(0);
++#endif
+         return result;
+     }
+ 
+@@ -290,7 +297,11 @@
+         if (isNull())
+             return DiskLoc();
+         unsigned a = *((unsigned*)(_a - 1));
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return DiskLoc(a & OurMaxA, ofs);
++#else
+         return DiskLoc(a >> 8, ofs);
++#endif
+     }
+ 
+     std::string toString() const {
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/key.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/key.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/btree/key.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/btree/key.cpp	2016-04-04 09:38:58 +0200
+@@ -432,15 +432,15 @@
+                 p += 8;
+                 break;
+             case cdouble:
+-                b.append("", (double&)*p);
++                b.append("", ConstDataView((const char*)p).read<LittleEndian<double>>());
+                 p += sizeof(double);
+                 break;
+             case cint:
+-                b.append("", static_cast<int>((reinterpret_cast<const PackedDouble&>(*p)).d));
++                b.append("", static_cast<int>(ConstDataView((const char*)p).read<LittleEndian<double>>()));
+                 p += sizeof(double);
+                 break;
+             case clong:
+-                b.append("", static_cast<long long>((reinterpret_cast<const PackedDouble&>(*p)).d));
++                b.append("", static_cast<long long>(ConstDataView((const char*)p).read<LittleEndian<double>>()));
+                 p += sizeof(double);
+                 break;
+             default:
+@@ -466,8 +466,8 @@
+     // same type
+     switch (lt) {
+         case cdouble: {
+-            double L = (reinterpret_cast<const PackedDouble*>(l))->d;
+-            double R = (reinterpret_cast<const PackedDouble*>(r))->d;
++            double L = ConstDataView((const char*)l).read<LittleEndian<double>>();
++            double R = ConstDataView((const char*)r).read<LittleEndian<double>>();
+             if (L < R)
+                 return -1;
+             if (L != R)
+@@ -518,8 +518,8 @@
+             break;
+         }
+         case cdate: {
+-            long long L = *((long long*)l);
+-            long long R = *((long long*)r);
++            long long L = ConstDataView((const char*)l).read<LittleEndian<long long>>();
++            long long R = ConstDataView((const char*)r).read<LittleEndian<long long>>();
+             if (L < R)
+                 return -1;
+             if (L > R)
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/catalog/namespace_details_collection_entry.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/catalog/namespace_details_collection_entry.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/catalog/namespace_details_collection_entry.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/catalog/namespace_details_collection_entry.cpp	2016-04-04 09:38:58 +0200
+@@ -32,6 +32,7 @@
+ 
+ #include "mongo/db/storage/mmap_v1/catalog/namespace_details_collection_entry.h"
+ 
++#include "mongo/db/storage/mmap_v1/bswap.h"
+ #include "mongo/db/index/index_descriptor.h"
+ #include "mongo/db/ops/update.h"
+ #include "mongo/db/record_id.h"
+@@ -338,14 +339,14 @@
+             massert(16631, "index does not have an 'expireAfterSeconds' field", false);
+             break;
+         case NumberInt:
+-            *txn->recoveryUnit()->writing(reinterpret_cast<int*>(nonConstPtr)) = newExpireSeconds;
++            *txn->recoveryUnit()->writing(&little<int>::ref(nonConstPtr)) = newExpireSeconds;
+             break;
+         case NumberDouble:
+-            *txn->recoveryUnit()->writing(reinterpret_cast<double*>(nonConstPtr)) =
++            *txn->recoveryUnit()->writing(&little<double>::ref(nonConstPtr)) =
+                 newExpireSeconds;
+             break;
+         case NumberLong:
+-            *txn->recoveryUnit()->writing(reinterpret_cast<long long*>(nonConstPtr)) =
++            *txn->recoveryUnit()->writing(&little<long long>::ref(nonConstPtr)) =
+                 newExpireSeconds;
+             break;
+         default:
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur.cpp	2016-04-04 09:38:58 +0200
+@@ -334,7 +334,7 @@
+ // See SERVER-5723 for performance improvement.
+ // See SERVER-5680 to see why this code is necessary on Windows.
+ // See SERVER-8795 to see why this code is necessary on Solaris.
+-#if defined(_WIN32) || defined(__sun)
++#if defined(_WIN32) || defined(__sun) || defined(_AIX)
+     LockMongoFilesExclusive lk;
+ #else
+     LockMongoFilesShared lk;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur_journalformat.h mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur_journalformat.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur_journalformat.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur_journalformat.h	2016-04-04 09:38:58 +0200
+@@ -34,6 +34,7 @@
+ #include <string>
+ 
+ #include "mongo/util/assert_util.h"
++#include "mongo/db/storage/mmap_v1/bswap.h"
+ 
+ namespace mongo {
+ 
+@@ -60,7 +61,7 @@
+ #else
+     enum { CurrentVersion = 0x4149 };
+ #endif
+-    unsigned short _version;
++    little<unsigned short> _version;
+ 
+     // these are just for diagnostic ease (make header more useful as plain text)
+     char n1;           // '\n'
+@@ -70,7 +71,7 @@
+                        // by code.
+     char n3, n4;       // '\n', '\n'
+ 
+-    unsigned long long fileId;  // unique identifier that will be in each JSectHeader.
++    little<unsigned long long> fileId;  // unique identifier that will be in each JSectHeader.
+                                 // important as we recycle prealloced files
+ 
+     char reserved3[8026];  // 8KB total for the file header
+@@ -90,11 +91,11 @@
+ */
+ struct JSectHeader {
+ private:
+-    unsigned _sectionLen;  // unpadded length in bytes of the whole section
++    little<unsigned> _sectionLen;  // unpadded length in bytes of the whole section
+ public:
+-    unsigned long long
++    little<unsigned long long>
+         seqNumber;  // sequence number that can be used on recovery to not do too much work
+-    unsigned long long fileId;  // matches JHeader::fileId
++    little<unsigned long long> fileId;  // matches JHeader::fileId
+     unsigned sectionLen() const {
+         return _sectionLen;
+     }
+@@ -125,23 +126,23 @@
+         OpCode_Min = 0xfffff000
+     };
+     union {
+-        unsigned
++        little_pod<unsigned>
+             len;  // length in bytes of the data of the JEntry. does not include the JEntry header
+-        OpCodes opcode;
++        little_pod<OpCodes> opcode;
+     };
+ 
+-    unsigned ofs;  // offset in file
++    little<unsigned> ofs;  // offset in file
+ 
+     // sentinel and masks for _fileNo
+     enum {
+         DotNsSuffix = 0x7fffffff,  // ".ns" file
+         LocalDbBit = 0x80000000    // assuming "local" db instead of using the JDbContext
+     };
+-    int _fileNo;  // high bit is set to indicate it should be the <dbpath>/local database
++    little<int> _fileNo;  // high bit is set to indicate it should be the <dbpath>/local database
+     // char data[len] follows
+ 
+     const char* srcData() const {
+-        const int* i = &_fileNo;
++        const little<int>* i = &_fileNo;
+         return (const char*)(i + 1);
+     }
+ 
+@@ -178,9 +179,9 @@
+ struct JSectFooter {
+     JSectFooter();
+     JSectFooter(const void* begin, int len);  // needs buffer to compute hash
+-    unsigned sentinel;
++    little<unsigned> sentinel;
+     unsigned char hash[16];
+-    unsigned long long reserved;
++    little<unsigned long long> reserved;
+     char magic[4];  // "\n\n\n\n"
+ 
+     /** used by recovery to see if buffer is valid
+@@ -191,24 +192,24 @@
+     bool checkHash(const void* begin, int len) const;
+ 
+     bool magicOk() const {
+-        return *((unsigned*)magic) == 0x0a0a0a0a;
++        return little<unsigned>::ref(magic) == 0x0a0a0a0a;
+     }
+ };
+ 
+ /** declares "the next entry(s) are for this database / file path prefix" */
+ struct JDbContext {
+     JDbContext() : sentinel(JEntry::OpCode_DbContext) {}
+-    const unsigned sentinel;  // compare to JEntry::len -- zero is our sentinel
++    const little<unsigned> sentinel;  // compare to JEntry::len -- zero is our sentinel
+     // char dbname[];
+ };
+ 
+ /** "last sequence number" */
+ struct LSNFile {
+-    unsigned ver;
+-    unsigned reserved2;
+-    unsigned long long lsn;
+-    unsigned long long checkbytes;
+-    unsigned long long reserved[8];
++    little<unsigned> ver;
++    little<unsigned> reserved2;
++    little<unsigned long long> lsn;
++    little<unsigned long long> checkbytes;
++    little<unsigned long long> reserved[8];
+ 
+     void set(unsigned long long lsn);
+     unsigned long long get();
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur_recover.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur_recover.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/dur_recover.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/dur_recover.cpp	2016-04-04 09:38:58 +0200
+@@ -33,6 +33,7 @@
+ #include "mongo/platform/basic.h"
+ 
+ #include "mongo/db/storage/mmap_v1/dur_recover.h"
++#include "mongo/db/storage/mmap_v1/bswap.h"
+ 
+ #include <fcntl.h>
+ #include <iomanip>
+@@ -604,7 +605,7 @@
+ }
+ 
+ struct BufReaderY {
+-    int a, b;
++    little<int> a, b;
+ };
+ class BufReaderUnitTest : public StartupTest {
+ public:
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/mmap_posix.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/mmap_posix.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/mmap_v1/mmap_posix.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/mmap_v1/mmap_posix.cpp	2016-04-04 09:38:58 +0200
+@@ -141,12 +141,20 @@
+             break;
+     }
+ 
++#ifdef _AIX
++    if (madvise((caddr_t)_p, _len, advice)) {
++#else
+     if (madvise(_p, _len, advice)) {
++#endif
+         error() << "madvise failed: " << errnoWithDescription();
+     }
+ }
+ MAdvise::~MAdvise() {
++#ifdef _AIX
++    madvise((caddr_t)_p, _len, MADV_NORMAL);
++#else
+     madvise(_p, _len, MADV_NORMAL);
++#endif
+ }
+ #endif
+ 
+@@ -192,7 +200,11 @@
+ #warning madvise not supported on solaris yet
+ #else
+     if (options & SEQUENTIAL) {
++#ifdef _AIX
++        if (madvise((caddr_t)view, length, MADV_SEQUENTIAL)) {
++#else
+         if (madvise(view, length, MADV_SEQUENTIAL)) {
++#endif
+             warning() << "map: madvise failed for " << filename << ' ' << errnoWithDescription()
+                       << endl;
+         }
+@@ -240,10 +252,14 @@
+ }
+ 
+ void* MemoryMappedFile::remapPrivateView(void* oldPrivateAddr) {
+-#if defined(__sun)  // SERVER-8795
++#if defined(__sun) || defined(_AIX) // SERVER-8795
+     LockMongoFilesExclusive lockMongoFiles;
+ #endif
+ 
++#if defined(_AIX)
++    // AIX does not support remapping
++    munmap(oldPrivateAddr, len);
++#endif
+     // don't unmap, just mmap over the old region
+     void* x = mmap(oldPrivateAddr,
+                    len,
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/storage_engine_lock_file_posix.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/storage_engine_lock_file_posix.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/storage_engine_lock_file_posix.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/storage_engine_lock_file_posix.cpp	2016-04-04 09:38:58 +0200
+@@ -106,7 +106,7 @@
+                                     << errnoWithDescription(errorcode)
+                                     << " Is a mongod instance already running?");
+     }
+-#if !defined(__sun)
++#if !defined(__sun) && !defined(_AIX)
+     int ret = ::flock(lockFile, LOCK_EX | LOCK_NB);
+ #else
+     struct flock fileLockInfo = {0};
+@@ -191,7 +191,7 @@
+         int errorcode = errno;
+         log() << "couldn't remove fs lock " << errnoWithDescription(errorcode);
+     }
+-#if !defined(__sun)
++#if !defined(__sun) && !defined(_AIX)
+     ::flock(_lockFileHandle->_fd, LOCK_UN);
+ #else
+     struct flock fileLockInfo = {0};
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/storage/wiredtiger/wiredtiger_init.cpp mongodb-src-r3.2.0.aix/src/mongo/db/storage/wiredtiger/wiredtiger_init.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/db/storage/wiredtiger/wiredtiger_init.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/storage/wiredtiger/wiredtiger_init.cpp	2016-04-05 13:21:13 +0200
+@@ -71,9 +71,9 @@
+             if (memSizeMB > 0) {
+                 double cacheMB = (memSizeMB - 1024) * 0.6;
+                 cacheSizeGB = static_cast<size_t>(cacheMB / 1024);
+-                if (cacheSizeGB < 1)
+-                    cacheSizeGB = 1;
+             }
++            if (cacheSizeGB < 1)
++                cacheSizeGB = 1;
+         }
+         const bool ephemeral = false;
+         WiredTigerKVEngine* kv = new WiredTigerKVEngine(getCanonicalName().toString(),
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/db/write_concern_options.h mongodb-src-r3.2.0.aix/src/mongo/db/write_concern_options.h
+--- mongodb-src-r3.2.0.orig/src/mongo/db/write_concern_options.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/db/write_concern_options.h	2016-04-04 09:38:58 +0200
+@@ -35,6 +35,10 @@
+ 
+ class Status;
+ 
++#ifdef FSYNC
++#undef FSYNC
++#endif
++
+ struct WriteConcernOptions {
+ public:
+     enum SyncMode { NONE, FSYNC, JOURNAL };
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/dbtests/jsobjtests.cpp mongodb-src-r3.2.0.aix/src/mongo/dbtests/jsobjtests.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/dbtests/jsobjtests.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/dbtests/jsobjtests.cpp	2016-04-04 09:38:58 +0200
+@@ -1500,7 +1500,11 @@
+         return BSON("a" << BSON("$size" << 4));
+     }
+     BSONObj actual() {
++#ifdef _AIX
++        return BSON("a" << mongo::BYTESIZE << 4);
++#else
+         return BSON("a" << mongo::BSIZE << 4);
++#endif
+     }
+ };
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/dbtests/querytests.cpp mongodb-src-r3.2.0.aix/src/mongo/dbtests/querytests.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/dbtests/querytests.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/dbtests/querytests.cpp	2016-04-04 09:38:58 +0200
+@@ -915,7 +915,11 @@
+         const char* ns = "unittests.querytests.Size";
+         _client.insert(ns, fromjson("{a:[1,2,3]}"));
+         ASSERT_OK(dbtests::createIndex(&_txn, ns, BSON("a" << 1)));
++#ifdef _AIX
++        ASSERT(_client.query(ns, QUERY("a" << mongo::BYTESIZE << 3).hint(BSON("a" << 1)))->more());
++#else
+         ASSERT(_client.query(ns, QUERY("a" << mongo::BSIZE << 3).hint(BSON("a" << 1)))->more());
++#endif
+     }
+ };
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/logger/log_component_settings.cpp mongodb-src-r3.2.0.aix/src/mongo/logger/log_component_settings.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/logger/log_component_settings.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/logger/log_component_settings.cpp	2016-04-04 09:38:58 +0200
+@@ -35,7 +35,7 @@
+ namespace logger {
+ 
+ LogComponentSettings::LogComponentSettings() {
+-    _minimumLoggedSeverity[LogComponent::kDefault] = char(LogSeverity::Log().toInt());
++    _minimumLoggedSeverity[LogComponent::kDefault] = (signed char)(LogSeverity::Log().toInt());
+ 
+     for (int i = 0; i < int(LogComponent::kNumLogComponents); ++i) {
+         _minimumLoggedSeverity[i] = _minimumLoggedSeverity[LogComponent::kDefault];
+@@ -59,7 +59,7 @@
+ 
+ void LogComponentSettings::setMinimumLoggedSeverity(LogComponent component, LogSeverity severity) {
+     dassert(int(component) >= 0 && int(component) < LogComponent::kNumLogComponents);
+-    _minimumLoggedSeverity[component] = char(severity.toInt());
++    _minimumLoggedSeverity[component] = (signed char)(severity.toInt());
+     _hasMinimumLoggedSeverity[component] = true;
+ 
+     // Every unconfigured component will inherit log severity from parent.
+@@ -70,7 +70,7 @@
+             LogComponent::Value v = LogComponent::Value(i);
+             LogComponent parentComponent = LogComponent(v).parent();
+             LogSeverity parentSeverity = getMinimumLogSeverity(parentComponent);
+-            _minimumLoggedSeverity[i] = char(parentSeverity.toInt());
++            _minimumLoggedSeverity[i] = (signed char)(parentSeverity.toInt());
+         }
+     }
+ }
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/logger/log_component_settings.h mongodb-src-r3.2.0.aix/src/mongo/logger/log_component_settings.h
+--- mongodb-src-r3.2.0.orig/src/mongo/logger/log_component_settings.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/logger/log_component_settings.h	2016-04-04 09:38:58 +0200
+@@ -89,7 +89,7 @@
+     // Log severities for components.
+     // Store numerical values of severities to be cache-line friendly.
+     // Set to kDefault minimum logged severity if _hasMinimumLoggedSeverity[i] is false.
+-    char _minimumLoggedSeverity[LogComponent::kNumLogComponents];
++    signed char _minimumLoggedSeverity[LogComponent::kNumLogComponents];
+ };
+ 
+ }  // namespace logger
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/platform/bits.h mongodb-src-r3.2.0.aix/src/mongo/platform/bits.h
+--- mongodb-src-r3.2.0.orig/src/mongo/platform/bits.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/platform/bits.h	2016-04-04 09:38:58 +0200
+@@ -36,7 +36,7 @@
+ // figure out if we're on a 64 or 32 bit system
+ 
+ #if defined(__x86_64__) || defined(__amd64__) || defined(_WIN64) || defined(__aarch64__) || \
+-    defined(__powerpc64__)
++    defined(__powerpc64__) || defined(_AIX)
+ #define MONGO_PLATFORM_64
+ #elif defined(__i386__) || defined(_WIN32) || defined(__arm__)
+ #define MONGO_PLATFORM_32
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/platform/random.cpp mongodb-src-r3.2.0.aix/src/mongo/platform/random.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/platform/random.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/platform/random.cpp	2016-04-04 09:38:58 +0200
+@@ -33,6 +33,7 @@
+ 
+ #include "mongo/platform/random.h"
+ 
++#include <stdio.h>
+ #include <string.h>
+ 
+ #ifdef _WIN32
+@@ -145,7 +146,7 @@
+     return new WinSecureRandom();
+ }
+ 
+-#elif defined(__linux__) || defined(__sun) || defined(__APPLE__) || defined(__FreeBSD__)
++#elif defined(__linux__) || defined(__sun) || defined(__APPLE__) || defined(__FreeBSD__) || defined(_AIX)
+ 
+ class InputStreamSecureRandom : public SecureRandom {
+ public:
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/platform/stack_locator_aix.cpp mongodb-src-r3.2.0.aix/src/mongo/platform/stack_locator_aix.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/platform/stack_locator_aix.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/platform/stack_locator_aix.cpp	2016-04-04 09:38:58 +0200
+@@ -0,0 +1,63 @@
++/**
++ *    Copyright (C) 2015 MongoDB Inc.
++ *
++ *    This program is free software: you can redistribute it and/or  modify
++ *    it under the terms of the GNU Affero General Public License, version 3,
++ *    as published by the Free Software Foundation.
++ *
++ *    This program is distributed in the hope that it will be useful,
++ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *    GNU Affero General Public License for more details.
++ *
++ *    You should have received a copy of the GNU Affero General Public License
++ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ *    As a special exception, the copyright holders give permission to link the
++ *    code of portions of this program with the OpenSSL library under certain
++ *    conditions as described in each individual source file and distribute
++ *    linked combinations including the program with the OpenSSL library. You
++ *    must comply with the GNU Affero General Public License in all respects for
++ *    all of the code used other than as permitted herein. If you modify file(s)
++ *    with this exception, you may extend this exception to your version of the
++ *    file(s), but you are not obligated to do so. If you do not wish to do so,
++ *    delete this exception statement from your version. If you delete this
++ *    exception statement from all source files in the program, then also delete
++ *    it in the license file.
++ */
++
++#include "mongo/platform/basic.h"
++
++#include "mongo/platform/stack_locator.h"
++
++#include <pthread.h>
++
++#include "mongo/util/assert_util.h"
++#include "mongo/util/scopeguard.h"
++
++namespace mongo {
++
++StackLocator::StackLocator() {
++    pthread_t self = pthread_self();
++    pthread_attr_t selfAttrs;
++    invariant(pthread_attr_init(&selfAttrs) == 0);
++    invariant(pthread_getattr_np(self, &selfAttrs) == 0);
++    ON_BLOCK_EXIT(pthread_attr_destroy, &selfAttrs);
++
++    void* base = nullptr;
++    size_t size = 0;
++
++    auto result = pthread_attr_getstack(&selfAttrs, &base, &size);
++
++    invariant(result == 0);
++    invariant(base != nullptr);
++    invariant(size != 0);
++
++    // TODO: Assumes a downward growing stack. Note here that
++    // getstack returns the stack *base*, being the bottom of the
++    // stack, so we need to add size to it.
++    _begin = base;
++    _end = static_cast<char*>(_begin) - size;
++}
++
++}  // namespace mongo
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/platform/strcasestr.cpp mongodb-src-r3.2.0.aix/src/mongo/platform/strcasestr.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/platform/strcasestr.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/platform/strcasestr.cpp	2016-04-04 09:38:58 +0200
+@@ -34,7 +34,7 @@
+ #include "mongo/base/status.h"
+ #endif
+ 
+-#if defined(_WIN32) || defined(__sun)
++#if defined(_WIN32) || defined(__sun) || defined(_AIX)
+ 
+ #include <algorithm>
+ #include <cctype>
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/platform/strcasestr.h mongodb-src-r3.2.0.aix/src/mongo/platform/strcasestr.h
+--- mongodb-src-r3.2.0.orig/src/mongo/platform/strcasestr.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/platform/strcasestr.h	2016-04-04 09:38:58 +0200
+@@ -27,7 +27,7 @@
+ 
+ #pragma once
+ 
+-#if defined(_WIN32) || defined(__sun)
++#if defined(_WIN32) || defined(__sun) || defined(_AIX)
+ 
+ namespace mongo {
+ namespace pal {
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/s/chunk_version.cpp mongodb-src-r3.2.0.aix/src/mongo/s/chunk_version.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/s/chunk_version.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/s/chunk_version.cpp	2016-04-04 09:38:58 +0200
+@@ -70,7 +70,7 @@
+                     str::stream() << "Invalid type " << tsPart.type()
+                                   << " for version timestamp part."};
+ 
+-        version._combined = tsPart.timestamp().asULL();
++        version = fromDeprecatedLong(tsPart.timestamp().asULL(), OID());
+     }
+ 
+     // Expect the epoch OID
+@@ -106,7 +106,7 @@
+ 
+ BSONObj ChunkVersion::toBSON() const {
+     BSONArrayBuilder b;
+-    b.appendTimestamp(_combined);
++    b.appendTimestamp(toLong());
+     b.append(_epoch);
+     return b.arr();
+ }
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/s/chunk_version.h mongodb-src-r3.2.0.aix/src/mongo/s/chunk_version.h
+--- mongodb-src-r3.2.0.orig/src/mongo/s/chunk_version.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/s/chunk_version.h	2016-04-04 09:38:58 +0200
+@@ -30,6 +30,7 @@
+ 
+ #include "mongo/db/jsobj.h"
+ #include "mongo/s/optime_pair.h"
++#include "mongo/platform/endian.h"
+ 
+ namespace mongo {
+ 
+@@ -93,7 +94,12 @@
+ 
+     static ChunkVersion fromDeprecatedLong(unsigned long long num, const OID& epoch) {
+         ChunkVersion version(0, 0, epoch);
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        version._major = (int)(num >> 32);
++        version._minor = (int)(num);
++#else
+         version._combined = num;
++#endif
+         return version;
+     }
+ 
+@@ -114,7 +120,11 @@
+     // Note: this shouldn't be used as a substitute for version except in specific cases -
+     // epochs make versions more complex
+     unsigned long long toLong() const {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return ((unsigned long long)_major << 32 | _minor);
++#else
+         return _combined;
++#endif
+     }
+ 
+     bool isSet() const {
+@@ -140,19 +150,39 @@
+     //
+ 
+     bool operator>(const ChunkVersion& otherVersion) const {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return (this->_major > otherVersion._major ||
++                (this->_major == otherVersion._major && this->_minor > otherVersion._minor));
++#else
+         return this->_combined > otherVersion._combined;
++#endif
+     }
+ 
+     bool operator>=(const ChunkVersion& otherVersion) const {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return (this->_major > otherVersion._major ||
++                (this->_major == otherVersion._major && this->_minor >= otherVersion._minor));
++#else
+         return this->_combined >= otherVersion._combined;
++#endif
+     }
+ 
+     bool operator<(const ChunkVersion& otherVersion) const {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return (this->_major < otherVersion._major ||
++                (this->_major == otherVersion._major && this->_minor < otherVersion._minor));
++#else
+         return this->_combined < otherVersion._combined;
++#endif
+     }
+ 
+     bool operator<=(const ChunkVersion& otherVersion) const {
++#if MONGO_CONFIG_BYTE_ORDER == 4321
++        return (this->_major < otherVersion._major ||
++                (this->_major == otherVersion._major && this->_minor <= otherVersion._minor));
++#else
+         return this->_combined <= otherVersion._combined;
++#endif
+     }
+ 
+     //
+@@ -321,7 +351,7 @@
+         invariant(!prefix.empty());
+ 
+         BSONObjBuilder b;
+-        b.appendTimestamp(prefix, _combined);
++        b.appendTimestamp(prefix, toLong());
+         b.append(prefix + "Epoch", _epoch);
+         return b.obj();
+     }
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/shell/shell_utils_launcher.cpp mongodb-src-r3.2.0.aix/src/mongo/shell/shell_utils_launcher.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/shell/shell_utils_launcher.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/shell/shell_utils_launcher.cpp	2016-04-04 09:38:58 +0200
+@@ -335,7 +335,11 @@
+     try {
+         // This assumes there aren't any 0's in the mongo program output.
+         // Hope that's ok.
++#ifdef _AIX
++        const unsigned bufSize = 64 * 1024;
++#else
+         const unsigned bufSize = 128 * 1024;
++#endif
+         char buf[bufSize];
+         char temp[bufSize];
+         char* start = buf;
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/tools/sniffer.cpp mongodb-src-r3.2.0.aix/src/mongo/tools/sniffer.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/tools/sniffer.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/tools/sniffer.cpp	2016-04-04 09:38:58 +0200
+@@ -61,6 +61,10 @@
+ #include <sys/socket.h>
+ #endif
+ 
++#ifdef _AIX
++#include <net/bpf.h>
++#endif
++
+ #include "mongo/base/initializer.h"
+ #include "mongo/bson/util/builder.h"
+ #include "mongo/client/dbclientinterface.h"
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/bufreader.h mongodb-src-r3.2.0.aix/src/mongo/util/bufreader.h
+--- mongodb-src-r3.2.0.orig/src/mongo/util/bufreader.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/bufreader.h	2016-04-04 09:38:58 +0200
+@@ -43,6 +43,23 @@
+ class BufReader {
+     MONGO_DISALLOW_COPYING(BufReader);
+ 
++private:
++    template <typename T, bool C = boost::is_arithmetic<T>::value> class R;
++
++    template <typename T> class R<T, true> {
++    public:
++        static void read(ConstDataView c, T &t) {
++            t = c.read<LittleEndian<T>>();
++        }
++    };
++
++    template <typename T> class R<T, false> {
++    public:
++        static void read(ConstDataView c, T &t) {
++            c.read<T>(&t);
++        }
++    };
++
+ public:
+     class eof : public std::exception {
+     public:
+@@ -61,11 +78,12 @@
+     /** read in the object specified, and advance buffer pointer */
+     template <typename T>
+     void read(T& t) {
++        R<T> r;
+         T* cur = (T*)_pos;
+         T* next = cur + 1;
+         if (_end < next)
+             throw eof();
+-        t = *cur;
++        r.read(ConstDataView((const char*)_pos), t);
+         _pos = next;
+     }
+ 
+@@ -80,11 +98,12 @@
+     /** read in the object specified, but do not advance buffer pointer */
+     template <typename T>
+     void peek(T& t) const {
++        R<T> r;
+         T* cur = (T*)_pos;
+         T* next = cur + 1;
+         if (_end < next)
+             throw eof();
+-        t = *cur;
++        r.read(ConstDataView((const char*)_pos), t);
+     }
+ 
+     /** read in and return an object of the specified type, but do not advance buffer pointer */
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/checksum.h mongodb-src-r3.2.0.aix/src/mongo/util/checksum.h
+--- mongodb-src-r3.2.0.orig/src/mongo/util/checksum.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/checksum.h	2016-04-04 09:38:58 +0200
+@@ -29,6 +29,7 @@
+ #pragma once
+ 
+ #include "mongo/platform/basic.h"
++#include "mongo/base/data_cursor.h"
+ 
+ namespace mongo {
+ /** a simple, rather dumb, but very fast checksum.  see perftests.cpp for unit tests. */
+@@ -42,16 +43,16 @@
+     void gen(const void* buf, unsigned len) {
+         wassert(((size_t)buf) % 8 == 0);  // performance warning
+         unsigned n = len / 8 / 2;
+-        const unsigned long long* p = (const unsigned long long*)buf;
++        ConstDataCursor p((const char*)buf);
+         unsigned long long a = 0;
+         for (unsigned i = 0; i < n; i++) {
+-            a += (*p ^ i);
+-            p++;
++            unsigned long long ll = p.readAndAdvance<LittleEndian<unsigned long long>>();
++            a += (ll ^ i);
+         }
+         unsigned long long b = 0;
+         for (unsigned i = 0; i < n; i++) {
+-            b += (*p ^ i);
+-            p++;
++            unsigned long long ll = p.readAndAdvance<LittleEndian<unsigned long long>>();
++            b += (ll ^ i);
+         }
+         unsigned long long c = 0;
+         for (unsigned i = n * 2 * 8; i < len; i++) {  // 0-7 bytes left
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/net/listen.cpp mongodb-src-r3.2.0.aix/src/mongo/util/net/listen.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/util/net/listen.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/net/listen.cpp	2016-04-04 09:38:58 +0200
+@@ -46,7 +46,7 @@
+ 
+ #ifndef _WIN32
+ 
+-#ifndef __sun
++#if !defined(__sun) && !defined(_AIX)
+ #include <ifaddrs.h>
+ #endif
+ #include <sys/resource.h>
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/net/message_port.cpp mongodb-src-r3.2.0.aix/src/mongo/util/net/message_port.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/util/net/message_port.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/net/message_port.cpp	2016-04-04 09:38:58 +0200
+@@ -49,8 +49,10 @@
+ 
+ #ifndef _WIN32
+ #ifndef __sun
++#ifndef _AIX
+ #include <ifaddrs.h>
+ #endif
++#endif
+ #include <sys/resource.h>
+ #include <sys/stat.h>
+ #endif
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/processinfo_aix.cpp mongodb-src-r3.2.0.aix/src/mongo/util/processinfo_aix.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/util/processinfo_aix.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/processinfo_aix.cpp	2016-04-04 09:38:58 +0200
+@@ -0,0 +1,79 @@
++// processinfo_none.cpp
++
++/*    Copyright 2009 10gen Inc.
++ *
++ *    This program is free software: you can redistribute it and/or  modify
++ *    it under the terms of the GNU Affero General Public License, version 3,
++ *    as published by the Free Software Foundation.
++ *
++ *    This program is distributed in the hope that it will be useful,
++ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *    GNU Affero General Public License for more details.
++ *
++ *    You should have received a copy of the GNU Affero General Public License
++ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ *    As a special exception, the copyright holders give permission to link the
++ *    code of portions of this program with the OpenSSL library under certain
++ *    conditions as described in each individual source file and distribute
++ *    linked combinations including the program with the OpenSSL library. You
++ *    must comply with the GNU Affero General Public License in all respects
++ *    for all of the code used other than as permitted herein. If you modify
++ *    file(s) with this exception, you may extend this exception to your
++ *    version of the file(s), but you are not obligated to do so. If you do not
++ *    wish to do so, delete this exception statement from your version. If you
++ *    delete this exception statement from all source files in the program,
++ *    then also delete it in the license file.
++ */
++
++#include "mongo/platform/basic.h"
++
++#include <iostream>
++
++#include "mongo/util/processinfo.h"
++
++using namespace std;
++
++namespace mongo {
++
++ProcessInfo::ProcessInfo(ProcessId pid) {}
++
++ProcessInfo::~ProcessInfo() {}
++
++bool ProcessInfo::supported() {
++    return false;
++}
++
++int ProcessInfo::getVirtualMemorySize() {
++    return -1;
++}
++
++int ProcessInfo::getResidentSize() {
++    return -1;
++}
++
++double ProcessInfo::getSystemMemoryPressurePercentage() {
++    return 0.0;
++}
++
++bool ProcessInfo::checkNumaEnabled() {
++    return false;
++}
++
++bool ProcessInfo::blockCheckSupported() {
++    return false;
++}
++
++void ProcessInfo::SystemInfo::collectSystemInfo() {}
++
++void ProcessInfo::getExtraInfo(BSONObjBuilder& info) {}
++
++bool ProcessInfo::blockInMemory(const void* start) {
++    verify(0);
++}
++
++bool ProcessInfo::pagesInMemory(const void* start, size_t numPages, vector<char>* out) {
++    verify(0);
++}
++}
+diff -Nur mongodb-src-r3.2.0.orig/src/mongo/util/time_support.cpp mongodb-src-r3.2.0.aix/src/mongo/util/time_support.cpp
+--- mongodb-src-r3.2.0.orig/src/mongo/util/time_support.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/mongo/util/time_support.cpp	2016-04-04 09:38:58 +0200
+@@ -56,10 +56,42 @@
+ #endif
+ #endif
+ 
+-#ifdef __sun
++#if defined(__sun) || defined(_AIX)
+ // Some versions of Solaris do not have timegm defined, so fall back to our implementation when
+ // building on Solaris.  See SERVER-13446.
+-extern "C" time_t timegm(struct tm* const tmp);
++static int leapyear (int year)
++{
++    return ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0));
++}
++
++/*
++ * This is a simple implementation of timegm() which does what is needed
++ * by create_output() -- just turns the "struct tm" into a GMT time_t.
++ * It does not normalize any of the fields of the "struct tm", nor does
++ * it set tm_wday or tm_yday.
++ */
++time_t timegm (struct tm *tm)
++{
++    int monthlen[2][12] = {
++        { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
++        { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
++    };
++    int year, month, days;
++
++    days = 365 * (tm->tm_year - 70);
++    for (year = 70; year < tm->tm_year; year++) {
++        if (leapyear(1900 + year)) {
++            days++;
++        }
++    }
++
++    for (month = 0; month < tm->tm_mon; month++) {
++        days += monthlen[leapyear(1900 + year)][month];
++    }
++    days += tm->tm_mday - 1;
++
++    return ((((days * 24ll) + tm->tm_hour) * 60 + tm->tm_min) * 60 + tm->tm_sec);
++}
+ #endif
+ 
+ namespace mongo {
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/IntelRDFPMathLib20U1/SConscript mongodb-src-r3.2.0.aix/src/third_party/IntelRDFPMathLib20U1/SConscript
+--- mongodb-src-r3.2.0.orig/src/third_party/IntelRDFPMathLib20U1/SConscript	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/IntelRDFPMathLib20U1/SConscript	2016-04-04 09:38:58 +0200
+@@ -303,6 +303,9 @@
+ elif processor == 'x86_64':
+     cpp_defines['efi2'] = '1'
+     cpp_defines['EFI2'] = '1'
++elif processor == 'PowerPC':
++    cpp_defines['efi2'] = '1'
++    cpp_defines['EFI2'] = '1'
+ else:
+     assert False, "Unsupported architecture: " + processor
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/descriptor_ops.ipp mongodb-src-r3.2.0.aix/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/descriptor_ops.ipp
+--- mongodb-src-r3.2.0.orig/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/descriptor_ops.ipp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/descriptor_ops.ipp	2016-04-04 09:38:58 +0200
+@@ -57,7 +57,7 @@
+       // current OS where this behaviour is seen, Windows, says that the socket
+       // remains open. Therefore we'll put the descriptor back into blocking
+       // mode and have another attempt at closing it.
+-#if defined(__SYMBIAN32__)
++#if defined(__SYMBIAN32__) || defined(_AIX)
+       int flags = ::fcntl(d, F_GETFL, 0);
+       if (flags >= 0)
+         ::fcntl(d, F_SETFL, flags & ~O_NONBLOCK);
+@@ -87,7 +87,7 @@
+   }
+ 
+   errno = 0;
+-#if defined(__SYMBIAN32__)
++#if defined(__SYMBIAN32__) || defined(_AIX)
+   int result = error_wrapper(::fcntl(d, F_GETFL, 0), ec);
+   if (result >= 0)
+   {
+@@ -137,7 +137,7 @@
+   }
+ 
+   errno = 0;
+-#if defined(__SYMBIAN32__)
++#if defined(__SYMBIAN32__) || defined(_AIX)
+   int result = error_wrapper(::fcntl(d, F_GETFL, 0), ec);
+   if (result >= 0)
+   {
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/socket_ops.ipp mongodb-src-r3.2.0.aix/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/socket_ops.ipp
+--- mongodb-src-r3.2.0.orig/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/socket_ops.ipp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/asio-asio-1-11-0/asio/include/asio/detail/impl/socket_ops.ipp	2016-04-04 09:38:58 +0200
+@@ -332,7 +332,7 @@
+       ioctl_arg_type arg = 0;
+       ::ioctlsocket(s, FIONBIO, &arg);
+ #else // defined(ASIO_WINDOWS) || defined(__CYGWIN__)
+-# if defined(__SYMBIAN32__)
++# if defined(__SYMBIAN32__) || defined(_AIX)
+       int flags = ::fcntl(s, F_GETFL, 0);
+       if (flags >= 0)
+         ::fcntl(s, F_SETFL, flags & ~O_NONBLOCK);
+@@ -370,7 +370,7 @@
+ #if defined(ASIO_WINDOWS) || defined(__CYGWIN__)
+   ioctl_arg_type arg = (value ? 1 : 0);
+   int result = error_wrapper(::ioctlsocket(s, FIONBIO, &arg), ec);
+-#elif defined(__SYMBIAN32__)
++#elif defined(__SYMBIAN32__) || defined(_AIX)
+   int result = error_wrapper(::fcntl(s, F_GETFL, 0), ec);
+   if (result >= 0)
+   {
+@@ -423,7 +423,7 @@
+ #if defined(ASIO_WINDOWS) || defined(__CYGWIN__)
+   ioctl_arg_type arg = (value ? 1 : 0);
+   int result = error_wrapper(::ioctlsocket(s, FIONBIO, &arg), ec);
+-#elif defined(__SYMBIAN32__)
++#elif defined(__SYMBIAN32__) || defined(_AIX)
+   int result = error_wrapper(::fcntl(s, F_GETFL, 0), ec);
+   if (result >= 0)
+   {
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/boost-1.56.0/boost/config/platform/aix.hpp mongodb-src-r3.2.0.aix/src/third_party/boost-1.56.0/boost/config/platform/aix.hpp
+--- mongodb-src-r3.2.0.orig/src/third_party/boost-1.56.0/boost/config/platform/aix.hpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/boost-1.56.0/boost/config/platform/aix.hpp	2016-04-04 09:38:58 +0200
+@@ -23,6 +23,7 @@
+ #define BOOST_HAS_PTHREADS
+ #define BOOST_HAS_PTHREAD_DELAY_NP
+ #define BOOST_HAS_SCHED_YIELD
++#define BOOST_HAS_THREADS
+ //#define BOOST_HAS_PTHREAD_YIELD
+ 
+ // boilerplate code:
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/SConscript mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/SConscript
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/SConscript	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/SConscript	2016-04-04 09:38:58 +0200
+@@ -59,7 +59,7 @@
+             '/wd4805',
+             ])
+ else:
+-    if env.TargetOSIs('solaris'):
++    if env.TargetOSIs('solaris') or env.TargetOSIs('aix'):
+         env.Prepend(CCFLAGS=[
+             '-include', 'solaris_hacks.h'
+         ])
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/gc/Memory.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/gc/Memory.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/gc/Memory.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/gc/Memory.cpp	2016-04-04 09:38:58 +0200
+@@ -314,19 +314,32 @@
+     MOZ_ASSERT(size % pageSize == 0);
+     MOZ_ASSERT(alignment % allocGranularity == 0);
+ 
++#ifdef _AIX
++    caddr_t buf = (caddr_t)malloc(size + sizeof(uintptr_t) + alignment);
++    if (buf == NULL)
++        return nullptr;
++    size_t offset = OffsetFromAligned(buf, alignment);
++    void *p = buf + (alignment - offset);
++    *(void **)((caddr_t)p + size) = (void *)buf;
++#else
+     int prot = PROT_READ | PROT_WRITE;
+     int flags = MAP_PRIVATE | MAP_ANON | MAP_ALIGN | MAP_NOSYNC;
+ 
+     void* p = mmap((caddr_t)alignment, size, prot, flags, -1, 0);
+     if (p == MAP_FAILED)
+         return nullptr;
++#endif
+     return p;
+ }
+ 
+ void
+ UnmapPages(void* p, size_t size)
+ {
++#ifdef _AIX
++    free(*((void **)((caddr_t)p + size)));
++#else
+     MOZ_ALWAYS_TRUE(0 == munmap((caddr_t)p, size));
++#endif
+ }
+ 
+ bool
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jit/CodeGenerator.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jit/CodeGenerator.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jit/CodeGenerator.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jit/CodeGenerator.cpp	2016-04-04 09:38:58 +0200
+@@ -3464,12 +3464,12 @@
+     callVM(DirectEvalValueInfo, lir);
+ }
+ 
+-// Registers safe for use before generatePrologue().
+-static const uint32_t EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
+-
+ void
+ CodeGenerator::generateArgumentsChecks(bool bailout)
+ {
++    // Registers safe for use before generatePrologue().
++    static const uint32_t EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
++
+     // This function can be used the normal way to check the argument types,
+     // before entering the function and bailout when arguments don't match.
+     // For debug purpose, this is can also be used to force/check that the
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jit/none/MacroAssembler-none.h mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jit/none/MacroAssembler-none.h
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jit/none/MacroAssembler-none.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jit/none/MacroAssembler-none.h	2016-04-04 09:38:58 +0200
+@@ -131,6 +131,12 @@
+     static void ToggleCall(CodeLocationLabel, bool) { MOZ_CRASH(); }
+ 
+     static uintptr_t GetPointer(uint8_t*) { MOZ_CRASH(); }
++
++    void verifyHeapAccessDisassembly(uint32_t begin, uint32_t end,
++                                     const Disassembler::HeapAccess& heapAccess)
++    {
++        MOZ_CRASH();
++    }
+ };
+ 
+ class Operand
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jsnativestack.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jsnativestack.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/js/src/jsnativestack.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/js/src/jsnativestack.cpp	2016-04-04 09:38:58 +0200
+@@ -9,7 +9,7 @@
+ #ifdef XP_WIN
+ # include "jswin.h"
+ 
+-#elif defined(XP_MACOSX) || defined(DARWIN) || defined(XP_UNIX)
++#elif defined(XP_MACOSX) || defined(DARWIN) || defined(XP_UNIX) || defined(_AIX)
+ # include <pthread.h>
+ 
+ # if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+@@ -55,7 +55,7 @@
+ # endif
+ }
+ 
+-#elif defined(SOLARIS)
++#elif defined(_AIX)
+ 
+ #include <ucontext.h>
+ 
+@@ -64,12 +64,19 @@
+ void*
+ js::GetNativeStackBaseImpl()
+ {
++#ifdef _AIX
++    ucontext_t context;
++    getcontext(&context);
++    return static_cast<char*>(context.uc_stack.ss_sp) +
++        context.uc_stack.ss_size;
++#else
+     stack_t st;
+     stack_getbounds(&st);
+     return static_cast<char*>(st.ss_sp) + st.ss_size;
++#endif
+ }
+ 
+-#elif defined(AIX)
++#elif defined(SOLARIS)
+ 
+ #include <ucontext.h>
+ 
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/mfbt/Poison.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/mfbt/Poison.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/extract/mfbt/Poison.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/extract/mfbt/Poison.cpp	2016-04-04 09:38:58 +0200
+@@ -129,7 +129,11 @@
+ static bool
+ ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
+ {
++#ifdef _AIX
++  if (madvise(reinterpret_cast<caddr_t>(aRegion), aSize, MADV_NORMAL)) {
++#else
+   if (madvise(reinterpret_cast<void*>(aRegion), aSize, MADV_NORMAL)) {
++#endif
+     return true;
+   } else {
+     return false;
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/mongo_sources/solaris_hacks.h mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/mongo_sources/solaris_hacks.h
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/mongo_sources/solaris_hacks.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/mongo_sources/solaris_hacks.h	2016-04-04 09:38:58 +0200
+@@ -29,10 +29,12 @@
+ 
+ #include <cstddef>
+ 
++#ifndef _AIX
+ /* Solaris doesn't expose madvise to c++ compilers, so just define in
+  * posix_madvise
+  */
+ #define madvise posix_madvise
++#endif
+ 
+ /* This doesn't seem to be provided on solaris.  This no opt function is
+  * similiar to a patch that was introduced into firefox after 38
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src0.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src0.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src0.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src0.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "asmjs/AsmJSFrameIterator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "asmjs/AsmJSFrameIterator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "asmjs/AsmJSFrameIterator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "asmjs/AsmJSLink.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "asmjs/AsmJSLink.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "asmjs/AsmJSLink.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "asmjs/AsmJSModule.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "asmjs/AsmJSModule.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "asmjs/AsmJSModule.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "asmjs/AsmJSSignalHandlers.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "asmjs/AsmJSSignalHandlers.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "asmjs/AsmJSSignalHandlers.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "asmjs/AsmJSValidate.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "asmjs/AsmJSValidate.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "asmjs/AsmJSValidate.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/AtomicsObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/AtomicsObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/AtomicsObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/Eval.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/Eval.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/Eval.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/Intl.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/Intl.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/Intl.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/MapObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/MapObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/MapObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/Object.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/Object.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/Object.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/Profilers.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/Profilers.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/Profilers.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/SIMD.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/SIMD.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/SIMD.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/SymbolObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/SymbolObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/SymbolObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/TestingFunctions.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/TestingFunctions.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/TestingFunctions.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/TypedObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/TypedObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/TypedObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "builtin/WeakSetObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "builtin/WeakSetObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "builtin/WeakSetObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src1.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src1.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src1.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src1.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "devtools/sharkctl.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "devtools/sharkctl.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "devtools/sharkctl.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "ds/LifoAlloc.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "ds/LifoAlloc.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "ds/LifoAlloc.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/BytecodeCompiler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/BytecodeCompiler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/BytecodeCompiler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/BytecodeEmitter.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/BytecodeEmitter.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/BytecodeEmitter.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/FoldConstants.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/FoldConstants.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/FoldConstants.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/NameFunctions.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/NameFunctions.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/NameFunctions.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/ParseMaps.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/ParseMaps.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/ParseMaps.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/ParseNode.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/ParseNode.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/ParseNode.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "frontend/TokenStream.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "frontend/TokenStream.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "frontend/TokenStream.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Barrier.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Barrier.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Barrier.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/GCTrace.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/GCTrace.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/GCTrace.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Iteration.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Iteration.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Iteration.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Marking.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Marking.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Marking.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Memory.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Memory.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Memory.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Nursery.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Nursery.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Nursery.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/RootMarking.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/RootMarking.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/RootMarking.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src10.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src10.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src10.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src10.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "vm/PosixNSPR.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/PosixNSPR.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/PosixNSPR.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Probes.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Probes.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Probes.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ProxyObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ProxyObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ProxyObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/RegExpObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/RegExpObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/RegExpObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/RegExpStatics.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/RegExpStatics.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/RegExpStatics.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Runtime.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Runtime.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Runtime.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/SPSProfiler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/SPSProfiler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/SPSProfiler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/SavedStacks.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/SavedStacks.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/SavedStacks.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ScopeObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ScopeObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ScopeObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/SelfHosting.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/SelfHosting.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/SelfHosting.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Shape.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Shape.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Shape.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/SharedArrayObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/SharedArrayObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/SharedArrayObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/SharedTypedArrayObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/SharedTypedArrayObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/SharedTypedArrayObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Stack.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Stack.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Stack.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/String.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/String.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/String.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/StringBuffer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/StringBuffer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/StringBuffer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src11.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src11.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src11.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src11.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,91 @@
++#define MOZ_UNIFIED_BUILD
++#include "vm/StructuredClone.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/StructuredClone.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/StructuredClone.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Symbol.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Symbol.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Symbol.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/TypeInference.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/TypeInference.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/TypeInference.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/TypedArrayObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/TypedArrayObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/TypedArrayObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/UbiNode.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/UbiNode.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/UbiNode.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/UnboxedObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/UnboxedObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/UnboxedObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Unicode.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Unicode.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Unicode.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Value.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Value.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Value.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/WeakMapPtr.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/WeakMapPtr.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/WeakMapPtr.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Xdr.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Xdr.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Xdr.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src2.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src2.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src2.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src2.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "gc/Statistics.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Statistics.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Statistics.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/StoreBuffer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/StoreBuffer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/StoreBuffer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Tracer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Tracer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Tracer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Verifier.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Verifier.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Verifier.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "gc/Zone.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "gc/Zone.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "gc/Zone.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/NativeRegExpMacroAssembler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/NativeRegExpMacroAssembler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/NativeRegExpMacroAssembler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpAST.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpAST.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpAST.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpEngine.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpEngine.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpEngine.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpInterpreter.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpInterpreter.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpInterpreter.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpMacroAssembler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpMacroAssembler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpMacroAssembler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpParser.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpParser.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpParser.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "irregexp/RegExpStack.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "irregexp/RegExpStack.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "irregexp/RegExpStack.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/AliasAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/AliasAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/AliasAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BacktrackingAllocator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BacktrackingAllocator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BacktrackingAllocator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Bailouts.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Bailouts.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Bailouts.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineBailouts.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineBailouts.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineBailouts.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src3.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src3.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src3.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src3.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "jit/BaselineCompiler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineCompiler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineCompiler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineDebugModeOSR.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineDebugModeOSR.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineDebugModeOSR.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineFrame.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineFrame.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineFrame.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineFrameInfo.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineFrameInfo.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineFrameInfo.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineIC.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineIC.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineIC.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineInspector.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineInspector.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineInspector.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BaselineJIT.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BaselineJIT.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BaselineJIT.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BitSet.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BitSet.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BitSet.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/BytecodeAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/BytecodeAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/BytecodeAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/C1Spewer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/C1Spewer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/C1Spewer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/CodeGenerator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/CodeGenerator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/CodeGenerator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/CompileWrappers.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/CompileWrappers.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/CompileWrappers.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Disassembler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Disassembler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Disassembler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/EdgeCaseAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/EdgeCaseAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/EdgeCaseAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/EffectiveAddressAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/EffectiveAddressAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/EffectiveAddressAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/ExecutableAllocator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/ExecutableAllocator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/ExecutableAllocator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src4.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src4.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src4.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src4.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "jit/Ion.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Ion.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Ion.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/IonAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/IonAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/IonAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/IonBuilder.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/IonBuilder.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/IonBuilder.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/IonCaches.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/IonCaches.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/IonCaches.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/IonOptimizationLevels.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/IonOptimizationLevels.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/IonOptimizationLevels.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/JSONSpewer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/JSONSpewer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/JSONSpewer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/JitFrames.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/JitFrames.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/JitFrames.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/JitOptions.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/JitOptions.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/JitOptions.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/JitSpewer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/JitSpewer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/JitSpewer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/JitcodeMap.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/JitcodeMap.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/JitcodeMap.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/LICM.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/LICM.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/LICM.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/LIR.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/LIR.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/LIR.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/LinearScan.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/LinearScan.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/LinearScan.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/LiveRangeAllocator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/LiveRangeAllocator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/LiveRangeAllocator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/LoopUnroller.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/LoopUnroller.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/LoopUnroller.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Lowering.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Lowering.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Lowering.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src5.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src5.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src5.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src5.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "jit/MCallOptimize.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/MCallOptimize.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/MCallOptimize.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/MIR.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/MIR.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/MIR.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/MIRGraph.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/MIRGraph.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/MIRGraph.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/MacroAssembler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/MacroAssembler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/MacroAssembler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/MoveResolver.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/MoveResolver.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/MoveResolver.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/OptimizationTracking.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/OptimizationTracking.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/OptimizationTracking.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/PerfSpewer.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/PerfSpewer.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/PerfSpewer.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/RangeAnalysis.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/RangeAnalysis.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/RangeAnalysis.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Recover.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Recover.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Recover.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/RegisterAllocator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/RegisterAllocator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/RegisterAllocator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/RematerializedFrame.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/RematerializedFrame.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/RematerializedFrame.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Safepoints.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Safepoints.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Safepoints.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/ScalarReplacement.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/ScalarReplacement.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/ScalarReplacement.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Sink.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Sink.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Sink.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/Snapshots.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/Snapshots.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/Snapshots.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/StupidAllocator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/StupidAllocator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/StupidAllocator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src6.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src6.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src6.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src6.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "jit/TypePolicy.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/TypePolicy.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/TypePolicy.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/TypedObjectPrediction.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/TypedObjectPrediction.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/TypedObjectPrediction.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/VMFunctions.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/VMFunctions.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/VMFunctions.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/ValueNumbering.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/ValueNumbering.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/ValueNumbering.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/none/Trampoline-none.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/none/Trampoline-none.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/none/Trampoline-none.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/shared/BaselineCompiler-shared.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/shared/BaselineCompiler-shared.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/shared/BaselineCompiler-shared.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/shared/CodeGenerator-shared.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/shared/CodeGenerator-shared.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/shared/CodeGenerator-shared.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jit/shared/Lowering-shared.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jit/shared/Lowering-shared.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jit/shared/Lowering-shared.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsalloc.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsalloc.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsalloc.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsapi.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsapi.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsapi.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsbool.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsbool.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsbool.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jscntxt.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jscntxt.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jscntxt.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jscompartment.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jscompartment.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jscompartment.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsdate.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsdate.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsdate.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsdtoa.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsdtoa.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsdtoa.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsexn.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsexn.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsexn.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src7.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src7.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src7.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src7.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "jsfriendapi.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsfriendapi.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsfriendapi.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsfun.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsfun.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsfun.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsgc.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsgc.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsgc.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsiter.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsiter.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsiter.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsnativestack.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsnativestack.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsnativestack.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsnum.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsnum.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsnum.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsobj.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsobj.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsobj.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "json.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "json.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "json.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsopcode.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsopcode.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsopcode.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsprf.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsprf.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsprf.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jspropertytree.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jspropertytree.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jspropertytree.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsreflect.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsreflect.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsreflect.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsscript.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsscript.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsscript.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsstr.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsstr.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsstr.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jswatchpoint.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jswatchpoint.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jswatchpoint.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "jsweakmap.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "jsweakmap.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "jsweakmap.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src8.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src8.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src8.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src8.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "perf/jsperf.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "perf/jsperf.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "perf/jsperf.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "prmjtime.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "prmjtime.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "prmjtime.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/BaseProxyHandler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/BaseProxyHandler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/BaseProxyHandler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/CrossCompartmentWrapper.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/CrossCompartmentWrapper.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/CrossCompartmentWrapper.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/DeadObjectProxy.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/DeadObjectProxy.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/DeadObjectProxy.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/DirectProxyHandler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/DirectProxyHandler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/DirectProxyHandler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/Proxy.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/Proxy.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/Proxy.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/ScriptedDirectProxyHandler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/ScriptedDirectProxyHandler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/ScriptedDirectProxyHandler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/ScriptedIndirectProxyHandler.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/ScriptedIndirectProxyHandler.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/ScriptedIndirectProxyHandler.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/SecurityWrapper.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/SecurityWrapper.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/SecurityWrapper.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "proxy/Wrapper.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "proxy/Wrapper.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "proxy/Wrapper.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ArgumentsObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ArgumentsObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ArgumentsObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ArrayBufferObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ArrayBufferObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ArrayBufferObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/CallNonGenericMethod.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/CallNonGenericMethod.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/CallNonGenericMethod.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/CharacterEncoding.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/CharacterEncoding.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/CharacterEncoding.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Compression.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Compression.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Compression.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src9.cpp mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src9.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src9.cpp	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/Unified_cpp_js_src9.cpp	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,145 @@
++#define MOZ_UNIFIED_BUILD
++#include "vm/DateTime.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/DateTime.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/DateTime.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Debugger.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Debugger.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Debugger.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/DebuggerMemory.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/DebuggerMemory.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/DebuggerMemory.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ErrorObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ErrorObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ErrorObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ForOfIterator.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ForOfIterator.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ForOfIterator.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/GeneratorObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/GeneratorObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/GeneratorObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/GlobalObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/GlobalObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/GlobalObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/HelperThreads.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/HelperThreads.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/HelperThreads.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Id.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Id.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Id.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Interpreter.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Interpreter.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Interpreter.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/JSONParser.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/JSONParser.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/JSONParser.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/MemoryMetrics.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/MemoryMetrics.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/MemoryMetrics.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/Monitor.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/Monitor.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/Monitor.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/NativeObject.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/NativeObject.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/NativeObject.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/ObjectGroup.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/ObjectGroup.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/ObjectGroup.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
++#include "vm/PIC.cpp"
++#ifdef PL_ARENA_CONST_ALIGN_MASK
++#error "vm/PIC.cpp uses PL_ARENA_CONST_ALIGN_MASK, so it cannot be built in unified mode."
++#undef PL_ARENA_CONST_ALIGN_MASK
++#endif
++#ifdef INITGUID
++#error "vm/PIC.cpp defines INITGUID, so it cannot be built in unified mode."
++#undef INITGUID
++#endif
+\ No newline at end of file
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/js-confdefs.h mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/js-confdefs.h
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/build/js-confdefs.h	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/build/js-confdefs.h	2016-04-04 10:50:52 +0200
+@@ -0,0 +1,84 @@
++/* List of defines generated by configure. Included with preprocessor flag,
++ * -include, to avoid long list of -D defines on the compile command-line.
++ * Do not edit.
++ */
++
++#ifndef js_confdefs_h
++#define js_confdefs_h
++
++#define CPP_THROW_NEW throw()
++#define D_INO d_ino
++#define EDITLINE 1
++#define HAVE_64BIT_BUILD 1
++#define HAVE_ACOSH 1
++#define HAVE_ASINH 1
++#define HAVE_ATANH 1
++#define HAVE_CBRT 1
++#define HAVE_CPP_AMBIGUITY_RESOLVING_USING 1
++#define HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR 1
++#define HAVE_CPUID_H 1
++#define HAVE_DIRENT_H 1
++#define HAVE_DLOPEN 1
++#define HAVE_EXPM1 1
++#define HAVE_GETC_UNLOCKED 1
++#define HAVE_GETOPT_H 1
++#define HAVE_GMTIME_R 1
++#define HAVE_I18N_LC_MESSAGES 1
++#define HAVE_LANGINFO_CODESET 1
++#define HAVE_LIBM 1
++#define HAVE_LIBSOCKET 1
++#define HAVE_LOCALECONV 1
++#define HAVE_LOCALECONV 1
++#define HAVE_LOCALTIME_R 1
++#define HAVE_LOG1P 1
++#define HAVE_LOG2 1
++#define HAVE_MALLOC_H 1
++#define HAVE_MBRTOWC 1
++#define HAVE_MEMORY_H 1
++#define HAVE_NL_TYPES_H 1
++#define HAVE_POSIX_FADVISE 1
++#define HAVE_POSIX_FALLOCATE 1
++#define HAVE_SETLOCALE 1
++#define HAVE_SSIZE_T 1
++#define HAVE_SYS_BYTEORDER_H 1
++#define HAVE_SYS_ISA_DEFS_H 1
++#define HAVE_SYS_MOUNT_H 1
++#define HAVE_SYS_STATVFS_H 1
++#define HAVE_SYS_VFS_H 1
++#define HAVE_THREAD_TLS_KEYWORD 1
++#define HAVE_TRUNC 1
++#define HAVE_UNISTD_H 1
++#define HAVE_VA_COPY 1
++#define HAVE_VISIBILITY_ATTRIBUTE 1
++#define HAVE_VISIBILITY_HIDDEN_ATTRIBUTE 1
++#define HAVE_WCRTOMB 1
++#define HAVE___CXA_DEMANGLE 1
++#define JS_CODEGEN_NONE 1
++#define JS_CPU_X86 1
++#define JS_DEFAULT_JITREPORT_GRANULARITY 3
++#define JS_HAVE_SYS_ISA_DEFS_H 1
++#define JS_POSIX_NSPR 1
++#define JS_PUNBOX64 1
++#define JS_STANDALONE 1
++#define MALLOC_H <malloc.h>
++#define MOZILLA_UAVERSION "38.0"
++#define MOZILLA_VERSION "38.0.1"
++#define MOZILLA_VERSION_U 38.0.1
++#define MOZJS_MAJOR_VERSION 38
++#define MOZJS_MINOR_VERSION 0
++#define MOZ_DEBUG_SYMBOLS 1
++#define MOZ_DLL_SUFFIX ".so"
++#define MOZ_UPDATE_CHANNEL default
++#define NS_ATTR_MALLOC __attribute__((malloc))
++#define NS_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
++#define RELEASE_BUILD 1
++#define SOLARIS 1
++#define STDC_HEADERS 1
++#define VA_COPY va_copy
++#define XP_UNIX 1
++#define X_DISPLAY_MISSING 1
++#define _REENTRANT 1
++
++#include "js/RequiredDefines.h"
++
++#endif /* js_confdefs_h */
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/include/js-config.h mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/include/js-config.h
+--- mongodb-src-r3.2.0.orig/src/third_party/mozjs-38/platform/PowerPC/aix/include/js-config.h	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/mozjs-38/platform/PowerPC/aix/include/js-config.h	2016-04-04 10:40:45 +0200
+@@ -0,0 +1,59 @@
++/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
++ * vim: set ts=8 sw=4 et tw=78:
++ *
++ * This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#ifndef js_config_h
++#define js_config_h
++
++/* Definitions set at build time that affect SpiderMonkey's public API.
++   This header file is generated by the SpiderMonkey configure script,
++   and installed along with jsapi.h.  */
++
++/* Define to 1 if SpiderMonkey is in debug mode. */
++/* #undef JS_DEBUG */
++
++/* Define to 1 if SpiderMonkey should not use struct types in debug builds. */
++/* #undef JS_NO_JSVAL_JSID_STRUCT_TYPES */
++
++/* Define to 1 if SpiderMonkey should support multi-threaded clients.  */
++/* #undef JS_THREADSAFE */
++
++/* Define to 1 if SpiderMonkey should include ctypes support.  */
++/* #undef JS_HAS_CTYPES */
++
++/* Define to 1 if SpiderMonkey should support the ability to perform
++   entirely too much GC.  */
++/* #undef JS_GC_ZEAL */
++
++/* Define to 1 if SpiderMonkey should use small chunks. */
++/* #undef JS_GC_SMALL_CHUNK_SIZE */
++
++/* Define to 1 to perform extra assertions and heap poisoning. */
++/* #undef JS_CRASH_DIAGNOSTICS */
++
++/* Define to 1 if the <endian.h> header is present and
++   useable.  See jscpucfg.h.  */
++/* #undef JS_HAVE_ENDIAN_H */
++
++/* Define to 1 if the <machine/endian.h> header is present and
++   useable.  See jscpucfg.h.  */
++/* #undef JS_HAVE_MACHINE_ENDIAN_H */
++
++/* Define to 1 if the <sys/isa_defs.h> header is present and
++   useable.  See jscpucfg.h.  */
++#define JS_HAVE_SYS_ISA_DEFS_H 1
++
++/* Define to 1 if SpiderMonkey is in NUNBOX32 mode. */
++/* #undef JS_NUNBOX32 */
++
++/* Define to 1 if SpiderMonkey is in PUNBOX64 mode. */
++#define JS_PUNBOX64 1
++
++/* MOZILLA JSAPI version number components */
++#define MOZJS_MAJOR_VERSION 38
++#define MOZJS_MINOR_VERSION 0
++
++#endif /* js_config_h */
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/murmurhash3/MurmurHash3.cpp mongodb-src-r3.2.0.aix/src/third_party/murmurhash3/MurmurHash3.cpp
+--- mongodb-src-r3.2.0.orig/src/third_party/murmurhash3/MurmurHash3.cpp	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/murmurhash3/MurmurHash3.cpp	2016-04-04 09:38:58 +0200
+@@ -48,18 +48,59 @@
+ 
+ #endif // !defined(_MSC_VER)
+ 
++/* NO-OP for little-endian platforms */
++#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
++# if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#   define BYTESWAP32(x) (x)
++#   define BYTESWAP64(x) (x)
++# endif
++/* if __BYTE_ORDER__ is not predefined (like FreeBSD), use arch */
++#elif defined(__i386) || defined(__x86_64) \
++        || defined(__alpha) || defined(__vax)
++# define BYTESWAP32(x) (x)
++# define BYTESWAP64(x) (x)
++/* use __builtin_bswap32 if available */
++#elif defined(__GNUC__) || defined(__clang__)
++# ifdef __has_builtin
++#   if __has_builtin(__builtin_bswap32)
++#     define BYTESWAP32(x) __builtin_bswap32(x)
++#   endif // __has_builtin(__builtin_bswap32)
++#   if __has_builtin(__builtin_bswap64)
++#     define BYTESWAP64(x) __builtin_bswap64(x)
++#   endif // __has_builtin(__builtin_bswap64)
++# endif // __has_builtin
++#endif // defined(__GNUC__) || defined(__clang__)
++/* last resort (big-endian w/o __builtin_bswap) */
++#ifndef BYTESWAP32
++# define BYTESWAP32(x) ( (((x)&0xFF)<<24) \
++                        |(((x)>>24)&0xFF) \
++                        |(((x)&0x0000FF00)<<8) \
++                        |(((x)&0x00FF0000)>>8) )
++#endif
++#ifndef BYTESWAP64
++# define BYTESWAP64(x) \
++        (((uint64_t)(x) << 56) | \
++         (((uint64_t)(x) << 40) & 0X00FF000000000000ULL) | \
++         (((uint64_t)(x) << 24) & 0X0000FF0000000000ULL) | \
++         (((uint64_t)(x) <<  8) & 0X000000FF00000000ULL) | \
++         (((uint64_t)(x) >>  8) & 0X00000000FF000000ULL) | \
++         (((uint64_t)(x) >> 24) & 0X0000000000FF0000ULL) | \
++         (((uint64_t)(x) >> 40) & 0X000000000000FF00ULL) | \
++         ((uint64_t)(x) >> 56))
++#endif
++
+ //-----------------------------------------------------------------------------
+ // Block read - if your platform needs to do endian-swapping or can only
+ // handle aligned reads, do the conversion here
+ 
+ FORCE_INLINE inline uint32_t getblock ( const uint32_t * p, int i )
+ {
+-  return p[i];
++  return BYTESWAP32(p[i]);
+ }
+ 
+ FORCE_INLINE inline uint64_t getblock ( const uint64_t * p, int i )
+ {
+-  return p[i];
++  return BYTESWAP64(p[i]);
+ }
+ 
+ //-----------------------------------------------------------------------------
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/pcre-8.37/build_posix/config.h mongodb-src-r3.2.0.aix/src/third_party/pcre-8.37/build_posix/config.h
+--- mongodb-src-r3.2.0.orig/src/third_party/pcre-8.37/build_posix/config.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/pcre-8.37/build_posix/config.h	2016-04-04 09:38:59 +0200
+@@ -122,10 +122,10 @@
+ /* #undef HAVE_STRTOIMAX */
+ 
+ /* Define to 1 if you have `strtoll'. */
+-/* #undef HAVE_STRTOLL */
++#define HAVE_STRTOLL 1
+ 
+ /* Define to 1 if you have `strtoq'. */
+-#define HAVE_STRTOQ 1
++/* #undef HAVE_STRTOQ */
+ 
+ /* Define to 1 if you have the <sys/stat.h> header file. */
+ #define HAVE_SYS_STAT_H 1
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/s2/base/integral_types.h mongodb-src-r3.2.0.aix/src/third_party/s2/base/integral_types.h
+--- mongodb-src-r3.2.0.orig/src/third_party/s2/base/integral_types.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/s2/base/integral_types.h	2016-04-04 09:38:59 +0200
+@@ -19,6 +19,11 @@
+ // All Google2 code is compiled with -funsigned-char to make "char"
+ // unsigned.  Google2 code therefore doesn't need a "uchar" type.
+ typedef signed char         schar;
++#ifdef _AIX
++#ifndef _H_INTTYPES
++#include <sys/inttypes.h>
++#endif
++#else
+ typedef signed char         int8;
+ typedef short               int16;
+ typedef int                 int32;
+@@ -27,6 +32,7 @@
+ #else
+ typedef long long           int64;
+ #endif /* COMPILER_MSVC */
++#endif /* _AIX */
+ 
+ // NOTE: unsigned types are DANGEROUS in loops and other arithmetical
+ // places.  Use the signed types unless your variable represents a bit
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/s2/base/port.h mongodb-src-r3.2.0.aix/src/third_party/s2/base/port.h
+--- mongodb-src-r3.2.0.orig/src/third_party/s2/base/port.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/s2/base/port.h	2016-04-04 09:38:59 +0200
+@@ -139,6 +139,18 @@
+ #define bswap_16(x) swap16(x)
+ #define bswap_32(x) swap32(x)
+ #define bswap_64(x) swap64(x)
++#elif defined _AIX
++#define bswap_16(x) ((((x) >> 8) & 0xffu) | (((x) & 0xffu) << 8))
++#define bswap_32(x) ((((x) & 0xff000000u) >> 24) | (((x) & 0x00ff0000u) >>  8) | \
++                     (((x) & 0x0000ff00u) <<  8) | (((x) & 0x000000ffu) << 24))
++#define bswap_64(x) ((((x) & 0xff00000000000000ull) >> 56) \
++                   | (((x) & 0x00ff000000000000ull) >> 40) \
++                   | (((x) & 0x0000ff0000000000ull) >> 24) \
++                   | (((x) & 0x000000ff00000000ull) >> 8)  \
++                   | (((x) & 0x00000000ff000000ull) << 8)  \
++                   | (((x) & 0x0000000000ff0000ull) << 24) \
++                   | (((x) & 0x000000000000ff00ull) << 40) \
++                   | (((x) & 0x00000000000000ffull) << 56))
+ #else
+ #include <byteswap.h>
+ #endif
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/s2/util/math/mathlimits.cc mongodb-src-r3.2.0.aix/src/third_party/s2/util/math/mathlimits.cc
+--- mongodb-src-r3.2.0.orig/src/third_party/s2/util/math/mathlimits.cc	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/s2/util/math/mathlimits.cc	2016-04-04 09:38:59 +0200
+@@ -8,7 +8,7 @@
+ 
+ // MSVC++ 2005 thinks the header declaration was a definition, and
+ // erroneously flags these as a duplicate definition.
+-#ifdef COMPILER_MSVC
++#if defined(COMPILER_MSVC) || defined(_AIX)
+ 
+ #define DEF_COMMON_LIMITS(Type)
+ #define DEF_UNSIGNED_INT_LIMITS(Type)
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/snappy-1.1.2/SConscript mongodb-src-r3.2.0.aix/src/third_party/snappy-1.1.2/SConscript
+--- mongodb-src-r3.2.0.orig/src/third_party/snappy-1.1.2/SConscript	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/snappy-1.1.2/SConscript	2016-04-04 09:38:59 +0200
+@@ -1,11 +1,15 @@
+ # -*- mode: python -*-
+ 
+-Import("env")
++Import("env endian")
+ 
+ if env.ToolchainIs('clang', 'GCC'):
+     env = env.Clone()
+     env.Append(CCFLAGS=['-Wno-sign-compare', '-Wno-unused-function'])
+ 
++if endian == "big":
++    env.Append(CCFLAGS=['-Wno-sign-compare', '-Wno-unused-function'])
++    env.Append(CPPDEFINES=['WORDS_BIGENDIAN'])
++
+ env.Library(
+     target='snappy',
+     source=[
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/SConscript mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/SConscript
+--- mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/SConscript	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/SConscript	2016-04-04 09:38:59 +0200
+@@ -2,7 +2,7 @@
+ import re
+ import textwrap
+ 
+-Import("env debugBuild")
++Import("env debugBuild endian")
+ Import("get_option")
+ 
+ env = env.Clone()
+@@ -56,6 +56,8 @@
+ elif env.TargetOSIs('linux'):
+     env.Append(CPPPATH=["build_linux"])
+     env.Append(CPPDEFINES=["_GNU_SOURCE"])
++elif env.TargetOSIs('aix'):
++    env.Append(CPPPATH=["build_aix"])
+ else:
+     print("Wiredtiger is not supported on this platform. " +
+         "Please generate an approriate wiredtiger_config.h")
+@@ -126,6 +128,8 @@
+                  for line in filelist
+                  if not line.startswith("#") and len(line.strip()) >= 1]
+ 
++if endian == "big":
++    env.Append(CPPDEFINES=['WORDS_BIGENDIAN'])
+ if useZlib:
+     env.Append(CPPDEFINES=['HAVE_BUILTIN_EXTENSION_ZLIB'])
+     wtsources.append("ext/compressors/zlib/zlib_compress.c")
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/build_aix/wiredtiger_config.h mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/build_aix/wiredtiger_config.h
+--- mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/build_aix/wiredtiger_config.h	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/build_aix/wiredtiger_config.h	2016-04-04 11:14:18 +0200
+@@ -0,0 +1,150 @@
++/* wiredtiger_config.h.  Generated from config.hin by configure.  */
++/* build_posix/config.hin.  Generated from configure.ac by autoheader.  */
++
++/* Define if building universal (internal helper macro) */
++/* #undef AC_APPLE_UNIVERSAL_BUILD */
++
++/* Define to 1 to pause for debugger attach on failure. */
++/* #undef HAVE_ATTACH */
++
++/* Build the LevelDB API with Basho LevelDB support. */
++/* #undef HAVE_BASHOLEVELDB */
++
++/* Snappy support automatically loaded. */
++/* #undef HAVE_BUILTIN_EXTENSION_SNAPPY */
++
++/* Zlib support automatically loaded. */
++/* #undef HAVE_BUILTIN_EXTENSION_ZLIB */
++
++/* Define to 1 if you have the `clock_gettime' function. */
++#define HAVE_CLOCK_GETTIME 1
++
++/* Define to 1 for diagnostic tests. */
++/* #undef HAVE_DIAGNOSTIC */
++
++/* Define to 1 if you have the <dlfcn.h> header file. */
++#define HAVE_DLFCN_H 1
++
++/* Define to 1 if you have the `fallocate' function. */
++/* #undef HAVE_FALLOCATE */
++
++/* Define to 1 if you have the `fcntl' function. */
++#define HAVE_FCNTL 1
++
++/* Define to 1 if you have the `fdatasync' function. */
++#define HAVE_FDATASYNC 1
++
++/* Define to 1 if you have the `fread_unlocked' function. */
++/* #undef HAVE_FREAD_UNLOCKED */
++
++/* Define to 1 if you have the `ftruncate' function. */
++#define HAVE_FTRUNCATE 1
++
++/* Define to 1 if you have the `gettimeofday' function. */
++#define HAVE_GETTIMEOFDAY 1
++
++/* Build the LevelDB API with HyperLevelDB support. */
++/* #undef HAVE_HYPERLEVELDB */
++
++/* Define to 1 if you have the <inttypes.h> header file. */
++#define HAVE_INTTYPES_H 1
++
++/* Define to 1 if you have the `bz2' library (-lbz2). */
++/* #undef HAVE_LIBBZ2 */
++
++/* Define to 1 if you have the `dl' library (-ldl). */
++#define HAVE_LIBDL 1
++
++/* Define to 1 if you have the `pthread' library (-lpthread). */
++#define HAVE_LIBPTHREAD 1
++
++/* Define to 1 if you have the `rt' library (-lrt). */
++#define HAVE_LIBRT 1
++
++/* Define to 1 if you have the `snappy' library (-lsnappy). */
++/* #undef HAVE_LIBSNAPPY */
++
++/* Define to 1 if you have the `z' library (-lz). */
++/* #undef HAVE_LIBZ */
++
++/* Define to 1 if you have the <memory.h> header file. */
++#define HAVE_MEMORY_H 1
++
++/* Define to 1 if you have the `posix_fadvise' function. */
++#define HAVE_POSIX_FADVISE 1
++
++/* Define to 1 if you have the `posix_fallocate' function. */
++#define HAVE_POSIX_FALLOCATE 1
++
++/* Define to 1 if you have the `posix_madvise' function. */
++#define HAVE_POSIX_MADVISE 1
++
++/* Define to 1 if you have the `posix_memalign' function. */
++#define HAVE_POSIX_MEMALIGN 1
++
++/* Define to 1 if you have the <pthread_np.h> header file. */
++/* #undef HAVE_PTHREAD_NP_H */
++
++/* Build the LevelDB API with RocksDB support. */
++/* #undef HAVE_ROCKSDB */
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#define HAVE_STDINT_H 1
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#define HAVE_STDLIB_H 1
++
++/* Define to 1 if you have the <strings.h> header file. */
++#define HAVE_STRINGS_H 1
++
++/* Define to 1 if you have the <string.h> header file. */
++#define HAVE_STRING_H 1
++
++/* Define to 1 if you have the `strtouq' function. */
++/* #undef HAVE_STRTOUQ */
++
++/* Define to 1 if you have the `sync_file_range' function. */
++/* #undef HAVE_SYNC_FILE_RANGE */
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#define HAVE_SYS_STAT_H 1
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#define HAVE_SYS_TYPES_H 1
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#define HAVE_UNISTD_H 1
++
++/* Enable verbose message configuration. */
++/* #undef HAVE_VERBOSE */
++
++/* Spinlock type from mutex.h. */
++#define SPINLOCK_TYPE SPINLOCK_PTHREAD_MUTEX
++
++/* Define to 1 if you have the ANSI C header files. */
++#define STDC_HEADERS 1
++
++/* Define WORDS_BIGENDIAN to 0 if your processor stores words with the most
++   significant byte first (like Motorola and SPARC, unlike Intel). */
++#if defined _AIX
++# define WORDS_BIGENDIAN 1
++#else
++#if defined AC_APPLE_UNIVERSAL_BUILD
++# if defined __BIG_ENDIAN__
++#  define WORDS_BIGENDIAN 1
++# endif
++#else
++# ifndef WORDS_BIGENDIAN
++/* #  undef WORDS_BIGENDIAN */
++# endif
++#endif
++#endif
++
++/* Default alignment of buffers used for I/O */
++#define WT_BUFFER_ALIGNMENT_DEFAULT 0
++
++/* Number of bits in a file offset, on hosts where this is settable. */
++/* #undef _FILE_OFFSET_BITS */
++
++/* Define for large files, on AIX-style hosts. */
++/* #undef _LARGE_FILES */
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/include/gcc.h mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/include/gcc.h
+--- mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/include/gcc.h	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/include/gcc.h	2016-04-04 09:38:59 +0200
+@@ -176,9 +176,9 @@
+ #define	WT_READ_BARRIER()	WT_FULL_BARRIER()
+ #define	WT_WRITE_BARRIER()	WT_FULL_BARRIER()
+ 
+-#elif defined(__PPC64__) || defined(PPC64)
++#elif defined(__PPC64__) || defined(PPC64) || defined(_AIX)
+ #define	WT_PAUSE()	__asm__ volatile("ori 0,0,0" ::: "memory")
+-#define	WT_FULL_BARRIER()	do {
++#define	WT_FULL_BARRIER()	do {                        \
+ 	__asm__ volatile ("sync" ::: "memory");				\
+ } while (0)
+ #define	WT_READ_BARRIER()	WT_FULL_BARRIER()
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/support/global.c mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/support/global.c
+--- mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/support/global.c	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/support/global.c	2016-04-04 09:38:59 +0200
+@@ -42,11 +42,6 @@
+ {
+ 	WT_DECL_RET;
+ 
+-	if ((ret = __system_is_little_endian()) != 0) {
+-		__wt_pthread_once_failed = ret;
+-		return;
+-	}
+-
+ 	if ((ret =
+ 	    __wt_spin_init(NULL, &__wt_process.spinlock, "global")) != 0) {
+ 		__wt_pthread_once_failed = ret;
+diff -Nur mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/support/hash_city.c mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/support/hash_city.c
+--- mongodb-src-r3.2.0.orig/src/third_party/wiredtiger/src/support/hash_city.c	2015-12-02 20:01:34 +0100
++++ mongodb-src-r3.2.0.aix/src/third_party/wiredtiger/src/support/hash_city.c	2016-04-04 09:38:59 +0200
+@@ -99,6 +99,19 @@
+ #define	bswap_32(x) OSSwapInt32(x)
+ #define	bswap_64(x) OSSwapInt64(x)
+ 
++#elif defined _AIX
++#define bswap_16(x) ((((x) >> 8) & 0xffu) | (((x) & 0xffu) << 8))
++#define bswap_32(x) ((((x) & 0xff000000u) >> 24) | (((x) & 0x00ff0000u) >>  8) | \
++                     (((x) & 0x0000ff00u) <<  8) | (((x) & 0x000000ffu) << 24))
++#define bswap_64(x) ((((x) & 0xff00000000000000ull) >> 56) \
++                   | (((x) & 0x00ff000000000000ull) >> 40) \
++                   | (((x) & 0x0000ff0000000000ull) >> 24) \
++                   | (((x) & 0x000000ff00000000ull) >> 8)  \
++                   | (((x) & 0x00000000ff000000ull) << 8)  \
++                   | (((x) & 0x0000000000ff0000ull) << 24) \
++                   | (((x) & 0x000000000000ff00ull) << 40) \
++                   | (((x) & 0x00000000000000ffull) << 56))
++
+ #else
+ #include <byteswap.h>
+ #endif
+diff -Nur mongodb-src-r3.2.0.orig/version.json mongodb-src-r3.2.0.aix/version.json
+--- mongodb-src-r3.2.0.orig/version.json	1970-01-01 01:00:00 +0100
++++ mongodb-src-r3.2.0.aix/version.json	2016-04-04 09:38:59 +0200
+@@ -1,4 +1,3 @@
+ {
+-    "githash": "45d947729a0315accb6d4f15a6b06be6d9c19fe7",
+     "version": "3.2.0"
+-}
+\ No newline at end of file
++}

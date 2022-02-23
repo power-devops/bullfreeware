@@ -1,0 +1,38 @@
+--- /dev/null	2021-08-25 16:58:29 +0200
++++ ./src/backend/port/aix/mergeldexport.sh	2021-08-25 17:05:35 +0200
+@@ -0,0 +1,15 @@
++# $1: *.exp       : manage first line apart
++# $2: exports.txt : remove comment # lines and take first word
++# Merge the 2 files in one if $2 does exist
++
++if [ -f "$2" ]
++then
++	n1=`wc -l $1 | awk '{print $1}'`
++	n1=`expr $n1 - 1`
++	h1=`head -n 1 $1`
++	tail -n $n1 $1 > /tmp/$$
++	grep -v "^#" $2 | awk '{print $1}' >> /tmp/$$
++	echo $h1 > $1
++	sort -u /tmp/$$ >> $1
++	rm -f /tmp/$$
++fi
+--- ./src/Makefile.shlib.ORIGIN	2021-08-25 15:48:43 +0200
++++ ./src/Makefile.shlib	2021-08-25 16:58:39 +0200
+@@ -330,6 +330,7 @@
+ 	$(LINK.static) $(stlib) $^
+ 	$(RANLIB) $(stlib)
+ 	$(MKLDEXPORT) $(stlib) $(shlib) >$(exports_file)
++	$(MERGELDEXPORT) $(exports_file) $(SHLIB_EXPORTS)
+ 	$(COMPILER) -o $(shlib) $(stlib) -Wl,-bE:$(exports_file) $(LDFLAGS) $(LDFLAGS_SL) $(SHLIB_LINK)
+ 	rm -f $(stlib)
+ 	$(AR) $(AROPT) $(stlib) $(shlib)
+--- ./src/makefiles/Makefile.aix.ORIGIN	2021-08-25 16:59:43 +0200
++++ ./src/makefiles/Makefile.aix	2021-08-25 17:00:36 +0200
+@@ -37,6 +37,7 @@
+ 
+ MKLDEXPORT_DIR=src/backend/port/aix
+ MKLDEXPORT=$(top_srcdir)/$(MKLDEXPORT_DIR)/mkldexport.sh
++MERGELDEXPORT=$(top_srcdir)/$(MKLDEXPORT_DIR)/mergeldexport.sh
+ 
+ %.exp: %.o
+ 	$(MKLDEXPORT) $^ >$@

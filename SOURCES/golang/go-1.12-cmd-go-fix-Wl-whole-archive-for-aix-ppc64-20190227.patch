@@ -1,0 +1,49 @@
+From 0d8c3637b1482402eb5328ca089862eb30fa636a Mon Sep 17 00:00:00 2001
+From: Clément Chigot <clement.chigot@atos.net>
+Date: Wed, 27 Feb 2019 13:49:17 +0100
+Subject: [PATCH] cmd/go: fix -Wl,--whole-archive for aix/ppc64
+
+--whole-archive doesn't exist on AIX. It was already removed most of
+the time but was still added with c-archive or c-shared buildmodes.
+
+Change-Id: Ia7360638509d4a4d91674b0281ed4b112508a2c9
+Reviewed-on: https://go-review.googlesource.com/c/164037
+Run-TryBot: Ian Lance Taylor <iant@golang.org>
+TryBot-Result: Gobot Gobot <gobot@golang.org>
+Reviewed-by: Ian Lance Taylor <iant@golang.org>
+---
+
+diff --git a/src/cmd/go/internal/work/gccgo.go b/src/cmd/go/internal/work/gccgo.go
+index 69a25be..184d291 100644
+--- a/src/cmd/go/internal/work/gccgo.go
++++ b/src/cmd/go/internal/work/gccgo.go
+@@ -407,6 +407,7 @@
+ 	}
+ 
+ 	var realOut string
++	goLibBegin := str.StringList(wholeArchive, "-lgolibbegin", noWholeArchive)
+ 	switch buildmode {
+ 	case "exe":
+ 		if usesCgo && cfg.Goos == "linux" {
+@@ -428,7 +429,8 @@
+ 		// split-stack and non-split-stack code in a single -r
+ 		// link, and libgo picks up non-split-stack code from
+ 		// libffi.
+-		ldflags = append(ldflags, "-Wl,-r", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive")
++		ldflags = append(ldflags, "-Wl,-r", "-nostdlib")
++		ldflags = append(ldflags, goLibBegin...)
+ 
+ 		if nopie := b.gccNoPie([]string{tools.linker()}); nopie != "" {
+ 			ldflags = append(ldflags, nopie)
+@@ -443,7 +445,10 @@
+ 		out = out + ".o"
+ 
+ 	case "c-shared":
+-		ldflags = append(ldflags, "-shared", "-nostdlib", "-Wl,--whole-archive", "-lgolibbegin", "-Wl,--no-whole-archive", "-lgo", "-lgcc_s", "-lgcc", "-lc", "-lgcc")
++		ldflags = append(ldflags, "-shared", "-nostdlib")
++		ldflags = append(ldflags, goLibBegin...)
++		ldflags = append(ldflags, "-lgo", "-lgcc_s", "-lgcc", "-lc", "-lgcc")
++
+ 	case "shared":
+ 		if cfg.Goos != "aix" {
+ 			ldflags = append(ldflags, "-zdefs")

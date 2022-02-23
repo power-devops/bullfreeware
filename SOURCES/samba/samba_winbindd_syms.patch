@@ -1,0 +1,8 @@
+--- ./source3/winbindd/wscript_build_orig	2019-05-10 18:05:05 +0000
++++ ./source3/winbindd/wscript_build	2019-05-10 18:07:26 +0000
+@@ -281,4 +281,5 @@
+                  LIBLSA
+                  ''',
+                  enabled=bld.env.build_winbind,
++                 ldflags='-Wl,-bE:./../../samba_winbindd_syms.exp',
+                  install_path='${SBINDIR}')

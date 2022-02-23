@@ -1,0 +1,11 @@
+--- ./CMakeLists.txt.orig	2021-03-02 11:05:22 +0100
++++ ./CMakeLists.txt	2021-03-02 11:05:58 +0100
+@@ -253,7 +253,7 @@
+   ENDIF()
+ ENDIF()
+ 
+-IF(APPLE)
++IF(APPLE OR CMAKE_SYSTEM_NAME MATCHES AIX)
+   # Looking for iconv files
+   INCLUDE(${CMAKE_SOURCE_DIR}/cmake/FindIconv.cmake)
+   IF(ICONV_FOUND)

@@ -1,0 +1,80 @@
+--- old/libgo/runtime/go-callers.c	2016-10-03 18:19:18 +0200
++++ new/libgo/runtime/go-callers.c	2016-10-03 18:34:14 +0200
+@@ -11,6 +11,19 @@
+ #include "runtime.h"
+ #include "array.h"
+ 
++#ifndef DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_THUNK		"_thunk"
++#define DOLLAR_RECOVER		"_recover"
++#define DOLLAR_STUB		"_stub"
++#define DOLLAR_DOLLAR_CHAR	'_'
++#else
++#define DOLLAR_DOLLAR_CHAR	'$'
++#define DOLLAR_THUNK		"$thunk"
++#define DOLLAR_RECOVER		"$recover"
++#define DOLLAR_STUB		"$stub"
++#endif
++
++
+ /* This is set to non-zero when calling backtrace_full.  This is used
+    to avoid getting hanging on a recursive lock in dl_iterate_phdr on
+    older versions of glibc when a SIGPROF signal arrives while
+@@ -69,12 +82,12 @@
+       const char *p;
+ 
+       p = __builtin_strchr (function, '.');
+-      if (p != NULL && __builtin_strncmp (p + 1, "$thunk", 6) == 0)
++      if (p != NULL && __builtin_strncmp (p + 1, DOLLAR_THUNK, 6) == 0)
+ 	return 0;
+-      p = __builtin_strrchr (function, '$');
+-      if (p != NULL && __builtin_strcmp(p, "$recover") == 0)
++      p = __builtin_strrchr (function, DOLLAR_DOLLAR_CHAR);
++      if (p != NULL && __builtin_strcmp(p, DOLLAR_RECOVER) == 0)
+ 	return 0;
+-      if (p != NULL && __builtin_strncmp(p, "$stub", 5) == 0)
++      if (p != NULL && __builtin_strncmp(p, DOLLAR_STUB, 5) == 0)
+ 	return 0;
+     }
+ 
+--- gcc-7-20170203.orig/libgo/runtime/go-unsafe-pointer.c	2017-01-24 01:00:21 -0600
++++ gcc-7-20170203.new/libgo/runtime/go-unsafe-pointer.c	2017-02-06 13:04:48 -0600
+@@ -10,6 +10,17 @@
+ #include "go-type.h"
+ #include "mgc0.h"
+ 
++#ifndef DOLLAR_IN_LABEL_FOR_GO
++#define DOLLAR_GO_TDN_UNSAFE_POINTER_GC	"__go_tdn_unsafe.Pointer_gc"
++#define DOLLAR_DESCRIPTOR	"_descriptor"
++#define DOLLAR_CHAR            "_"
++#else
++#define DOLLAR_GO_TDN_UNSAFE_POINTER_GC	"__go_tdn_unsafe.Pointer$gc"
++#define DOLLAR_DESCRIPTOR	"$descriptor"
++#define DOLLAR_CHAR            "$"
++#endif
++
++
+ /* This file provides the type descriptor for the unsafe.Pointer type.
+    The unsafe package is defined by the compiler itself, which means
+    that there is no package to compile to define the type
+@@ -19,7 +30,7 @@
+   __asm__ (GOSYM_PREFIX "__go_tdn_unsafe.Pointer");
+ 
+ extern const uintptr unsafe_Pointer_gc[]
+-  __asm__ (GOSYM_PREFIX "__go_tdn_unsafe.Pointer$gc");
++  __asm__ (GOSYM_PREFIX DOLLAR_GO_TDN_UNSAFE_POINTER_GC);
+ 
+ /* Used to determine the field alignment.  */
+ struct field_align
+@@ -40,9 +51,9 @@
+   {sizeof(void*), GC_APTR, 0, GC_END};
+ 
+ extern const FuncVal runtime_pointerhash_descriptor
+-  __asm__ (GOSYM_PREFIX "runtime.pointerhash$descriptor");
++  __asm__ (GOSYM_PREFIX "runtime.pointerhash" DOLLAR_DESCRIPTOR);
+ extern const FuncVal runtime_pointerequal_descriptor
+-  __asm__ (GOSYM_PREFIX "runtime.pointerequal$descriptor");
++  __asm__ (GOSYM_PREFIX "runtime.pointerequal" DOLLAR_DESCRIPTOR);
+ 
+ const struct __go_type_descriptor unsafe_Pointer =
+ {

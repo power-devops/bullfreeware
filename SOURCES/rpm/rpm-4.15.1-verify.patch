@@ -1,0 +1,13 @@
+--- ./lib/verify.c_orig	2021-01-28 01:08:17 +0000
++++ ./lib/verify.c	2021-01-28 01:08:43 +0000
+@@ -160,8 +160,8 @@
+ 	vfy |= RPMVERIFY_FILESIZE;
+ 
+     if (flags & RPMVERIFY_MODE) {
+-	mode_t metamode = fsb.st_mode;
+-	mode_t filemode = sb.st_mode;
++	rpm_mode_t metamode = fsb.st_mode;
++	rpm_mode_t filemode = (rpm_mode_t)sb.st_mode;
+ 
+ 	/*
+ 	 * Comparing the type of %ghost files is meaningless, but perms are OK.
